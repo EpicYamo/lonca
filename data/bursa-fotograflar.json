@@ -1,0 +1,773 @@
+{
+ "bursa-ulucami": [
+  "/medya/eserler/bursa-ulucami-1.jpg",
+  "/medya/eserler/bursa-ulucami-2.jpg",
+  "/medya/eserler/bursa-ulucami-3.jpg",
+  "/medya/eserler/bursa-ulucami-4.jpg"
+ ],
+ "bursa-ii-murad-kulliyesi": [
+  "/medya/eserler/bursa-ii-murad-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-ii-murad-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-ii-murad-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-ii-murad-kulliyesi-4.jpg"
+ ],
+ "bursa-muradiye-cesmesi": [
+  "/medya/eserler/bursa-muradiye-cesmesi-1.jpg",
+  "/medya/eserler/bursa-muradiye-cesmesi-2.jpg",
+  "/medya/eserler/bursa-muradiye-cesmesi-3.jpg",
+  "/medya/eserler/bursa-muradiye-cesmesi-4.jpg"
+ ],
+ "bursa-sehzade-mustafa-turbesi": [
+  "/medya/eserler/bursa-sehzade-mustafa-turbesi-1.jpg",
+  "/medya/eserler/bursa-sehzade-mustafa-turbesi-2.jpg",
+  "/medya/eserler/bursa-sehzade-mustafa-turbesi-3.jpg",
+  "/medya/eserler/bursa-sehzade-mustafa-turbesi-4.jpg"
+ ],
+ "bursa-hamza-bey-kulliyesi": [
+  "/medya/eserler/bursa-hamza-bey-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-hamza-bey-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-hamza-bey-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-hamza-bey-kulliyesi-4.jpg"
+ ],
+ "bursa-orhan-bey-kulliyesi": [
+  "/medya/eserler/bursa-orhan-bey-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-orhan-bey-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-orhan-bey-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-orhan-bey-kulliyesi-4.jpg"
+ ],
+ "bursa-orhan-bey-hamami-aynali-carsi": [
+  "/medya/eserler/bursa-orhan-bey-hamami-aynali-carsi-1.jpg",
+  "/medya/eserler/bursa-orhan-bey-hamami-aynali-carsi-2.jpg",
+  "/medya/eserler/bursa-orhan-bey-hamami-aynali-carsi-3.jpg"
+ ],
+ "bursa-emir-han": [
+  "/medya/eserler/bursa-emir-han-1.jpg",
+  "/medya/eserler/bursa-emir-han-2.jpg",
+  "/medya/eserler/bursa-emir-han-3.jpg"
+ ],
+ "bursa-timurtas-pasa-kulliyesi": [
+  "/medya/eserler/bursa-timurtas-pasa-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-timurtas-pasa-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-timurtas-pasa-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-timurtas-pasa-kulliyesi-4.jpg"
+ ],
+ "bursa-ahmet-dai-camii": [
+  "/medya/eserler/bursa-ahmet-dai-camii-1.jpg",
+  "/medya/eserler/bursa-ahmet-dai-camii-2.jpg",
+  "/medya/eserler/bursa-ahmet-dai-camii-3.jpg"
+ ],
+ "bursa-akbiyik-camii-ve-haziresi": [
+  "/medya/eserler/bursa-akbiyik-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-akbiyik-camii-ve-haziresi-2.jpg"
+ ],
+ "bursa-alaeddin-bey-camii-ve-haziresi": [
+  "/medya/eserler/bursa-alaeddin-bey-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-alaeddin-bey-camii-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-alaeddin-bey-camii-ve-haziresi-3.jpg"
+ ],
+ "bursa-alanyeri-mescidi": [
+  "/medya/eserler/bursa-alanyeri-mescidi-1.jpg"
+ ],
+ "bursa-ali-pasa-camii-ve-haziresi": [
+  "/medya/eserler/bursa-ali-pasa-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-ali-pasa-camii-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-ali-pasa-camii-ve-haziresi-3.jpg",
+  "/medya/eserler/bursa-ali-pasa-camii-ve-haziresi-4.jpg"
+ ],
+ "bursa-arap-mehmet-camii": [
+  "/medya/eserler/bursa-arap-mehmet-camii-1.jpg",
+  "/medya/eserler/bursa-arap-mehmet-camii-2.jpg"
+ ],
+ "bursa-azeb-bey-camii": [
+  "/medya/eserler/bursa-azeb-bey-camii-1.jpg",
+  "/medya/eserler/bursa-azeb-bey-camii-2.jpg"
+ ],
+ "bursa-basci-ibrahim-bey-camii-ve-haziresi": [
+  "/medya/eserler/bursa-basci-ibrahim-bey-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-basci-ibrahim-bey-camii-ve-haziresi-2.jpg"
+ ],
+ "bursa-besikciler-sinan-dede-camii-ve-haziresi": [
+  "/medya/eserler/bursa-besikciler-sinan-dede-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-besikciler-sinan-dede-camii-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-besikciler-sinan-dede-camii-ve-haziresi-3.jpg",
+  "/medya/eserler/bursa-besikciler-sinan-dede-camii-ve-haziresi-4.jpg"
+ ],
+ "bursa-candarli-ibrahim-pasa-mahkeme-hoca-muslihuddin-camii": [
+  "/medya/eserler/bursa-candarli-ibrahim-pasa-mahkeme-hoca-muslihuddin-camii-1.jpg"
+ ],
+ "bursa-cerag-cirag-bey-camii": [
+  "/medya/eserler/bursa-cerag-cirag-bey-camii-1.jpg"
+ ],
+ "bursa-darulkurra-haraccioglu-haziresi": [
+  "/medya/eserler/bursa-darulkurra-haraccioglu-haziresi-1.jpg",
+  "/medya/eserler/bursa-darulkurra-haraccioglu-haziresi-2.jpg",
+  "/medya/eserler/bursa-darulkurra-haraccioglu-haziresi-3.jpg",
+  "/medya/eserler/bursa-darulkurra-haraccioglu-haziresi-4.jpg"
+ ],
+ "bursa-ebu-ishak-kazeruni-kamberler-camii-zaviye": [
+  "/medya/eserler/bursa-ebu-ishak-kazeruni-kamberler-camii-zaviye-1.jpg"
+ ],
+ "bursa-ertugrul-bey-camii-ve-kabri": [
+  "/medya/eserler/bursa-ertugrul-bey-camii-ve-kabri-1.jpg",
+  "/medya/eserler/bursa-ertugrul-bey-camii-ve-kabri-2.jpg",
+  "/medya/eserler/bursa-ertugrul-bey-camii-ve-kabri-3.jpg",
+  "/medya/eserler/bursa-ertugrul-bey-camii-ve-kabri-4.jpg"
+ ],
+ "bursa-fidan-mahmudpasa-hani-mescidi": [
+  "/medya/eserler/bursa-fidan-mahmudpasa-hani-mescidi-1.jpg",
+  "/medya/eserler/bursa-fidan-mahmudpasa-hani-mescidi-2.jpg",
+  "/medya/eserler/bursa-fidan-mahmudpasa-hani-mescidi-3.jpg",
+  "/medya/eserler/bursa-fidan-mahmudpasa-hani-mescidi-4.jpg"
+ ],
+ "bursa-haci-ali-sevinc-camii": [
+  "/medya/eserler/bursa-haci-ali-sevinc-camii-1.jpg",
+  "/medya/eserler/bursa-haci-ali-sevinc-camii-2.jpg",
+  "/medya/eserler/bursa-haci-ali-sevinc-camii-3.jpg",
+  "/medya/eserler/bursa-haci-ali-sevinc-camii-4.jpg"
+ ],
+ "bursa-hatice-isfendiyar-sultan-atpazari-camii-ve-kabri": [
+  "/medya/eserler/bursa-hatice-isfendiyar-sultan-atpazari-camii-ve-kabri-1.jpg",
+  "/medya/eserler/bursa-hatice-isfendiyar-sultan-atpazari-camii-ve-kabri-2.jpg"
+ ],
+ "bursa-hayrettin-pasa-camii": [
+  "/medya/eserler/bursa-hayrettin-pasa-camii-1.jpg"
+ ],
+ "bursa-hidirlik-nilufer-hatun-camii": [
+  "/medya/eserler/bursa-hidirlik-nilufer-hatun-camii-1.jpg",
+  "/medya/eserler/bursa-hidirlik-nilufer-hatun-camii-2.jpg",
+  "/medya/eserler/bursa-hidirlik-nilufer-hatun-camii-3.jpg"
+ ],
+ "bursa-imaret-i-isa-bey-camii": [
+  "/medya/eserler/bursa-imaret-i-isa-bey-camii-1.jpg",
+  "/medya/eserler/bursa-imaret-i-isa-bey-camii-2.jpg",
+  "/medya/eserler/bursa-imaret-i-isa-bey-camii-3.jpg",
+  "/medya/eserler/bursa-imaret-i-isa-bey-camii-4.jpg"
+ ],
+ "bursa-kademeri-cukur-camii-ve-haziresi": [
+  "/medya/eserler/bursa-kademeri-cukur-camii-ve-haziresi-1.jpg"
+ ],
+ "bursa-kanberler-sitti-hatun-camii": [
+  "/medya/eserler/bursa-kanberler-sitti-hatun-camii-1.jpg",
+  "/medya/eserler/bursa-kanberler-sitti-hatun-camii-2.jpg",
+  "/medya/eserler/bursa-kanberler-sitti-hatun-camii-3.jpg",
+  "/medya/eserler/bursa-kanberler-sitti-hatun-camii-4.jpg"
+ ],
+ "bursa-karakadi-camii-ve-haziresi": [
+  "/medya/eserler/bursa-karakadi-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-karakadi-camii-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-karakadi-camii-ve-haziresi-3.jpg"
+ ],
+ "bursa-kavakli-camii": [
+  "/medya/eserler/bursa-kavakli-camii-1.jpg",
+  "/medya/eserler/bursa-kavakli-camii-2.jpg",
+  "/medya/eserler/bursa-kavakli-camii-3.jpg",
+  "/medya/eserler/bursa-kavakli-camii-4.jpg"
+ ],
+ "bursa-kiremitci-sinan-bey-camii": [
+  "/medya/eserler/bursa-kiremitci-sinan-bey-camii-1.jpg",
+  "/medya/eserler/bursa-kiremitci-sinan-bey-camii-2.jpg"
+ ],
+ "bursa-koca-naip-camii-ve-haziresi": [
+  "/medya/eserler/bursa-koca-naip-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-koca-naip-camii-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-koca-naip-camii-ve-haziresi-3.jpg"
+ ],
+ "bursa-koza-han-mescidi": [
+  "/medya/eserler/bursa-koza-han-mescidi-1.jpg"
+ ],
+ "bursa-maksem-dusturhan-camii": [
+  "/medya/eserler/bursa-maksem-dusturhan-camii-1.jpg"
+ ],
+ "bursa-mecidiye-camii": [
+  "/medya/eserler/bursa-mecidiye-camii-1.jpg"
+ ],
+ "bursa-nakkas-ali-mescidi-ve-haziresi": [
+  "/medya/eserler/bursa-nakkas-ali-mescidi-ve-haziresi-1.jpg"
+ ],
+ "bursa-nakkas-ali-mescidi-hazire-alani": [
+  "/medya/eserler/bursa-nakkas-ali-mescidi-hazire-alani-1.jpg"
+ ],
+ "bursa-ruscuk-camii": [
+  "/medya/eserler/bursa-ruscuk-camii-1.jpg",
+  "/medya/eserler/bursa-ruscuk-camii-2.jpg"
+ ],
+ "bursa-selimiye-camii": [
+  "/medya/eserler/bursa-selimiye-camii-1.jpg"
+ ],
+ "bursa-sehabettin-pasa-camii": [
+  "/medya/eserler/bursa-sehabettin-pasa-camii-1.jpg"
+ ],
+ "bursa-sehadet-kale-saray-camii": [
+  "/medya/eserler/bursa-sehadet-kale-saray-camii-1.jpg",
+  "/medya/eserler/bursa-sehadet-kale-saray-camii-2.jpg"
+ ],
+ "bursa-sehrekustu-pars-bey-camii": [
+  "/medya/eserler/bursa-sehrekustu-pars-bey-camii-1.jpg",
+  "/medya/eserler/bursa-sehrekustu-pars-bey-camii-2.jpg"
+ ],
+ "bursa-serafettin-pasa-okcular-camii-ve-haziresi": [
+  "/medya/eserler/bursa-serafettin-pasa-okcular-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-serafettin-pasa-okcular-camii-ve-haziresi-2.jpg"
+ ],
+ "bursa-seyh-konevi-camii": [
+  "/medya/eserler/bursa-seyh-konevi-camii-1.jpg"
+ ],
+ "bursa-seyh-pasa-dibekli-camii": [
+  "/medya/eserler/bursa-seyh-pasa-dibekli-camii-1.jpg",
+  "/medya/eserler/bursa-seyh-pasa-dibekli-camii-2.jpg"
+ ],
+ "bursa-tavukcu-mescidi": [
+  "/medya/eserler/bursa-tavukcu-mescidi-1.jpg",
+  "/medya/eserler/bursa-tavukcu-mescidi-2.jpg"
+ ],
+ "bursa-uc-kuzular-kozlar-camii-ve-kabri": [
+  "/medya/eserler/bursa-uc-kuzular-kozlar-camii-ve-kabri-1.jpg",
+  "/medya/eserler/bursa-uc-kuzular-kozlar-camii-ve-kabri-2.jpg"
+ ],
+ "bursa-hz-uftade-camii": [
+  "/medya/eserler/bursa-hz-uftade-camii-1.jpg",
+  "/medya/eserler/bursa-hz-uftade-camii-2.jpg",
+  "/medya/eserler/bursa-hz-uftade-camii-3.jpg",
+  "/medya/eserler/bursa-hz-uftade-camii-4.jpg"
+ ],
+ "bursa-hz-uftade-tekke-camii": [
+  "/medya/eserler/bursa-hz-uftade-tekke-camii-1.jpg",
+  "/medya/eserler/bursa-hz-uftade-tekke-camii-2.jpg",
+  "/medya/eserler/bursa-hz-uftade-tekke-camii-3.jpg",
+  "/medya/eserler/bursa-hz-uftade-tekke-camii-4.jpg"
+ ],
+ "bursa-veled-i-sarayi-mescidi": [
+  "/medya/eserler/bursa-veled-i-sarayi-mescidi-1.jpg",
+  "/medya/eserler/bursa-veled-i-sarayi-mescidi-2.jpg",
+  "/medya/eserler/bursa-veled-i-sarayi-mescidi-3.jpg",
+  "/medya/eserler/bursa-veled-i-sarayi-mescidi-4.jpg"
+ ],
+ "bursa-yeni-kaplica-gazi-akdemir-mescidi": [
+  "/medya/eserler/bursa-yeni-kaplica-gazi-akdemir-mescidi-1.jpg",
+  "/medya/eserler/bursa-yeni-kaplica-gazi-akdemir-mescidi-2.jpg"
+ ],
+ "bursa-yigit-kohne-camii-ve-haziresi": [
+  "/medya/eserler/bursa-yigit-kohne-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-yigit-kohne-camii-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-yigit-kohne-camii-ve-haziresi-3.jpg",
+  "/medya/eserler/bursa-yigit-kohne-camii-ve-haziresi-4.jpg"
+ ],
+ "bursa-koza-hani": [
+  "/medya/eserler/bursa-koza-hani-1.jpg",
+  "/medya/eserler/bursa-koza-hani-2.jpg",
+  "/medya/eserler/bursa-koza-hani-3.jpg",
+  "/medya/eserler/bursa-koza-hani-4.jpg"
+ ],
+ "bursa-fidan-hani": [
+  "/medya/eserler/bursa-fidan-hani-1.jpg",
+  "/medya/eserler/bursa-fidan-hani-2.jpg",
+  "/medya/eserler/bursa-fidan-hani-3.jpg"
+ ],
+ "bursa-geyve-hani": [
+  "/medya/eserler/bursa-geyve-hani-1.jpg",
+  "/medya/eserler/bursa-geyve-hani-2.jpg",
+  "/medya/eserler/bursa-geyve-hani-3.jpg"
+ ],
+ "bursa-ipek-hani": [
+  "/medya/eserler/bursa-ipek-hani-1.jpg",
+  "/medya/eserler/bursa-ipek-hani-2.jpg",
+  "/medya/eserler/bursa-ipek-hani-3.jpg",
+  "/medya/eserler/bursa-ipek-hani-4.jpg"
+ ],
+ "bursa-ic-koza-hani": [
+  "/medya/eserler/bursa-ic-koza-hani-1.jpg"
+ ],
+ "bursa-pirinc-hani": [
+  "/medya/eserler/bursa-pirinc-hani-1.jpg",
+  "/medya/eserler/bursa-pirinc-hani-2.jpg",
+  "/medya/eserler/bursa-pirinc-hani-3.jpg",
+  "/medya/eserler/bursa-pirinc-hani-4.jpg"
+ ],
+ "bursa-yildirim-bayezid-bedesteni": [
+  "/medya/eserler/bursa-yildirim-bayezid-bedesteni-1.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-bedesteni-2.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-bedesteni-3.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-bedesteni-4.jpg"
+ ],
+ "bursa-eyne-bey-inebey-subasi-medresesi": [
+  "/medya/eserler/bursa-eyne-bey-inebey-subasi-medresesi-1.jpg",
+  "/medya/eserler/bursa-eyne-bey-inebey-subasi-medresesi-2.jpg",
+  "/medya/eserler/bursa-eyne-bey-inebey-subasi-medresesi-3.jpg",
+  "/medya/eserler/bursa-eyne-bey-inebey-subasi-medresesi-4.jpg"
+ ],
+ "bursa-haraccioglu-medresesi": [
+  "/medya/eserler/bursa-haraccioglu-medresesi-1.jpg",
+  "/medya/eserler/bursa-haraccioglu-medresesi-2.jpg",
+  "/medya/eserler/bursa-haraccioglu-medresesi-3.jpg",
+  "/medya/eserler/bursa-haraccioglu-medresesi-4.jpg"
+ ],
+ "bursa-sitti-hatun-kanberler-mektebi": [
+  "/medya/eserler/bursa-sitti-hatun-kanberler-mektebi-1.jpg",
+  "/medya/eserler/bursa-sitti-hatun-kanberler-mektebi-2.jpg",
+  "/medya/eserler/bursa-sitti-hatun-kanberler-mektebi-3.jpg"
+ ],
+ "bursa-sair-ahmet-pasa-geyikli-medresesi": [
+  "/medya/eserler/bursa-sair-ahmet-pasa-geyikli-medresesi-1.jpg",
+  "/medya/eserler/bursa-sair-ahmet-pasa-geyikli-medresesi-2.jpg"
+ ],
+ "bursa-ahmet-vefik-pasa-tiyatrosu": [
+  "/medya/eserler/bursa-ahmet-vefik-pasa-tiyatrosu-1.jpg",
+  "/medya/eserler/bursa-ahmet-vefik-pasa-tiyatrosu-2.jpg"
+ ],
+ "bursa-belediye-binasi": [
+  "/medya/eserler/bursa-belediye-binasi-1.jpg",
+  "/medya/eserler/bursa-belediye-binasi-2.jpg"
+ ],
+ "bursa-bursa-dullar-evi": [
+  "/medya/eserler/bursa-bursa-dullar-evi-1.jpg",
+  "/medya/eserler/bursa-bursa-dullar-evi-2.jpg",
+  "/medya/eserler/bursa-bursa-dullar-evi-3.jpg"
+ ],
+ "bursa-fransiz-kilisesi": [
+  "/medya/eserler/bursa-fransiz-kilisesi-1.jpg",
+  "/medya/eserler/bursa-fransiz-kilisesi-2.jpg",
+  "/medya/eserler/bursa-fransiz-kilisesi-3.jpg"
+ ],
+ "bursa-besikciler-sinan-dede-camii-cesmesi": [
+  "/medya/eserler/bursa-besikciler-sinan-dede-camii-cesmesi-1.jpg"
+ ],
+ "bursa-mecidiye-camii-cesmesi": [
+  "/medya/eserler/bursa-mecidiye-camii-cesmesi-1.jpg"
+ ],
+ "bursa-ibrahim-pasa-hatice-hatun-hamami": [
+  "/medya/eserler/bursa-ibrahim-pasa-hatice-hatun-hamami-1.jpg",
+  "/medya/eserler/bursa-ibrahim-pasa-hatice-hatun-hamami-2.jpg"
+ ],
+ "bursa-mahkeme-ibrahim-pasa-hamami": [
+  "/medya/eserler/bursa-mahkeme-ibrahim-pasa-hamami-1.jpg",
+  "/medya/eserler/bursa-mahkeme-ibrahim-pasa-hamami-2.jpg"
+ ],
+ "bursa-nasuh-pasa-hamami": [
+  "/medya/eserler/bursa-nasuh-pasa-hamami-1.jpg",
+  "/medya/eserler/bursa-nasuh-pasa-hamami-2.jpg",
+  "/medya/eserler/bursa-nasuh-pasa-hamami-3.jpg"
+ ],
+ "bursa-ordekli-hamam-eski-yeni-hamam": [
+  "/medya/eserler/bursa-ordekli-hamam-eski-yeni-hamam-1.jpg",
+  "/medya/eserler/bursa-ordekli-hamam-eski-yeni-hamam-2.jpg",
+  "/medya/eserler/bursa-ordekli-hamam-eski-yeni-hamam-3.jpg",
+  "/medya/eserler/bursa-ordekli-hamam-eski-yeni-hamam-4.jpg"
+ ],
+ "bursa-karabas-i-veli-dergahi": [
+  "/medya/eserler/bursa-karabas-i-veli-dergahi-1.jpg",
+  "/medya/eserler/bursa-karabas-i-veli-dergahi-2.jpg",
+  "/medya/eserler/bursa-karabas-i-veli-dergahi-3.jpg",
+  "/medya/eserler/bursa-karabas-i-veli-dergahi-4.jpg"
+ ],
+ "bursa-numaniye-dergahi": [
+  "/medya/eserler/bursa-numaniye-dergahi-1.jpg",
+  "/medya/eserler/bursa-numaniye-dergahi-2.jpg",
+  "/medya/eserler/bursa-numaniye-dergahi-3.jpg",
+  "/medya/eserler/bursa-numaniye-dergahi-4.jpg"
+ ],
+ "bursa-seyyid-usul-tekkesi-ve-haziresi": [
+  "/medya/eserler/bursa-seyyid-usul-tekkesi-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-seyyid-usul-tekkesi-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-seyyid-usul-tekkesi-ve-haziresi-3.jpg",
+  "/medya/eserler/bursa-seyyid-usul-tekkesi-ve-haziresi-4.jpg"
+ ],
+ "bursa-hz-uftade-tekkesi": [
+  "/medya/eserler/bursa-hz-uftade-tekkesi-1.jpg",
+  "/medya/eserler/bursa-hz-uftade-tekkesi-2.jpg",
+  "/medya/eserler/bursa-hz-uftade-tekkesi-3.jpg",
+  "/medya/eserler/bursa-hz-uftade-tekkesi-4.jpg"
+ ],
+ "bursa-azeb-bey-turbesi": [
+  "/medya/eserler/bursa-azeb-bey-turbesi-1.jpg"
+ ],
+ "bursa-ebu-ishak-turbesi": [
+  "/medya/eserler/bursa-ebu-ishak-turbesi-1.jpg",
+  "/medya/eserler/bursa-ebu-ishak-turbesi-2.jpg",
+  "/medya/eserler/bursa-ebu-ishak-turbesi-3.jpg",
+  "/medya/eserler/bursa-ebu-ishak-turbesi-4.jpg"
+ ],
+ "bursa-molla-gurani-yesil-guranli-turbesi": [
+  "/medya/eserler/bursa-molla-gurani-yesil-guranli-turbesi-1.jpg",
+  "/medya/eserler/bursa-molla-gurani-yesil-guranli-turbesi-2.jpg"
+ ],
+ "bursa-orhan-gazi-turbesi": [
+  "/medya/eserler/bursa-orhan-gazi-turbesi-1.jpg",
+  "/medya/eserler/bursa-orhan-gazi-turbesi-2.jpg",
+  "/medya/eserler/bursa-orhan-gazi-turbesi-3.jpg",
+  "/medya/eserler/bursa-orhan-gazi-turbesi-4.jpg"
+ ],
+ "bursa-osman-gazi-turbesi": [
+  "/medya/eserler/bursa-osman-gazi-turbesi-1.jpg",
+  "/medya/eserler/bursa-osman-gazi-turbesi-2.jpg",
+  "/medya/eserler/bursa-osman-gazi-turbesi-3.jpg",
+  "/medya/eserler/bursa-osman-gazi-turbesi-4.jpg"
+ ],
+ "bursa-seydi-nasir-turbesi": [
+  "/medya/eserler/bursa-seydi-nasir-turbesi-1.jpg",
+  "/medya/eserler/bursa-seydi-nasir-turbesi-2.jpg",
+  "/medya/eserler/bursa-seydi-nasir-turbesi-3.jpg"
+ ],
+ "bursa-uc-kozlar-kuzular-turbe-ve-haziresi": [
+  "/medya/eserler/bursa-uc-kozlar-kuzular-turbe-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-uc-kozlar-kuzular-turbe-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-uc-kozlar-kuzular-turbe-ve-haziresi-3.jpg"
+ ],
+ "bursa-hz-uftade-turbesi": [
+  "/medya/eserler/bursa-hz-uftade-turbesi-1.jpg",
+  "/medya/eserler/bursa-hz-uftade-turbesi-2.jpg"
+ ],
+ "bursa-emir-sultan-kulliyesi": [
+  "/medya/eserler/bursa-emir-sultan-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-emir-sultan-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-emir-sultan-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-emir-sultan-kulliyesi-4.jpg"
+ ],
+ "bursa-umur-bey-kulliyesi": [
+  "/medya/eserler/bursa-umur-bey-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-umur-bey-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-umur-bey-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-umur-bey-kulliyesi-4.jpg"
+ ],
+ "bursa-umur-bey-turbesi": [
+  "/medya/eserler/bursa-umur-bey-turbesi-1.jpg",
+  "/medya/eserler/bursa-umur-bey-turbesi-2.jpg"
+ ],
+ "bursa-yesil-celebi-mehmed-kulliyesi": [
+  "/medya/eserler/bursa-yesil-celebi-mehmed-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-yesil-celebi-mehmed-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-yesil-celebi-mehmed-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-yesil-celebi-mehmed-kulliyesi-4.jpg"
+ ],
+ "bursa-yesil-imareti": [
+  "/medya/eserler/bursa-yesil-imareti-1.jpg",
+  "/medya/eserler/bursa-yesil-imareti-2.jpg",
+  "/medya/eserler/bursa-yesil-imareti-3.jpg"
+ ],
+ "bursa-yesil-sultaniye-medresesi": [
+  "/medya/eserler/bursa-yesil-sultaniye-medresesi-1.jpg",
+  "/medya/eserler/bursa-yesil-sultaniye-medresesi-2.jpg",
+  "/medya/eserler/bursa-yesil-sultaniye-medresesi-3.jpg",
+  "/medya/eserler/bursa-yesil-sultaniye-medresesi-4.jpg"
+ ],
+ "bursa-yesil-turbe": [
+  "/medya/eserler/bursa-yesil-turbe-1.jpg",
+  "/medya/eserler/bursa-yesil-turbe-2.jpg",
+  "/medya/eserler/bursa-yesil-turbe-3.jpg",
+  "/medya/eserler/bursa-yesil-turbe-4.jpg"
+ ],
+ "bursa-yildirim-bayezid-kulliyesi": [
+  "/medya/eserler/bursa-yildirim-bayezid-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-kulliyesi-4.jpg"
+ ],
+ "bursa-yildirim-medresesi": [
+  "/medya/eserler/bursa-yildirim-medresesi-1.jpg",
+  "/medya/eserler/bursa-yildirim-medresesi-2.jpg",
+  "/medya/eserler/bursa-yildirim-medresesi-3.jpg",
+  "/medya/eserler/bursa-yildirim-medresesi-4.jpg"
+ ],
+ "bursa-yildirim-darussifasi": [
+  "/medya/eserler/bursa-yildirim-darussifasi-1.jpg",
+  "/medya/eserler/bursa-yildirim-darussifasi-2.jpg",
+  "/medya/eserler/bursa-yildirim-darussifasi-3.jpg"
+ ],
+ "bursa-yildirim-bayezid-turbesi": [
+  "/medya/eserler/bursa-yildirim-bayezid-turbesi-1.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-turbesi-2.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-turbesi-3.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-turbesi-4.jpg"
+ ],
+ "bursa-beyazit-pasa-catalcesme-camii": [
+  "/medya/eserler/bursa-beyazit-pasa-catalcesme-camii-1.jpg",
+  "/medya/eserler/bursa-beyazit-pasa-catalcesme-camii-2.jpg"
+ ],
+ "bursa-davut-kadi-eski-ortayol-camii": [
+  "/medya/eserler/bursa-davut-kadi-eski-ortayol-camii-1.jpg",
+  "/medya/eserler/bursa-davut-kadi-eski-ortayol-camii-2.jpg"
+ ],
+ "bursa-haci-sevindik-camii": [
+  "/medya/eserler/bursa-haci-sevindik-camii-1.jpg",
+  "/medya/eserler/bursa-haci-sevindik-camii-2.jpg"
+ ],
+ "bursa-ibn-i-bezzaz-camii-ve-haziresi": [
+  "/medya/eserler/bursa-ibn-i-bezzaz-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-ibn-i-bezzaz-camii-ve-haziresi-2.jpg"
+ ],
+ "bursa-meydancik-camii": [
+  "/medya/eserler/bursa-meydancik-camii-1.jpg",
+  "/medya/eserler/bursa-meydancik-camii-2.jpg"
+ ],
+ "bursa-molla-arap-balabancik-camii": [
+  "/medya/eserler/bursa-molla-arap-balabancik-camii-1.jpg"
+ ],
+ "bursa-musa-baba-camii-ve-haziresi": [
+  "/medya/eserler/bursa-musa-baba-camii-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-musa-baba-camii-ve-haziresi-2.jpg"
+ ],
+ "bursa-mucelliddin-omer-aga-resulzade-camii": [
+  "/medya/eserler/bursa-mucelliddin-omer-aga-resulzade-camii-1.jpg",
+  "/medya/eserler/bursa-mucelliddin-omer-aga-resulzade-camii-2.jpg",
+  "/medya/eserler/bursa-mucelliddin-omer-aga-resulzade-camii-3.jpg",
+  "/medya/eserler/bursa-mucelliddin-omer-aga-resulzade-camii-4.jpg"
+ ],
+ "bursa-pir-emir-camii": [
+  "/medya/eserler/bursa-pir-emir-camii-1.jpg",
+  "/medya/eserler/bursa-pir-emir-camii-2.jpg",
+  "/medya/eserler/bursa-pir-emir-camii-3.jpg",
+  "/medya/eserler/bursa-pir-emir-camii-4.jpg"
+ ],
+ "bursa-sible-camii": [
+  "/medya/eserler/bursa-sible-camii-1.jpg",
+  "/medya/eserler/bursa-sible-camii-2.jpg",
+  "/medya/eserler/bursa-sible-camii-3.jpg",
+  "/medya/eserler/bursa-sible-camii-4.jpg"
+ ],
+ "bursa-baba-zakir-turbesi": [
+  "/medya/eserler/bursa-baba-zakir-turbesi-1.jpg"
+ ],
+ "bursa-haci-husamettin-turbesi": [
+  "/medya/eserler/bursa-haci-husamettin-turbesi-1.jpg"
+ ],
+ "bursa-pir-emir-pir-emir-mehmet-turbesi": [
+  "/medya/eserler/bursa-pir-emir-pir-emir-mehmet-turbesi-1.jpg"
+ ],
+ "bursa-sofu-mehmet-mezari": [
+  "/medya/eserler/bursa-sofu-mehmet-mezari-1.jpg",
+  "/medya/eserler/bursa-sofu-mehmet-mezari-2.jpg"
+ ],
+ "bursa-hancerli-medresesi": [
+  "/medya/eserler/bursa-hancerli-medresesi-1.jpg",
+  "/medya/eserler/bursa-hancerli-medresesi-2.jpg",
+  "/medya/eserler/bursa-hancerli-medresesi-3.jpg",
+  "/medya/eserler/bursa-hancerli-medresesi-4.jpg"
+ ],
+ "bursa-haci-sevki-efendi-sabaniye-tekkesi": [
+  "/medya/eserler/bursa-haci-sevki-efendi-sabaniye-tekkesi-1.jpg",
+  "/medya/eserler/bursa-haci-sevki-efendi-sabaniye-tekkesi-2.jpg",
+  "/medya/eserler/bursa-haci-sevki-efendi-sabaniye-tekkesi-3.jpg"
+ ],
+ "bursa-irgandi-koprusu": [
+  "/medya/eserler/bursa-irgandi-koprusu-1.jpg"
+ ],
+ "bursa-incirli-hamami": [
+  "/medya/eserler/bursa-incirli-hamami-1.jpg",
+  "/medya/eserler/bursa-incirli-hamami-2.jpg",
+  "/medya/eserler/bursa-incirli-hamami-3.jpg",
+  "/medya/eserler/bursa-incirli-hamami-4.jpg"
+ ],
+ "bursa-mahfel": [
+  "/medya/eserler/bursa-mahfel-1.jpg",
+  "/medya/eserler/bursa-mahfel-2.jpg"
+ ],
+ "bursa-ayasofya-orhan-camii": [
+  "/medya/eserler/bursa-ayasofya-orhan-camii-1.jpg",
+  "/medya/eserler/bursa-ayasofya-orhan-camii-2.jpg",
+  "/medya/eserler/bursa-ayasofya-orhan-camii-3.jpg",
+  "/medya/eserler/bursa-ayasofya-orhan-camii-4.jpg"
+ ],
+ "bursa-esrefzade-camii-minaresi-ve-haziresi": [
+  "/medya/eserler/bursa-esrefzade-camii-minaresi-ve-haziresi-1.jpg",
+  "/medya/eserler/bursa-esrefzade-camii-minaresi-ve-haziresi-2.jpg",
+  "/medya/eserler/bursa-esrefzade-camii-minaresi-ve-haziresi-3.jpg"
+ ],
+ "bursa-haci-ozbek-camii": [
+  "/medya/eserler/bursa-haci-ozbek-camii-1.jpg",
+  "/medya/eserler/bursa-haci-ozbek-camii-2.jpg",
+  "/medya/eserler/bursa-haci-ozbek-camii-3.jpg",
+  "/medya/eserler/bursa-haci-ozbek-camii-4.jpg"
+ ],
+ "bursa-yesil-imaret-candarli-halil-pasa-camii": [
+  "/medya/eserler/bursa-yesil-imaret-candarli-halil-pasa-camii-1.jpg",
+  "/medya/eserler/bursa-yesil-imaret-candarli-halil-pasa-camii-2.jpg",
+  "/medya/eserler/bursa-yesil-imaret-candarli-halil-pasa-camii-3.jpg",
+  "/medya/eserler/bursa-yesil-imaret-candarli-halil-pasa-camii-4.jpg"
+ ],
+ "bursa-candarli-halil-pasa-turbesi": [
+  "/medya/eserler/bursa-candarli-halil-pasa-turbesi-1.jpg",
+  "/medya/eserler/bursa-candarli-halil-pasa-turbesi-2.jpg",
+  "/medya/eserler/bursa-candarli-halil-pasa-turbesi-3.jpg",
+  "/medya/eserler/bursa-candarli-halil-pasa-turbesi-4.jpg"
+ ],
+ "bursa-yakup-celebi-turbesi": [
+  "/medya/eserler/bursa-yakup-celebi-turbesi-1.jpg"
+ ],
+ "bursa-suleyman-pasa-medresesi": [
+  "/medya/eserler/bursa-suleyman-pasa-medresesi-1.jpg",
+  "/medya/eserler/bursa-suleyman-pasa-medresesi-2.jpg",
+  "/medya/eserler/bursa-suleyman-pasa-medresesi-3.jpg",
+  "/medya/eserler/bursa-suleyman-pasa-medresesi-4.jpg"
+ ],
+ "bursa-haci-hamza-ii-murad-hamami": [
+  "/medya/eserler/bursa-haci-hamza-ii-murad-hamami-1.jpg",
+  "/medya/eserler/bursa-haci-hamza-ii-murad-hamami-2.jpg",
+  "/medya/eserler/bursa-haci-hamza-ii-murad-hamami-3.jpg",
+  "/medya/eserler/bursa-haci-hamza-ii-murad-hamami-4.jpg"
+ ],
+ "bursa-nilufer-hatun-imareti": [
+  "/medya/eserler/bursa-nilufer-hatun-imareti-1.jpg",
+  "/medya/eserler/bursa-nilufer-hatun-imareti-2.jpg",
+  "/medya/eserler/bursa-nilufer-hatun-imareti-3.jpg",
+  "/medya/eserler/bursa-nilufer-hatun-imareti-4.jpg"
+ ],
+ "bursa-adliye-koyu-camii": [
+  "/medya/eserler/bursa-adliye-koyu-camii-1.jpg",
+  "/medya/eserler/bursa-adliye-koyu-camii-2.jpg"
+ ],
+ "bursa-balikpazari-yeni-camii-panagia-pazariotissa": [
+  "/medya/eserler/bursa-balikpazari-yeni-camii-panagia-pazariotissa-1.jpg"
+ ],
+ "bursa-kucukkumla-eski-haci-muhyi-camii": [
+  "/medya/eserler/bursa-kucukkumla-eski-haci-muhyi-camii-1.jpg",
+  "/medya/eserler/bursa-kucukkumla-eski-haci-muhyi-camii-2.jpg",
+  "/medya/eserler/bursa-kucukkumla-eski-haci-muhyi-camii-3.jpg"
+ ],
+ "bursa-orta-camii": [
+  "/medya/eserler/bursa-orta-camii-1.jpg",
+  "/medya/eserler/bursa-orta-camii-2.jpg"
+ ],
+ "bursa-ishak-pasa-kulliyesi": [
+  "/medya/eserler/bursa-ishak-pasa-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-ishak-pasa-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-ishak-pasa-kulliyesi-3.jpg",
+  "/medya/eserler/bursa-ishak-pasa-kulliyesi-4.jpg"
+ ],
+ "bursa-hamidiye-altinbas-camii": [
+  "/medya/eserler/bursa-hamidiye-altinbas-camii-1.jpg",
+  "/medya/eserler/bursa-hamidiye-altinbas-camii-2.jpg",
+  "/medya/eserler/bursa-hamidiye-altinbas-camii-3.jpg",
+  "/medya/eserler/bursa-hamidiye-altinbas-camii-4.jpg"
+ ],
+ "bursa-hurriyet-sari-camii": [
+  "/medya/eserler/bursa-hurriyet-sari-camii-1.jpg",
+  "/medya/eserler/bursa-hurriyet-sari-camii-2.jpg",
+  "/medya/eserler/bursa-hurriyet-sari-camii-3.jpg",
+  "/medya/eserler/bursa-hurriyet-sari-camii-4.jpg"
+ ],
+ "bursa-osmaniye-camasirlik-camii": [
+  "/medya/eserler/bursa-osmaniye-camasirlik-camii-1.jpg",
+  "/medya/eserler/bursa-osmaniye-camasirlik-camii-2.jpg",
+  "/medya/eserler/bursa-osmaniye-camasirlik-camii-3.jpg"
+ ],
+ "bursa-yildirim-bayezid-cuma-camii": [
+  "/medya/eserler/bursa-yildirim-bayezid-cuma-camii-1.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-cuma-camii-2.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-cuma-camii-3.jpg",
+  "/medya/eserler/bursa-yildirim-bayezid-cuma-camii-4.jpg"
+ ],
+ "bursa-karacaahmet-kervansarayi": [
+  "/medya/eserler/bursa-karacaahmet-kervansarayi-1.jpg",
+  "/medya/eserler/bursa-karacaahmet-kervansarayi-2.jpg",
+  "/medya/eserler/bursa-karacaahmet-kervansarayi-3.jpg",
+  "/medya/eserler/bursa-karacaahmet-kervansarayi-4.jpg"
+ ],
+ "bursa-imaret-kursunlu-mihalic-camii": [
+  "/medya/eserler/bursa-imaret-kursunlu-mihalic-camii-1.jpg",
+  "/medya/eserler/bursa-imaret-kursunlu-mihalic-camii-2.jpg",
+  "/medya/eserler/bursa-imaret-kursunlu-mihalic-camii-3.jpg",
+  "/medya/eserler/bursa-imaret-kursunlu-mihalic-camii-4.jpg"
+ ],
+ "bursa-ulu-hudavendigar-camii": [
+  "/medya/eserler/bursa-ulu-hudavendigar-camii-1.jpg",
+  "/medya/eserler/bursa-ulu-hudavendigar-camii-2.jpg"
+ ],
+ "bursa-issiz-susuz-han": [
+  "/medya/eserler/bursa-issiz-susuz-han-1.jpg",
+  "/medya/eserler/bursa-issiz-susuz-han-2.jpg",
+  "/medya/eserler/bursa-issiz-susuz-han-3.jpg"
+ ],
+ "bursa-aksu-koyu-camii-ve-haziresi": [
+  "/medya/eserler/bursa-aksu-koyu-camii-ve-haziresi-1.jpg"
+ ],
+ "bursa-geyikli-babasultan-camii": [
+  "/medya/eserler/bursa-geyikli-babasultan-camii-1.jpg",
+  "/medya/eserler/bursa-geyikli-babasultan-camii-2.jpg",
+  "/medya/eserler/bursa-geyikli-babasultan-camii-3.jpg",
+  "/medya/eserler/bursa-geyikli-babasultan-camii-4.jpg"
+ ],
+ "bursa-han-odasi": [
+  "/medya/eserler/bursa-han-odasi-1.jpg",
+  "/medya/eserler/bursa-han-odasi-2.jpg"
+ ],
+ "bursa-eski-vani-mehmed-sifa-hamami": [
+  "/medya/eserler/bursa-eski-vani-mehmed-sifa-hamami-1.jpg"
+ ],
+ "bursa-geyikli-baba-cesmesi": [
+  "/medya/eserler/bursa-geyikli-baba-cesmesi-1.jpg",
+  "/medya/eserler/bursa-geyikli-baba-cesmesi-2.jpg",
+  "/medya/eserler/bursa-geyikli-baba-cesmesi-3.jpg",
+  "/medya/eserler/bursa-geyikli-baba-cesmesi-4.jpg"
+ ],
+ "bursa-eski-tekke-i-atik-cami-i-atik-camii": [
+  "/medya/eserler/bursa-eski-tekke-i-atik-cami-i-atik-camii-1.jpg",
+  "/medya/eserler/bursa-eski-tekke-i-atik-cami-i-atik-camii-2.jpg",
+  "/medya/eserler/bursa-eski-tekke-i-atik-cami-i-atik-camii-3.jpg",
+  "/medya/eserler/bursa-eski-tekke-i-atik-cami-i-atik-camii-4.jpg"
+ ],
+ "bursa-seyh-muftu-camii": [
+  "/medya/eserler/bursa-seyh-muftu-camii-1.jpg",
+  "/medya/eserler/bursa-seyh-muftu-camii-2.jpg",
+  "/medya/eserler/bursa-seyh-muftu-camii-3.jpg",
+  "/medya/eserler/bursa-seyh-muftu-camii-4.jpg"
+ ],
+ "bursa-seyh-muftu-turbesi": [
+  "/medya/eserler/bursa-seyh-muftu-turbesi-1.jpg",
+  "/medya/eserler/bursa-seyh-muftu-turbesi-2.jpg",
+  "/medya/eserler/bursa-seyh-muftu-turbesi-3.jpg",
+  "/medya/eserler/bursa-seyh-muftu-turbesi-4.jpg"
+ ],
+ "bursa-ozluce-kilisesi-camii": [
+  "/medya/eserler/bursa-ozluce-kilisesi-camii-1.jpg",
+  "/medya/eserler/bursa-ozluce-kilisesi-camii-2.jpg",
+  "/medya/eserler/bursa-ozluce-kilisesi-camii-3.jpg"
+ ],
+ "bursa-golyazi-sur-duvarlari": [
+  "/medya/eserler/bursa-golyazi-sur-duvarlari-1.jpg",
+  "/medya/eserler/bursa-golyazi-sur-duvarlari-2.jpg",
+  "/medya/eserler/bursa-golyazi-sur-duvarlari-3.jpg",
+  "/medya/eserler/bursa-golyazi-sur-duvarlari-4.jpg"
+ ],
+ "bursa-gurle-koyu-hamami": [
+  "/medya/eserler/bursa-gurle-koyu-hamami-1.jpg",
+  "/medya/eserler/bursa-gurle-koyu-hamami-2.jpg",
+  "/medya/eserler/bursa-gurle-koyu-hamami-3.jpg"
+ ],
+ "bursa-sinan-pasa-kulliyesi": [
+  "/medya/eserler/bursa-sinan-pasa-kulliyesi-1.jpg",
+  "/medya/eserler/bursa-sinan-pasa-kulliyesi-2.jpg",
+  "/medya/eserler/bursa-sinan-pasa-kulliyesi-3.jpg"
+ ],
+ "bursa-sinan-pasa-kulliyesi-nde-medrese": [
+  "/medya/eserler/bursa-sinan-pasa-kulliyesi-nde-medrese-1.jpg",
+  "/medya/eserler/bursa-sinan-pasa-kulliyesi-nde-medrese-2.jpg",
+  "/medya/eserler/bursa-sinan-pasa-kulliyesi-nde-medrese-3.jpg",
+  "/medya/eserler/bursa-sinan-pasa-kulliyesi-nde-medrese-4.jpg"
+ ],
+ "bursa-ethem-pasa-camii": [
+  "/medya/eserler/bursa-ethem-pasa-camii-1.jpg",
+  "/medya/eserler/bursa-ethem-pasa-camii-2.jpg",
+  "/medya/eserler/bursa-ethem-pasa-camii-3.jpg"
+ ],
+ "bursa-haci-hasan-camii": [
+  "/medya/eserler/bursa-haci-hasan-camii-1.jpg"
+ ],
+ "bursa-murat-pasa-kumluk-camii": [
+  "/medya/eserler/bursa-murat-pasa-kumluk-camii-1.jpg",
+  "/medya/eserler/bursa-murat-pasa-kumluk-camii-2.jpg",
+  "/medya/eserler/bursa-murat-pasa-kumluk-camii-3.jpg"
+ ],
+ "bursa-orhan-gazi-camii-ulucami": [
+  "/medya/eserler/bursa-orhan-gazi-camii-ulucami-1.jpg",
+  "/medya/eserler/bursa-orhan-gazi-camii-ulucami-2.jpg",
+  "/medya/eserler/bursa-orhan-gazi-camii-ulucami-3.jpg",
+  "/medya/eserler/bursa-orhan-gazi-camii-ulucami-4.jpg"
+ ],
+ "bursa-orhan-gazi-hamami": [
+  "/medya/eserler/bursa-orhan-gazi-hamami-1.jpg",
+  "/medya/eserler/bursa-orhan-gazi-hamami-2.jpg",
+  "/medya/eserler/bursa-orhan-gazi-hamami-3.jpg"
+ ],
+ "bursa-yarhisar-koyu-cesmesi": [
+  "/medya/eserler/bursa-yarhisar-koyu-cesmesi-1.jpg"
+ ]
+}

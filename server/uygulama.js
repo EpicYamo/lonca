@@ -1,0 +1,474 @@
+import Fastify from "fastify";
+import fastifyStatic from "@fastify/static";
+import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { randomBytes } from "node:crypto";
+import path from "node:path";
+import { kalfaHazirla } from "./kalfa.js";
+import { jsonDosya } from "./depo.js";
+import { yetkiKur, hizSiniri } from "./guvenlik.js";
+import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar } from "./dogrulama.js";
+
+const MAKS_KOD = 150_000; 
+const MAKS_FOTO = 6 * 1024 * 1024;
+const RENKLER = ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"];
+const IKONLAR = ["cami", "han", "hamam", "medrese", "cesme", "turbe", "genel"];
+export const KATEGORILER = ["rehber", "oyun", "gezi", "ogren"];
+export const MODUL_DURUMLARI = ["bekliyor", "onayli", "kaldirildi", "arsiv", "reddedildi"];
+const kimlikGecerli = (id) => typeof id === "string" && /^[a-z0-9-]{1,64}$/.test(id);
+
+function mesafe(a, b) {
+  const R = 6371000, rad = (x) => (x * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+}
+
+/**
+ */
+export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = process.env, gunluk = true }) {
+  const MODUL_DIZINI = path.join(veri, "moduller");
+  const YUKLENEN = path.join(veri, "yuklenen");
+  const eserDosyasi = jsonDosya(path.join(veri, "eserler.json"), { eserler: [] });
+  const modulDosyasi = jsonDosya(path.join(MODUL_DIZINI, "index.json"), []);
+  const oneriDosyasi = jsonDosya(path.join(veri, "eser-oneriler.json"), []);
+  const gecmisDosyasi = jsonDosya(path.join(veri, "eser-gecmisi.json"), []);
+  const ANLIK_DIZINI = path.join(veri, "gecmis");
+
+  const eserVerisi = await eserDosyasi.oku();
+  const eserler = eserVerisi.eserler;
+  const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
+
+  const kalfa = kalfaHazirla({ kok, eserler, ortam });
+  const yetki = yetkiKur(ortam.YONETICI_SIFRE);
+  const { yoneticiGerekli, yoneticiMi } = yetki;
+  const kalfaSiniri = hizSiniri({ adet: Number(ortam.KALFA_SINIR ?? 30), pencereMs: 10 * 60_000, mesaj: "Kalfa şu an çok meşgul; birkaç dakika sonra tekrar dene." });
+  const oneriSiniri = hizSiniri({ adet: 20, pencereMs: 10 * 60_000 });
+  const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
+
+  const app = Fastify({ logger: gunluk ? { level: "info" } : false, bodyLimit: 1024 * 1024, trustProxy: true });
+
+  // ---------- Statik ----------
+  app.register(fastifyStatic, { root: path.join(kok, "public"), prefix: "/" });
+  app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false });
+  app.register(fastifyStatic, { root: path.join(kok, "node_modules", "leaflet", "dist"), prefix: "/vendor/leaflet/", decorateReply: false });
+  app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
+  app.get("/", (_, rep) => rep.redirect("/app/"));
+  app.get("/app", (_, rep) => rep.redirect("/app/"));
+  app.get("/studio", (_, rep) => rep.redirect("/studio/"));
+
+  app.get("/api/ayarlar", async () => ({
+    harita: googleAnahtari ? { saglayici: "google", anahtar: googleAnahtari } : { saglayici: "osm" },
+    uc: { google: !!googleAnahtari, anahtar: googleAnahtari || undefined },
+    yonetim: { sifreli: yetki.sifreli },
+  }));
+  app.get("/api/yonetici", async (req, rep) => (yoneticiMi(req) ? { tamam: true } : rep.code(401).send({ hata: "şifre yanlış" })));
+
+  // ---------- Eserler ----------
+  app.get("/api/eserler", async (req) => {
+    const { il, ilce, tur, ad, yuzyil } = req.query;
+    const kucuk = (x) => String(x ?? "").toLocaleLowerCase("tr");
+    const tamlikUygun = tamlikSuzgeci(req.query);
+    return eserler.filter((e) => (!il || e.il === il) && (!ilce || e.ilce === ilce) && (!tur || e.tur === tur)
+      && (!ad || kucuk(e.ad).includes(kucuk(ad))) && (!yuzyil || e.yuzyil === Number(yuzyil)) && tamlikUygun(e));
+  });
+
+  app.get("/api/eserler-tamlik", async () => {
+    const ozet = { toplam: eserler.length, tam: 0, alanlar: {}, tekEksik: {} };
+    for (const a of TUM_ALANLAR) ozet.alanlar[a] = { var: 0, yok: 0 };
+    for (const e of eserler) {
+      const t = tamlik(e);
+      if (t.tam) ozet.tam++;
+      if (t.eksikler.length === 1) ozet.tekEksik[t.eksikler[0]] = (ozet.tekEksik[t.eksikler[0]] ?? 0) + 1;
+      for (const a of TUM_ALANLAR) ozet.alanlar[a][alanVar(e, a) ? "var" : "yok"]++;
+    }
+    return { ...ozet, temelAlanlar: TEMEL_ALANLAR };
+  });
+
+  app.get("/api/eserler/yakin", async (req, rep) => {
+    const lat = Number(req.query.lat), lng = Number(req.query.lng);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return rep.code(400).send({ hata: "lat ve lng gerekli" });
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 50);
+    const { tur } = req.query;
+    return eserler
+      .filter((e) => e.konum && (!tur || e.tur === tur))
+      .map((e) => ({ ...e, mesafe_m: mesafe({ lat, lng }, e.konum) }))
+      .sort((a, b) => a.mesafe_m - b.mesafe_m)
+      .slice(0, limit);
+  });
+
+  app.get("/api/eserler/:id", async (req, rep) => eserler.find((x) => x.id === req.params.id) ?? rep.code(404).send({ hata: "eser bulunamadı" }));
+
+  function yeniKimlik(metin) {
+    const temel = kimlikUret(metin);
+    let id = temel, n = 2;
+    while (eserler.some((e) => e.id === id)) id = `${temel}-${n++}`;
+    return id;
+  }
+  function eserUygula(oneri, veri) {
+    const zaman = new Date().toISOString();
+    if (oneri.tur === "yeni") {
+      const { hatalar, eser } = eserDogrula(veri);
+      if (hatalar.length) return { hatalar };
+      const kayit = { id: yeniKimlik(`${eser.il ?? "Bursa"} ${eser.ad}`), il: "Bursa", ilce: null, ad_en: null, yuzyil: null, konum: null, adres: null,
+        fotograflar: [], sergi: null, ...eser, guncelleme: zaman };
+      eserler.push(kayit);
+      return { eser: kayit };
+    }
+    const i = eserler.findIndex((e) => e.id === oneri.eserId);
+    if (i < 0) return { hatalar: ["düzenlenecek eser bulunamadı"] };
+    const { hatalar, eser } = eserDogrula(veri, { kismi: true });
+    if (hatalar.length) return { hatalar };
+    eserler[i] = { ...eserler[i], ...eser, guncelleme: zaman };
+    return { eser: eserler[i] };
+  }
+
+  const GECMIS_SINIRI = 300;
+  async function gecmiseYaz(kayit) {
+    const gecmis = await gecmisDosyasi.oku();
+    const yeni = { id: `${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`, zaman: new Date().toISOString(), ...kayit };
+    gecmis.unshift(yeni);
+    for (const eski of gecmis.splice(GECMIS_SINIRI)) if (eski.anlik) await rm(path.join(ANLIK_DIZINI, `${eski.anlik}.json`), { force: true });
+    await gecmisDosyasi.yaz(gecmis);
+    return yeni;
+  }
+  const kopya = (x) => (x == null ? null : structuredClone(x));
+  async function anlikKaydet() {
+    const ad = `${Date.now().toString(36)}-${randomBytes(3).toString("hex")}`;
+    await mkdir(ANLIK_DIZINI, { recursive: true });
+    await writeFile(path.join(ANLIK_DIZINI, `${ad}.json`), JSON.stringify(eserler));
+    return ad;
+  }
+
+  app.post("/api/eserler", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const r = eserUygula({ tur: "yeni" }, req.body);
+    if (r.hatalar) return rep.code(400).send({ hata: "Eser doğrulamadan geçmedi", ayrintilar: r.hatalar });
+    await eserleriKaydet();
+    await gecmiseYaz({ islem: "ekle", eserId: r.eser.id, ad: r.eser.ad, once: null, sonra: kopya(r.eser) });
+    return rep.code(201).send(r.eser);
+  });
+  app.put("/api/eserler/:id", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const once = kopya(eserler.find((e) => e.id === req.params.id));
+    const r = eserUygula({ tur: "duzenle", eserId: req.params.id }, req.body);
+    if (r.hatalar) return rep.code(r.hatalar[0].includes("bulunamadı") ? 404 : 400).send({ hata: "Eser doğrulamadan geçmedi", ayrintilar: r.hatalar });
+    await eserleriKaydet();
+    let neden = null; 
+    try { neden = typeof req.headers["x-degisiklik"] === "string" ? decodeURIComponent(req.headers["x-degisiklik"]).slice(0, 80) : null; } catch {}
+    await gecmiseYaz({ islem: "duzenle", eserId: r.eser.id, ad: r.eser.ad, neden, once, sonra: kopya(r.eser) });
+    return r.eser;
+  });
+  app.delete("/api/eserler/:id", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const i = eserler.findIndex((e) => e.id === req.params.id);
+    if (i < 0) return rep.code(404).send({ hata: "eser bulunamadı" });
+    const [silinen] = eserler.splice(i, 1);
+    await eserleriKaydet();
+    const g = await gecmiseYaz({ islem: "sil", eserId: silinen.id, ad: silinen.ad, once: kopya(silinen), sonra: null });
+    return { silindi: silinen.id, gecmis: g.id };
+  });
+
+  app.get("/api/eser-gecmisi", { preHandler: yoneticiGerekli }, async (req) => {
+    const { eser } = req.query;
+    const gecmis = await gecmisDosyasi.oku();
+    return gecmis.filter((g) => !eser || g.eserId === eser).slice(0, 100).map((g) => ({
+      id: g.id, zaman: g.zaman, islem: g.islem, eserId: g.eserId, ad: g.ad, neden: g.neden ?? null, geriAlinan: g.geriAlinan ?? null,
+      ozet: g.ozet ?? degisenAlanlar(g.once, g.sonra),
+      geriAlindi: gecmis.some((x) => x.geriAlinan === g.id),
+    }));
+  });
+  function degisenAlanlar(once, sonra) {
+    if (!once || !sonra) return [];
+    return [...new Set([...Object.keys(once), ...Object.keys(sonra)])]
+      .filter((k) => k !== "guncelleme" && JSON.stringify(once[k] ?? null) !== JSON.stringify(sonra[k] ?? null));
+  }
+  app.post("/api/eser-gecmisi/:id/geri-al", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const gecmis = await gecmisDosyasi.oku();
+    const g = gecmis.find((x) => x.id === req.params.id);
+    if (!g) return rep.code(404).send({ hata: "geçmiş kaydı bulunamadı" });
+    if (g.islem === "ice-aktar") {
+      let onceki;
+      try { onceki = JSON.parse(await readFile(path.join(ANLIK_DIZINI, `${g.anlik}.json`), "utf8")); }
+      catch { return rep.code(410).send({ hata: "bu içe aktarmanın önceki hâli artık saklanmıyor" }); }
+      const anlik = await anlikKaydet();
+      eserler.splice(0, eserler.length, ...onceki);
+      await eserleriKaydet();
+      const yeni = await gecmiseYaz({ islem: "ice-aktar", ad: `Geri alındı: ${g.ad}`, anlik, geriAlinan: g.id, ozet: [`${onceki.length} eser geri yüklendi`] });
+      return { geriAlindi: g.id, gecmis: yeni.id };
+    }
+    const simdiki = kopya(eserler.find((e) => e.id === g.eserId));
+    const i = eserler.findIndex((e) => e.id === g.eserId);
+    if (g.once == null) { if (i >= 0) eserler.splice(i, 1); }
+    else if (i >= 0) eserler[i] = kopya(g.once);
+    else eserler.push(kopya(g.once));
+    await eserleriKaydet();
+    const yeni = await gecmiseYaz({ islem: "geri-al", eserId: g.eserId, ad: g.ad, once: simdiki, sonra: kopya(g.once), geriAlinan: g.id });
+    return { geriAlindi: g.id, gecmis: yeni.id, eser: g.once ? eserler.find((e) => e.id === g.eserId) : null };
+  });
+
+  app.get("/api/eserler-disa-aktar", { preHandler: yoneticiGerekli }, async (_, rep) => {
+    const tarih = new Date().toISOString().slice(0, 10);
+    rep.header("content-disposition", `attachment; filename="lonca-eserler-${tarih}.json"`);
+    return { ...eserVerisi, disaAktarma: new Date().toISOString(), eserler };
+  });
+  app.post("/api/eserler-ice-aktar", { preHandler: yoneticiGerekli, bodyLimit: 25 * 1024 * 1024 }, async (req, rep) => {
+    const { kip = "birlestir" } = req.body ?? {};
+    const gelen = Array.isArray(req.body?.eserler) ? req.body.eserler : null;
+    if (!["birlestir", "degistir"].includes(kip)) return rep.code(400).send({ hata: "kip: birlestir | degistir" });
+    if (!gelen || !gelen.length) return rep.code(400).send({ hata: "eserler listesi gerekli (dışa aktarılan dosyanın biçimi)" });
+    if (gelen.length > 5000) return rep.code(413).send({ hata: "en fazla 5000 eser içe aktarılabilir" });
+    const hatalar = [], temiz = [], gorulen = new Set();
+    gelen.forEach((ham, sira) => {
+      const { hatalar: h, eser } = eserDogrula(ham);
+      const id = typeof ham?.id === "string" && /^[a-z0-9-]{1,80}$/.test(ham.id) ? ham.id : null;
+      if (id && gorulen.has(id)) h.push(`aynı id iki kez geçiyor: ${id}`);
+      if (h.length) hatalar.push({ sira: sira + 1, ad: typeof ham?.ad === "string" ? ham.ad.slice(0, 80) : "?", hatalar: h });
+      else { if (id) gorulen.add(id); temiz.push({ id, eser }); }
+    });
+    if (hatalar.length) return rep.code(400).send({ hata: `${hatalar.length} kayıt doğrulamadan geçmedi; hiçbir şey değişmedi`, ayrintilar: hatalar.slice(0, 20).map((x) => `${x.sira}. ${x.ad}: ${x.hatalar.join("; ")}`) });
+
+    const anlik = await anlikKaydet();
+    const onceSayi = eserler.length, zaman = new Date().toISOString();
+    let eklenen = 0, guncellenen = 0;
+    const sonuc = kip === "degistir" ? [] : eserler.slice();
+    for (const { id, eser } of temiz) {
+      const i = id ? sonuc.findIndex((e) => e.id === id) : -1;
+      const temel = { il: "Bursa", ilce: null, ad_en: null, yuzyil: null, konum: null, adres: null, fotograflar: [], sergi: null };
+      if (i >= 0) { sonuc[i] = { ...temel, ...sonuc[i], ...eser, id, guncelleme: zaman }; guncellenen++; }
+      else {
+        let yeniId = id ?? kimlikUret(`${eser.il ?? "Bursa"} ${eser.ad}`), n = 2;
+        const taban = yeniId;
+        while (sonuc.some((e) => e.id === yeniId)) yeniId = `${taban}-${n++}`;
+        sonuc.push({ id: yeniId, ...temel, ...eser, guncelleme: zaman }); eklenen++;
+      }
+    }
+    const silinen = kip === "degistir" ? onceSayi - guncellenen : 0;
+    eserler.splice(0, eserler.length, ...sonuc);
+    await eserleriKaydet();
+    const ozet = [`${eklenen} eklendi`, `${guncellenen} güncellendi`, ...(silinen ? [`${silinen} silindi`] : [])];
+    const g = await gecmiseYaz({ islem: "ice-aktar", ad: `İçe aktarma (${kip === "degistir" ? "tamamen değiştir" : "birleştir"})`, anlik, ozet });
+    return { eklenen, guncellenen, silinen, toplam: eserler.length, gecmis: g.id };
+  });
+
+  app.post("/api/eser-oneriler", { preHandler: oneriSiniri }, async (req, rep) => {
+    const { tur, eserId, veri: oneriVerisi, not } = req.body ?? {};
+    if (!["yeni", "duzenle", "not"].includes(tur)) return rep.code(400).send({ hata: "tur: yeni | duzenle | not" });
+    if (tur !== "yeni" && !eserler.some((e) => e.id === eserId)) return rep.code(404).send({ hata: "eser bulunamadı" });
+    let temiz = null;
+    if (tur !== "not") {
+      const { hatalar, eser } = eserDogrula(oneriVerisi, { kismi: tur === "duzenle" });
+      if (hatalar.length) return rep.code(400).send({ hata: "Öneri doğrulamadan geçmedi", ayrintilar: hatalar });
+      temiz = eser;
+    }
+    const notMetni = typeof not === "string" ? not.trim().slice(0, 1500) : "";
+    if (tur === "not" && notMetni.length < 5) return rep.code(400).send({ hata: "Düzeltme notu en az 5 karakter olmalı" });
+    const oneriler = await oneriDosyasi.oku();
+    if (oneriler.filter((o) => o.durum === "bekliyor").length >= 500) return rep.code(503).send({ hata: "Onay kuyruğu dolu" });
+    const kayit = { id: randomBytes(6).toString("hex"), tur, eserId: tur === "yeni" ? null : eserId, veri: temiz, not: notMetni || null,
+      durum: "bekliyor", tarih: new Date().toISOString() };
+    oneriler.push(kayit);
+    await oneriDosyasi.yaz(oneriler);
+    return rep.code(201).send({ id: kayit.id, durum: kayit.durum });
+  });
+
+  app.get("/api/eser-oneriler", { preHandler: yoneticiGerekli }, async (req) => {
+    const liste = await oneriDosyasi.oku();
+    const durum = req.query.durum ?? "bekliyor";
+    return liste.filter((o) => durum === "hepsi" || o.durum === durum).reverse()
+      .map((o) => ({ ...o, eser: o.eserId ? eserler.find((e) => e.id === o.eserId) ?? null : null }));
+  });
+
+  app.post("/api/eser-oneriler/:id/karar", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const { karar, veri: duzeltilmis } = req.body ?? {};
+    if (!["onayla", "reddet"].includes(karar)) return rep.code(400).send({ hata: "karar: onayla | reddet" });
+    const oneriler = await oneriDosyasi.oku();
+    const o = oneriler.find((x) => x.id === req.params.id);
+    if (!o) return rep.code(404).send({ hata: "öneri bulunamadı" });
+    if (o.durum !== "bekliyor") return rep.code(409).send({ hata: "bu öneri zaten karara bağlandı" });
+    let eser = null;
+    const onceki = kopya(eserler.find((e) => e.id === o.eserId));
+    if (karar === "onayla" && o.tur !== "not") {
+      const r = eserUygula(o, duzeltilmis ?? o.veri); 
+      if (r.hatalar) return rep.code(400).send({ hata: "Eser doğrulamadan geçmedi", ayrintilar: r.hatalar });
+      eser = r.eser;
+      await eserleriKaydet();
+      await gecmiseYaz({ islem: o.tur === "yeni" ? "ekle" : "duzenle", eserId: eser.id, ad: eser.ad, neden: "Topluluk önerisi onaylandı",
+        once: o.tur === "yeni" ? null : onceki, sonra: kopya(eser) });
+    }
+    o.durum = karar === "onayla" ? "onaylandi" : "reddedildi";
+    o.karar_tarihi = new Date().toISOString();
+    if (eser) o.eserId = eser.id;
+    await oneriDosyasi.yaz(oneriler);
+    return { oneri: o, eser };
+  });
+
+  app.post("/api/medya", { preHandler: oneriSiniri, bodyLimit: Math.ceil(MAKS_FOTO * 1.4) }, async (req, rep) => {
+    const m = /^data:(image\/(?:jpeg|png|webp));base64,([a-z0-9+/=]+)$/i.exec(req.body?.dosya ?? "");
+    if (!m) return rep.code(400).send({ hata: "dosya: data:image/jpeg|png|webp;base64,… olmalı" });
+    const tampon = Buffer.from(m[2], "base64");
+    if (tampon.length > MAKS_FOTO) return rep.code(413).send({ hata: "fotoğraf en fazla 6 MB olabilir" });
+    const sihir = tampon.subarray(0, 12);
+    const uzanti = sihir[0] === 0xff && sihir[1] === 0xd8 ? "jpg"
+      : sihir.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) ? "png"
+      : sihir.subarray(0, 4).toString() === "RIFF" && sihir.subarray(8, 12).toString() === "WEBP" ? "webp" : null;
+    if (!uzanti) return rep.code(400).send({ hata: "dosya içeriği bir fotoğraf değil" });
+    await mkdir(YUKLENEN, { recursive: true });
+    const ad = `${Date.now().toString(36)}-${randomBytes(5).toString("hex")}.${uzanti}`;
+    await writeFile(path.join(YUKLENEN, ad), tampon);
+    return rep.code(201).send({ yol: `/medya/yuklenen/${ad}` });
+  });
+  app.get("/medya/yuklenen/:ad", async (req, rep) => {
+    const { ad } = req.params;
+    if (!/^[a-z0-9-]+\.(jpg|png|webp)$/.test(ad)) return rep.code(404).send();
+    const yol = `/medya/yuklenen/${ad}`;
+    const yayinda = eserler.some((e) => e.fotograflar?.includes(yol));
+    if (!yayinda && !yoneticiMi(req)) return rep.code(404).send({ hata: "bulunamadı" });
+    const dosya = path.join(YUKLENEN, ad);
+    if (!existsSync(dosya)) return rep.code(404).send();
+    const tur = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" }[ad.split(".").pop()];
+    return rep.type(tur).header("cache-control", yayinda ? "public, max-age=86400" : "no-store").send(await readFile(dosya));
+  });
+
+  const fotografli = () => eserler.filter((e) => e.fotograflar?.length);
+  const sabitSayi = (metin) => [...String(metin)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const ozetEser = (e) => ({ id: e.id, ad: e.ad, tur: e.tur, ilce: e.ilce, yuzyil: e.yuzyil, foto: e.fotograflar[0] });
+  const ilginçCumleler = (metin) => {
+    const cumleler = String(metin).split(/(?<=[.!?])\s+/).filter(Boolean);
+    const anlatan = cumleler.filter((c) => !/(Caddesi|Sokak|Sokağı|Mahallesi|No:|yer almaktadır|bulunmaktadır|konumlanmaktadır)/i.test(c));
+    const metin2 = (anlatan.length ? anlatan : cumleler).slice(0, 2).join(" ");
+    return metin2.length <= 280 ? metin2 : `${metin2.slice(0, 280).replace(/\s+\S*$/, "")}…`;
+  };
+  app.get("/api/vitrin", async () => {
+    const havuz = fotografli();
+    const gun = Math.floor(Date.now() / 86_400_000);
+    const tam = havuz.filter((e) => e.yuzyil && e.tarihce?.tr);
+    const gununEseri = tam.length ? tam[gun % tam.length] : havuz[0] ?? null;
+    const secki = [];
+    for (let i = 0; i < havuz.length && secki.length < 10; i++) {
+      const e = havuz[(gun * 7 + i * 13) % havuz.length];
+      if (e !== gununEseri && !secki.includes(e)) secki.push(e);
+    }
+    const moduller = (await modulDosyasi.oku()).filter((m) => m.durum === "onayli");
+    const kapaklar = Object.fromEntries(moduller.map((m) => {
+      const secilen = m.kapakEser && eserler.find((e) => e.id === m.kapakEser && e.fotograflar?.length);
+      if (secilen) return [m.id, { foto: secilen.fotograflar[0], eser: secilen.ad }];
+      const uygun = havuz.filter((e) => !m.ikon || m.ikon === "genel" || e.tur === m.ikon);
+      const liste = uygun.length ? uygun : havuz;
+      const e = liste[sabitSayi(m.id) % Math.max(1, liste.length)];
+      return [m.id, e ? { foto: e.fotograflar[0], eser: e.ad } : null];
+    }));
+    return {
+      sayilar: { eser: eserler.length, fotografli: havuz.length, konumlu: eserler.filter((e) => e.konum).length, ilce: new Set(eserler.map((e) => e.ilce).filter(Boolean)).size },
+      gununEseri: gununEseri && { ...ozetEser(gununEseri), ozet: ilginçCumleler(gununEseri.tarihce.tr), fotoSayisi: gununEseri.fotograflar.length },
+      secki: secki.map(ozetEser),
+      kapaklar,
+    };
+  });
+
+  app.get("/api/moduller", async (req, rep) => {
+    const liste = await modulDosyasi.oku();
+    if (req.query.durum === "hepsi") {
+      if (!yoneticiMi(req)) return rep.code(401).send({ hata: "Bu liste için yönetici şifresi gerekli" });
+      return liste;
+    }
+    return liste.filter((m) => m.durum === "onayli");
+  });
+
+  app.get("/api/moduller/:id/kod", async (req, rep) => {
+    const { id } = req.params;
+    const m = (await modulDosyasi.oku()).find((x) => x.id === id);
+    if (!m || !kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
+    if (m.durum !== "onayli" && !yoneticiMi(req)) return rep.code(403).send({ hata: "modül yayında değil" });
+    const kod = await readFile(path.join(MODUL_DIZINI, `${id}.js`), "utf8");
+    return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
+  });
+
+  app.post("/api/moduller", { preHandler: oneriSiniri }, async (req, rep) => {
+    const { id, ad, aciklama = "", izinler = [], kod, renk, ikon, kategori } = req.body ?? {};
+    if (!kimlikGecerli(id)) return rep.code(400).send({ hata: "id: küçük harf, rakam ve tire (en fazla 64)" });
+    if (typeof ad !== "string" || !ad.trim()) return rep.code(400).send({ hata: "ad gerekli" });
+    if (typeof kod !== "string" || kod.length > MAKS_KOD) return rep.code(400).send({ hata: `kod gerekli (en fazla ${MAKS_KOD} karakter)` });
+    const hatalar = kalfa.dogrula(kod);
+    if (hatalar.length) return rep.code(400).send({ hata: "Modül doğrulamadan geçmedi", ayrintilar: hatalar });
+
+    const liste = await modulDosyasi.oku();
+    const onceki = liste.find((m) => m.id === id);
+    if (onceki && onceki.durum === "onayli" && !yoneticiMi(req)) return rep.code(409).send({ hata: "Bu kimlikle yayında bir modül var; başka bir id seç" });
+    const kayit = {
+      id, ad: ad.trim().slice(0, 60), aciklama: String(aciklama).slice(0, 200),
+      izinler: Array.isArray(izinler) ? izinler.filter((x) => x === "konum") : [],
+      renk: RENKLER.includes(renk) ? renk : undefined,
+      ikon: IKONLAR.includes(ikon) ? ikon : undefined,
+      kategori: KATEGORILER.includes(kategori) ? kategori : undefined,
+      kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
+      durum: "bekliyor", olusturma: onceki?.olusturma ?? new Date().toISOString(), guncelleme: new Date().toISOString(),
+    };
+    const i = liste.findIndex((m) => m.id === id);
+    if (i >= 0) liste[i] = kayit; else liste.push(kayit);
+    await mkdir(MODUL_DIZINI, { recursive: true });
+    const eskiYol = path.join(MODUL_DIZINI, `${id}.js`);
+    if (onceki && existsSync(eskiYol)) {
+      const yedekler = path.join(MODUL_DIZINI, "eski");
+      await mkdir(yedekler, { recursive: true });
+      await writeFile(path.join(yedekler, `${id}-${new Date().toISOString().replace(/[:.]/g, "-")}.js`), await readFile(eskiYol));
+      const benimkiler = (await readdir(yedekler)).filter((f) => f.startsWith(`${id}-`) && /^\d{4}-/.test(f.slice(id.length + 1))).sort();
+      for (const f of benimkiler.slice(0, -10)) await rm(path.join(yedekler, f), { force: true });
+    }
+    await writeFile(eskiYol, kod);
+    await modulDosyasi.yaz(liste);
+    return rep.code(201).send(kayit);
+  });
+
+  async function durumDegistir(id, durum) {
+    const liste = await modulDosyasi.oku();
+    const m = liste.find((x) => x.id === id);
+    if (!m) return null;
+    m.durum = durum;
+    m.guncelleme = new Date().toISOString();
+    if (durum === "onayli") m.yayin = m.guncelleme;
+    await modulDosyasi.yaz(liste);
+    return m;
+  }
+  app.post("/api/moduller/:id/durum", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const { durum } = req.body ?? {};
+    if (!MODUL_DURUMLARI.includes(durum)) return rep.code(400).send({ hata: `durum: ${MODUL_DURUMLARI.join(" | ")}` });
+    return (await durumDegistir(req.params.id, durum)) ?? rep.code(404).send({ hata: "modül bulunamadı" });
+  });
+  app.post("/api/moduller/:id/onayla", { preHandler: yoneticiGerekli }, async (req, rep) =>
+    (await durumDegistir(req.params.id, "onayli")) ?? rep.code(404).send({ hata: "modül bulunamadı" }));
+
+  app.delete("/api/moduller/:id", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const { id } = req.params;
+    if (!kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
+    const liste = await modulDosyasi.oku();
+    const i = liste.findIndex((m) => m.id === id);
+    if (i < 0) return rep.code(404).send({ hata: "modül bulunamadı" });
+    liste.splice(i, 1);
+    await modulDosyasi.yaz(liste);
+    await rm(path.join(MODUL_DIZINI, `${id}.js`), { force: true });
+    return { silindi: id };
+  });
+
+  app.get("/api/kalfa", async () => ({ model: kalfa.model, sahte: kalfa.sahte }));
+  app.post("/api/kalfa", { preHandler: kalfaSiniri }, async (req, rep) => {
+    const { sohbet, kod } = req.body ?? {};
+    const gecerli = Array.isArray(sohbet) && sohbet.length > 0 && sohbet.length <= 30 &&
+      sohbet.every((m) => (m?.rol === "usta" || m?.rol === "kalfa") && typeof m.metin === "string" && m.metin.length <= 4000) &&
+      sohbet.at(-1).rol === "usta";
+    if (!gecerli) return rep.code(400).send({ hata: "sohbet: en fazla 30 mesaj, son mesaj ustadan" });
+    if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
+    try {
+      return await kalfa.calistir(sohbet, kod || undefined);
+    } catch (h) {
+      req.log.error(h);
+      return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });
+    }
+  });
+
+  app.addHook("onSend", async (req, rep, govde) => {
+    rep.header("x-content-type-options", "nosniff");
+    rep.header("referrer-policy", "strict-origin-when-cross-origin");
+    if (req.url.startsWith("/studio")) rep.header("x-robots-tag", "noindex");
+    return govde;
+  });
+
+  return { app, kalfa, yetki, eserler };
+}

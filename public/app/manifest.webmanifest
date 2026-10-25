@@ -1,0 +1,17 @@
+{
+  "name": "Lonca — Vakıf eserlerini keşfet",
+  "short_name": "Lonca",
+  "description": "Vakıf eserlerini oyunlar, rehberler ve 3B gezilerle keşfet.",
+  "lang": "tr",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#142763",
+  "theme_color": "#142763",
+  "icons": [
+    { "src": "/simgeler/lonca-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/simgeler/lonca-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/simgeler/lonca-512-maskeli.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

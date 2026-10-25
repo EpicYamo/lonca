@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lonca Studio</title>
+  <link rel="icon" href="/simgeler/lonca-192.png">
+  <link rel="stylesheet" href="/ortak/tasarim.css">
+  <link rel="stylesheet" href="/studio/studio.css">
+</head>
+<body>
+  <header class="ust">
+    <div class="marka">
+      <span class="amblem" id="amblem" aria-hidden="true"></span>
+      <div class="marka-metin">
+        <h1>Lonca <span>Studio</span></h1>
+        <span class="marka-alt">~/atölye <b>›</b> sen ustasın, yapay zekâ kalfan<span class="imlec" aria-hidden="true"></span></span>
+      </div>
+    </div>
+    <nav class="sekmeler" aria-label="Studio bölümleri">
+      <button class="sekme-d secili" data-sayfa="atolye" data-no="01" aria-current="page">Atölye</button>
+      <button class="sekme-d" data-sayfa="moduller" data-no="02">Modüller <span class="sayac" id="sayac-modul" hidden></span></button>
+      <button class="sekme-d" data-sayfa="icerik" data-no="03">İçerik <span class="sayac" id="sayac-oneri" hidden></span></button>
+    </nav>
+    <span class="bosluk-esnek"></span>
+    <p id="model" class="rozet" title="Kalfanın kullandığı yapay zekâ modeli"><span class="nokta"></span><span id="model-ad">Kalfa bağlanıyor…</span></p>
+    <button id="yonetici" class="rozet yonetici" type="button" title="Yönetici girişi">Yönetici</button>
+  </header>
+
+  <main class="tezgah sayfa" id="sayfa-atolye">
+    <!-- 1. Chat -->
+    <section class="panel sohbet" aria-labelledby="sohbet-baslik">
+      <h2 id="sohbet-baslik" class="panel-baslik" data-no="A">Kalfa</h2>
+      <ol id="mesajlar" class="mesajlar" aria-live="polite">
+        <li class="mesaj kalfa">
+          <p>Hoş geldin usta. Vakıf eserleriyle ilgili bir fikir anlat; modülünü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
+        </li>
+      </ol>
+      <div id="oneriler" class="oneriler" aria-label="Örnek fikirler">
+        <button type="button">Çocuklar için Bursa hanlarında süreli bir hazine avı oyunu</button>
+        <button type="button">Bursa türbelerini gece temasıyla gezdiren, haritalı ve 3B bir rehber</button>
+        <button type="button">Eserleri yüzyıllara göre gezdiren, koleksiyonlu bir zaman yolculuğu</button>
+      </div>
+      <form id="sohbet-formu" class="sohbet-formu">
+        <label for="istek" class="gizli">Kalfaya mesaj</label>
+        <textarea id="istek" rows="3" placeholder="Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
+        <button id="gonder" class="birincil" aria-label="Gönder">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z" fill="currentColor"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <!-- 2. Code -->
+    <section class="panel kod-paneli" aria-labelledby="kod-baslik">
+      <div class="kod-ust">
+        <h2 id="kod-baslik" class="panel-baslik" data-no="B">Modül</h2>
+        <input id="ad" class="ad-girdisi" placeholder="Modülün adı" aria-label="Modülün adı">
+        <select id="surumler" class="surumler" aria-label="Editörün önceki sürümleri" title="Kalfa ya da başka bir modül editörü değiştirmeden önceki hâller" hidden></select>
+      </div>
+      <div class="bilgi">
+        <label>Kimlik <input id="id" placeholder="ornek-modul" pattern="[a-z0-9-]{1,64}"></label>
+        <label>Karo rengi
+          <select id="renk">
+            <option value="">Otomatik</option><option value="kobalt">Kobalt</option><option value="firuze">Firuze</option>
+            <option value="mercan">Mercan</option><option value="altin">Altın</option><option value="zumrut">Zümrüt</option><option value="murdum">Mürdüm</option>
+          </select>
+        </label>
+        <label>Çizim
+          <select id="ikon">
+            <option value="">Genel</option><option value="cami">Cami</option><option value="han">Han</option><option value="hamam">Hamam</option>
+            <option value="medrese">Medrese</option><option value="cesme">Çeşme</option><option value="turbe">Türbe</option>
+          </select>
+        </label>
+        <label>Kategori
+          <select id="kategori">
+            <option value="">Otomatik</option><option value="rehber">Rehber</option><option value="oyun">Oyun</option>
+            <option value="gezi">Gezi</option><option value="ogren">Öğren</option>
+          </select>
+        </label>
+        <label class="genis">Açıklama <input id="aciklama" placeholder="Uygulamada görünecek tek cümle"></label>
+      </div>
+      <div class="editor" id="editor">
+        <div class="satirlar" id="satirlar" aria-hidden="true"></div>
+        <div class="editor-alan">
+          <pre aria-hidden="true"><code id="renkli"></code></pre>
+          <label for="kod" class="gizli">Modül kodu</label>
+          <textarea id="kod" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Kalfa modülü yazınca kod burada görünür. İstersen elle de düzenleyebilirsin."></textarea>
+        </div>
+      </div>
+      <div class="eylemler">
+        <button id="onizle" type="button" class="ikincil">Önizle</button>
+        <button id="onaya-gonder" type="button" class="birincil">Onaya gönder</button>
+        <div id="durum" class="durum" role="status"></div>
+      </div>
+    </section>
+
+    <section class="onizleme" aria-labelledby="onizleme-baslik">
+      <h2 id="onizleme-baslik" class="gizli">Canlı önizleme</h2>
+      <div class="telefon">
+        <div class="telefon-ust" aria-hidden="true"><span id="saat">09:41</span><span class="centik"></span><span>●●●</span></div>
+        <iframe id="cerceve" title="Modülün telefondaki önizlemesi" src="/app/?onizleme=1"></iframe>
+      </div>
+      <p class="onizleme-not">C
+    </section>
+  </main>
+
+  <main class="sayfa sayfa-genis" id="sayfa-moduller" hidden>
+    <div class="sayfa-ust">
+      <h2 class="panel-baslik" data-no="02">Modüller</h2>
+      <div class="suzgec" id="modul-suzgec" role="group" aria-label="Duruma göre süz"></div>
+    </div>
+    <ul id="liste" class="modul-listesi"></ul>
+  </main>
+
+  <main class="sayfa sayfa-genis icerik" id="sayfa-icerik" hidden>
+    <section class="panel kuyruk" aria-labelledby="kuyruk-baslik">
+      <h2 id="kuyruk-baslik" class="panel-baslik" data-no="03">Onay kuyruğu</h2>
+      <p class="aciklama">Uygulamadan gelen yeni eser önerileri, düzenlemeler ve hata bildirimleri. Onaylanmadan hiçbiri yayına girmez.</p>
+      <ul id="oneriler-listesi" class="oneri-listesi"></ul>
+      <h2 id="gecmis-baslik" class="panel-baslik ikinci" data-no="04">Değişiklik geçmişi</h2>
+      <p class="aciklama">Her kayıt, silme, onay ve içe aktarma burada. Herhangi birini geri alabilirsin; geri alma da geri alınabilir.</p>
+      <label class="onay-kutusu kucuk"><input id="gecmis-suz" type="checkbox"> Yalnızca açık eser</label>
+      <ul id="gecmis-listesi" class="gecmis-listesi" aria-labelledby="gecmis-baslik"></ul>
+    </section>
+    <section class="panel eser-yonetimi" aria-labelledby="eser-baslik">
+      <div class="sayfa-ust">
+        <h2 id="eser-baslik" class="panel-baslik" data-no="03">Eserler</h2>
+        <div class="ust-eylemler">
+          <button id="disa-aktar" class="ikincil kucuk-d" type="button" title="Bütün eserleri JSON dosyası olarak indir">⇣ Dışa aktar</button>
+          <button id="ice-aktar" class="ikincil kucuk-d" type="button" title="Dışa aktarılmış bir JSON dosyasını yükle">⇡ İçe aktar</button>
+          <input id="ice-dosya" type="file" accept="application/json,.json" hidden>
+          <button id="yeni-eser" class="ikincil kucuk-d" type="button">+ Yeni eser</button>
+        </div>
+      </div>
+      <div id="aktar-durum" class="durum" role="status"></div>
+      <section class="tamlik" id="tamlik" aria-label="Veri tamlığına göre süz"></section>
+      <input id="eser-ara" class="arama" type="search" placeholder="Eser ara…" aria-label="Eser ara">
+      <div class="eser-duzen">
+        <ul id="eser-listesi" class="eser-listesi"></ul>
+        <form id="eser-formu" class="eser-formu" hidden>
+          <div class="form-ust">
+            <h3 id="form-baslik">Eser</h3>
+            <span id="kirli" class="kirli-isaret" hidden>● kaydedilmemiş değişiklik</span>
+            <button id="eser-gecmisi-ac" class="metin-d" type="button" hidden>bu eserin geçmişi</button>
+          </div>
+          <div class="form-izgara">
+            <label class="genis">Ad <input name="ad" required maxlength="120"></label>
+            <label>İngilizce ad <input name="ad_en" maxlength="120"></label>
+            <label>Tür <select name="tur" required></select></label>
+            <label>İl <input name="il" maxlength="40" value="Bursa"></label>
+            <label>İlçe <input name="ilce" maxlength="40"></label>
+            <label>Yüzyıl <input name="yuzyil" type="number" min="1" max="21" placeholder="bilinmiyor"></label>
+            <label>Enlem <input name="lat" type="number" step="any" placeholder="40.18"></label>
+            <label>Boylam <input name="lng" type="number" step="any" placeholder="29.06"></label>
+            <label class="onay-kutusu"><input name="yaklasik" type="checkbox"> Konum yaklaşık</label>
+            <label class="genis">Adres <input name="adres" maxlength="240"></label>
+            <label class="genis">Tarihçe (Türkçe) <textarea name="tarihce_tr" rows="8" required></textarea></label>
+            <label class="genis">Tarihçe (İngilizce) <textarea name="tarihce_en" rows="4"></textarea></label>
+            <label class="genis">Kaynak <input name="kaynak" required maxlength="240" placeholder="Ör. Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37"></label>
+          </div>
+          <div class="fotolar">
+            <div class="fotolar-baslik"><span>Fotoğraflar <span id="foto-sayi"></span></span><span id="foto-ipucu">ilk fotoğraf kapak olur</span></div>
+            <ul id="foto-listesi" class="foto-listesi" aria-label="Fotoğraflar"></ul>
+            <label class="foto-birak" id="foto-birak">
+              <span><b>Fotoğrafları sürükle bırak</b> ya da tıklayıp seç (birden çok seçilebilir)</span>
+              <span class="mono" style="font-size:.7rem">JPEG · PNG · WebP · en fazla 6 MB</span>
+              <input id="foto-sec" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+            </label>
+          </div>
+          <div class="eylemler">
+            <button class="birincil" type="submit">Kaydet ve yayınla</button>
+            <button class="ikincil" type="button" id="eser-vazgec">Vazgeç</button>
+            <button class="tehlike" type="button" id="eser-sil">Sil</button>
+            <div id="eser-durum" class="durum" role="status"></div>
+          </div>
+        </form>
+        <p id="eser-bos" class="aciklama">Düzenlemek için soldan bir eser seç ya da yeni eser ekle.</p>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="kaydedilmedi" class="giris">
+    <form method="dialog">
+      <h2 class="panel-baslik">Kaydedilmemiş değişiklikler</h2>
+      <p class="aciklama">Bu eserde kaydetmediğin değişiklikler var. Ne yapalım?</p>
+      <div class="eylemler"><button class="birincil" value="kaydet">Kaydet</button><button class="tehlike" value="at">Değişiklikleri at</button><button class="ikincil" value="vazgec">Geri dön</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="ice-aktar-pencere" class="giris">
+    <form method="dialog">
+      <h2 class="panel-baslik">İçe aktar</h2>
+      <p class="aciklama" id="ice-ozet"></p>
+      <p class="aciklama"><b>Birleştir:</b> aynı kimlikteki eserler güncellenir, yeniler eklenir, diğerleri olduğu gibi kalır.<br><b>Tamamen değiştir:</b> dosyada olmayan eserler silinir.<br>Hatalı tek bir kayıt bile varsa hiçbir şey değişmez. İçe aktarma geçmişten geri alınabilir.</p>
+      <div class="eylemler"><button class="birincil" value="birlestir">Birleştir</button><button class="tehlike" value="degistir">Tamamen değiştir</button><button class="ikincil" value="iptal">Vazgeç</button></div>
+    </form>
+  </dialog>
+  <div id="bildirimler" class="bildirimler" aria-live="polite"></div>
+
+  <dialog id="giris" class="giris">
+    <form method="dialog" id="giris-formu">
+      <h2 class="panel-baslik">Yönetici girişi</h2>
+      <p class="aciklama">Onay, yayından kaldırma, silme ve içerik düzenleme için gerekli. Şifre sunucudaki .env dosyasında (YONETICI_SIFRE).</p>
+      <label>Şifre <input id="giris-sifre" type="password" autocomplete="current-password" required></label>
+      <p id="giris-hata" class="durum kotu" role="alert"></p>
+      <div class="eylemler"><button class="birincil" value="giris">Giriş</button><button class="ikincil" value="iptal" formnovalidate>Vazgeç</button></div>
+    </form>
+  </dialog>
+
+  <footer class="durum-cubugu" aria-hidden="true">
+    <span>lonca@studio</span><span id="dc-kalfa">kalfa: …</span><span id="dc-eser">eserler: …</span><span id="dc-modul">modüller: …</span>
+    <span class="sag" id="dc-saat"></span>
+  </footer>
+
+  <script type="module" src="/studio/studio.js"></script>
+</body>
+</html>

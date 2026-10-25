@@ -1,0 +1,17 @@
+node_modules/
+.env
+.DS_Store
+*.log
+# Large source data stays out of the repository (inventory books, photo archive)
+veri-kaynak/
+kitaplar/
+fotograflar*/
+__pycache__/
+
+# Data created while running (community suggestions, uploaded photos)
+data/eser-oneriler.json
+data/yuklenen/
+*.tmp
+data/eser-gecmisi.json
+data/gecmis/
+data/moduller/eski/

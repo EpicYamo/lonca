@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#142763">
+  <title>Lonca</title>
+  <meta name="description" content="Bursa’nın vakıf eserlerini rehberler, oyunlar ve gezi rotalarıyla keşfet.">
+  <link rel="manifest" href="/app/manifest.webmanifest">
+  <link rel="icon" href="/simgeler/lonca-192.png">
+  <link rel="apple-touch-icon" href="/simgeler/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="/ortak/tasarim.css">
+  <link rel="stylesheet" href="/app/app.css">
+  <link rel="stylesheet" href="/app/sahne.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/", "three/examples/jsm/": "/vendor/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <a class="atla" href="#uygulamalar-baslik">İçeriğe geç</a>
+  <div id="ana-ekran" class="ana-ekran">
+    <header class="ust-bar" id="ust-bar">
+      <p class="marka"><span class="marka-logo" id="marka-logo" aria-hidden="true"></span><span>Lonca</span></p>
+      <div class="vitrin-dugmeler">
+        <button class="profil-cip" id="profil-cip" aria-label="Profilim">
+          <span class="avatar" id="cip-avatar" aria-hidden="true"></span>
+          <span class="profil-cip-metin"><strong id="cip-ad">Gezgin</strong><span id="cip-seviye">Seviye 1</span></span>
+        </button>
+        <button class="ayar-dugme" data-ayar aria-expanded="false" aria-controls="ayarlar" aria-label="Erişilebilirlik ve görünüm ayarları">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v4.5m0 0l-3.5 6m3.5-6l3.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="meydan">
+      <section class="kapak-alani" id="vitrin" aria-labelledby="vitrin-baslik">
+        <div class="kolaj" id="kolaj" aria-hidden="true"></div>
+        <div class="kapak-yazi">
+          <p class="vitrin-selam" id="vitrin-selam">Hoş geldin</p>
+          <h1 class="vitrin-baslik" id="vitrin-baslik">Bursa'nın vakıf eserleri, <em>cebinde</em></h1>
+          <p class="vitrin-alt">Rehberler, oyunlar ve gezi rotaları; hepsi gerçek envanter verisiyle.</p>
+          <ul class="vitrin-sayilar" id="vitrin-sayilar" aria-label="Lonca'da neler var"></ul>
+        </div>
+        <p class="kolaj-atif" id="kolaj-atif"></p>
+      </section>
+
+      <div class="meydan-duzen">
+        <main class="meydan-ana">
+          <section id="devam" class="devam" hidden aria-labelledby="devam-baslik">
+            <h2 id="devam-baslik" class="bolum-baslik kucuk">Kaldığın yerden</h2>
+            <button class="devam-karti" id="devam-karti"></button>
+          </section>
+
+          <section class="one-cikanlar" aria-labelledby="one-cikanlar-baslik">
+            <div class="bolum-ust">
+              <h2 id="one-cikanlar-baslik" class="bolum-baslik">Öne çıkanlar</h2>
+              <div class="kaydir-dugmeler" id="one-cikan-oklar" hidden>
+                <button type="button" class="ok-dugme" data-yon="-1" aria-label="Önceki">‹</button>
+                <button type="button" class="ok-dugme" data-yon="1" aria-label="Sonraki">›</button>
+              </div>
+            </div>
+            <ul id="one-cikanlar" class="one-cikan-seridi"></ul>
+          </section>
+
+          <section class="uygulamalar" aria-labelledby="uygulamalar-baslik">
+            <div class="bolum-ust">
+              <h2 id="uygulamalar-baslik" class="bolum-baslik" tabindex="-1">Uygulamalar</h2>
+              <span class="bolum-sayi" id="uygulama-sayisi"></span>
+            </div>
+            <div class="kategori-cipleri" id="kategori-cipleri" role="group" aria-label="Kategoriye göre süz"></div>
+            <ul id="moduller" class="uygulama-listesi"></ul>
+          </section>
+
+          <section class="envanter" aria-labelledby="envanter-baslik">
+            <div class="bolum-ust">
+              <h2 id="envanter-baslik" class="bolum-baslik">Envanterden</h2>
+              <span class="bolum-sayi">her gün yeni bir seçki</span>
+            </div>
+            <ul id="secki" class="secki-seridi"></ul>
+          </section>
+        </main>
+
+        <aside class="meydan-yan" aria-label="Günün eseri ve katkı">
+          <section class="gunun-eseri" id="gunun-eseri" aria-labelledby="gunun-baslik" hidden>
+            <h2 id="gunun-baslik" class="bolum-baslik kucuk">Günün eseri</h2>
+            <button type="button" class="gunun-karti" id="gunun-karti"></button>
+          </section>
+          <section class="katki-seridi" aria-labelledby="katki-baslik">
+            <span class="katki-desen" id="katki-desen" aria-hidden="true"></span>
+            <h2 id="katki-baslik" class="bolum-baslik">Sen de katkı ver</h2>
+            <p>Envanterde olmayan bir vakıf eseri mi biliyorsun? Fotoğraflarıyla öner; editörler kontrol ettikten sonra herkes görsün.</p>
+            <button class="dugme kucuk" id="eser-oner" type="button">Eser öner</button>
+          </section>
+          <p class="kaynak-notu">Veriler: Vakıf Katılım, <em>Bursa Vakıf Eserleri Envanteri</em>. Fotoğraflar envanter kitaplarındandır.</p>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="eser-penceresi" class="eser-penceresi" aria-labelledby="ep-ad">
+    <div class="ep-fotolar" id="ep-fotolar"></div>
+    <div class="ep-govde">
+      <p class="ep-ust" id="ep-ust"></p>
+      <h2 id="ep-ad"></h2>
+      <div id="ep-tarihce" class="ep-tarihce"></div>
+      <p class="ep-kaynak" id="ep-kaynak"></p>
+      <div class="ep-eylemler">
+        <button type="button" class="dugme ikincil kucuk" id="ep-hata">Bir hata mı gördün? Bildir</button>
+        <button type="button" class="dugme kucuk" id="ep-kapat">Kapat</button>
+      </div>
+    </div>
+    <button type="button" class="ep-x" id="ep-x" aria-label="Kapat">×</button>
+  </dialog>
+
+  <!-- Profil -->
+  <div id="profil-ekrani" class="profil-ekrani" hidden>
+    <header class="ust-serit profil-serit">
+      <button class="geri" id="profil-geri" aria-label="Ana ekrana dön">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h1>Profilim</h1>
+    </header>
+    <main class="profil-icerik" id="profil-icerik"></main>
+  </div>
+
+  <div id="modul-ekrani" class="modul-ekrani" hidden>
+    <h1 id="baslik" class="gizli">Lonca</h1>
+    <div class="ilerleme" id="ilerleme" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="İlerleme"><span></span></div>
+    <main id="sahne" class="sahne" tabindex="-1"></main>
+    <nav id="sekme-cubugu" class="sekme-cubugu" role="tablist" aria-label="Modül bölümleri" hidden></nav>
+    <div class="kapsul" id="kapsul" role="group" aria-label="Lonca">
+      <button class="kapsul-dugme" data-ayar aria-expanded="false" aria-controls="ayarlar" aria-label="Görünüm ve erişilebilirlik">Aa</button>
+      <span class="kapsul-ayrac" aria-hidden="true"></span>
+      <button id="geri" class="kapsul-dugme" aria-label="Modülü kapat ve Lonca'ya dön">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div id="katman" class="katman" hidden>
+      <div class="katman-kutu" role="dialog" aria-modal="true" aria-label="Pencere">
+        <button id="katman-kapat" class="katman-kapat" aria-label="Pencereyi kapat">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </button>
+        <div id="katman-icerik" class="katman-icerik" aria-live="polite"></div>
+      </div>
+    </div>
+    <div id="acilis" class="acilis" hidden aria-hidden="true">
+      <div class="acilis-desen" id="acilis-desen"></div>
+      <div class="acilis-orta">
+        <span class="acilis-madalyon" id="acilis-madalyon"></span>
+        <p class="acilis-ad" id="acilis-ad"></p>
+        <span class="acilis-yukleniyor"><i></i><i></i><i></i></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tanisma" class="ayarlar" hidden>
+    <form class="ayarlar-kutu tanisma-kutu" id="tanisma-formu" role="dialog" aria-modal="true" aria-labelledby="tanisma-baslik">
+      <h2 id="tanisma-baslik">Lonca'ya hoş geldin</h2>
+      <p class="tanisma-alt">Sana nasıl seslenelim? Takma ad yeterli; adın cihazında kalır.</p>
+      <label class="gizli" for="tanisma-ad">Takma ad</label>
+      <input id="tanisma-ad" class="tanisma-girdi" maxlength="24" placeholder="Örn. Kervan Başı" autocomplete="nickname">
+      <fieldset class="renk-secimi">
+        <legend>Çinin rengi</legend>
+        <div id="renk-secenekleri"></div>
+      </fieldset>
+      <div class="tanisma-dugmeler">
+        <button type="button" class="dugme ikincil" id="tanisma-gec">Şimdilik geç</button>
+        <button class="dugme">Başla</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="katki" class="ayarlar" hidden>
+    <form class="ayarlar-kutu katki-kutu" id="katki-formu" role="dialog" aria-modal="true" aria-labelledby="katki-form-baslik" novalidate>
+      <h2 id="katki-form-baslik">Eser öner</h2>
+      <p class="tanisma-alt" id="katki-alt"></p>
+      <div id="katki-yeni">
+        <label class="katki-alan">Eserin adı <input name="ad" maxlength="120" required></label>
+        <label class="katki-alan">Türü <select name="tur"></select></label>
+        <label class="katki-alan">İlçe <input name="ilce" maxlength="40"></label>
+        <label class="katki-alan">Bildiklerin (tarihçe) <textarea name="tarihce" rows="5" maxlength="4000"></textarea></label>
+        <label class="katki-alan">Kaynak <input name="kaynak" maxlength="240" placeholder="Kitap, kurum, kitabe…"></label>
+        <div class="katki-alan katki-fotolar">
+          <span>Fotoğraflar <small>(isteğe bağlı, en fazla 6 · ilki kapak olur)</small></span>
+          <ul id="katki-foto-listesi" class="katki-foto-listesi" aria-label="Seçilen fotoğraflar"></ul>
+          <label class="katki-foto-ekle" id="katki-foto-ekle">
+            <span aria-hidden="true">＋</span> Fotoğraf ekle
+            <input name="foto" type="file" accept="image/jpeg,image/png,image/webp" multiple class="gizli-girdi">
+          </label>
+        </div>
+      </div>
+      <label class="katki-alan" id="katki-not-alan">Ne yanlış ya da eksik? <textarea name="not" rows="5" maxlength="1500"></textarea></label>
+      <p class="katki-durum" id="katki-durum" role="status"></p>
+      <div class="tanisma-dugmeler">
+        <button type="button" class="dugme ikincil" id="katki-vazgec">Vazgeç</button>
+        <button class="dugme" id="katki-gonder">Gönder</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="ayarlar" class="ayarlar" hidden>
+    <div class="ayarlar-kutu erisim-kutu" role="dialog" aria-modal="true" aria-labelledby="ayarlar-baslik">
+      <div class="erisim-ust">
+        <h2 id="ayarlar-baslik">Erişilebilirlik</h2>
+        <button class="erisim-sifirla" id="erisim-sifirla" type="button">Varsayılana dön</button>
+      </div>
+      <p class="erisim-ornek" id="erisim-ornek" aria-hidden="true">Ulucami, Bursa'nın en büyük camisidir. <span>Örnek metin</span></p>
+
+      <fieldset class="erisim-grup">
+        <legend>Okuma</legend>
+        <div class="erisim-satir">
+          <span id="yazi-etiket">Yazı boyutu</span>
+          <div class="bolumlu" role="radiogroup" aria-labelledby="yazi-etiket" id="yazi-boyutu">
+            <label><input type="radio" name="yazi" value="1" checked><span style="font-size:.85rem">A</span></label>
+            <label><input type="radio" name="yazi" value="1.15"><span style="font-size:1rem">A</span></label>
+            <label><input type="radio" name="yazi" value="1.3"><span style="font-size:1.15rem">A</span></label>
+            <label><input type="radio" name="yazi" value="1.5"><span style="font-size:1.3rem">A</span></label>
+          </div>
+        </div>
+        <label class="anahtar"><input type="checkbox" data-tercih="okunakli"><span>Okunaklı yazı tipi <small>Harfleri birbirinden ayırt etmesi kolay (Atkinson Hyperlegible)</small></span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="aralik"><span>Geniş satır ve harf aralığı <small>Disleksi dostu okuma</small></span></label>
+      </fieldset>
+
+      <fieldset class="erisim-grup">
+        <legend>Görme</legend>
+        <label class="anahtar"><input type="checkbox" data-tercih="kontrast"><span>Yüksek kontrast <small>Siyah zemin, sarı vurgular</small></span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="renkDostu"><span>Renk körlüğü dostu <small>Doğru/yanlış mavi-turuncu; haritada türler harfle</small></span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="sade"><span>Sade görünüm <small>Süsleme desenlerini gizle</small></span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="odak"><span>Belirgin odak çerçevesi <small>Klavye ile gezerken</small></span></label>
+      </fieldset>
+
+      <fieldset class="erisim-grup">
+        <legend>Hareket ve dokunma</legend>
+        <label class="anahtar"><input type="checkbox" data-tercih="hareket"><span>Hareketi azalt <small>Geçişler, konfeti ve 3B uçuşlar kapanır</small></span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="buyukHedef"><span>Büyük dokunma alanları <small>Düğmeler daha büyük, aralar daha geniş</small></span></label>
+      </fieldset>
+
+      <fieldset class="erisim-grup">
+        <legend>Ses</legend>
+        <label class="anahtar"><input type="checkbox" data-tercih="ses" id="sesli-oku"><span>Ekranı sesli oku <small>Her yeni ekranı Türkçe okur</small></span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="dokunOku"><span>Dokunduğunu oku <small>Odaklanılan düğmeyi seslendirir</small></span></label>
+        <label class="erisim-satir" for="ses-hizi"><span>Okuma hızı</span>
+          <input type="range" id="ses-hizi" min="0.6" max="1.6" step="0.1" value="1" aria-valuetext="normal"></label>
+        <p id="ses-notu" class="ses-notu" role="status"></p>
+      </fieldset>
+      <button class="dugme" id="ayar-kapat">Tamam</button>
+    </div>
+  </div>
+
+  <div id="bildirimler" class="bildirimler" aria-live="polite"></div>
+
+  <script type="module" src="/app/app.js"></script>
+</body>
+</html>

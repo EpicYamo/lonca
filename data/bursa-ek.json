@@ -1,0 +1,174 @@
+{
+ "_not": "Kitaplardan otomatik çıkarılan veriye elle yapılan eklemeler. Kitaplarda koordinat yok: buradaki konumlar elle girilmiş YAKLAŞIK konumlardır (yaklaşık 100-200 m). Yüzyıl düzeltmeleri, otomatik çıkarımın onarım yılını yapım yılı sandığı ya da kesin olmayan durumlar içindir (null = sorularda kullanılmaz).",
+ "eserler": {
+  "Ulucami": {
+   "konum": [
+    40.18395,
+    29.06185
+   ],
+   "yuzyil": 14
+  },
+  "Koza Hanı": {
+   "konum": [
+    40.1833,
+    29.0629
+   ],
+   "yuzyil": 15
+  },
+  "İç Koza Hanı": {
+   "konum": [
+    40.18312,
+    29.063
+   ],
+   "yuzyil": 15
+  },
+  "Koza Han Mescidi": {
+   "konum": [
+    40.18324,
+    29.06286
+   ]
+  },
+  "Orhan Bey Külliyesi": {
+   "konum": [
+    40.1829,
+    29.0641
+   ],
+   "yuzyil": 14
+  },
+  "Orhan Bey Hamamı (aynalı Çarşı)": {
+   "konum": [
+    40.18268,
+    29.06445
+   ],
+   "yuzyil": 14
+  },
+  "Yıldırım Bayezid Bedesteni": {
+   "konum": [
+    40.1843,
+    29.0642
+   ],
+   "yuzyil": null
+  },
+  "Fidan Hanı": {
+   "konum": [
+    40.18372,
+    29.06478
+   ],
+   "yuzyil": 15
+  },
+  "Pirinç Hanı": {
+   "konum": [
+    40.18245,
+    29.06515
+   ],
+   "yuzyil": 16
+  },
+  "Geyve Hanı": {
+   "konum": [
+    40.18352,
+    29.06362
+   ]
+  },
+  "Osman Gazi Türbesi": {
+   "konum": [
+    40.1887,
+    29.0564
+   ],
+   "yuzyil": null
+  },
+  "Orhan Gazi Türbesi": {
+   "konum": [
+    40.18892,
+    29.056
+   ],
+   "yuzyil": null
+  },
+  "Irgandı Köprüsü": {
+   "konum": [
+    40.1836,
+    29.0681
+   ],
+   "yuzyil": 15
+  },
+  "Yeşil Türbe": {
+   "konum": [
+    40.1816,
+    29.0742
+   ],
+   "yuzyil": 15
+  },
+  "Yeşil Çelebi Mehmed Külliyesi": {
+   "konum": [
+    40.18185,
+    29.0748
+   ],
+   "yuzyil": 15
+  },
+  "Yeşil (sultaniye) Medresesi": {
+   "konum": [
+    40.1812,
+    29.0752
+   ],
+   "yuzyil": 15
+  },
+  "Yeşil İmareti": {
+   "konum": [
+    40.18212,
+    29.0756
+   ],
+   "yuzyil": 15
+  },
+  "Emir Sultan Külliyesi": {
+   "konum": [
+    40.188,
+    29.0823
+   ],
+   "yuzyil": 15
+  },
+  "Yıldırım Bayezid Külliyesi": {
+   "konum": [
+    40.1928,
+    29.0904
+   ],
+   "yuzyil": 14
+  },
+  "Yıldırım Bayezid Türbesi": {
+   "konum": [
+    40.1931,
+    29.0899
+   ],
+   "yuzyil": 15
+  },
+  "Yıldırım Medresesi": {
+   "konum": [
+    40.1925,
+    29.0908
+   ],
+   "yuzyil": 14
+  },
+  "Yıldırım Darüşşifası": {
+   "konum": [
+    40.1934,
+    29.0918
+   ],
+   "yuzyil": 14
+  },
+  "II. Murad Külliyesi": {
+   "konum": [
+    40.1914,
+    29.0478
+   ],
+   "yuzyil": 15
+  },
+  "Muradiye Çeşmesi": {
+   "konum": [
+    40.19118,
+    29.04738
+   ],
+   "yuzyil": 15
+  },
+  "Hamza Bey Külliyesi": {
+   "yuzyil": null
+  }
+ }
+}

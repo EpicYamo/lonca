@@ -1,0 +1,290 @@
+# Lonca
+
+An AI-assisted mini-app platform for foundation heritage sites.
+**KÖK&KOD Hackathon — Team Kozmos.**
+
+> **You are the master. The AI is your journeyman.**
+
+**Lonca** (`/app/`) is the citizen-facing app. It lists published modules like an
+app store; opening one hands the whole screen to that module, which behaves like
+a standalone app or game.
+
+**Lonca Studio** (`/studio/`) is where anyone with an idea — the master — talks
+to an AI journeyman. The journeyman writes and audits the module, the module runs
+in a live preview, and it is submitted for approval. Editors publish, unpublish
+and archive modules, and manage the heritage content behind them.
+
+The point is not to generate code for its own sake: the platform makes a
+heritage catalogue *playable*. Modules can only read verified data through the
+SDK, so a generated app cannot invent history.
+
+## Contents
+
+- [Setup](#setup)
+- [Commands](#commands)
+- [Architecture](#architecture)
+- [A module is an independent mini app](#a-module-is-an-independent-mini-app)
+- [The AI journeyman](#the-ai-journeyman)
+- [Data](#data)
+- [Data pipeline](#data-pipeline)
+- [Content management and moderation](#content-management-and-moderation)
+- [Security](#security)
+- [Real 3D](#real-3d)
+- [Folders](#folders)
+- [Licenses](#licenses)
+
+## Setup
+
+Requires Node.js 20.12 or newer.
+
+```bash
+npm install
+cp .env.example .env     # optional: journeyman, admin password, Google key
+npm run dev              # http://localhost:3000/app  ·  Studio: http://localhost:3000/studio
+```
+
+Everything works without any configuration:
+
+- The journeyman answers from built-in templates ("fake mode").
+- The map uses OpenStreetMap.
+- Real 3D is disabled, and modules hide the 3D button.
+- Admin actions are open (development mode).
+
+| Setting (`.env`) | What it does |
+| --- | --- |
+| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | The AI journeyman: free Gemini, Claude, or offline Ollama |
+| `KALFA_SAHTE=1` | Offline fallback: the journeyman returns a prepared template |
+| `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
+| `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
+| `KALFA_SINIR` | Journeyman requests allowed per IP in ten minutes |
+
+To try it on a phone, connect to the same Wi-Fi and open
+`http://<computer-ip>:3000/app`. The app can be added to the home screen (there
+is a web app manifest). Browsers only grant location permission on HTTPS or
+localhost; if the phone cannot get a location, the demo location (Bursa, Hanlar
+district) is used.
+
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Runs the server with restart on file changes |
+| `npm test` | API, authorisation, moderation, validation and journeyman-audit tests (25) |
+| `npm run test:e2e` | End-to-end scenario in a real browser (run `npx playwright install chromium` first) |
+| `npm run konum` | Finds work coordinates through Google Places / OpenStreetMap (`-- --dene` only prints) |
+| `npm run vendor` | Re-bundles the real 3D library for the browser |
+
+## Architecture
+
+```
+                       ┌─────────────── Lonca Studio (/studio) ───────────────┐
+ master: "a timed game │ chat → POST /api/kalfa → AI (Gemini/Claude)          │
+ about Bursa hans"     │   ↳ eser_ara tool: looks at real data                  │
+                       │   ↳ modul_yaz → rules + TypeScript type check          │
+                       │       (on failure: back to the model, max 3 tries)     │
+                       │ live preview (same runner) → submit for approval       │
+                       │ editor: publish / unpublish / archive / delete         │
+                       └───────────────────────────────────────────────────────┘
+                                             │ only "published" modules
+                                             ▼
+┌──────────── Lonca app (/app) ─────────────┐        ┌──── Server (Fastify) ────┐
+│ home: çini tiles · profile · achievements │◄──────►│ /api/eserler (+nearby)    │
+│ opening a module fills the screen         │        │ /api/moduller (+status)   │
+│   ┌───────── sandbox iframe ─────────┐    │        │ /api/eser-oneriler        │
+│   │ module.js (no network, no DOM)   │    │        │ /api/medya · /api/kalfa   │
+│   │ import { sahne, eserler … }      │    │        │ JSON files (data/)        │
+│   └──────────────────────────────────┘    │        └───────────────────────────┘
+│ the app draws for the module: UI tree,    │
+│ map, 3D, accessibility, theme; small      │
+│ capsule (✕) to close                      │
+└───────────────────────────────────────────┘
+```
+
+### A module is an independent mini app
+
+A module is a single JS file exporting `export default async function basla()`.
+It cannot write HTML, cannot reach the network or the device. It describes its
+screen as a **UI tree** and the app draws it. That gives:
+
+- **Security.** The module runs in an isolated iframe (no origin, CSP blocks the
+  network). The user's location is never given to the module; it is only used by
+  the server-side "nearby works" query.
+- **Accessibility for every module, for free.** Screen-reader labels, keyboard
+  navigation and Turkish text-to-speech. Every map has a list equivalent, every
+  3D viewpoint has a button equivalent. The choices a user makes in the
+  accessibility panel apply to all modules:
+  - Reading: four text sizes, a legible typeface (Atkinson Hyperlegible), wider
+    line and letter spacing.
+  - Vision: high contrast, colour-blind-friendly colours (map categories are
+    also distinguished by letters), reduced chrome, a clear focus ring.
+  - Motion and touch: reduce motion (transitions, confetti and 3D flights turn
+    off), large touch targets.
+  - Audio: text-to-speech, reading speed, read-on-tap.
+- **App feel.** A module picks its theme (`acik`, `parsomen`, `koyu`, `gece`
+  backgrounds and six çini colours), draws its own cover, top bar, back button
+  and tabs, and the app animates forward/back transitions. Only a small capsule
+  remains in the top-right corner: appearance settings and close.
+
+The SDK contract lives in `sdk/lonca-sdk.d.ts`:
+
+| Part | Contents |
+| --- | --- |
+| `eserler` | `yakindaki`, `getir`, `liste`, `yuzyilSecenekleri`, `karistir`, `tamlik` (which fields are recorded for a work) |
+| `sahne` | `ayarla({ baslik, tema, sekmeler })`, `ciz(tree)`, `olaylar()`, `bildir`, `efekt` |
+| Nodes (26) | `kapak`, `ust_cubuk`, `izgara`, `kaydirma`, `kart`, `eser`, `fotograflar`, `harita`, `sure` (countdown), `secenekler`, `girdi`, `rozet`, `istatistik`, `ilerleme`, `liste`, … |
+| `ekran` | Windows that open above the app and can always be dismissed: `soru`, `kart`, `uc` (real 3D tour; ask `ucVarMi` first), `harita`, `galeri`, `zaman`, `sonuc`, `rozet`, `duzeltme` (report an error) |
+| `profil`, `basarim`, `depo` | Nickname, level and score; per-module achievements; small per-module persistent store (records, progress). All on the device, no personal data. |
+
+Example modules are in `sdk/ornekler/`: `hanlar-rehberi.js` (cover, screen
+stack, collection) and `yuzyil-avi.js` (lobby, timed rounds, streak bonus,
+record). The journeyman learns from these two examples.
+
+**Showcase: Bursa Pusulası (Bursa Compass)** (`sdk/ornekler/bursa-pusulasi.js`,
+published). It demonstrates almost the entire SDK in one standalone app:
+
+- Cover, four tabs (Explore, Map, Game, Collection), each with a forward/back
+  screen stack.
+- Explore: work of the day, highlights, search, category and "complete data"
+  filters, pagination, architectural glossary.
+- Work page: photo gallery, real 3D (when available), century estimate,
+  favourite, info card (`eserler.tamlik`), error report.
+- Map: category filter, tap a pin for a summary; "Nearby works" shows the eight
+  closest works with distances (the location is never handed to the module; if
+  it cannot be obtained, the app says the results are relative to central Bursa).
+- Game: "Century Hunt" and "Which is older?"; timer, streak bonus, records,
+  effects.
+- Collection: statistics, favourites, 10 achievements, records — all persisted
+  through `depo`.
+
+**Completeness filters:** `eserler.liste({ tam: true })` returns works with every
+core field (name, category, province, district, century, location, address,
+history). `{ eksik: "konum" }` returns only those missing that field;
+`{ gerekli: ["fotograf", "yuzyil"] }` and `{ olmayan: [...] }` combine required
+and absent fields. The same filters are available over HTTP through
+`GET /api/eserler?tam=1&eksik=…&gerekli=…&olmayan=…`, with a summary at
+`GET /api/eserler-tamlik`. Studio → Content exposes them.
+
+## The AI journeyman
+
+1. The chat and the current code go to `POST /api/kalfa`. The API key stays on
+   the server.
+2. The journeyman knows the SDK contract, the rules and the two example apps. It
+   uses the `eser_ara` tool to look at what is actually in the database, and
+   delivers the module through the `modul_yaz` tool.
+3. The code is audited:
+   - Only `@lonca/sdk` may be imported; `eval` and dynamic import are forbidden.
+   - Unknown node types, icons, 3D focus and theme names are rejected.
+   - A module must be an app (`sahne.ayarla` is mandatory).
+   - At most 2000 lines.
+   - Because the event loop never ends, helpers declared with `const`/`let` after
+     the loop are rejected (write `function` instead).
+   - Finally, the code is type-checked against the SDK types. The DOM library is
+     not loaded, so `document` or `fetch` is a type error.
+4. On failure, the errors are sent back to the model in Turkish, up to three
+   attempts. Unverified code never reaches the master. Code written by hand and
+   submitted for approval goes through the same audit.
+5. History is never invented: every fact about a work (name, century, history,
+   source, photo) is read from the data while the module runs.
+
+## Data
+
+`data/eserler.json`: **165 works** extracted from Vakıf Katılım's *Bursa Vakıf
+Eserleri Envanteri* (three volumes).
+
+- **History and source:** Turkish and English history text, plus the source
+  (volume and page).
+- **Century:** filled only when the book states a construction date. Repair
+  dates are not construction dates; without a date the field stays empty.
+- **Photos:** **155 works have real photos** taken from the books.
+- **Location:** the books carry no coordinates. Manually entered approximate
+  locations are used for known buildings, together with positions found by
+  `npm run konum`. Approximate locations are labelled as such in the app
+  (spec §5.1.3: unverified information is not presented as certain).
+
+Data pipeline (`araclar/`):
+
+| Tool | What it does |
+| --- | --- |
+| `kitap-ice-aktar.py` | Reads PDF text with positions. Splits two-page spreads, TR/EN columns and complex sub-sections, and repairs broken "Ş/İ" characters. |
+| `foto-cikar.py` | Extracts photos with their position on the page and attaches each to the work that starts before it. Section covers go to the next work. |
+| `veri-olustur.py` | Merges manual corrections (`data/bursa-ek.json`) with the photos. |
+
+```bash
+python3 araclar/kitap-ice-aktar.py kitaplar/bursa-envanteri-cilt-*.pdf > /tmp/ham.json
+python3 araclar/foto-cikar.py /tmp/ham.json kitaplar/bursa-envanteri-cilt-*.pdf > data/bursa-fotograflar.json
+python3 araclar/veri-olustur.py /tmp/ham.json data/bursa-ek.json data/bursa-fotograflar.json > data/eserler.json
+```
+
+Adding another city only needs records with the same fields: `il`, `ilce`, `ad`,
+`tur`, `yuzyil`, `konum`, `tarihce`, `fotograflar`, `kaynak`. Modules are
+city-agnostic (`eserler.liste({ il })`).
+
+## Content management and moderation
+
+- **Community contributions:** the citizen app has "Suggest a work" (name,
+  category, history, source, up to six photos) and "Report an error" on every
+  work. Everything lands in an **approval queue** and stays out of the app until
+  approved. Uploaded photos are private until published too.
+- **Studio → Content:** editors review suggestions, compare old and new values
+  side by side, and can correct them while approving. Works can be added,
+  edited and deleted directly, and every record requires a source.
+  - **Photos:** up to 12 photos per work, drag and drop, reorder, choose a
+    cover. On an existing work these changes save immediately, each with a
+    ten-second "Undo" notice.
+  - **Unsaved changes:** if you try to switch work or tab with unsaved edits,
+    Studio asks (save / discard / go back).
+  - **Change history:** every add, edit, delete, approval and import is recorded
+    (last 300 operations). Any of them can be undone with one click, and the undo
+    itself can be undone.
+  - **Export / import:** all works download as a single JSON file. Import offers
+    "merge" or "replace everything". If a single record is invalid, nothing
+    changes; imports can be undone from the history too.
+- **Studio → Modules:** a module's lifecycle is pending → published → unpublished
+  ↔ archived; rejected or removed modules can be deleted permanently.
+
+## Security
+
+- **Input validation:** every input is validated on the server
+  (`server/dogrulama.js`): unknown fields are dropped, strings trimmed. Photo
+  URLs may only be local `/medya/...` or `https://`. Uploaded files are checked
+  against their first bytes to confirm they really are JPEG, PNG or WebP.
+- **Admin rights:** admin actions require the `x-yonetici-sifre` header, compared
+  in constant time. A non-admin cannot overwrite a published module.
+- **Rate limiting:** the journeyman, suggestions and uploads are rate-limited per
+  IP.
+- **Personal data:** profile and achievements stay on the device. Location goes
+  to the server only for the "nearby works" query and is not stored.
+
+## Real 3D
+
+If the server has `GOOGLE_HARITA_ANAHTARI` and the work has a known location,
+the 3D view opens Google's **Photorealistic 3D Tiles** city model
+(`public/app/uc-gercek.js`, [3d-tiles-renderer](https://github.com/NASA-AMMOS/3DTilesRendererJS)).
+The earlier representational (hand-built) 3D models were removed: every work
+looked the same and they did not reflect reality. Without a key or a location,
+`ekran.ucVarMi(eser)` returns false and modules never show the 3D button; the
+journeyman follows the same rule. If loading fails, the window shows the work's
+photo and a short description.
+
+## Folders
+
+```
+server/       uygulama.js (routes) · kalfa.js · dogrulama.js · guvenlik.js · depo.js
+sdk/          lonca-sdk.js (runs inside the module frame) · lonca-sdk.d.ts (contract) · ornekler/
+public/app/   citizen app: app.js · sahne.js (UI tree) · ekranlar.js · harita.js · uc.js · uc-gercek.js · profil.js
+public/studio Studio: workshop, modules, content
+public/ortak  design (çini palette, fonts), çini pattern generator, illustrations, animations, icons
+data/         eserler.json · moduller/ · eser-oneriler.json · yuklenen/
+araclar/      data pipeline and the location tool
+test/         node:test suites · e2e/ end-to-end scenario
+```
+
+## Licenses
+
+- **Code:** Team Kozmos.
+- **Fonts:** SIL OFL (`public/ortak/fontlar/LICENSE.md`).
+- **Libraries:** Leaflet BSD-2; three.js and 3d-tiles-renderer MIT.
+- **Work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*.
+  Used within the scope of the hackathon; the repository is private for this
+  reason.
+- **Map data:** © OpenStreetMap contributors or © Google.

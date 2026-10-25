@@ -1,0 +1,30 @@
+[
+ {
+  "id": "bursa-pusulasi",
+  "ad": "Bursa Pusulası",
+  "aciklama": "Keşfet, yakınındaki eserleri bul, yarış ve koleksiyonunu büyüt: Bursa vakıf eserlerinin rehberi.",
+  "izinler": [
+   "konum"
+  ],
+  "renk": "altin",
+  "durum": "onayli",
+  "olusturma": "2026-10-24T22:21:58.609Z",
+  "guncelleme": "2026-10-24T22:21:58.609Z",
+  "yayin": "2026-10-24T22:21:58.609Z",
+  "kategori": "rehber",
+  "kapakEser": "bursa-ulucami"
+ },
+ {
+  "id": "payitaht-atlasi",
+  "ad": "Payitaht Atlası",
+  "aciklama": "Bursa'nın vakıf şaheserlerini 3B kuşbakışı uçuş, canlı harita atlası ve mimari imtihanla keşfet.",
+  "izinler": [],
+  "renk": "altin",
+  "ikon": "cami",
+  "kategori": "gezi",
+  "durum": "onayli",
+  "olusturma": "2026-10-24T23:30:18.953Z",
+  "guncelleme": "2026-10-24T23:30:23.035Z",
+  "yayin": "2026-10-24T23:30:23.035Z"
+ }
+]
