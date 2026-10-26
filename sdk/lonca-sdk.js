@@ -53,6 +53,7 @@
     yakindaki: (secenek = {}) => cagir("eserler.yakindaki", secenek),
     getir: (id) => cagir("eserler.getir", id),
     liste: (secenek = {}) => cagir("eserler.liste", secenek),
+    iliskiler: (id) => cagir("eserler.iliskiler", id == null ? null : String(id)),
     yuzyilSecenekleri(eser, adet = 4) {
       const dogru = eser && eser.yuzyil;
       if (!dogru) return [];

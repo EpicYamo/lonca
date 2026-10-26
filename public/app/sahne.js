@@ -1,4 +1,4 @@
-import { haritaKur } from "./harita.js";
+import { haritaKur, BAG_RENK, bagTuruAdi } from "./harita.js";
 import { ikon } from "/ortak/ikonlar.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { konfeti, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
@@ -143,8 +143,100 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       }
       case "harita": return agirBilesen(n, "harita", (kutu) => haritaKur(kutu, {
         eserler: n.eserler, rota: !!n.rota, secili: n.secili,
+        baglantilar: n.baglantilar, sis: n.sis, odak: n.odak,
         onSec: (eser) => gonder({ tur: "dokun", id: metin(n.id), eser }),
-      }), (api) => api.guncelle({ eserler: n.eserler, rota: !!n.rota, secili: n.secili }));
+      }), (api) => api.guncelle({ eserler: n.eserler, rota: !!n.rota, secili: n.secili, baglantilar: n.baglantilar, sis: n.sis, odak: n.odak }));
+      case "graf": {
+        const merkez = n.merkez ?? {};
+        const iliskiler = (Array.isArray(n.iliskiler) ? n.iliskiler : []).filter((x) => x?.eser).slice(0, 8);
+        const kap = el("div", { className: "s-graf", role: "group", ariaLabel: `${metin(merkez.ad)} bağ ağı` });
+        if (!iliskiler.length) {
+          kap.append(el("p", { className: "s-graf-bos", textContent: "Bu eser için kayıtlı tarihsel bağ yok." }));
+          return kap;
+        }
+        const NS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(NS, "svg");
+        svg.setAttribute("viewBox", "0 0 380 320");
+        svg.setAttribute("role", "img");
+        svg.setAttribute("aria-label", `${metin(merkez.ad)} çevresindeki ${iliskiler.length} tarihsel bağ`);
+        const cx = 190, cy = 160, R = 112;
+        const kisa = (s, n) => { const t = metin(s); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
+        const cizgiGrubu = document.createElementNS(NS, "g");
+        const dugumGrubu = document.createElementNS(NS, "g");
+        svg.append(cizgiGrubu, dugumGrubu);
+
+        const merkezDaire = document.createElementNS(NS, "circle");
+        merkezDaire.setAttribute("cx", cx);
+        merkezDaire.setAttribute("cy", cy);
+        merkezDaire.setAttribute("r", 29);
+        merkezDaire.style.fill = "var(--ana)";
+        merkezDaire.style.stroke = "var(--zemin)";
+        merkezDaire.style.strokeWidth = "4";
+        dugumGrubu.append(merkezDaire);
+        const merkezYazi = document.createElementNS(NS, "text");
+        merkezYazi.setAttribute("x", cx);
+        merkezYazi.setAttribute("y", cy + 4);
+        merkezYazi.setAttribute("text-anchor", "middle");
+        merkezYazi.style.fill = "var(--ana-metin, #fff)";
+        merkezYazi.style.font = "700 10px var(--yazi-baslik, sans-serif)";
+        merkezYazi.textContent = kisa(merkez.ad, 16);
+        dugumGrubu.append(merkezYazi);
+
+        iliskiler.forEach((il, i) => {
+          const aci = (i / iliskiler.length) * Math.PI * 2 - Math.PI / 2;
+          const x = cx + Math.cos(aci) * R;
+          const y = cy + Math.sin(aci) * R;
+          const cizgi = document.createElementNS(NS, "line");
+          cizgi.setAttribute("x1", cx);
+          cizgi.setAttribute("y1", cy);
+          cizgi.setAttribute("x2", x);
+          cizgi.setAttribute("y2", y);
+          cizgi.setAttribute("stroke", BAG_RENK[il.tur] ?? BAG_RENK.komsu);
+          cizgi.setAttribute("stroke-width", "2.6");
+          cizgi.setAttribute("stroke-opacity", ".8");
+          cizgi.setAttribute("stroke-linecap", "round");
+          cizgiGrubu.append(cizgi);
+
+          const g = document.createElementNS(NS, "g");
+          g.setAttribute("tabindex", "0");
+          g.setAttribute("role", "button");
+          g.setAttribute("aria-label", `${metin(il.eser.ad)}. ${bagTuruAdi(il.tur)}${il.baslik ? `: ${metin(il.baslik)}` : ""}`);
+          g.style.cursor = "pointer";
+          const baslik = document.createElementNS(NS, "title");
+          baslik.textContent = `${metin(il.eser.ad)} — ${metin(il.baslik || bagTuruAdi(il.tur))}`;
+          const daire = document.createElementNS(NS, "circle");
+          daire.setAttribute("cx", x);
+          daire.setAttribute("cy", y);
+          daire.setAttribute("r", 9);
+          daire.setAttribute("fill", BAG_RENK[il.tur] ?? BAG_RENK.komsu);
+          daire.style.stroke = "var(--zemin)";
+          daire.style.strokeWidth = "3";
+          const yazi = document.createElementNS(NS, "text");
+          yazi.setAttribute("x", x);
+          yazi.setAttribute("y", y + 22);
+          yazi.setAttribute("text-anchor", "middle");
+          yazi.style.fill = "var(--metin)";
+          yazi.style.font = "600 9px var(--yazi-baslik, sans-serif)";
+          yazi.textContent = kisa(il.eser.ad, 18);
+          g.append(baslik, daire, yazi);
+          const sec = () => gonder({ tur: "dokun", id: `graf:${metin(n.id)}`, eser: il.eser });
+          g.addEventListener("click", sec);
+          g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sec(); } });
+          dugumGrubu.append(g);
+        });
+        kap.append(svg);
+
+        const liste = el("div", { className: "s-graf-liste" });
+        for (const il of iliskiler) {
+          const d = el("button", { className: "s-graf-oge", type: "button" },
+            el("strong", { textContent: metin(il.eser.ad) }),
+            el("span", { textContent: `${bagTuruAdi(il.tur)}${il.baslik ? ` · ${metin(il.baslik)}` : ""}` }));
+          d.addEventListener("click", () => gonder({ tur: "dokun", id: `graf:${metin(n.id)}`, eser: il.eser }));
+          liste.append(d);
+        }
+        kap.append(liste);
+        return kap;
+      }
       case "rozet": {
         const d = el("div", { className: `s-rozet${n.kazanildi ? " kazanildi" : ""}` });
         d.innerHTML = `<svg viewBox="0 0 120 120" aria-hidden="true"><g><rect x="26" y="26" width="68" height="68" rx="6"/><rect x="26" y="26" width="68" height="68" rx="6" transform="rotate(45 60 60)"/></g><circle cx="60" cy="60" r="26"/><path d="M60 43l5 10.4 11.4 1.7-8.2 8 2 11.3L60 69l-10.2 5.4 2-11.3-8.2-8 11.4-1.7z"/></svg>`;

@@ -1,0 +1,267 @@
+{
+ "_not": "Eserler arasındaki tarihsel bağlar. Her kayıt envanter metinlerinde açıkça belirtilen külliye, bani, mimar, vakıf ve komşuluk ilişkilerine dayanır; ad benzerliğinden türetilmez.",
+ "surum": 1,
+ "iliskiler": [
+  {
+   "id": "yesil-kulliye-imaret",
+   "a": "bursa-yesil-celebi-mehmed-kulliyesi",
+   "b": "bursa-yesil-imareti",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Yeşil İmareti, Sultan Çelebi Mehmed'in 1414-1419 arasında inşa ettirdiği Çelebi Mehmed Külliyesi'nin bir parçasıdır. İmaret, külliyenin vakfettiği mülklerin geliriyle işletilmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 373"
+  },
+  {
+   "id": "yesil-kulliye-medrese",
+   "a": "bursa-yesil-celebi-mehmed-kulliyesi",
+   "b": "bursa-yesil-sultaniye-medresesi",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Yeşil (Sultaniye) Medresesi, Yeşil Külliyesi bünyesinde caminin batısında yer alır. Medresenin giderleri de Çelebi Mehmed'in vakfettiği mülklerle karşılanmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 377"
+  },
+  {
+   "id": "yesil-kulliye-turbe",
+   "a": "bursa-yesil-celebi-mehmed-kulliyesi",
+   "b": "bursa-yesil-turbe",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Yeşil Türbe, Çelebi Mehmed Külliyesi'nin bir parçası olarak caminin güneyinde yer alır. Külliyeye adını veren çini bezemeleriyle Bursa'nın simge yapılarından biridir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 391"
+  },
+  {
+   "id": "yesil-kulliye-geyve",
+   "a": "bursa-yesil-celebi-mehmed-kulliyesi",
+   "b": "bursa-geyve-hani",
+   "tur": "vakif",
+   "baslik": "Külliyeyi besleyen vakıf hanı",
+   "aciklama": "Geyve Hanı, Çelebi Mehmed'in baş mimarı Hacı İvaz Paşa tarafından 1419'dan önce yaptırılıp sultana hediye edilmiş; han, Yeşil Külliye'ye gelir sağlamak üzere vakfedilmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 31"
+  },
+  {
+   "id": "yesil-kulliye-ipek",
+   "a": "bursa-yesil-celebi-mehmed-kulliyesi",
+   "b": "bursa-ipek-hani",
+   "tur": "vakif",
+   "baslik": "Külliyeyi besleyen vakıf hanı",
+   "aciklama": "İpek Hanı, 1425'te Çelebi Mehmed tarafından Yeşil Külliye ile eş zamanlı olarak külliyeye gelir sağlaması amacıyla inşa ettirilmiş ve vakfedilmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 35"
+  },
+  {
+   "id": "geyve-ipek-mimar",
+   "a": "bursa-geyve-hani",
+   "b": "bursa-ipek-hani",
+   "tur": "mimar",
+   "baslik": "Aynı baş mimar: Hacı İvaz Paşa",
+   "aciklama": "İki hanın da mimarı, Yeşil Külliyesi'nin inşasını üstlenen Hacı İvaz Paşa'dır. Geyve Hanı'nı sultana hediye etmiş, İpek Hanı da külliyeye gelir sağlamak üzere onun döneminde yaptırılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 31, 35"
+  },
+  {
+   "id": "yildirim-kulliye-medrese",
+   "a": "bursa-yildirim-bayezid-kulliyesi",
+   "b": "bursa-yildirim-medresesi",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Yıldırım Medresesi, caminin kuzeydoğusunda, Yıldırım Bayezid'in 1391-1395 arasında inşa ettirdiği külliyenin bir parçasıdır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 439"
+  },
+  {
+   "id": "yildirim-kulliye-darussifa",
+   "a": "bursa-yildirim-bayezid-kulliyesi",
+   "b": "bursa-yildirim-darussifasi",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Yıldırım Darüşşifası, külliyenin bir parçası olarak caminin yaklaşık 300 m doğusunda yer alır. Vakfiyede külliye birimleri arasında sayılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 447"
+  },
+  {
+   "id": "yildirim-kulliye-turbe",
+   "a": "bursa-yildirim-bayezid-kulliyesi",
+   "b": "bursa-yildirim-bayezid-turbesi",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Yıldırım Bayezid Türbesi, külliyenin içinde caminin kuzeyinde yer alır. Türbe, Yıldırım Bayezid adına oğlu Emir Süleyman tarafından 1406'da yaptırılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 457"
+  },
+  {
+   "id": "bedesten-emirhan",
+   "a": "bursa-yildirim-bayezid-bedesteni",
+   "b": "bursa-emir-han",
+   "tur": "metin",
+   "baslik": "Çarşının ilk çekirdeği",
+   "aciklama": "Envanter, Emir Hanı'nın bedesten inşasından önce çarşının ilk çekirdeğini oluşturduğunu ve bugünkü Emir Hanı alanının fetih döneminde at pazarı olarak kullanıldığını kaydeder.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 215; Cilt 2, s. 53"
+  },
+  {
+   "id": "bedesten-orhan",
+   "a": "bursa-yildirim-bayezid-bedesteni",
+   "b": "bursa-orhan-bey-kulliyesi",
+   "tur": "metin",
+   "baslik": "Orhan Gazi vakfıyla kurulan çarşı",
+   "aciklama": "Bedesten metni, Orhan Gazi'nin Emir Hanı'nı çarşının ilk çekirdeği olarak anar. Emir Han da Orhan Bey Külliyesi'nden günümüze ulaşan yapılardandır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 53"
+  },
+  {
+   "id": "orhan-kulliye-hamam",
+   "a": "bursa-orhan-bey-kulliyesi",
+   "b": "bursa-orhan-bey-hamami-aynali-carsi",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Orhan Bey Hamamı, Orhan Bey tarafından külliyesinin bir parçası olarak 1340'ta inşa ettirilmiş ve Orhan Gazi İmareti'ne vakfedilmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 207"
+  },
+  {
+   "id": "orhan-kulliye-emirhan",
+   "a": "bursa-orhan-bey-kulliyesi",
+   "b": "bursa-emir-han",
+   "tur": "kulliye",
+   "baslik": "Külliyeden günümüze ulaşan han",
+   "aciklama": "Orhan Bey Külliyesi'nin yapı topluluğundan günümüze Orhan Camii, Emir Hanı ve Orhan Hamamı ulaşmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191"
+  },
+  {
+   "id": "orhan-hamam-emirhan",
+   "a": "bursa-orhan-bey-hamami-aynali-carsi",
+   "b": "bursa-emir-han",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Orhan Bey Hamamı ve Emir Hanı, Orhan Bey Külliyesi'nin günümüze ulaşan birimlerindendir. Hamam, Emir Hanı ile Koza Han arasında yer alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 207"
+  },
+  {
+   "id": "orhan-kulliye-ulucami",
+   "a": "bursa-orhan-bey-kulliyesi",
+   "b": "bursa-ulucami",
+   "tur": "komsu",
+   "baslik": "Aynı tarihî çarşı aksı",
+   "aciklama": "Orhan Bey Camii, Ulucami'nin doğusunda, tarihî belediye binasının batısında yer alır. İki yapı Bursa'nın tarihî çarşı dokusunu birlikte tanımlar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191"
+  },
+  {
+   "id": "orhan-hamam-ulucami",
+   "a": "bursa-orhan-bey-hamami-aynali-carsi",
+   "b": "bursa-ulucami",
+   "tur": "komsu",
+   "baslik": "Ulucami'nin kuzeyindeki hamam",
+   "aciklama": "Orhan Bey Hamamı, tarihî çarşı bölgesinde Ulucami'nin kuzeyinde, Emir Hanı ile Koza Han arasında yer alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 207"
+  },
+  {
+   "id": "koza-orhan-hamam",
+   "a": "bursa-koza-hani",
+   "b": "bursa-orhan-bey-hamami-aynali-carsi",
+   "tur": "metin",
+   "baslik": "Hamamın bahçesine inşa edilen han",
+   "aciklama": "Orhan Bey Hamamı ile Orhan Camii arasında özellikle bırakılan geniş bahçelik alana Koza Hanı inşa edilmiştir. Hamam metni bu komşuluğu açıkça kaydeder.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 207; Cilt 2, s. 15"
+  },
+  {
+   "id": "koza-ulucami",
+   "a": "bursa-koza-hani",
+   "b": "bursa-ulucami",
+   "tur": "komsu",
+   "baslik": "Ulucami ile Orhan Camii arasında",
+   "aciklama": "Koza Han, Çarşı ve Hanlar Bölgesi'nde, Orhan Camii ile Ulucami arasında konumlanır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15"
+  },
+  {
+   "id": "koza-orhan-kulliye",
+   "a": "bursa-koza-hani",
+   "b": "bursa-orhan-bey-kulliyesi",
+   "tur": "komsu",
+   "baslik": "Orhan Camii ile Ulucami arasındaki aks",
+   "aciklama": "Koza Han, Orhan Camii ile Ulucami arasındaki tarihî çarşı aksında yer alır; Orhan Bey Külliyesi bu aksın çekirdeğindedir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 15"
+  },
+  {
+   "id": "koza-mescit",
+   "a": "bursa-koza-hani",
+   "b": "bursa-koza-han-mescidi",
+   "tur": "kulliye",
+   "baslik": "Hanın avlusundaki mescit",
+   "aciklama": "Koza Han Mescidi, Koza Hanı'nın avlusunda yer alan köşk mescittir. Han, 1491'de Sultan II. Bayezid tarafından vakıf olarak inşa ettirilmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 387; Cilt 2, s. 15"
+  },
+  {
+   "id": "koza-ic-koza",
+   "a": "bursa-koza-hani",
+   "b": "bursa-ic-koza-hani",
+   "tur": "kulliye",
+   "baslik": "Hanın doğu cephesine bitişik bölüm",
+   "aciklama": "İç Koza Hanı, Koza Han'ın doğu cephesine bitişik tek katlı ahır-depo yapısıdır. Üç kapısı doğrudan Koza Han'a, Orhan Camii'ne ve çarşıya açılır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 41"
+  },
+  {
+   "id": "koza-pirinc",
+   "a": "bursa-koza-hani",
+   "b": "bursa-pirinc-hani",
+   "tur": "bani",
+   "baslik": "Aynı bani: II. Bayezid",
+   "aciklama": "Koza Hanı, II. Bayezid'in İstanbul'daki külliyesine gelir sağlamak için 1491'de; Pirinç Hanı ise aynı padişahın camisine gelir sağlamak için 1507-1508'de yaptırılmıştır. Sırasıyla 'Hân-ı Cedîd-i Evvel' ve 'Hân-ı Cedîd-i Sânî' adlarını almışlardır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15, 43"
+  },
+  {
+   "id": "emirhan-koza",
+   "a": "bursa-emir-han",
+   "b": "bursa-koza-hani",
+   "tur": "komsu",
+   "baslik": "Çarşı içinde komşu yapılar",
+   "aciklama": "Orhan Bey Hamamı metni, Emir Hanı ile Koza Han'ı tarihî çarşı bölgesinde komşu yapılar olarak anar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 207"
+  },
+  {
+   "id": "muradiye-cesme",
+   "a": "bursa-ii-murad-kulliyesi",
+   "b": "bursa-muradiye-cesmesi",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Muradiye Çeşmesi, II. Murad Külliyesi'ne ait çeşmelerden biridir. Külliyenin batı ucundaki Sıbyan Mektebi Çeşmesi olarak tanımlanır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 127"
+  },
+  {
+   "id": "muradiye-sehzade",
+   "a": "bursa-ii-murad-kulliyesi",
+   "b": "bursa-sehzade-mustafa-turbesi",
+   "tur": "kulliye",
+   "baslik": "Muradiye türbelerinin son halkası",
+   "aciklama": "II. Murad Külliyesi metni, 1573'te inşa edilen Şehzade Mustafa Türbesi'ni külliyedeki on üç türbenin son halkası olarak anar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 115, 167"
+  },
+  {
+   "id": "muradiye-cesme-sehzade",
+   "a": "bursa-muradiye-cesmesi",
+   "b": "bursa-sehzade-mustafa-turbesi",
+   "tur": "kulliye",
+   "baslik": "Aynı külliye",
+   "aciklama": "İkisi de II. Murad Külliyesi'ne bağlı yapılardır: çeşme külliyenin batı ucunda, türbe ise Muradiye türbeler topluluğu içinde yer alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 115, 127, 167"
+  },
+  {
+   "id": "osman-orhan-turbesi",
+   "a": "bursa-osman-gazi-turbesi",
+   "b": "bursa-orhan-gazi-turbesi",
+   "tur": "aile",
+   "baslik": "Aynı Gümüşlü Kümbet kompleksi",
+   "aciklama": "Orhan Gazi, babası Osman Gazi'yi Gümüşlü Kümbet olarak anılan yapıya defnettirmiş; kendisi de aynı yapı kompleksine defnedilmiştir. İki türbe aynı tarihî komplekste yer alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 229, 235"
+  },
+  {
+   "id": "orhan-turbesi-kulliye",
+   "a": "bursa-orhan-gazi-turbesi",
+   "b": "bursa-orhan-bey-kulliyesi",
+   "tur": "bani",
+   "baslik": "Aynı bani: Orhan Gazi",
+   "aciklama": "Orhan Gazi Türbesi ve Orhan Bey Külliyesi, Osmanlı Devleti'nin ikinci sultanı Orhan Gazi'nin Bursa'daki yapılarıdır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 229"
+  },
+  {
+   "id": "osman-turbesi-orhan-kulliye",
+   "a": "bursa-osman-gazi-turbesi",
+   "b": "bursa-orhan-bey-kulliyesi",
+   "tur": "aile",
+   "baslik": "Baba-oğul hanedan yapıları",
+   "aciklama": "Orhan Bey Külliyesi'ni yaptıran Orhan Gazi, babası Osman Gazi'nin türbesini de Gümüşlü Kümbet'e defnettirmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 235"
+  }
+ ]
+}

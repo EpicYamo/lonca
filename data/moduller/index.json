@@ -26,5 +26,16 @@
   "olusturma": "2026-10-24T23:30:18.953Z",
   "guncelleme": "2026-10-24T23:30:23.035Z",
   "yayin": "2026-10-24T23:30:23.035Z"
+ },
+ {
+  "id": "sisli-vakif-haritasi",
+  "ad": "Sisli Harita",
+  "aciklama": "Bursa vakıf eserlerini sis bölge bölge açarak keşfet; haritada küratörlü tarihsel bağları gör, eser detayında bağ ağını incele.",
+  "izinler": [],
+  "kategori": "gezi",
+  "durum": "onayli",
+  "olusturma": "2026-10-26T16:31:59.583Z",
+  "guncelleme": "2026-10-26T17:29:41.914Z",
+  "yayin": "2026-10-26T16:32:06.411Z"
  }
 ]

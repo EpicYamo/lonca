@@ -10,6 +10,7 @@ export async function deneySunucusu(ortam = {}) {
   const veri = await mkdtemp(path.join(tmpdir(), "lonca-test-"));
   await mkdir(path.join(veri, "moduller"), { recursive: true });
   await copyFile(path.join(KOK, "data", "eserler.json"), path.join(veri, "eserler.json"));
+  await copyFile(path.join(KOK, "data", "eser-iliskileri.json"), path.join(veri, "eser-iliskileri.json"));
   await writeFile(path.join(veri, "moduller", "index.json"), "[]");
   const { app, kalfa } = await uygulamaKur({ kok: KOK, veri, gunluk: false, ortam: { KALFA_SAHTE: "1", YONETICI_SIFRE: "gizli-sifre", ...ortam } });
   await app.ready();

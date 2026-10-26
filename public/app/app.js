@@ -212,6 +212,10 @@ function yontemlerOlustur(modul) {
         return k.ornek ? liste.map((e) => ({ ...e, ornek_konum: true })) : liste;
       },
       "eserler.getir": async (id) => (await api(`/api/eserler/${encodeURIComponent(id)}`)).json(),
+      "eserler.iliskiler": async (id) => {
+        const q = id ? `?eser=${encodeURIComponent(id)}` : "";
+        return (await api(`/api/eser-iliskileri${q}`)).json();
+      },
       "eserler.liste": async (s = {}) => {
         const q = new URLSearchParams();
         for (const k of ["il", "ilce", "tur", "ad", "yuzyil", "eksik"]) if (s[k] != null && s[k] !== "") q.set(k, String(s[k]));

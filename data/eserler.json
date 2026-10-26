@@ -91,7 +91,12 @@
    "tur": "turbe",
    "yuzyil": 16,
    "adres": "Osmangazi ilçesi, Muradiye Mahallesi, Sedat Sokak, No: 1/6",
-   "konum": null,
+   "konum": {
+    "lat": 40.1877,
+    "lng": 29.0589,
+    "yaklasik": true,
+    "konum_kaynagi": "manuel"
+   },
    "tarihce": {
     "tr": "Şehzade Mustafa Türbesi, Osmangazi ilçesi, Muradiye Mahallesi, Sedat Sokak, No: 1/6’da yer almaktadır.\n\nKanuni Sultan Süleyman’ın oğlu olan Şehzade Mustafa H. 960 / M. 1553 yılında Konya Ereğlisi’nde bir komploya kurban gitmiştir. Naaşı Bursa’ya getirilerek önce başka bir yere defnedilmiş, yaklaşık yirmi yıl sonra H. 981 / M. 1573 yılında üvey kardeşi II. Selim’in bu türbeyi inşa ettirmesiyle yeni kabrine nakledilmiştir.\n\nTürbenin kapısındaki iki satırlık talik hatla yazılmış mermer kitabede şu ifadeler yer almaktadır:\n\n“Şeh Selîm Hân bin Süleyman emr idüb Oldu hoş bu ravza-i cennet-nümâ Didi târîhin Edâyî bendesi Merkad-i gülzâr-ı Sultan Mustafa (H. 981 / M. 1573)”\n\nMealen: “Süleyman oğlu Selim Han bu binanın yapılmasın emretti. Bina cennet misali bir bina oldu. Edâyî bunun üzerine şu tarihi söyledi: Sultan Mustafa’nın kabri gül bahçesidir. (H. 981 / M. 1573)”\n\n“Şeh Selîm Hân bin Süleyman emr idüb Oldu hoş bu ravza-i cennet-nümâ Didi târîhin Edâyî bendesi Merkad-i gülzâr-ı Sultan Mustafa (AH 981 / AD 1573)”\n\ndikey tuğlalar yerleştirilerek, erken Osmanlı döneminde moloz taş örgüsüne uygulanan düzenleme tekniğiyle daha düzgün bir görünüm kazandırılmıştır. Yapının genelinde temiz ve özenli bir işçilik göze çarpmaktadır.\n\nTaç kapı eyvanının iki yanında mihrap nişleri yer almaktadır. Aslen ahşap sundurmalı olduğu anlaşılan kavsaranın, tuğla dolgu üzerine mukarnas kaplamalı olduğu belirlenmiştir. Pencereler, sivri kemer içine alınmış, mermer söveli ve demir şebekelidir. Türbeye giriş, basık kemerli, çift kanatlı ve oldukça sade işçilikle yapılmış ahşap bir kapıdan sağlanmaktadır.",
     "en": null
@@ -191,7 +196,12 @@
    "tur": "han",
    "yuzyil": null,
    "adres": null,
-   "konum": null,
+   "konum": {
+    "lat": 40.1833,
+    "lng": 29.0632,
+    "yaklasik": true,
+    "konum_kaynagi": "manuel"
+   },
    "tarihce": {
     "tr": "En kapsamlı tadilatlardan biri, 1958 yılında meydana gelen Büyük Çarşı Yangını’nın ardından 1962-63 yıllarında gerçekleştirilmiştir. Günümüzde üzeri kurşunla kaplıdır; ancak bir dönem kiremitle örtüldüğü bilinmektedir.\n\nGünümüzde üst katta ağırlıklı olarak kitapçılar, hac ve dinî malzeme satıcıları, kuyumcular ve benzeri esnaflar bulunmaktadır. Alt katta ise daha çok yeme-içme mekânları ile farklı sektörlere ait dükkânlar yer almaktadır.\n\nAlışverişin her daim canlı olduğu han, fıskiyeli şadırvanı ve tarihi çınar ağaçlarının gölgelendirdiği avlusuyla, çay, kahve ve koruk eşliğinde hoş sohbetlerin yapıldığı keyifli bir buluşma mekânı olma özelliğini hâlâ korumaktadır.",
     "en": null
@@ -1392,7 +1402,12 @@
    "tur": "han",
    "yuzyil": 15,
    "adres": "Osmangazi ilçesi Şehreküstü Mahallesi, Ulucami Caddesi No: 77",
-   "konum": null,
+   "konum": {
+    "lat": 40.1837,
+    "lng": 29.0624,
+    "yaklasik": true,
+    "konum_kaynagi": "manuel"
+   },
    "tarihce": {
     "tr": "Han, Osmangazi ilçesi Şehreküstü Mahallesi, Ulucami Caddesi No: 77 adresinde yer almaktadır.\n\n1425 yılında, Çelebi Mehmed tarafından Yeşil Külliye ile eş zamanlı olarak, külliyeye gelir sağlaması amacıyla inşa ettirilmiş ve vakfedilmiştir. Duvarları taş ve tuğla malzeme ile örülen yapının mimarı, aynı zamanda külliyenin de inşasını üstlenen Hacı İvaz Paşa’dır.\n\nYapı, tarih boyunca farklı adlarla anılmıştır. “Eski İpek Hanı” ve “Yeni İpek Hanı” gibi adlarının yanı sıra, “Sultan Hanı”, “Arabacılar Hanı” ve yangın öncesi kullanım biçiminden dolayı “Faytoncular Hanı” adlarıyla da bilinmiştir. Ancak yapının asıl adı olan “İpek Hanı”, burada bir dönem ipek ticaretinin yoğun biçimde yapıldığını açıkça yansıtmaktadır.\n\nve saçak bölümleri yenilenmiştir. 1632 yılında, üst kattaki otuz sekiz hücrenin ocakları, avluya bakan kapının kemeri ve merdivenleri onarılmıştır. Ayrıca avlunun ortasında yer alan, zamanla yapısal denge kaybına uğrayan mescit, kaldıraç yardımıyla düzeltilmiştir. 1737 yılında, mescidin alt kısmında yer alan oda, üst yapısı ile avludaki şadırvan bakım ve onarımdan geçirilmiştir. H. 1155 / M. 1742 yılında ise şadırvan, suyolları, mescit, merdivenler, duvarlar ve camlar elden geçirilmiştir. 1775’te mescit ve ahır bölümlerinde yeniden tamirat gerçekleştirilmiştir.",
     "en": "The han is located in Osmangazi District, Şehreküstü Neighborhood, on Ulucami Street, No. 77.\n\nIt was built and endowed by Çelebi Mehmed in 1425, simultaneously with the Yeşil Complex, in order to provide income for the complex. The architect of the structure, whose walls are built with stone and brick, was Hacı İvaz Paşa, who also undertook the construction of the complex.\n\nThe structure has been known by different names throughout history. In addition to its names such as “Eski İpek Han” and “Yeni İpek Han”, it was also known as “Sultan Han”, “Arabacılar Han” and “Faytoncular Han” due to its usage before the fire. However, the real name of the building, “İpek (Silk) Han”, clearly reflects that the silk trade was intensively carried out here for a period.\n\nThe first known restoration of the building dates back to 1556. In this renovation, sixteen rooms and the roof and eaves sections were renewed. In 1632, the hearths of the thirty-eight cells on the upper floor, the arch of the gate overlooking the courtyard and the stairs were repaired. In addition, the masjid in the middle of the courtyard, which had lost its structural balance over time, was straightened with the help of a level system. In 1737, the room located in the lower part of the masjid, its superstructure and the shadirvan in the courtyard were maintained and repaired. In AH 1155 / AD 1742, the shadirvan, water channels, masjid, stairs, walls and windows were renovated. In 1775, the masjid and stable sections were renovated."

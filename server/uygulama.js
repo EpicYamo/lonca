@@ -30,6 +30,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const MODUL_DIZINI = path.join(veri, "moduller");
   const YUKLENEN = path.join(veri, "yuklenen");
   const eserDosyasi = jsonDosya(path.join(veri, "eserler.json"), { eserler: [] });
+  const iliskiDosyasi = jsonDosya(path.join(veri, "eser-iliskileri.json"), { iliskiler: [] });
   const modulDosyasi = jsonDosya(path.join(MODUL_DIZINI, "index.json"), []);
   const oneriDosyasi = jsonDosya(path.join(veri, "eser-oneriler.json"), []);
   const gecmisDosyasi = jsonDosya(path.join(veri, "eser-gecmisi.json"), []);
@@ -37,6 +38,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   const eserVerisi = await eserDosyasi.oku();
   const eserler = eserVerisi.eserler;
+  const iliskiVerisi = await iliskiDosyasi.oku();
+  const iliskiler = Array.isArray(iliskiVerisi.iliskiler) ? iliskiVerisi.iliskiler : [];
   const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
 
   const kalfa = kalfaHazirla({ kok, eserler, ortam });
@@ -71,6 +74,15 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const tamlikUygun = tamlikSuzgeci(req.query);
     return eserler.filter((e) => (!il || e.il === il) && (!ilce || e.ilce === ilce) && (!tur || e.tur === tur)
       && (!ad || kucuk(e.ad).includes(kucuk(ad))) && (!yuzyil || e.yuzyil === Number(yuzyil)) && tamlikUygun(e));
+  });
+
+  // ---------- Eserler arası tarihsel bağlar ----------
+  app.get("/api/eser-iliskileri", async (req) => {
+    const eserId = req.query.eser ? String(req.query.eser) : null;
+    if (!eserId) return iliskiler;
+    return iliskiler
+      .filter((i) => i.a === eserId || i.b === eserId)
+      .map((i) => ({ ...i, diger: eserler.find((e) => e.id === (i.a === eserId ? i.b : i.a)) ?? null }));
   });
 
   app.get("/api/eserler-tamlik", async () => {

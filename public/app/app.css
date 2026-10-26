@@ -177,6 +177,13 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 }
 .pin-kap.secili .pin { transform: rotate(-45deg) scale(1.3); }
 .pin b { transform: rotate(45deg); line-height: 1; }
+.pin-kume {
+  position: relative; display: grid; place-items: center; width: 38px; height: 38px; margin: 1px;
+  border-radius: 50%; border: 3px solid #fff; background: var(--pin); color: #fff;
+  box-shadow: 0 4px 14px rgba(10, 20, 50, .4); font: 800 14px var(--yazi-govde); transition: transform .2s;
+}
+.pin-kume::after { content: ""; position: absolute; inset: -7px; border: 2px solid var(--pin); border-radius: 50%; opacity: .35; }
+.pin-kap.secili .pin-kume { transform: scale(1.15); }
 .harita-sayfa {
   display: grid; grid-template-columns: 110px 1fr; gap: .9rem; align-items: start; margin-top: .9rem; padding: .8rem;
   background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 20px; animation: gelis .25s ease-out;

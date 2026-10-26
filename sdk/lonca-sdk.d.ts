@@ -51,6 +51,25 @@ declare module "@lonca/sdk" {
   export type VeriAlani = "ad" | "tur" | "il" | "ilce" | "yuzyil" | "konum" | "adres" | "tarihce" | "fotograf" | "ad_en" | "tarihce_en";
   export interface Cevap { secim: number; metin: string; dogru: boolean | null; }
 
+  /** İki eser arasındaki tarihsel bağın türü. */
+  export type IliskiTuru = "kulliye" | "bani" | "mimar" | "vakif" | "aile" | "metin" | "komsu" | "tipoloji";
+  /** Sunucudaki küratörlü tarihsel bağ kaydı. a/b eser kimlikleridir. */
+  export interface Iliski {
+    id: string;
+    a: string;
+    b: string;
+    tur: IliskiTuru;
+    baslik: string;
+    aciklama: string;
+    kaynak?: string;
+  }
+  /** Tek eser için bağ listesi: diğer eser ve bağın yönü eklenir. */
+  export interface IliskiDetay extends Iliski { diger: Eser | null; yon: "a" | "b"; }
+  /** Haritada çizilecek bağ. Uçlardan biri haritadaki eserlerde yoksa çizilmez. */
+  export interface HaritaBaglantisi { a: string; b: string; tur?: IliskiTuru | (string & {}); etiket?: string; }
+  /** Sis perdesinin açık kalan alanı (metre yarıçaplı daire). */
+  export interface SisAlani { lat: number; lng: number; yaricap: number; }
+
   export type Renk = "kobalt" | "firuze" | "mercan" | "altin" | "zumrut" | "murdum";
   export type Ikon =
     | "pusula" | "harita" | "yildiz" | "kupa" | "kitap" | "soru" | "ev" | "kullanici" | "zaman" | "kamera"
@@ -67,6 +86,10 @@ declare module "@lonca/sdk" {
      */
     liste(secenek?: { il?: string; ilce?: string; tur?: EserTuru; ad?: string; yuzyil?: number;
       tam?: boolean; eksik?: VeriAlani; gerekli?: VeriAlani[]; olmayan?: VeriAlani[] }): Promise<Eser[]>;
+    /** Bütün küratörlü tarihsel bağlar. */
+    iliskiler(): Promise<Iliski[]>;
+    /** Bir eserin bağları; diğer eser ve bağ yönü eklenir. */
+    iliskiler(id: string): Promise<IliskiDetay[]>;
     /** Eserin veri tamlığı (yerel, istek atmaz). */
     tamlik(eser: Eser): { tam: boolean; eksikler: VeriAlani[]; oran: number; var: Record<VeriAlani, boolean> };
     /** Tamlık için bakılan temel alanlar: ad, tur, il, ilce, yuzyil, konum, adres, tarihce */
@@ -87,7 +110,7 @@ declare module "@lonca/sdk" {
     kart(eser: Eser): Promise<void>;
     soru(soru: string, secenekler: (string | Secenek)[]): Promise<Cevap>;
     /** Etkileşimli harita; seçilen eserle ya da kapatılınca null ile çözülür. */
-    harita(eserler: Eser[], secenek?: { baslik?: string; rota?: boolean }): Promise<Eser | null>;
+    harita(eserler: Eser[], secenek?: { baslik?: string; rota?: boolean; baglantilar?: HaritaBaglantisi[]; sis?: { acik: SisAlani[]; opaklik?: number }; odak?: { lat: number; lng: number; zoom?: number } }): Promise<Eser | null>;
     /** Yana kaydırılan büyük kartlar; seçilen eser ya da null. */
     galeri(eserler: Eser[], secenek?: { baslik?: string }): Promise<Eser | null>;
     /** Yüzyıllara göre dikey zaman çizelgesi. */
@@ -137,7 +160,10 @@ declare module "@lonca/sdk" {
     | { tip: "liste"; ogeler: { id: string; metin: string; alt?: string; ikon?: Ikon; sag?: string }[] }
     | { tip: "secenekler"; id: string; secenekler: { id: string; metin: string }[]; secili?: string } // { tur:"sec", id, deger }
     | { tip: "girdi"; id: string; ipucu?: string; deger?: string; dugme?: string }                  // { tur:"gonder", id, deger }
-    | { tip: "harita"; id: string; eserler: Eser[]; rota?: boolean; secili?: string }               // pin → { tur:"dokun", id, eser }
+    | { tip: "harita"; id: string; eserler: Eser[]; rota?: boolean; secili?: string;
+        baglantilar?: HaritaBaglantisi[]; sis?: { acik: SisAlani[]; opaklik?: number };
+        odak?: { lat: number; lng: number; zoom?: number } } // pin → { tur:"dokun", id, eser }
+    | { tip: "graf"; id?: string; merkez: Eser; iliskiler: { eser: Eser; tur?: IliskiTuru | (string & {}); baslik?: string }[] } // düğüm → { tur:"dokun", id, eser }
     | { tip: "rozet"; ad: string; aciklama?: string; kazanildi: boolean }
     | { tip: "ayrac" }
     | { tip: "bosluk" };

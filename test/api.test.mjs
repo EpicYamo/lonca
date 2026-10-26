@@ -18,6 +18,17 @@ test("eserler listelenir ve her eserde kaynak vardır", async () => {
   assert.ok(liste.every((e) => typeof e.kaynak === "string" && e.kaynak.length > 3));
 });
 
+test("tarihsel bağlar listelenir ve esere göre süzülür", async () => {
+  const hepsi = (await s.istek("GET", "/api/eser-iliskileri")).json();
+  assert.ok(hepsi.length >= 20);
+  assert.ok(hepsi.every((i) => i.id && i.a && i.b && i.tur && i.baslik && i.aciklama && i.kaynak));
+
+  const ulucami = (await s.istek("GET", "/api/eser-iliskileri?eser=bursa-ulucami")).json();
+  assert.ok(ulucami.length > 0);
+  assert.ok(ulucami.every((i) => i.diger && (i.a === "bursa-ulucami" || i.b === "bursa-ulucami")));
+  assert.ok(ulucami.every((i) => i.diger.id !== "bursa-ulucami"));
+});
+
 test("yakındaki eserler konum ister ve uzaklığa göre sıralanır", async () => {
   assert.equal((await s.istek("GET", "/api/eserler/yakin")).statusCode, 400);
   const liste = (await s.istek("GET", "/api/eserler/yakin?lat=40.1836&lng=29.0625&limit=5")).json();

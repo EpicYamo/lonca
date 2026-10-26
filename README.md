@@ -52,7 +52,7 @@ Everything works without any configuration:
 
 | Setting (`.env`) | What it does |
 | --- | --- |
-| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | The AI journeyman: free Gemini, Claude, or offline Ollama |
+| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | The AI journeyman: free Gemini, OpenCode Go, Claude, or offline Ollama |
 | `KALFA_SAHTE=1` | Offline fallback: the journeyman returns a prepared template |
 | `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
 | `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
@@ -129,11 +129,13 @@ The SDK contract lives in `sdk/lonca-sdk.d.ts`:
 
 | Part | Contents |
 | --- | --- |
-| `eserler` | `yakindaki`, `getir`, `liste`, `yuzyilSecenekleri`, `karistir`, `tamlik` (which fields are recorded for a work) |
+| `eserler` | `yakindaki`, `getir`, `liste`, `iliskiler` (küratörlü tarihsel bağlar), `yuzyilSecenekleri`, `karistir`, `tamlik` (which fields are recorded for a work) |
 | `sahne` | `ayarla({ baslik, tema, sekmeler })`, `ciz(tree)`, `olaylar()`, `bildir`, `efekt` |
-| Nodes (26) | `kapak`, `ust_cubuk`, `izgara`, `kaydirma`, `kart`, `eser`, `fotograflar`, `harita`, `sure` (countdown), `secenekler`, `girdi`, `rozet`, `istatistik`, `ilerleme`, `liste`, … |
+| Nodes (27) | `kapak`, `ust_cubuk`, `izgara`, `kaydirma`, `kart`, `eser`, `fotograflar`, `harita` (fog + `baglantilar`), `graf` (radial relationship graph), `sure` (countdown), `secenekler`, `girdi`, `rozet`, `istatistik`, `ilerleme`, `liste`, … |
 | `ekran` | Windows that open above the app and can always be dismissed: `soru`, `kart`, `uc` (real 3D tour; ask `ucVarMi` first), `harita`, `galeri`, `zaman`, `sonuc`, `rozet`, `duzeltme` (report an error) |
 | `profil`, `basarim`, `depo` | Nickname, level and score; per-module achievements; small per-module persistent store (records, progress). All on the device, no personal data. |
+
+Map nodes can draw curated historical links (`baglantilar: [{ a, b, tur }]`) and a fog-of-war overlay (`sis: { acik: [{ lat, lng, yaricap }] }`). `graf` draws one work in the centre with its linked works around it; tapping a node emits the usual `{ tur: "dokun", id, eser }` event.
 
 Example modules are in `sdk/ornekler/`: `hanlar-rehberi.js` (cover, screen
 stack, collection) and `yuzyil-avi.js` (lobby, timed rounds, streak bonus,
@@ -155,6 +157,15 @@ published). It demonstrates almost the entire SDK in one standalone app:
   effects.
 - Collection: statistics, favourites, 10 achievements, records — all persisted
   through `depo`.
+
+**Showcase: Sisli Vakıf Haritası** (`data/moduller/sisli-vakif-haritasi.js`, published).
+A fog-of-war map over the historic bazaar: each opened work reveals a 650 m
+radius, clusters split as you zoom, and curated historical links are drawn
+between works (same külliye, patron, architect, endowed han, dynasty, explicit
+textual mention, historic neighbourhood). Opening a work shows its photo,
+inventory text, source, a radial relationship graph and a link list with the
+explanation and volume/page behind every relationship. A mühür economy lets
+you reveal the nearest hidden work when you are stuck.
 
 **Completeness filters:** `eserler.liste({ tam: true })` returns works with every
 core field (name, category, province, district, century, location, address,
@@ -200,6 +211,12 @@ Eserleri Envanteri* (three volumes).
   locations are used for known buildings, together with positions found by
   `npm run konum`. Approximate locations are labelled as such in the app
   (spec §5.1.3: unverified information is not presented as certain).
+- **Historical links:** `data/eser-iliskileri.json` holds curated links between
+  works (same külliye, patron, architect, endowed han, dynasty, explicit textual
+  mention, historic neighbourhood). Every link includes a Turkish explanation
+  and the inventory volume/page it comes from. They are never inferred from
+  name similarity; the server exposes them at `GET /api/eser-iliskileri` and
+  the SDK at `eserler.iliskiler()` / `eserler.iliskiler(id)`.
 
 Data pipeline (`araclar/`):
 

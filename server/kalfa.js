@@ -3,6 +3,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import ts from "typescript";
 import { readFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 
 ts.validateLocaleAndSetLanguage("tr", ts.sys);
@@ -60,6 +61,8 @@ Her modülde şunlar ZORUNLU:
 - basarim.tanimla ile 3–6 başarım; anlamlı anlarda basarim.kazan; bir koleksiyon/başarımlar ekranında "rozet" düğümleri (durumu basarim.liste() ile oku).
 - Keşif uygulamalarında: "izgara" içinde "eser" kartları, "secenekler" ile filtre, "girdi" ile arama, gömülü "harita".
 - 3B: Yalnızca GERÇEK 3B vardır (Google'ın uydu fotoğraflarından modeli, eserin konumunda). Her ortamda bulunmaz: önce "await ekran.ucVarMi(eser)" ile sor; false ise 3B düğmesi GÖSTERME, 3B'den hiç söz etme. true ise ekran.uc({ eser, duraklar: [{ odak: "genel", metin }, { odak: "yakin", metin }, { odak: "ust", metin }] }) (odaklar: genel, yakin, cati, yan, arka, ust). Kubbe, minare gibi parçalara odaklanılamaz; duraklarda yapının parçalarından değil bakış açısından söz et.
+- Tarihsel bağlar hazır veridir: "await eserler.iliskiler()" bütün bağları, "await eserler.iliskiler(eser.id)" bir eserin bağlarını (diger eser ve yon ile) verir. Bağları kendin uydurma, ad benzerliğinden çıkarma; yalnızca bu veriyi kullan. Bağ türleri: kulliye (aynı külliye), bani (aynı bani), mimar (aynı mimar), vakif (bir vakfın geliri), aile (hanedan), metin (envanterde açıkça anılıyor), komsu (tarihî komşuluk), tipoloji (mimari gelenek). Her bağda baslik ve aciklama vardır.
+- Harita düğümünde harita üstünde bağ çizmek için baglantilar: [{ a: eserId, b: eserId, tur }] ver; sis perdesi için sis: { acik: [{ lat, lng, yaricap }] } ver. Bir eserin bağlarını görsel ağ olarak göstermek için "graf" düğümü: { tip: "graf", merkez: eser, iliskiler: [{ eser, tur, baslik }] }; düğüme dokununca { tur:"dokun", id, eser } gelir. Detay ekranında graf + bağ listesi birlikte iyi çalışır.
 - Metinler kısa, sıcak ve davetkâr. Cevabı ele vermemek için yüzyılı cevaptan SONRA göster.
 modul_yaz'da "renk" (ana ekrandaki çini karonun rengi), "ikon" (karodaki çizim; modülün konusuna en yakın eser türü) ve "kategori" (rehber | oyun | gezi | ogren) seç.
 
@@ -219,23 +222,44 @@ function anthropicAdaptoru({ saglayici, sistem, araclar }) {
 
 function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
   const tools = araclar.map((a) => ({ type: "function", function: { name: a.ad, description: a.aciklama, parameters: a.sema } }));
+  // OpenCode Go (ve Zen) istekleri konuşma başına sabit bir oturum kimliği ister.
+  // Anahtar "oc_sk_" ile başlıyorsa sağlayıcı OpenCode kabul edilir.
+  let opencode = saglayici.anahtar.startsWith("oc_sk_");
+  try { opencode ||= /(^|\.)opencode\.ai$/i.test(new URL(saglayici.url).hostname); } catch {}
+  const basliklar = {
+    "content-type": "application/json",
+    "user-agent": "lonca-kalfa/1.0",
+    ...(saglayici.anahtar && { authorization: `Bearer ${saglayici.anahtar}` }),
+  };
+
   return {
     baslat: (konusma) => ({
+      oturum: randomUUID(),
       mesajlar: [
         { role: "system", content: sistem },
         ...konusma.map((m) => ({ role: m.rol === "usta" ? "user" : "assistant", content: m.metin })),
       ],
     }),
     async iste(durum) {
-      const y = await fetch(`${saglayici.url}/chat/completions`, {
+      const govde = { model: saglayici.model, messages: durum.mesajlar, tools, tool_choice: "auto", max_tokens: 32000 };
+      const gonder = () => fetch(`${saglayici.url}/chat/completions`, {
         method: "POST",
-        headers: { "content-type": "application/json", ...(saglayici.anahtar && { authorization: `Bearer ${saglayici.anahtar}` }) },
-        body: JSON.stringify({ model: saglayici.model, messages: durum.mesajlar, tools, tool_choice: "required", max_tokens: 32000 }),
+        headers: { ...basliklar, ...(opencode && { "x-opencode-session": durum.oturum }) },
+        body: JSON.stringify(govde),
       });
+
+      let y = await gonder();
+      let hataGovdesi = y.ok ? "" : await y.text();
+      // Bazı modeller (ör. düşünen DeepSeek) tool_choice: "required" kabul etmez.
+      // "auto" de reddedilirse istekten alanı tamamen çıkarıp bir kez daha dene.
+      if (!y.ok && y.status === 400 && govde.tool_choice && /tool_choice/i.test(hataGovdesi)) {
+        delete govde.tool_choice;
+        y = await gonder();
+        hataGovdesi = y.ok ? "" : await y.text();
+      }
       if (!y.ok) {
-        const govde = await y.text();
         if (y.status === 429) throw new Error("Yapay zekâ sağlayıcısının istek kotası doldu (429). Biraz bekle ya da başka bir model dene.");
-        throw new Error(`Yapay zekâ sağlayıcısı hata verdi (${y.status}): ${govde.slice(0, 300)}`);
+        throw new Error(`Yapay zekâ sağlayıcısı hata verdi (${y.status}): ${hataMesaji(hataGovdesi)}`);
       }
       const mesaj = (await y.json()).choices?.[0]?.message;
       if (!mesaj) throw new Error("Yapay zekâ sağlayıcısından boş yanıt geldi");
@@ -261,6 +285,15 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
   };
 }
 
+function hataMesaji(govde) {
+  try {
+    const json = JSON.parse(govde);
+    return json?.error?.message || json?.message || govde.slice(0, 300);
+  } catch {
+    return govde.slice(0, 300);
+  }
+}
+
 function jsonCoz(metin) {
   if (typeof metin !== "string") return metin && typeof metin === "object" ? metin : null;
   try { return JSON.parse(metin); } catch {}
@@ -282,7 +315,7 @@ function modulDenetle(modul, sdkTipleri) {
 
 const ORTAM_TIPLERI = "declare const console: { log(...x: unknown[]): void };";
 
-const DUGUM_TIPLERI = new Set("kapak ust_cubuk sutun satir izgara kaydirma kart afis baslik metin dugme ikon_dugme eser gorsel fotograflar cipler istatistik ilerleme sure liste secenekler girdi harita rozet ayrac bosluk".split(" "));
+const DUGUM_TIPLERI = new Set("kapak ust_cubuk sutun satir izgara kaydirma kart afis baslik metin dugme ikon_dugme eser gorsel fotograflar cipler istatistik ilerleme sure liste secenekler girdi harita graf rozet ayrac bosluk".split(" "));
 const ZEMINLER = new Set(["acik", "parsomen", "koyu", "gece"]);
 const IKONLAR = new Set("pusula harita yildiz kupa kitap soru ev kullanici zaman kamera kup oyun liste ok geri bilgi kalp konum arama tekrar".split(" "));
 const ODAKLAR = new Set("genel yakin cati yan arka ust".split(" "));

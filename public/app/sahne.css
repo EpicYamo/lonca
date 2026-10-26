@@ -156,6 +156,16 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 
 .s-agir-kap { display: flex; flex-direction: column; gap: .5rem; }
 .s-harita { height: 52vh; min-height: 300px; border-radius: 20px; overflow: hidden; border: 1px solid var(--cizgi); background: #e8edf3; }
+.harita-sis { transition: opacity .35s ease; }
+.bag-cizgi { stroke-linecap: round; }
+.s-graf { margin: 0.8rem 0; padding: 0.75rem; border: 1px solid var(--cizgi); border-radius: 18px; background: color-mix(in srgb, var(--yuzey) 88%, var(--ana) 12%); }
+.s-graf svg { display: block; width: 100%; height: auto; }
+.s-graf-bos { margin: 0.4rem 0; color: var(--soluk); font-size: 0.92rem; }
+.s-graf-liste { display: grid; gap: 0.4rem; margin-top: 0.55rem; }
+.s-graf-oge { display: flex; flex-direction: column; gap: 0.1rem; width: 100%; padding: 0.55rem 0.7rem; border: 1px solid var(--cizgi); border-radius: 12px; background: transparent; color: var(--metin); text-align: left; font: inherit; cursor: pointer; }
+.s-graf-oge strong { font-size: 0.92rem; }
+.s-graf-oge span { color: var(--soluk); font-size: 0.8rem; }
+.s-graf-oge:focus-visible { outline: 3px solid var(--ana); outline-offset: 2px; }
 .s-esdeger summary { cursor: pointer; color: var(--soluk); font-size: .9rem; padding: .3rem .2rem; }
 .s-esdeger ul { list-style: none; padding: 0; margin: .4rem 0 0; display: grid; gap: .35rem; }
 
