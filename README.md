@@ -46,7 +46,7 @@ npm run dev              # http://localhost:3000/app  ·  Studio: http://localho
 Everything works without any configuration:
 
 - The journeyman answers from built-in templates ("fake mode").
-- The map uses OpenStreetMap.
+- The map uses dark-filtered OpenStreetMap tiles.
 - Real 3D is disabled, and modules hide the 3D button.
 - Admin actions are open (development mode).
 
@@ -135,7 +135,7 @@ The SDK contract lives in `sdk/lonca-sdk.d.ts`:
 | `ekran` | Windows that open above the app and can always be dismissed: `soru`, `kart`, `uc` (real 3D tour; ask `ucVarMi` first), `harita`, `galeri`, `zaman`, `sonuc`, `rozet`, `duzeltme` (report an error) |
 | `profil`, `basarim`, `depo` | Nickname, level and score; per-module achievements; small per-module persistent store (records, progress). All on the device, no personal data. |
 
-Map nodes can draw curated historical links (`baglantilar: [{ a, b, tur }]`) and a fog-of-war overlay (`sis: { acik: [{ lat, lng, yaricap }] }`). `graf` draws one work in the centre with its linked works around it; tapping a node emits the usual `{ tur: "dokun", id, eser }` event.
+Map nodes can draw curated historical links (`baglantilar: [{ a, b, tur }]`), faint inter-city ghost links (`hayaletBaglantilar`), city labels (`etiketler`), and a fog-of-war overlay (`sis: { acik: [{ lat, lng, yaricap }], minPiksel? }`). `graf` draws one work in the centre with its linked works around it; tapping a node emits the usual `{ tur: "dokun", id, eser }` event.
 
 Example modules are in `sdk/ornekler/`: `hanlar-rehberi.js` (cover, screen
 stack, collection) and `yuzyil-avi.js` (lobby, timed rounds, streak bonus,
@@ -158,14 +158,15 @@ published). It demonstrates almost the entire SDK in one standalone app:
 - Collection: statistics, favourites, 10 achievements, records — all persisted
   through `depo`.
 
-**Showcase: Sisli Vakıf Haritası** (`data/moduller/sisli-vakif-haritasi.js`, published).
-A fog-of-war map over the historic bazaar: each opened work reveals a 650 m
-radius, clusters split as you zoom, and curated historical links are drawn
-between works (same külliye, patron, architect, endowed han, dynasty, explicit
-textual mention, historic neighbourhood). Opening a work shows its photo,
-inventory text, source, a radial relationship graph and a link list with the
-explanation and volume/page behind every relationship. A mühür economy lets
-you reveal the nearest hidden work when you are stuck.
+**Showcase: Sisli Vakıf Atlası** (`data/moduller/sisli-vakif-haritasi.js`, published).
+A dark, globe-like fog-of-war atlas across nine cities: Bursa, İzmir, Edirne,
+İstanbul, Konya, Mardin, Balıkesir, Kütahya and Bilecik. Opened cities glow in
+the dark; clusters become glowing dots and split as you zoom. Curated historical
+links are drawn as curved arcs (same külliye, patron, architect, endowed han,
+dynasty, trade network, explicit textual mention, historic neighbourhood).
+Opening a work shows its photos, inventory/Wikipedia text, source, a radial
+relationship graph and a link list with the explanation and source behind every
+relationship. A mühür economy lets you reveal the next hidden city when stuck.
 
 **Completeness filters:** `eserler.liste({ tam: true })` returns works with every
 core field (name, category, province, district, century, location, address,
@@ -199,14 +200,18 @@ and absent fields. The same filters are available over HTTP through
 
 ## Data
 
-`data/eserler.json`: **165 works** extracted from Vakıf Katılım's *Bursa Vakıf
-Eserleri Envanteri* (three volumes).
+`data/eserler.json`: **187 works** across nine cities. **165 works** come from
+Vakıf Katılım's *Bursa Vakıf Eserleri Envanteri* (three volumes); **22 works**
+from İzmir, Edirne, İstanbul, Konya, Mardin, Balıkesir, Kütahya and Bilecik were
+curated with Turkish Wikipedia text, coordinates and Wikimedia Commons photos
+(CC BY-SA). 49 works currently have coordinates and appear on the atlas.
 
 - **History and source:** Turkish and English history text, plus the source
   (volume and page).
 - **Century:** filled only when the book states a construction date. Repair
   dates are not construction dates; without a date the field stays empty.
-- **Photos:** **155 works have real photos** taken from the books.
+- **Photos:** **480 photos** across 187 works. Bursa photos come from the books;
+  the new city photos come from Wikimedia Commons and are stored locally.
 - **Location:** the books carry no coordinates. Manually entered approximate
   locations are used for known buildings, together with positions found by
   `npm run konum`. Approximate locations are labelled as such in the app
@@ -225,6 +230,7 @@ Data pipeline (`araclar/`):
 | `kitap-ice-aktar.py` | Reads PDF text with positions. Splits two-page spreads, TR/EN columns and complex sub-sections, and repairs broken "Ş/İ" characters. |
 | `foto-cikar.py` | Extracts photos with their position on the page and attaches each to the work that starts before it. Section covers go to the next work. |
 | `veri-olustur.py` | Merges manual corrections (`data/bursa-ek.json`) with the photos. |
+| `sehir-ekle.mjs` | Adds the curated city records from Turkish Wikipedia + Wikimedia Commons (text, coordinates, local photos). |
 
 ```bash
 python3 araclar/kitap-ice-aktar.py kitaplar/bursa-envanteri-cilt-*.pdf > /tmp/ham.json
@@ -301,7 +307,9 @@ test/         node:test suites · e2e/ end-to-end scenario
 - **Code:** Team Kozmos.
 - **Fonts:** SIL OFL (`public/ortak/fontlar/LICENSE.md`).
 - **Libraries:** Leaflet BSD-2; three.js and 3d-tiles-renderer MIT.
-- **Work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*.
+- **Bursa work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*.
   Used within the scope of the hackathon; the repository is private for this
   reason.
+- **New city texts and photos:** Turkish Wikipedia and Wikimedia Commons,
+  CC BY-SA 4.0; each record carries its page/source link.
 - **Map data:** © OpenStreetMap contributors or © Google.

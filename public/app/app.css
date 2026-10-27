@@ -170,6 +170,15 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 
 .harita { height: 50vh; min-height: 280px; border-radius: 20px; border: 1px solid var(--cizgi); overflow: hidden; background: #e8edf3; }
 .pin-kap { background: none; border: 0; }
+.pin-nokta {
+  position: relative; display: block; width: 14px; height: 14px; margin: 2px; border-radius: 50%;
+  background: var(--pin); border: 2px solid rgba(255, 255, 255, .92);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pin) 28%, transparent), 0 0 16px var(--pin);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.pin-nokta i { position: absolute; inset: -7px; border: 1px solid var(--pin); border-radius: 50%; opacity: .65; animation: pin-nefes 2.8s ease-out infinite; animation-delay: calc(var(--i, 0) * 90ms); }
+.pin-kap.secili .pin-nokta { transform: scale(1.55); box-shadow: 0 0 0 5px color-mix(in srgb, var(--pin) 32%, transparent), 0 0 24px var(--pin); }
+@keyframes pin-nefes { 0% { transform: scale(.55); opacity: .7; } 70% { transform: scale(1.65); opacity: 0; } 100% { opacity: 0; } }
 .pin {
   display: grid; place-items: center; width: 30px; height: 30px; margin: 2px;
   border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--pin); border: 3px solid #fff;
@@ -178,12 +187,28 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .pin-kap.secili .pin { transform: rotate(-45deg) scale(1.3); }
 .pin b { transform: rotate(45deg); line-height: 1; }
 .pin-kume {
-  position: relative; display: grid; place-items: center; width: 38px; height: 38px; margin: 1px;
-  border-radius: 50%; border: 3px solid #fff; background: var(--pin); color: #fff;
-  box-shadow: 0 4px 14px rgba(10, 20, 50, .4); font: 800 14px var(--yazi-govde); transition: transform .2s;
+  position: relative; display: grid; place-items: center; width: 34px; height: 34px; margin: 1px;
+  border-radius: 50%; border: 2px solid rgba(255, 255, 255, .9); background:
+    radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--pin) 72%, white), var(--pin) 62%);
+  color: #fff; box-shadow: 0 0 0 5px color-mix(in srgb, var(--pin) 20%, transparent), 0 0 24px color-mix(in srgb, var(--pin) 65%, transparent);
+  font: 800 13px var(--yazi-govde); transition: transform .2s;
 }
-.pin-kume::after { content: ""; position: absolute; inset: -7px; border: 2px solid var(--pin); border-radius: 50%; opacity: .35; }
-.pin-kap.secili .pin-kume { transform: scale(1.15); }
+.pin-kume::after { content: ""; position: absolute; inset: -8px; border: 1px solid var(--pin); border-radius: 50%; opacity: .4; animation: pin-nefes 3.4s ease-out infinite; }
+.pin-kap.secili .pin-kume { transform: scale(1.12); }
+.harita-vinyet {
+  position: absolute; inset: 0; z-index: 640; pointer-events: none;
+  background: radial-gradient(circle at 50% 46%, transparent 30%, rgba(2, 6, 18, .18) 62%, rgba(2, 6, 18, .72) 100%);
+}
+.harita-etiket-kap { background: none; border: 0; }
+.harita-etiket {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none;
+  color: #e8fbff; text-shadow: 0 0 12px rgba(94, 234, 212, .55), 0 1px 3px rgba(0, 0, 0, .9);
+  white-space: nowrap;
+}
+.harita-etiket b { font: 700 12px var(--yazi-baslik, sans-serif); letter-spacing: .06em; text-transform: uppercase; }
+.harita-etiket small { font: 500 9px var(--yazi-govde, sans-serif); color: rgba(232, 251, 255, .65); }
+.leaflet-container.etiket-gizle .harita-etiket-kap { display: none; }
 .harita-sayfa {
   display: grid; grid-template-columns: 110px 1fr; gap: .9rem; align-items: start; margin-top: .9rem; padding: .8rem;
   background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 20px; animation: gelis .25s ease-out;
@@ -546,3 +571,10 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   .devam { order: 1; } .one-cikanlar { order: 2; } .gunun-eseri { order: 3; } .uygulamalar { order: 4; }
   .envanter { order: 5; } .katki-seridi { order: 6; } .kaynak-notu { order: 7; }
 }
+.harita-koyu-tema .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.72) contrast(1.12) saturate(.55); }
+.harita-koyu-tema { background: #070d18; }
+.harita-sehir-nokta-kap { background: none; border: 0; }
+.harita-sehir-nokta { display: block; width: 6px; height: 6px; margin: 2px; border-radius: 50%; }
+.harita-sehir-nokta.acik { background: #5eead4; box-shadow: 0 0 10px #5eead4, 0 0 24px rgba(94, 234, 212, .5); }
+.harita-sehir-nokta.sisli { background: rgba(148, 163, 184, .35); box-shadow: 0 0 6px rgba(148, 163, 184, .25); }
+.leaflet-container.etiket-gizle .harita-sehir-nokta-kap { display: none; }

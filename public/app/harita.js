@@ -19,9 +19,11 @@ async function karoKatmani(L) {
       googleOturumu = null;
     }
   }
-  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları',
   });
+  osm._koyu = true;
+  return osm;
 }
 
 let leafletYukleniyor = null;
@@ -45,35 +47,51 @@ const PIN_HARF = { cami: "C", mescit: "M", han: "H", carsi: "Ç", hamam: "Hm", c
 
 export const BAG_RENK = {
   kulliye: "#ffd25e", bani: "#c084fc", mimar: "#60a5fa", vakif: "#4ade80",
-  aile: "#fb923c", metin: "#2dd4bf", komsu: "#94a3b8", tipoloji: "#a3a3a3",
+  aile: "#fb923c", ticaret: "#f472b6", metin: "#2dd4bf", komsu: "#94a3b8", tipoloji: "#a3a3a3",
 };
 const BAG_ADI = {
   kulliye: "Aynı külliye", bani: "Aynı bani", mimar: "Aynı mimar", vakif: "Vakıf bağı",
-  aile: "Hanedan / aile", metin: "Metinde anılıyor", komsu: "Tarihî komşuluk", tipoloji: "Mimari gelenek",
+  aile: "Hanedan / aile", ticaret: "Ticaret ağı", metin: "Metinde anılıyor", komsu: "Tarihî komşuluk", tipoloji: "Mimari gelenek",
 };
 export const bagTuruAdi = (tur) => BAG_ADI[tur] ?? "Tarihsel bağ";
 
 const konumlu = (liste) => (Array.isArray(liste) ? liste : []).slice(0, 200)
   .filter((e) => Number.isFinite(Number(e?.konum?.lat)) && Number.isFinite(Number(e?.konum?.lng)));
 
-export async function haritaKur(kutu, { eserler, rota = false, secili = null, baglantilar = [], sis = null, odak = null, onSec }) {
+export async function haritaKur(kutu, { eserler, rota = false, secili = null, baglantilar = [], hayaletBaglantilar = [], sis = null, etiketler = [], odak = null, onSec }) {
   const L = await leafletYukle();
   await baglaninca(kutu);
   kutu.style.position = "relative";
   const harita = L.map(kutu, { zoomControl: true, attributionControl: true, scrollWheelZoom: false, zoomAnimation: false });
-  (await karoKatmani(L)).addTo(harita);
+  const karo = await karoKatmani(L);
+  if (karo._koyu) kutu.classList.add("harita-koyu-tema");
+  karo.addTo(harita);
   const BAG_PANE = "baglanti-pane";
   harita.createPane(BAG_PANE);
   const bagPane = harita.getPane(BAG_PANE);
-  bagPane.style.zIndex = "620";
+  bagPane.style.zIndex = "655";
   bagPane.style.pointerEvents = "none";
+  const ETIKET_PANE = "sehir-etiket-pane";
+  harita.createPane(ETIKET_PANE);
+  const etiketPane = harita.getPane(ETIKET_PANE);
+  etiketPane.style.zIndex = "660";
+  etiketPane.style.pointerEvents = "none";
+
+  const vinyet = document.createElement("div");
+  vinyet.className = "harita-vinyet";
+  kutu.append(vinyet);
 
   const cizgiKatmani = L.layerGroup().addTo(harita);
+  const etiketKatmani = L.layerGroup().addTo(harita);
+  const izgaraKatmani = L.layerGroup().addTo(harita);
   const katman = L.layerGroup().addTo(harita);
   let isaretler = [], cizgiler = [], liste = [], imzaOnceki = "", seciliId = secili, yerlesti = false;
   let bagListesi = Array.isArray(baglantilar) ? baglantilar : [];
+  let hayaletListesi = Array.isArray(hayaletBaglantilar) ? hayaletBaglantilar : [];
+  let etiketListesi = Array.isArray(etiketler) ? etiketler : [];
   let sisDurum = sis;
-  let sonVeri = { eserler, rota, baglantilar: bagListesi };
+  let sonVeri = { eserler, rota, baglantilar: bagListesi, hayaletBaglantilar: hayaletListesi, etiketler: etiketListesi };
+  let sonOdak = null;
   let sisKap = null, sisSvg = null, sisGradId = null;
 
   const NS = "http://www.w3.org/2000/svg";
@@ -139,7 +157,7 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
       const p = harita.latLngToContainerPoint([lat, lng]);
       const mpp = 156543.03392 * Math.cos((lat * Math.PI) / 180) / 2 ** harita.getZoom();
-      const r = Math.max(24, (Number(alan.yaricap) || 600) / mpp);
+      const r = Math.max(Number(sisDurum.minPiksel) || 24, (Number(alan.yaricap) || 600) / mpp);
       const daire = document.createElementNS(NS, "circle");
       daire.setAttribute("cx", p.x);
       daire.setAttribute("cy", p.y);
@@ -147,6 +165,79 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
       daire.setAttribute("fill", `url(#${sisGradId})`);
       sisSvg._delikler.append(daire);
     }
+  }
+
+  function etiketCiz() {
+    etiketKatmani.clearLayers();
+    const gizli = harita.getZoom() >= 9;
+    kutu.classList.toggle("etiket-gizle", gizli);
+    if (gizli) return;
+    const kacis = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const yerlesen = [];
+    const noktalar = [];
+    for (const e of etiketListesi) {
+      if (!Number.isFinite(Number(e?.lat)) || !Number.isFinite(Number(e?.lng))) continue;
+      noktalar.push(e);
+    }
+    noktalar.sort((a, b) => Number(!!b.acik) - Number(!!a.acik));
+    for (const e of noktalar) {
+      const lat = Number(e.lat), lng = Number(e.lng);
+      const nokta = L.divIcon({
+        className: "harita-sehir-nokta-kap",
+        html: `<span class="harita-sehir-nokta ${e.acik ? "acik" : "sisli"}"></span>`,
+        iconSize: [10, 10], iconAnchor: [5, 5],
+      });
+      L.marker([lat, lng], { icon: nokta, interactive: false, keyboard: false, pane: ETIKET_PANE }).addTo(etiketKatmani);
+      const p = harita.latLngToContainerPoint([lat, lng]);
+      const genislik = Math.max(54, String(e.metin ?? "").length * 7.4 + 10);
+      const kutuAlan = { x: p.x - genislik / 2, y: p.y - 22, w: genislik, h: 30 };
+      const cakisma = yerlesen.some((r) => !(kutuAlan.x + kutuAlan.w < r.x || r.x + r.w < kutuAlan.x || kutuAlan.y + kutuAlan.h < r.y || r.y + r.h < kutuAlan.y));
+      if (cakisma) continue;
+      yerlesen.push(kutuAlan);
+      const icon = L.divIcon({
+        className: "harita-etiket-kap",
+        html: `<span class="harita-etiket"><b>${kacis(e.metin)}</b>${e.alt ? `<small>${kacis(e.alt)}</small>` : ""}</span>`,
+        iconSize: [1, 1], iconAnchor: [0, 0],
+      });
+      L.marker([lat, lng], { icon, interactive: false, keyboard: false, pane: ETIKET_PANE }).addTo(etiketKatmani);
+    }
+  }
+
+  function izgaraCiz() {
+    izgaraKatmani.clearLayers();
+    if (harita.getZoom() > 7) return;
+    const stil = { color: "#5eead4", weight: 0.7, opacity: 0.12, dashArray: "2 8", interactive: false };
+    for (let lat = 34; lat <= 44; lat += 2) {
+      L.polyline([[lat, 24], [lat, 46]], stil).addTo(izgaraKatmani);
+    }
+    for (let lng = 24; lng <= 46; lng += 2) {
+      L.polyline([[34, lng], [44, lng]], stil).addTo(izgaraKatmani);
+    }
+  }
+
+  function odakUygula(o, zorla = false) {
+    if (!o || !Number.isFinite(Number(o.lat)) || !Number.isFinite(Number(o.lng))) return;
+    const zoom = Number.isFinite(Number(o.zoom)) ? Number(o.zoom) : harita.getZoom();
+    if (!zorla && sonOdak && sonOdak.lat === Number(o.lat) && sonOdak.lng === Number(o.lng) && sonOdak.zoom === zoom) return;
+    harita.setView([Number(o.lat), Number(o.lng)], zoom, { animate: false });
+    sonOdak = { lat: Number(o.lat), lng: Number(o.lng), zoom };
+  }
+
+  function egriNoktalar(a, b) {
+    const d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (d < 0.015) return [a, b];
+    const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+    const nx = -(b[1] - a[1]), ny = b[0] - a[0];
+    const norm = Math.hypot(nx, ny) || 1;
+    const egim = Math.min(0.9, d * 0.09) / norm;
+    const cx = mx + nx * egim, cy = my + ny * egim;
+    return Array.from({ length: 26 }, (_, i) => {
+      const t = i / 25;
+      return [
+        (1 - t) ** 2 * a[0] + 2 * (1 - t) * t * cx + t ** 2 * b[0],
+        (1 - t) ** 2 * a[1] + 2 * (1 - t) * t * cy + t ** 2 * b[1],
+      ];
+    });
   }
 
   function bagSec(id) {
@@ -162,10 +253,15 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
     }
   }
 
-  function ciz({ eserler: yeni, rota: r, baglantilar: yeniBaglar }) {
+  function ciz({ eserler: yeni, rota: r, baglantilar: yeniBaglar, hayaletBaglantilar: yeniHayalet, etiketler: yeniEtiketler }) {
     liste = konumlu(yeni);
     if (Array.isArray(yeniBaglar)) bagListesi = yeniBaglar;
-    const imza = liste.map((e) => e.id).join("|") + (r ? "#r" : "") + "#" + bagListesi.map((b) => `${b.a}-${b.b}-${b.tur ?? ""}`).join(",");
+    if (Array.isArray(yeniHayalet)) hayaletListesi = yeniHayalet;
+    if (Array.isArray(yeniEtiketler)) etiketListesi = yeniEtiketler;
+    const imza = liste.map((e) => e.id).join("|") + (r ? "#r" : "") + "#"
+      + bagListesi.map((b) => `${b.a}-${b.b}-${b.tur ?? ""}`).join(",") + "#"
+      + hayaletListesi.map((b) => `${b.a?.lat}-${b.a?.lng}-${b.b?.lat}-${b.b?.lng}`).join(",") + "#"
+      + etiketListesi.map((e) => `${e.metin}-${e.alt ?? ""}`).join(",");
     if (imza === imzaOnceki) return;
     imzaOnceki = imza;
     cizgiKatmani.clearLayers();
@@ -175,13 +271,9 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
     const indeks = new Map(liste.map((e, i) => [e.id, i]));
 
     if (!yerlesti) {
-      if (odak && Number.isFinite(odak.lat) && Number.isFinite(odak.lng)) {
-        harita.setView([odak.lat, odak.lng], odak.zoom ?? 15);
-      } else if (noktalar.length) {
-        harita.fitBounds(L.latLngBounds(noktalar), { padding: [36, 36], maxZoom: 17 });
-      } else {
-        harita.setView([40.1885, 29.061], 13);
-      }
+      if (odak) odakUygula(odak, true);
+      else if (noktalar.length) harita.fitBounds(L.latLngBounds(noktalar), { padding: [36, 36], maxZoom: 17 });
+      else harita.setView([39, 35], 5);
       yerlesti = true;
     }
 
@@ -216,16 +308,26 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
       L.polyline(noktalar, { color: "#1f3a93", weight: 4, opacity: 0.75, dashArray: "2 10", lineCap: "round", className: "rota-cizgi" }).addTo(cizgiKatmani);
     }
 
+    for (const bag of hayaletListesi) {
+      if (!bag?.a || !bag?.b) continue;
+      L.polyline(egriNoktalar([Number(bag.a.lat), Number(bag.a.lng)], [Number(bag.b.lat), Number(bag.b.lng)]), {
+        color: "#5eead4", weight: 1.6, opacity: 0.30,
+        dashArray: "2 10", interactive: false, pane: BAG_PANE, className: "hayalet-cizgi",
+      }).addTo(cizgiKatmani);
+    }
+
     for (const bag of bagListesi) {
       const ia = indeks.get(bag.a), ib = indeks.get(bag.b);
       if (ia == null || ib == null) continue;
-      const hat = [gosterim[ia], gosterim[ib]];
-      const hatCizgi = L.polyline(hat, { color: "#ffffff", weight: 8, opacity: 0.16, interactive: false, lineCap: "round", pane: BAG_PANE }).addTo(cizgiKatmani);
+      const a = gosterim[ia], b = gosterim[ib];
+      if (a[0] === b[0] && a[1] === b[1]) continue;
+      const hat = egriNoktalar(a, b);
+      const hatCizgi = L.polyline(hat, { color: "#ffffff", weight: 10, opacity: 0.12, interactive: false, lineCap: "round", pane: BAG_PANE }).addTo(cizgiKatmani);
       const cizgi = L.polyline(hat, {
         color: BAG_RENK[bag.tur] ?? BAG_RENK.komsu,
-        weight: 3.5,
+        weight: 3.2,
         opacity: 0.9,
-        dashArray: bag.tur === "komsu" || bag.tur === "metin" ? "6 7" : null,
+        dashArray: bag.tur === "komsu" || bag.tur === "metin" ? "6 8" : null,
         interactive: false,
         pane: BAG_PANE,
         className: "bag-cizgi",
@@ -239,10 +341,11 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
     for (const grup of gruplar) {
       if (grup.length === 1) {
         const i = grup[0];
+        const renk = PIN_RENGI[liste[i].tur] ?? "#5eead4";
         const icon = L.divIcon({
           className: "pin-kap",
-          html: `<span class="pin" style="--pin:${PIN_RENGI[liste[i].tur] ?? "#1f3a93"};--i:${Math.min(i, 12)}"><b data-harf="${PIN_HARF[liste[i].tur] ?? "•"}">${r ? i + 1 : ""}</b></span>`,
-          iconSize: [34, 42], iconAnchor: [17, 40],
+          html: `<span class="pin-nokta" style="--pin:${renk};--i:${Math.min(i, 12)}"><i></i></span>`,
+          iconSize: [18, 18], iconAnchor: [9, 9],
         });
         const m = L.marker(noktalar[i], { icon, title: String(liste[i].ad ?? ""), alt: String(liste[i].ad ?? ""), keyboard: true, riseOnHover: true }).addTo(katman);
         m._ids = [liste[i].id];
@@ -251,11 +354,11 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
         continue;
       }
       const orta = grup.reduce((acc, i) => ({ lat: acc.lat + Number(liste[i].konum.lat) / grup.length, lng: acc.lng + Number(liste[i].konum.lng) / grup.length }), { lat: 0, lng: 0 });
-      const renk = PIN_RENGI[liste[grup[0]].tur] ?? "#1f3a93";
+      const renk = PIN_RENGI[liste[grup[0]].tur] ?? "#5eead4";
       const icon = L.divIcon({
         className: "pin-kap",
         html: `<span class="pin-kume" style="--pin:${renk}"><b>${grup.length}</b></span>`,
-        iconSize: [40, 40], iconAnchor: [20, 20],
+        iconSize: [36, 36], iconAnchor: [18, 18],
       });
       const m = L.marker([orta.lat, orta.lng], { icon, title: `${grup.length} eser`, alt: `${grup.length} eser`, keyboard: true, riseOnHover: true }).addTo(katman);
       m._ids = grup.map((i) => liste[i].id);
@@ -263,7 +366,9 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
       isaretler.push(m);
     }
 
-    sonVeri = { eserler: yeni, rota: r, baglantilar: bagListesi };
+    etiketCiz();
+    izgaraCiz();
+    sonVeri = { eserler: yeni, rota: r, baglantilar: bagListesi, hayaletBaglantilar: hayaletListesi, etiketler: etiketListesi };
     const i = seciliId ? liste.findIndex((e) => e.id === seciliId) : -1;
     if (i >= 0) secimGoster(i, false);
     else bagSec(seciliId);
@@ -280,7 +385,7 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
   if (sisDurum) sisKur();
   const yenidenCiz = () => {
     imzaOnceki = "";
-    ciz({ eserler: sonVeri.eserler, rota: sonVeri.rota, baglantilar: sonVeri.baglantilar });
+    ciz({ eserler: sonVeri.eserler, rota: sonVeri.rota, baglantilar: sonVeri.baglantilar, hayaletBaglantilar: sonVeri.hayaletBaglantilar, etiketler: sonVeri.etiketler });
     const i = seciliId ? liste.findIndex((e) => e.id === seciliId) : -1;
     if (i >= 0) secimGoster(i, false);
   };
@@ -297,12 +402,10 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
         if (sisDurum) sisKur();
         sisCiz();
       }
-      if (o.eserler || o.rota !== undefined || o.baglantilar) {
-        ciz({ eserler: o.eserler ?? liste, rota: o.rota ?? false, baglantilar: o.baglantilar ?? bagListesi });
+      if (o.eserler || o.rota !== undefined || o.baglantilar || o.hayaletBaglantilar || o.etiketler) {
+        ciz({ eserler: o.eserler ?? liste, rota: o.rota ?? false, baglantilar: o.baglantilar ?? bagListesi, hayaletBaglantilar: o.hayaletBaglantilar ?? hayaletListesi, etiketler: o.etiketler ?? etiketListesi });
       }
-      if (o.odak && Number.isFinite(o.odak.lat) && Number.isFinite(o.odak.lng)) {
-        harita.setView([o.odak.lat, o.odak.lng], o.odak.zoom ?? harita.getZoom());
-      }
+      if (o.odak) odakUygula(o.odak);
       if (o.secili !== undefined) {
         const i = liste.findIndex((e) => e.id === o.secili);
         if (i >= 0) secimGoster(i, false);
@@ -327,6 +430,8 @@ export async function haritaGoster(eserler, secenek, { el, sahneyeKoy, seslendir
   const rota = !!secenek.rota;
   const baglantilar = Array.isArray(secenek.baglantilar) ? secenek.baglantilar : [];
   const sis = secenek.sis ?? null;
+  const etiketler = Array.isArray(secenek.etiketler) ? secenek.etiketler : [];
+  const hayaletBaglantilar = Array.isArray(secenek.hayaletBaglantilar) ? secenek.hayaletBaglantilar : [];
   const odak = secenek.odak ?? null;
 
   const kutu = el("div", { className: "harita", role: "region", ariaLabel: `${baslik}: ${gecerli.length} eser` });
@@ -360,7 +465,7 @@ export async function haritaGoster(eserler, secenek, { el, sahneyeKoy, seslendir
       seslendir(`${eser.ad}. ${turAdi(eser.tur)}.`);
     }
 
-    harita = await haritaKur(kutu, { eserler: gecerli, rota, baglantilar, sis, odak, onSec: (eser) => bilgiKarti(eser) });
+    harita = await haritaKur(kutu, { eserler: gecerli, rota, baglantilar, hayaletBaglantilar, sis, etiketler, odak, onSec: (eser) => bilgiKarti(eser) });
     if (bitti) { harita.yokEt(); return; }
 
     listeKap.append(...gecerli.map((eser, i) => {

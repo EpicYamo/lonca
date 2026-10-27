@@ -143,9 +143,9 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       }
       case "harita": return agirBilesen(n, "harita", (kutu) => haritaKur(kutu, {
         eserler: n.eserler, rota: !!n.rota, secili: n.secili,
-        baglantilar: n.baglantilar, sis: n.sis, odak: n.odak,
+        baglantilar: n.baglantilar, hayaletBaglantilar: n.hayaletBaglantilar, sis: n.sis, etiketler: n.etiketler, odak: n.odak,
         onSec: (eser) => gonder({ tur: "dokun", id: metin(n.id), eser }),
-      }), (api) => api.guncelle({ eserler: n.eserler, rota: !!n.rota, secili: n.secili, baglantilar: n.baglantilar, sis: n.sis, odak: n.odak }));
+      }), (api) => api.guncelle({ eserler: n.eserler, rota: !!n.rota, secili: n.secili, baglantilar: n.baglantilar, hayaletBaglantilar: n.hayaletBaglantilar, sis: n.sis, etiketler: n.etiketler, odak: n.odak }));
       case "graf": {
         const merkez = n.merkez ?? {};
         const iliskiler = (Array.isArray(n.iliskiler) ? n.iliskiler : []).filter((x) => x?.eser).slice(0, 8);

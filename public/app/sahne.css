@@ -332,3 +332,28 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .uc-yok { position: absolute; inset: 0; display: grid; place-items: end center; }
 .uc-yok img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(.7); }
 .uc-yok p { position: relative; margin: 1rem; padding: .6rem .9rem; border-radius: 12px; background: rgba(10, 16, 30, .78); color: #fff; font-weight: 600; text-align: center; }
+
+/* Modern glass yüzeyler (koyu temalar) */
+.modul-ekrani:is([data-zemin="koyu"], [data-zemin="gece"]) .s-istatistik {
+  background: linear-gradient(145deg, rgba(45, 212, 191, .10), rgba(59, 130, 246, .08) 55%, rgba(255, 255, 255, .03));
+  border-color: rgba(94, 234, 212, .18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08), 0 10px 30px rgba(0, 0, 0, .22);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.modul-ekrani:is([data-zemin="koyu"], [data-zemin="gece"]) .s-istatistik strong { color: #eafffb; }
+.modul-ekrani:is([data-zemin="koyu"], [data-zemin="gece"]) .s-dugme.ana {
+  background: linear-gradient(135deg, #5eead4, #60a5fa);
+  color: #06121f; box-shadow: 0 8px 24px rgba(45, 212, 191, .22);
+}
+.modul-ekrani:is([data-zemin="koyu"], [data-zemin="gece"]) .s-dugme.ikincil {
+  background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .12);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.modul-ekrani:is([data-zemin="koyu"], [data-zemin="gece"]) .s-kart {
+  background: linear-gradient(160deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .02));
+  border-color: rgba(255, 255, 255, .10); box-shadow: 0 12px 34px rgba(0, 0, 0, .18);
+}
+.modul-ekrani:is([data-zemin="koyu"], [data-zemin="gece"]) .s-ust-cubuk {
+  background: color-mix(in srgb, var(--zemin) 72%, transparent);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
