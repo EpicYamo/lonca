@@ -40,5 +40,19 @@
   "renk": "firuze",
   "ikon": "cami",
   "kapakEser": "bursa-ulucami"
+ },
+ {
+  "id": "vakif-dalislari",
+  "ad": "Vakıf Dalışları",
+  "aciklama": "Kaydırdıkça eserin içine gir: Ulucami, Koza Hanı ve Şehzade Mustafa Türbesi. Her durakta kamera durur, eserin kaydından kısa notlar belirir.",
+  "izinler": [],
+  "renk": "altin",
+  "ikon": "cami",
+  "kategori": "gezi",
+  "durum": "onayli",
+  "olusturma": "2026-11-03T12:00:00.000Z",
+  "guncelleme": "2026-11-03T12:00:00.000Z",
+  "yayin": "2026-11-03T12:00:00.000Z",
+  "kapakEser": "bursa-ulucami"
  }
 ]

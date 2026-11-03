@@ -3,7 +3,7 @@ const CERCEVE_CSP = "default-src 'none'; script-src 'unsafe-inline' data:";
 
 let sdkKaynagi = null;
 async function sdkGetir() {
-  sdkKaynagi ??= await (await fetch("/sdk/lonca-sdk.js")).text();
+  sdkKaynagi ??= await (await fetch("/sdk/lonca-sdk.js", { cache: "no-cache" })).text();
   return sdkKaynagi;
 }
 

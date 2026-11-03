@@ -216,6 +216,7 @@ function yontemlerOlustur(modul) {
         const q = id ? `?eser=${encodeURIComponent(id)}` : "";
         return (await api(`/api/eser-iliskileri${q}`)).json();
       },
+      "dalislar.liste": async () => (await api(`/api/dalislar${ONIZLEME ? "?onizleme=1" : ""}`)).json(),
       "eserler.liste": async (s = {}) => {
         const q = new URLSearchParams();
         for (const k of ["il", "ilce", "tur", "ad", "yuzyil", "eksik"]) if (s[k] != null && s[k] !== "") q.set(k, String(s[k]));

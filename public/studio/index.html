@@ -36,10 +36,20 @@
           <p>Hoş geldin usta. Vakıf eserleriyle ilgili bir fikir anlat; modülünü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
         </li>
       </ol>
+      <div class="kip" role="radiogroup" aria-label="Kalfa ne hazırlasın?">
+        <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
+        <button type="button" role="radio" aria-checked="false" data-kip="dalis">Dalış</button>
+        <span class="kip-not" id="kip-not">Fikrini mini uygulamaya çevirir</span>
+      </div>
       <div id="oneriler" class="oneriler" aria-label="Örnek fikirler">
         <button type="button">Çocuklar için Bursa hanlarında süreli bir hazine avı oyunu</button>
         <button type="button">Bursa türbelerini gece temasıyla gezdiren, haritalı ve 3B bir rehber</button>
         <button type="button">Eserleri yüzyıllara göre gezdiren, koleksiyonlu bir zaman yolculuğu</button>
+      </div>
+      <div id="dalis-oneriler" class="oneriler" aria-label="Örnek dalışlar" hidden>
+        <button type="button">Bursa Yeşil Türbe'nin çinilerini ve sandukasını anlatan bir dalış</button>
+        <button type="button">Emir Sultan Külliyesi'ne uydudan inip avlusunu ve türbesini gezdir</button>
+        <button type="button">Yıldırım Bayezid Külliyesi'nde banisini ve yapılışını öne çıkaran kısa bir dalış</button>
       </div>
       <form id="sohbet-formu" class="sohbet-formu">
         <label for="istek" class="gizli">Kalfaya mesaj</label>

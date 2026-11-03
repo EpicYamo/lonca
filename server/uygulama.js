@@ -5,6 +5,7 @@ import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { kalfaHazirla } from "./kalfa.js";
+import { dalisKalfasiKur } from "./dalis-kalfasi.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri } from "./guvenlik.js";
 import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar } from "./dogrulama.js";
@@ -43,6 +44,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
 
   const kalfa = kalfaHazirla({ kok, eserler, ortam });
+  const DALIS_DIZINI = path.join(veri, "dalislar");
+  const dalisKalfasi = dalisKalfasiKur({ kok, eserler, dalisDizini: DALIS_DIZINI, ortam });
   const yetki = yetkiKur(ortam.YONETICI_SIFRE);
   const { yoneticiGerekli, yoneticiMi } = yetki;
   const kalfaSiniri = hizSiniri({ adet: Number(ortam.KALFA_SINIR ?? 30), pencereMs: 10 * 60_000, mesaj: "Kalfa şu an çok meşgul; birkaç dakika sonra tekrar dene." });
@@ -459,6 +462,66 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return { silindi: id };
   });
 
+  // ---------- Dalışlar (uydudan içine kaydırmalı geziler) ----------
+  // Tanımlar data/dalislar/<eser>.json; görüntüler public/medya/dalis/<eser>/. Uygulama yalnızca onaylıları görür;
+  // Studio önizlemesi (?onizleme=1) onay bekleyenleri de görür ki editör yayından önce inceleyebilsin.
+  const DALIS_DURUMLARI = ["bekliyor", "onayli", "kaldirildi"];
+  async function dalislariOku() {
+    if (!existsSync(DALIS_DIZINI)) return [];
+    const dosyalar = (await readdir(DALIS_DIZINI)).filter((d) => d.endsWith(".json"));
+    const liste = [];
+    for (const d of dosyalar) { try { liste.push(JSON.parse(await readFile(path.join(DALIS_DIZINI, d), "utf8"))); } catch {} }
+    return liste.sort((a, b) => String(a.olusturma).localeCompare(String(b.olusturma)));
+  }
+  app.get("/api/dalislar", async (req) => {
+    const onizleme = req.query.onizleme === "1";
+    return (await dalislariOku()).filter((d) => d.durum === "onayli" || (onizleme && d.durum === "bekliyor"));
+  });
+  app.get("/api/dalislar-yonetim", { preHandler: yoneticiGerekli }, async () =>
+    (await dalislariOku()).map(({ kareler, ...d }) => ({ ...d, kareSayisi: kareler?.length ?? 0, kartlar: (kareler ?? []).flatMap((k) => (k.k ?? []).map((b) => ({ ...b, kare: k.b ?? "" }))) })));
+  app.post("/api/dalislar/:eser/durum", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const { eser } = req.params, { durum } = req.body ?? {};
+    if (!kimlikGecerli(eser) || !DALIS_DURUMLARI.includes(durum)) return rep.code(400).send({ hata: `durum: ${DALIS_DURUMLARI.join(" | ")}` });
+    const yol = path.join(DALIS_DIZINI, `${eser}.json`);
+    if (!existsSync(yol)) return rep.code(404).send({ hata: "dalış bulunamadı" });
+    const tanim = JSON.parse(await readFile(yol, "utf8"));
+    Object.assign(tanim, { durum, guncelleme: new Date().toISOString() });
+    await writeFile(yol, JSON.stringify(tanim, null, 1) + "\n");
+    return { eser, durum };
+  });
+  app.delete("/api/dalislar/:eser", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const { eser } = req.params;
+    if (!kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz kimlik" });
+    const yol = path.join(DALIS_DIZINI, `${eser}.json`);
+    if (!existsSync(yol)) return rep.code(404).send({ hata: "dalış bulunamadı" });
+    const tanim = JSON.parse(await readFile(yol, "utf8"));
+    if (tanim.kaynak !== "kalfa") return rep.code(409).send({ hata: "Elle hazırlanmış dalışlar silinmez; kaldırabilirsin" });
+    await rm(yol, { force: true });
+    await rm(path.join(kok, "public", "medya", "dalis", eser), { recursive: true, force: true });
+    return { silindi: eser };
+  });
+
+  // Dalış kalfası: bir eser için geziyi baştan sona hazırlar (dakikalar sürer; Studio ilerlemeyi yoklar).
+  app.get("/api/dalis-kalfasi", async () => ({ hazir: dalisKalfasi.hazir(), etkin: dalisKalfasi.etkin()?.id ?? null }));
+  app.post("/api/dalis-kalfasi", { preHandler: [yoneticiGerekli, kalfaSiniri] }, async (req, rep) => {
+    const { istek, eser, uzerineYaz } = req.body ?? {};
+    if (eser != null && !kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz eser kimliği" });
+    if (istek != null && (typeof istek !== "string" || istek.length > 1000)) return rep.code(400).send({ hata: "istek en fazla 1000 harf" });
+    if (!eser && !String(istek ?? "").trim()) return rep.code(400).send({ hata: "Kalfaya ne istediğini yaz" });
+    try {
+      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz });
+      return { is: is.id };
+    } catch (h) {
+      return rep.code(h.kod ?? 500).send({ hata: h.message });
+    }
+  });
+  app.get("/api/dalis-kalfasi/:id", async (req, rep) => {
+    const is = dalisKalfasi.is(req.params.id);
+    if (!is) return rep.code(404).send({ hata: "iş bulunamadı" });
+    const { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc } = is;
+    return { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc };
+  });
+
   app.get("/api/kalfa", async () => ({ model: kalfa.model, sahte: kalfa.sahte }));
   app.post("/api/kalfa", { preHandler: kalfaSiniri }, async (req, rep) => {
     const { sohbet, kod } = req.body ?? {};
@@ -482,5 +545,5 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return govde;
   });
 
-  return { app, kalfa, yetki, eserler };
+  return { app, kalfa, dalisKalfasi, yetki, eserler };
 }

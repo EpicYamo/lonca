@@ -1,0 +1,689 @@
+{
+ "eser": "bursa-ulucami",
+ "ozet": "Uzaydan Bursa'ya iniş, çatıdan içeri; şadırvan, levha, minber, mihrap ve mahfil.",
+ "hedef": {
+  "lat": 40.18389,
+  "lng": 29.06194
+ },
+ "durum": "onayli",
+ "kaynak": "el",
+ "olusturma": "2026-11-03T12:50:58.798Z",
+ "guncelleme": "2026-11-03T12:50:58.804Z",
+ "kareler": [
+  {
+   "g": "u6",
+   "t": "uydu",
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    6,
+    0
+   ]
+  },
+  {
+   "g": "u9",
+   "t": "uydu",
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    9,
+    0
+   ]
+  },
+  {
+   "g": "u12",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    12,
+    0
+   ]
+  },
+  {
+   "g": "u14",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    14,
+    0
+   ]
+  },
+  {
+   "g": "u16",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    16,
+    0
+   ]
+  },
+  {
+   "g": "u18",
+   "t": "uydu",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    18,
+    0
+   ]
+  },
+  {
+   "g": "k1",
+   "t": "netlestirilmis",
+   "p": [
+    0.262,
+    0.134,
+    0.4
+   ],
+   "b": "Bursa'nın ortasında",
+   "k": [
+    {
+     "u": "Ulu cami",
+     "b": "Çok ayaklı caminin en anıtsal örneği",
+     "m": "I. Bayezid 1396-1400 arasında, Niğbolu Seferi dönüşü verdiği emirle yaptırdı. Yirmi kubbeli yapı, Türkiye'de iç cemaat yeri en geniş camidir.",
+     "k": "V",
+     "n": [
+      0.33,
+      0.53
+     ],
+     "a": [
+      0.1,
+      0.33,
+      0.5
+     ]
+    },
+    {
+     "u": "Minareler",
+     "b": "İki tuğla minare",
+     "m": "Batıdakini I. Bayezid, doğudakini I. Mehmed yaptırdı denir. 1889 yangınında ahşap külahlar yanınca bugünkü boğumlu taş külahlar yapıldı.",
+     "k": "V",
+     "n": [
+      0.37,
+      0.48
+     ],
+     "a": [
+      0.17,
+      0.3,
+      0.42
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "Altı yüzyılın en büyüğü",
+     "m": "Osmanlı'nın Bursa'da inşa ettirdiği ilk büyük camidir ve altı yüzyıl boyunca şehrin en büyük camisi olarak kalmıştır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "k2",
+   "t": "genisletilmis",
+   "p": [
+    0.29,
+    0.58,
+    0.42
+   ],
+   "b": "Kuzey cephesi",
+   "y": "ust",
+   "k": [
+    {
+     "u": "Kapılar",
+     "b": "Ana kapı kuzeyde",
+     "m": "Doğu ve batıdakilerle üç kapısı var; Hünkâr Mahfili'ne açılan dördüncüsü sonradan bir pencere bozularak yapıldı.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.93
+     ],
+     "a": [
+      0.2,
+      0.58,
+      0.42
+     ]
+    },
+    {
+     "u": "Cephe",
+     "b": "Sağır sivri kemerler",
+     "m": "Kalın kesme taş duvarların ağırlığını hafifletmek için her kubbe sırası hizasına sağır sivri kemerler yapılmış, içlerine ikişer sıra pencere açılmıştır.",
+     "k": "V",
+     "n": [
+      0.72,
+      0.82
+     ],
+     "a": [
+      0.4,
+      0.55,
+      0.45
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "1399, bir cuma",
+     "m": "Üç yıl süren inşaatın ardından açılış 1399'da bir cuma günü yapıldı. Evliya Çelebi onu \"Bursa'nın Ayasofyası\" diye anar.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "k2b",
+   "t": "canlandirma",
+   "p": [
+    0.045,
+    0.1,
+    0.9
+   ],
+   "b": "Kubbelerin üstünde",
+   "k": [
+    {
+     "u": "Plan",
+     "b": "Yirmi kubbe, beş sıra",
+     "m": "Sekizgen kasnaklara oturan kubbeler mihrap duvarına dik beş sıra hâlinde dizilir; mihrap eksenindekiler en yüksektir.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.47
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "1855 depremi",
+     "m": "On sekiz kubbe çöktü; yalnızca batı minaresinin dibindeki kubbe ile mihrap önü kubbesi ayakta kaldı.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "k3",
+   "t": "netlestirilmis",
+   "p": [
+    0.345,
+    0.238,
+    0.32
+   ],
+   "b": "Çatıdan bakış",
+   "k": [
+    {
+     "u": "Cam fener",
+     "b": "Tepesi açık kubbe",
+     "m": "Ortadaki kubbenin tepesi açıktır ve altında şadırvan vardır. Bu açıklık bugün camekânla kapatılmıştır.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.44
+     ],
+     "a": [
+      0.25,
+      0.22,
+      0.5
+     ]
+    }
+   ]
+  },
+  {
+   "g": "k4",
+   "t": "canlandirma",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": "Camın üstünde"
+  },
+  {
+   "g": "k5",
+   "t": "canlandirma",
+   "p": [
+    0.25,
+    0.35,
+    0.5
+   ],
+   "b": "Işıkla birlikte içeri",
+   "k": [
+    {
+     "u": "Envanter",
+     "b": "Açılış günü",
+     "m": "Açılışta \"Somuncu Baba\" olarak tanınan Hamîdüddin-i Aksarâyî burada Fatiha suresini yedi farklı düzeyde tefsir etti.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "H",
+   "t": "canlandirma",
+   "p": [
+    0.25,
+    0.5,
+    0.5
+   ],
+   "b": "Caminin içinde",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "Mimar kim?",
+     "m": "Mimarının Ali Neccar ya da Hacı İvaz olduğu sanılmaktadır. Dikdörtgen planlı cami yaklaşık 5.000 metrekaredir.",
+     "k": "V"
+    },
+    {
+     "u": "Gezi",
+     "b": "Buradan dört yere gideceğiz",
+     "m": "Şadırvan, hat levhaları, minber ve mihrap; her birinden sonra buraya döneceğiz.",
+     "k": ""
+    }
+   ]
+  },
+  {
+   "g": "S",
+   "t": "canlandirma",
+   "c": [
+    0.25,
+    0.5,
+    0.5
+   ],
+   "b": "Şadırvan",
+   "k": [
+    {
+     "u": "Şadırvan",
+     "b": "Caminin içinde bir şadırvan",
+     "m": "Yirmi kubbeli yapının ortasındaki üstü açık kubbenin altındadır; Ulu Cami'nin en dikkat çekici özelliklerinden biridir.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.62
+     ]
+    },
+    {
+     "u": "Selçuklu geleneği",
+     "b": "Tepe açıklığı ve havuz",
+     "m": "Selçuklu yapılarında yaygın olan tepe açıklığı ve altında havuz geleneğinin devamıdır; camiyi Selçuklu geleneğine bağlar.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "H",
+   "t": "canlandirma",
+   "p": [
+    0.055,
+    0.445,
+    0.3
+   ],
+   "b": "Şimdi: hat levhaları"
+  },
+  {
+   "g": "L",
+   "t": "canlandirma",
+   "p": [
+    0.258,
+    0.24,
+    0.485
+   ],
+   "b": "Hat levhaları",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "192 levha ve duvar yazısı",
+     "m": "19. yüzyılın ikinci yarısı ile 20. yüzyıl başında farklı hattatların yazdığı 192 levha ve duvar yazısı hat sanatının özgün örnekleri arasında gösterilir.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "k7",
+   "t": "genisletilmis",
+   "c": [
+    0.258,
+    0.24,
+    0.485
+   ],
+   "b": "Besmele levhası",
+   "k": [
+    {
+     "u": "Levha",
+     "b": "Besmele",
+     "m": "Siyah zemin üzerine altın yaldızlı yazı: \"Bismillâhirrahmânirrahîm\".",
+     "k": "Fotoğraf: Vakıf envanteri",
+     "n": [
+      0.5,
+      0.5
+     ],
+     "a": [
+      0.05,
+      0.25,
+      0.9
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Deprem sonrası hattatlar",
+     "m": "1855 depreminden sonra Sultan Abdülmecid'in emriyle İstanbul'dan gönderilen ünlü hattatlar büyük yazıları elden geçirdi, yenilerini ekledi.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "L",
+   "t": "canlandirma",
+   "c": [
+    0.055,
+    0.445,
+    0.3
+   ]
+  },
+  {
+   "g": "H",
+   "t": "canlandirma",
+   "p": [
+    0.48,
+    0.4,
+    0.32
+   ],
+   "b": "Şimdi: minber"
+  },
+  {
+   "g": "M",
+   "t": "canlandirma",
+   "c": [
+    0.48,
+    0.4,
+    0.32
+   ],
+   "b": "Kündekâri minber",
+   "k": [
+    {
+     "u": "Minber",
+     "b": "Kim yaptı?",
+     "m": "Sert ceviz ağacından, çivisiz geçme kündekâri tekniğiyle Hacı Abdülaziz oğlu Mehmed yaptı. Selçuklu oymacılığından Osmanlı ahşap işçiliğine geçişin önemli örneklerindendir.",
+     "k": "V",
+     "n": [
+      0.6,
+      0.5
+     ]
+    },
+    {
+     "u": "Taç",
+     "b": "Üçgen minber tacı",
+     "m": "Delikişi tekniğinde bitkisel süslüdür; kenarlardan gelen rumîlerle dalgalı bir biçim alır.",
+     "k": "V",
+     "n": [
+      0.52,
+      0.06
+     ],
+     "a": [
+      0.2,
+      0,
+      0.6
+     ]
+    },
+    {
+     "u": "Korkuluk",
+     "b": "İki yönü farklı korkuluk",
+     "m": "Doğu yönünde sekiz kollu yıldız ve sekizgenlerden geometrik bir düzen; öbür yönde zemin oyma ve delikişi panolar dönüşümlü kullanılmış.",
+     "k": "V",
+     "n": [
+      0.47,
+      0.45
+     ],
+     "a": [
+      0.15,
+      0.2,
+      0.6
+     ]
+    },
+    {
+     "u": "Aynalık",
+     "b": "Çok kollu yıldızlar",
+     "m": "Yan yüzeyler çok kollu yıldızlarla geometrik bölümlere ayrılmış, her parçanın içi bitkisel motiflerle doldurulmuştur.",
+     "k": "V",
+     "n": [
+      0.7,
+      0.72
+     ],
+     "a": [
+      0.4,
+      0.4,
+      0.6
+     ]
+    },
+    {
+     "u": "Kitabe",
+     "b": "802 (1399)",
+     "m": "Minber kapısının üstündeki kitabede inşa tarihi ve banisi yazar; caminin yapım kitabesi olmadığından buradaki 802 (1399) yılı yapım tarihi kabul edilir.",
+     "k": "V"
+    },
+    {
+     "u": "Rivayet",
+     "b": "Minberin gizemi",
+     "m": "1980'de doğu yüzdeki düzenin Güneş'i ve gezegenleri, batı yüzdekinin galaksiyi simgelediği iddia edildi.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "H",
+   "t": "canlandirma",
+   "p": [
+    0.36,
+    0.45,
+    0.28
+   ],
+   "b": "Şimdi: mihrap"
+  },
+  {
+   "g": "R",
+   "t": "canlandirma",
+   "c": [
+    0.36,
+    0.45,
+    0.28
+   ],
+   "b": "Mihrap",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "Depremde ayakta kalan kubbe",
+     "m": "1855 depreminde on sekiz kubbe çökerken mihrap önü kubbesi ayakta kalan iki kubbeden biriydi.",
+     "k": "V",
+     "n": [
+      0.52,
+      0.5
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Kâbe örtüsü",
+     "m": "1517'de Mısır'ın fethinden sonra getirilen Kâbe kapı örtüsünü Yavuz Sultan Selim camiye hediye etti; minberin soluna asıldı.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "H",
+   "t": "canlandirma",
+   "p": [
+    0,
+    0.45,
+    0.28
+   ],
+   "b": "Şimdi: müezzin mahfili"
+  },
+  {
+   "g": "K",
+   "t": "canlandirma",
+   "c": [
+    0,
+    0.45,
+    0.28
+   ],
+   "b": "Müezzin mahfili",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "1549",
+     "m": "Müezzin mahfili 1549'da yapıldı. Karşısındaki taş vaiz kürsüsü ise 1815 tarihlidir.",
+     "k": "V",
+     "n": [
+      0.25,
+      0.55
+     ]
+    }
+   ]
+  },
+  {
+   "g": "H",
+   "t": "canlandirma",
+   "p": [
+    0.25,
+    0,
+    0.5
+   ],
+   "b": "Yukarı, ışığa doğru"
+  },
+  {
+   "g": "k4",
+   "t": "canlandirma",
+   "c": [
+    0.345,
+    0.238,
+    0.32
+   ],
+   "b": "Camdan dışarı"
+  },
+  {
+   "g": "k3",
+   "t": "netlestirilmis",
+   "c": [
+    0.045,
+    0.1,
+    0.9
+   ]
+  },
+  {
+   "g": "k2b",
+   "t": "canlandirma",
+   "c": [
+    0.405,
+    0.405,
+    0.19
+   ]
+  },
+  {
+   "g": "u18",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    18,
+    1
+   ],
+   "b": "Gökyüzüne"
+  },
+  {
+   "g": "u16",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    16,
+    1
+   ]
+  },
+  {
+   "g": "u14",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    14,
+    1
+   ]
+  },
+  {
+   "g": "u12",
+   "t": "uydu",
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    12,
+    1
+   ]
+  },
+  {
+   "g": "u9",
+   "t": "uydu",
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18389,
+    29.06194,
+    9,
+    1
+   ]
+  },
+  {
+   "g": "u6",
+   "t": "uydu",
+   "u": [
+    40.18389,
+    29.06194,
+    6,
+    1
+   ]
+  }
+ ]
+}

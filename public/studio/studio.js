@@ -14,7 +14,7 @@ document.querySelector("#amblem").innerHTML = loncaLogo({ boyut: 38, baslik: "Lo
 const sohbet = [];
 
 const ANAHTAR = new Set("import export default async function await const let var return if else for of in while break continue true false null undefined new from".split(" "));
-const SDK = new Set(["eserler", "ekran", "sahne", "profil", "basarim", "depo"]);
+const SDK = new Set(["eserler", "ekran", "sahne", "profil", "basarim", "depo", "dalislar"]);
 const kacis = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 function renklendir(kod) {
@@ -89,9 +89,94 @@ function mesajEkle(rol, metin, { adimlar = [], hata = false } = {}) {
   return li;
 }
 
+// ---------- Kalfa kipi: Modül ya da Dalış ----------
+// Dalış kipinde ustanın yazdığı her şey bir dalış isteğidir: dalış kalfası (server/dalis-kalfasi.js) eseri bulur,
+// kaynakları toplar, geziyi planlar, kareleri üretir ve dalışı onay bekleyen olarak kaydeder.
+let kip = "modul";
+const KIP = {
+  modul: { not: "Fikrini mini uygulamaya çevirir", ipucu: "Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" },
+  dalis: { not: "İsteğini uydudan eserin içine inen bir geziye çevirir (birkaç dakika sürer)", ipucu: "Hangi eser, neler anlatılsın? Örn. \"Ulu Cami'nin minberini ve şadırvanını anlatan bir dalış\"" },
+};
+function kipSec(yeni) {
+  kip = yeni;
+  for (const b of document.querySelectorAll(".kip button")) {
+    const secili = b.dataset.kip === kip;
+    b.classList.toggle("secili", secili);
+    b.setAttribute("aria-checked", String(secili));
+  }
+  $("#kip-not").textContent = KIP[kip].not;
+  $("#istek").placeholder = KIP[kip].ipucu;
+  const ilk = $("#mesajlar").children.length <= 1;
+  $("#oneriler").hidden = kip !== "modul" || !ilk;
+  $("#dalis-oneriler").hidden = kip !== "dalis";
+}
+document.querySelectorAll(".kip button").forEach((b) => b.addEventListener("click", () => kipSec(b.dataset.kip)));
+$("#dalis-oneriler").addEventListener("click", (e) => { if (e.target.matches("button")) gonder(e.target.textContent); });
+
+const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
+async function dalisGonder(metin) {
+  mesajEkle("usta", metin);
+  $("#istek").value = "";
+  $("#gonder").disabled = true;
+  const cubuk = el("div", { className: "dalis-cubuk" }, el("span", { style: "width:3%" }));
+  const gunluk = el("ul", { className: "dalis-gunluk" });
+  const baslik = el("p", { textContent: "Dalış kalfası isteğini anlıyor…" });
+  const li = el("li", { className: "mesaj kalfa" }, baslik, el("div", { className: "dalis-ilerleme" }, cubuk, gunluk));
+  $("#mesajlar").append(li);
+  sonaKaydir();
+  try {
+    const { is } = await yApi("/api/dalis-kalfasi", { method: "POST", govde: { istek: metin } });
+    let goruldu = 0, durum;
+    do {
+      await bekle(1500);
+      durum = await yApi(`/api/dalis-kalfasi/${is}`, { yeniden: false });
+      for (const g of durum.gunluk.slice(goruldu)) gunluk.append(el("li", { textContent: `${String(g.t).padStart(3, " ")} sn  ${g.metin}` }));
+      goruldu = durum.gunluk.length;
+      gunluk.scrollTop = gunluk.scrollHeight;
+      cubuk.firstChild.style.width = `${Math.max(3, (durum.adim / durum.toplamAdim) * 100)}%`;
+      if (durum.ad) baslik.textContent = `${durum.ad} için dalış hazırlanıyor (adım ${durum.adim}/${durum.toplamAdim})…`;
+    } while (durum.durum === "calisiyor");
+    if (durum.durum === "hata") {
+      li.classList.add("hata");
+      baslik.textContent = durum.hata;
+      return;
+    }
+    cubuk.firstChild.style.width = "100%";
+    baslik.textContent = `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; kartları kontrol edip yayınla.`;
+    const onizleDugme = el("button", { type: "button", className: "ikincil", textContent: "Önizle" });
+    const yayinla = el("button", { type: "button", className: "birincil", textContent: "Yayınla" });
+    onizleDugme.addEventListener("click", () => dalisOnizle());
+    yayinla.addEventListener("click", async () => {
+      try {
+        await yApi(`/api/dalislar/${durum.eser}/durum`, { method: "POST", govde: { durum: "onayli" } });
+        yayinla.disabled = true; yayinla.textContent = "Yayında ✓";
+      } catch (h) { mesajEkle("kalfa", h.message, { hata: true }); }
+    });
+    li.append(el("div", { className: "dalis-dugmeler" }, onizleDugme, yayinla));
+    dalisOnizle();
+  } catch (h) {
+    li.classList.add("hata");
+    baslik.textContent = h.message;
+  } finally {
+    $("#gonder").disabled = false;
+    $("#istek").focus();
+    sonaKaydir();
+  }
+}
+
+// Önizlemede Vakıf Dalışları modülünü açar; önizleme kipinde onay bekleyen dalışlar da listelenir.
+async function dalisOnizle() {
+  try {
+    const kod = await (await fetch("/api/moduller/vakif-dalislari/kod")).text();
+    bekleyen = { kod, ad: "Vakıf Dalışları", id: "vakif-dalislari", renk: "altin", ikon: "cami", kategori: "gezi" };
+    $("#cerceve").src = `/app/?onizleme=1&t=${Date.now()}`;
+  } catch (h) { mesajEkle("kalfa", `Önizleme açılamadı: ${h.message}`, { hata: true }); }
+}
+
 async function gonder(metin) {
   metin = metin.trim();
   if (!metin || $("#gonder").disabled) return;
+  if (kip === "dalis") return dalisGonder(metin);
   sohbet.push({ rol: "usta", metin });
   mesajEkle("usta", metin);
   $("#istek").value = "";

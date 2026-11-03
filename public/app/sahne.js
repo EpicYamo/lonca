@@ -2,6 +2,7 @@ import { haritaKur, BAG_RENK, bagTuruAdi } from "./harita.js";
 import { ikon } from "/ortak/ikonlar.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { konfeti, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
+import { dalisKur, dalisKareleri } from "./dalis.js";
 
 const MAKS_DUGUM = 900, MAKS_DERINLIK = 24;
 const metin = (x) => (x == null ? "" : String(x));
@@ -305,6 +306,20 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
         requestAnimationFrame(guncelle);
         return cubuk;
       }
+      case "dalis": {
+        const kareler = dalisKareleri(n.kareler);
+        if (kareler.length < 2) return null;
+        const id = `dalis:${metin(n.id)}:${kareler.map((k) => k.gorsel).join("|")}`;
+        let kayit = agirlar.get(id);
+        if (!kayit) {
+          const kutu = el("section", { className: "s-dalis", ariaLabel: metin(n.etiket) || "Kaydırarak içine gir" });
+          kayit = { kap: kutu, api: dalisKur(kutu, { kareler, etiket: metin(n.etiket) || "Kaydırarak içine gir", el }) };
+          agirlar.set(id, kayit);
+        }
+        kayit.kullanildi = true;
+        const son = cocuklar();
+        return el("div", { className: "s-dalis-kap" }, kayit.kap, son.length ? el("div", { className: "s-dalis-son" }, ...son) : null);
+      }
       case "ayrac": return el("hr", { className: "s-ayrac" });
       case "bosluk": return el("div", { className: "s-bosluk", ariaHidden: "true" });
       default: return null;
@@ -380,7 +395,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       const kok = ciz(agac);
       const ilkCizimdi = ilkCizim;
       const ilkTip = Array.isArray(agac?.cocuklar) ? agac.cocuklar[0]?.tip : agac?.tip;
-      const tam = ["ust_cubuk", "afis", "kapak"].includes(ilkTip) || agac?.tip === "kapak";
+      const tam = ["ust_cubuk", "afis", "kapak", "dalis"].includes(ilkTip) || agac?.tip === "kapak";
       const sarmal = el("div", { className: `s-kok${ilkCizim ? " s-giris" : ""}${tam ? " s-kok-tam" : ""}` }, kok);
       kap.replaceChildren(sarmal);
       ilkCizim = false;

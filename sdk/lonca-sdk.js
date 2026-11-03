@@ -111,10 +111,15 @@
     liste: () => cagir("basarim.liste"),
   };
 
+  const dalislar = {
+    /** Yayındaki dalış tanımları (uydudan içine kaydırmalı geziler). */
+    liste: () => cagir("dalislar.liste"),
+  };
+
   const depo = {
     oku: (anahtar) => cagir("depo.oku", String(anahtar)),
     yaz: (anahtar, deger) => cagir("depo.yaz", String(anahtar), deger),
   };
 
-  Object.defineProperty(globalThis, "lonca", { value: Object.freeze({ eserler, ekran, sahne, profil, basarim, depo }) });
+  Object.defineProperty(globalThis, "lonca", { value: Object.freeze({ eserler, ekran, sahne, profil, basarim, depo, dalislar }) });
 })();

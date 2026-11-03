@@ -169,8 +169,46 @@ declare module "@lonca/sdk" {
         etiketler?: HaritaEtiketi[]; odak?: { lat: number; lng: number; zoom?: number } } // pin → { tur:"dokun", id, eser }
     | { tip: "graf"; id?: string; merkez: Eser; iliskiler: { eser: Eser; tur?: IliskiTuru | (string & {}); baslik?: string }[] } // düğüm → { tur:"dokun", id, eser }
     | { tip: "rozet"; ad: string; aciklama?: string; kazanildi: boolean }
+    | { tip: "dalis"; id?: string; etiket?: string; kareler: DalisKaresi[]; cocuklar?: Dugum[] } // kaydırdıkça eserin içine giren tam ekran sahne; cocuklar sahnenin bitiminde gösterilir
     | { tip: "ayrac" }
     | { tip: "bosluk" };
+
+  /**
+   * Dalış sahnesinin bir karesi (bir durak). gorsel yalnızca sunucudaki /medya/... yolu olabilir (ör. /medya/dalis/<eser>/k1.jpg).
+   * Oranlar 0–1'dir; [x, y, g] bir kare bölgedir (g hem en hem boy oranı).
+   * portal: bu karede bir SONRAKİ karenin kapladığı bölge (kamera içine dalar).
+   * cikis: BU karenin bir sonraki karede kapladığı bölge (kamera geri çekilir); verilirse portal yerine kullanılır.
+   * bakislar: durakta sırayla gezilen ayrıntılar (en çok 6). alan: kameranın kayacağı bölge; nokta: [x, y] ok ve halkayla
+   *   gösterilen yer; ust/baslik/metin/kaynak: bilgi kartı. Kart kaydırınca silinir, sıradaki bakışa geçilir.
+   * etiket: karenin kaynağı, rozet olarak gösterilir. yazi: "ust" ise başlık kartı üstte durur.
+   * Bütün metinler kaynaklı bilgiye dayanmalı; kaynak alanını doldur.
+   */
+  export interface DalisBakisi { alan?: [number, number, number]; nokta?: [number, number]; ust?: string; baslik?: string; metin: string; kaynak?: string }
+  export interface DalisKaresi {
+    gorsel: string; portal?: [number, number, number]; cikis?: [number, number, number];
+    baslik?: string; metin?: string; yazi?: "alt" | "ust";
+    etiket?: "gercek" | "genisletilmis" | "netlestirilmis" | "yeniden-cizim" | "canlandirma"; canlandirma?: boolean;
+    bakislar?: DalisBakisi[];
+  }
+
+  /**
+   * Bir dalış tanımı (data/dalislar). Kareler kısaltılmış alanlarla gelir:
+   * g görsel adı (/medya/dalis/<eser>/<g>.jpg), t etiket, p portal, c cikis, u uydu [lat, lng, z, cikisMi],
+   * b başlık, y yazı konumu, k bakışlar [{ n: nokta, a: alan, u: üst etiket, b: başlık, m: metin, k: kaynak (E | V | G) }].
+   * "dalis" düğümüne vermek için her kareyi DalisKaresi'ne çevir:
+   * { gorsel: `/medya/dalis/${d.eser}/${k.g}.jpg`, etiket: k.t, portal: k.p, cikis: k.c, baslik: k.b, yazi: k.y,
+   *   bakislar: (k.k ?? []).map((x) => ({ nokta: x.n, alan: x.a, ust: x.u, baslik: x.b, metin: x.m, kaynak: x.k })) }
+   */
+  export interface DalisTanimi {
+    eser: string; ozet: string; hedef: { lat: number; lng: number; ad?: string; not?: string } | null;
+    durum: "bekliyor" | "onayli" | "kaldirildi"; kaynak: "el" | "kalfa";
+    kareler: { g: string; t: string; p?: [number, number, number]; c?: [number, number, number]; u?: [number, number, number, number];
+      b?: string; y?: "alt" | "ust"; k?: { n?: [number, number]; a?: [number, number, number]; u?: string; b?: string; m: string; k?: string }[] }[];
+  }
+  export interface Dalislar {
+    /** Yayındaki dalışlar (Studio önizlemesinde onay bekleyenler de). Bir eserin dalışı yoksa listede olmaz. */
+    liste(): Promise<DalisTanimi[]>;
+  }
 
   /** sahne.ciz düz JS nesnelerini de kabul eder; tip adları ve alanlar yukarıdaki Dugum ile aynıdır (kalfa ayrıca denetler). */
   export type GevsekDugum = { tip: string; [alan: string]: any };
@@ -220,4 +258,5 @@ declare module "@lonca/sdk" {
   export const profil: Profil;
   export const basarim: Basarim;
   export const depo: Depo;
+  export const dalislar: Dalislar;
 }

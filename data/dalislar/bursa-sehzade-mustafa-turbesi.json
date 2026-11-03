@@ -1,0 +1,437 @@
+{
+ "eser": "bursa-sehzade-mustafa-turbesi",
+ "ozet": "Uzaydan Muradiye'ye iniş, taç kapıdan içeri; altın yaldızlı çiniler ve sandukalar.",
+ "hedef": {
+  "lat": 40.1905,
+  "lng": 29.0458,
+  "ad": "Muradiye hazîresindeki türbeler",
+  "not": "Şehzade Mustafa Türbesi, Muradiye Külliyesi'nin türbeleri arasındadır."
+ },
+ "durum": "onayli",
+ "kaynak": "el",
+ "olusturma": "2026-11-03T12:50:58.805Z",
+ "guncelleme": "2026-11-03T12:50:58.805Z",
+ "kareler": [
+  {
+   "g": "w6",
+   "t": "uydu",
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    6,
+    0
+   ]
+  },
+  {
+   "g": "w9",
+   "t": "uydu",
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    9,
+    0
+   ]
+  },
+  {
+   "g": "w12",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    12,
+    0
+   ]
+  },
+  {
+   "g": "w14",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    14,
+    0
+   ]
+  },
+  {
+   "g": "w16",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    16,
+    0
+   ]
+  },
+  {
+   "g": "w18",
+   "t": "uydu",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    18,
+    0
+   ]
+  },
+  {
+   "g": "s0",
+   "t": "canlandirma",
+   "p": [
+    0.25,
+    0.4,
+    0.5
+   ],
+   "b": "Muradiye'nin bahçesinde",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "Hanedan türbeleri",
+     "m": "Muradiye Külliyesi'nde II. Murad'dan Cem Sultan'a pek çok hanedan üyesinin türbesi bulunur.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "s1",
+   "t": "genisletilmis",
+   "p": [
+    0.28,
+    0.6,
+    0.28
+   ],
+   "b": "Muradiye'de",
+   "y": "ust",
+   "k": [
+    {
+     "u": "Türbe",
+     "b": "II. Selim'in yaptırdığı türbe",
+     "m": "Kanuni'nin oğlu Şehzade Mustafa 1553'te öldürüldü; başka bir yere gömülen naaşı, II. Selim 1573'te bu türbeyi yaptırınca buraya nakledildi.",
+     "k": "E",
+     "n": [
+      0.36,
+      0.72
+     ],
+     "a": [
+      0.1,
+      0.45,
+      0.55
+     ]
+    }
+   ]
+  },
+  {
+   "g": "s2",
+   "t": "canlandirma",
+   "p": [
+    0.274,
+    0.54,
+    0.45
+   ],
+   "b": "Taç kapının önünde",
+   "k": [
+    {
+     "u": "Kavsara",
+     "b": "Mukarnaslı taç kapı",
+     "m": "Aslen ahşap sundurmalı olduğu anlaşılan kavsara, tuğla dolgu üzerine mukarnas kaplıdır; eyvanın iki yanında mihrap nişleri var.",
+     "k": "E",
+     "n": [
+      0.5,
+      0.36
+     ],
+     "a": [
+      0.15,
+      0.1,
+      0.7
+     ]
+    },
+    {
+     "u": "Pencereler",
+     "b": "Mermer söve, demir şebeke",
+     "m": "Pencereler sivri kemer içine alınmış, mermer söveli ve demir şebekelidir.",
+     "k": "E",
+     "n": [
+      0.1,
+      0.8
+     ],
+     "a": [
+      0,
+      0.4,
+      0.6
+     ]
+    },
+    {
+     "u": "Kapı",
+     "b": "Kapı ve kitabe",
+     "m": "Giriş basık kemerli, çift kanatlı sade bir ahşap kapıdan. Kapıdaki talik kitabe: \"Sultan Mustafa'nın kabri gül bahçesidir\" (1573).",
+     "k": "E",
+     "n": [
+      0.5,
+      0.82
+     ],
+     "a": [
+      0.2,
+      0.4,
+      0.6
+     ]
+    }
+   ]
+  },
+  {
+   "g": "s3",
+   "t": "canlandirma",
+   "p": [
+    0.25,
+    0.37,
+    0.5
+   ],
+   "b": "Eşikte",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "Kim yaptı?",
+     "m": "Türbeyi II. Selim yaptırdı; hassa mimarlarından Mimar Mehmed Çavuş inşa etti.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "s4",
+   "t": "canlandirma",
+   "p": [
+    0.1,
+    0.57,
+    0.3
+   ],
+   "b": "Çinilerin içinde",
+   "y": "ust",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "Mihrap yok",
+     "m": "Bursa türbelerinde genellikle bulunan mihrap bu türbede yoktur.",
+     "k": "V"
+    },
+    {
+     "u": "Gezi",
+     "b": "Önce çiniler, sonra sandukalar",
+     "m": "Duvardaki ayet frizine ve sandukalara gidip buraya döneceğiz.",
+     "k": ""
+    }
+   ]
+  },
+  {
+   "g": "s4b",
+   "t": "canlandirma",
+   "c": [
+    0.1,
+    0.57,
+    0.3
+   ],
+   "b": "Ayet frizi",
+   "k": [
+    {
+     "u": "Çini",
+     "b": "Altın yaldızlı ayetler",
+     "m": "Türbeyi ötekilerden ayıran en belirgin özellik, altın yaldız işlemeli ayetlerin yazılı olduğu orijinal duvar çinileridir.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.5
+     ],
+     "a": [
+      0.15,
+      0.2,
+      0.6
+     ]
+    }
+   ]
+  },
+  {
+   "g": "s4",
+   "t": "canlandirma",
+   "p": [
+    0.12,
+    0.6,
+    0.4
+   ],
+   "b": "Şimdi: sandukalar",
+   "y": "ust"
+  },
+  {
+   "g": "s4c",
+   "t": "canlandirma",
+   "c": [
+    0.12,
+    0.6,
+    0.4
+   ],
+   "b": "Sandukalar",
+   "y": "ust",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "Kimler yatıyor?",
+     "m": "Şehzade Mustafa'nın yanında annesi Mahidevran Sultan, Şehzade Mehmed ve Şehzade Bayezid'in üç yaşında öldürülen oğlu Şehzade Murad'a ait sandukalar bulunur.",
+     "k": "V",
+     "n": [
+      0.55,
+      0.6
+     ]
+    }
+   ]
+  },
+  {
+   "g": "s4",
+   "t": "canlandirma",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "y": "ust"
+  },
+  {
+   "g": "s5",
+   "t": "netlestirilmis",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": "Girişin iç köşesinde",
+   "y": "ust",
+   "k": [
+    {
+     "u": "Dolap",
+     "b": "Niş ve dolap",
+     "m": "Girişin iki yanındaki duvarların iç köşelerine birer niş ve birer dolap yerleştirilmiştir.",
+     "k": "V",
+     "n": [
+      0.12,
+      0.5
+     ],
+     "a": [
+      0,
+      0.25,
+      0.6
+     ]
+    }
+   ]
+  },
+  {
+   "g": "w18",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    18,
+    1
+   ],
+   "b": "Gökyüzüne"
+  },
+  {
+   "g": "w16",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    16,
+    1
+   ]
+  },
+  {
+   "g": "w14",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    14,
+    1
+   ]
+  },
+  {
+   "g": "w12",
+   "t": "uydu",
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    12,
+    1
+   ]
+  },
+  {
+   "g": "w9",
+   "t": "uydu",
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.1905,
+    29.0458,
+    9,
+    1
+   ]
+  },
+  {
+   "g": "w6",
+   "t": "uydu",
+   "u": [
+    40.1905,
+    29.0458,
+    6,
+    1
+   ]
+  }
+ ]
+}

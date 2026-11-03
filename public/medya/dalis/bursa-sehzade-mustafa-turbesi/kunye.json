@@ -1,0 +1,354 @@
+[
+ {
+  "ad": "w6",
+  "gorsel": "w6",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 6
+  },
+  "model": null
+ },
+ {
+  "ad": "w9",
+  "gorsel": "w9",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 9
+  },
+  "model": null
+ },
+ {
+  "ad": "w12",
+  "gorsel": "w12",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 12
+  },
+  "model": null
+ },
+ {
+  "ad": "w14",
+  "gorsel": "w14",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 14
+  },
+  "model": null
+ },
+ {
+  "ad": "w16",
+  "gorsel": "w16",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 16
+  },
+  "model": null
+ },
+ {
+  "ad": "w18",
+  "gorsel": "w18",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.3,
+   0.3,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 18
+  },
+  "model": null
+ },
+ {
+  "ad": "s0",
+  "gorsel": "s0",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.25,
+   0.4,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "s1",
+  "gorsel": "s1",
+  "tur": "genisletilmis",
+  "kaynak": "/medya/eserler/bursa-sehzade-mustafa-turbesi-1.jpg",
+  "portal": [
+   0.28,
+   0.6,
+   0.28
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "s2",
+  "gorsel": "s2",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.274,
+   0.54,
+   0.45
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "s3",
+  "gorsel": "s3",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.25,
+   0.37,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "s4",
+  "gorsel": "s4",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.1,
+   0.57,
+   0.3
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "s4b",
+  "gorsel": "s4b",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.1,
+   0.57,
+   0.3
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "s4_2",
+  "gorsel": "s4",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.12,
+   0.6,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "s4c",
+  "gorsel": "s4c",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.12,
+   0.6,
+   0.4
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "s4_3",
+  "gorsel": "s4",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.3,
+   0.3,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "s5",
+  "gorsel": "s5",
+  "tur": "netlestirilmis",
+  "kaynak": "/medya/eserler/bursa-sehzade-mustafa-turbesi-3.jpg",
+  "portal": [
+   0.3,
+   0.3,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "w18x",
+  "gorsel": "w18",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 18
+  },
+  "model": null
+ },
+ {
+  "ad": "w16x",
+  "gorsel": "w16",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 16
+  },
+  "model": null
+ },
+ {
+  "ad": "w14x",
+  "gorsel": "w14",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 14
+  },
+  "model": null
+ },
+ {
+  "ad": "w12x",
+  "gorsel": "w12",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 12
+  },
+  "model": null
+ },
+ {
+  "ad": "w9x",
+  "gorsel": "w9",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 9
+  },
+  "model": null
+ },
+ {
+  "ad": "w6x",
+  "gorsel": "w6",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": null,
+  "uydu": {
+   "lat": 40.1905,
+   "lng": 29.0458,
+   "z": 6
+  },
+  "model": null
+ }
+]

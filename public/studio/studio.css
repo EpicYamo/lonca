@@ -350,3 +350,15 @@ button:disabled { opacity: .5; cursor: progress; }
 .bildirim button:hover { background: var(--vurgu-koyu); }
 .bildirim .kapat { border-color: transparent; color: var(--soluk); padding: .3rem .45rem; }
 .surumler { margin-left: auto; max-width: 220px; padding: .3rem .5rem; border-radius: 8px; border: 1px solid var(--cizgi-guclu); background: var(--panel-2); color: var(--vurgu-2); font: 500 .76rem var(--yazi-kod); }
+
+/* ---------- Kalfa kipi: Modül | Dalış ---------- */
+.kip { display: flex; align-items: center; gap: .35rem; margin: .2rem 0 .5rem; flex-wrap: wrap; }
+.kip button { padding: .3rem .8rem; border-radius: 99px; border: 1px solid var(--cizgi, #d6d0c4); background: transparent; color: inherit; font-weight: 700; font-size: .82rem; cursor: pointer; }
+.kip button.secili { background: var(--ana, #1d3b8f); border-color: var(--ana, #1d3b8f); color: #fff; }
+.kip-not { font-size: .78rem; opacity: .7; }
+.dalis-ilerleme { margin-top: .5rem; display: grid; gap: .35rem; }
+.dalis-cubuk { height: 6px; border-radius: 99px; background: color-mix(in srgb, currentColor 12%, transparent); overflow: hidden; }
+.dalis-cubuk span { display: block; height: 100%; background: var(--ana, #1d3b8f); transition: width .4s; }
+.dalis-gunluk { margin: 0; padding: 0; list-style: none; font-size: .76rem; line-height: 1.45; opacity: .8; max-height: 11rem; overflow: auto; font-family: ui-monospace, monospace; }
+.dalis-dugmeler { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .4rem; }
+.dalis-dugmeler button { padding: .35rem .8rem; border-radius: 10px; font-weight: 700; cursor: pointer; }

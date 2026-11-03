@@ -1,0 +1,474 @@
+{
+ "eser": "bursa-koza-hani",
+ "ozet": "Uzaydan çarşıya iniş, kemerli geçitten avluya; köşk mescit, şadırvan ve revaklar.",
+ "hedef": {
+  "lat": 40.18444,
+  "lng": 29.06361
+ },
+ "durum": "onayli",
+ "kaynak": "el",
+ "olusturma": "2026-11-03T12:50:58.805Z",
+ "guncelleme": "2026-11-03T12:50:58.805Z",
+ "kareler": [
+  {
+   "g": "v6",
+   "t": "uydu",
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    6,
+    0
+   ]
+  },
+  {
+   "g": "v9",
+   "t": "uydu",
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    9,
+    0
+   ]
+  },
+  {
+   "g": "v12",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    12,
+    0
+   ]
+  },
+  {
+   "g": "v14",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    14,
+    0
+   ]
+  },
+  {
+   "g": "v16",
+   "t": "uydu",
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    16,
+    0
+   ]
+  },
+  {
+   "g": "v18",
+   "t": "uydu",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    18,
+    0
+   ]
+  },
+  {
+   "g": "h1",
+   "t": "genisletilmis",
+   "p": [
+    0.4,
+    0.45,
+    0.32
+   ],
+   "b": "Hanlar Bölgesi'nin üstünde",
+   "k": [
+    {
+     "u": "Konum",
+     "b": "Ulu Cami'nin hemen yanında",
+     "m": "Koza Han, Hanlar Bölgesi'nde Ulu Cami ile Orhan Camii arasındadır.",
+     "k": "V",
+     "n": [
+      0.26,
+      0.4
+     ],
+     "a": [
+      0.05,
+      0.2,
+      0.55
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "Pek çok adı var",
+     "m": "\"Yeni Han\", \"Beylik Han\", \"Simkeş Han\", \"Sırmakeş Han\" gibi adlarla anıldı; içinde ipek kozası ticareti yapıldığı için Koza Han adını aldı.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "h1b",
+   "t": "canlandirma",
+   "p": [
+    0.1,
+    0.45,
+    0.5
+   ],
+   "b": "Hana alçalırken",
+   "k": [
+    {
+     "u": "Avlu",
+     "b": "Kareye yakın bir avlu",
+     "m": "İki katlı ana blok kareye yakın dikdörtgen bir avlunun çevresindedir; doğusunda ahır ve depoların olduğu ikinci bir avlu (İç Koza Han) vardır.",
+     "k": "V",
+     "n": [
+      0.55,
+      0.32
+     ]
+    }
+   ]
+  },
+  {
+   "g": "h2",
+   "t": "netlestirilmis",
+   "p": [
+    0.04,
+    0.42,
+    0.3
+   ],
+   "b": "Han kapısının önünde",
+   "k": [
+    {
+     "u": "Duvar",
+     "b": "Tuğla ve kesme taş",
+     "m": "Dış duvarlarda tuğla ve kesme taştan karma teknik kullanılmıştır.",
+     "k": "V",
+     "n": [
+      0.6,
+      0.45
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "Kim yaptırdı?",
+     "m": "Sultan II. Bayezid, İstanbul'daki külliyesine gelir sağlamak için yaptırdı. İnşaat Mart 1489'da başladı, 30 Eylül 1491'de bitti. Mimarı Abdülûlâ bin Pulad Şah'tır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "h3",
+   "t": "canlandirma",
+   "p": [
+    0.25,
+    0.2,
+    0.5
+   ],
+   "b": "Kemerli geçitten",
+   "k": [
+    {
+     "u": "Vikipedi",
+     "b": "Üst kata merdiven",
+     "m": "Girişin iki yanındaki birer taş merdiven üst kata çıkar.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "h4",
+   "t": "genisletilmis",
+   "p": [
+    0.345,
+    0.325,
+    0.35
+   ],
+   "b": "Avluda",
+   "k": [
+    {
+     "u": "Bugün",
+     "b": "Çay bahçesi",
+     "m": "Hanın avlusu çay bahçesi olarak kullanılıyor; han bugün de ticari işlevini koruyor.",
+     "k": "E",
+     "n": [
+      0.35,
+      0.75
+     ],
+     "a": [
+      0,
+      0.35,
+      0.65
+     ]
+    },
+    {
+     "u": "Gezi",
+     "b": "Önce mescit, sonra revaklar",
+     "m": "Avlunun ortasındaki mescide ve altındaki şadırvana gidip buraya döneceğiz.",
+     "k": ""
+    }
+   ]
+  },
+  {
+   "g": "h4b",
+   "t": "canlandirma",
+   "p": [
+    0.1,
+    0.5,
+    0.4
+   ],
+   "b": "Köşk mescit",
+   "k": [
+    {
+     "u": "Mescit",
+     "b": "Sekiz kenarlı, kurşun kubbeli",
+     "m": "Avlunun ortasında ayrı bir mescit: sekiz kenarlı, üstü kurşun kaplı bir kubbeyle örtülü.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.3
+     ],
+     "a": [
+      0.2,
+      0,
+      0.6
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Selçuklu geleneği",
+     "m": "Selçuklu köşk mescidi geleneğini sürdürür ama planı kare ya da dikdörtgen, çift merdivenli Selçuklu örneklerinden farklıdır.",
+     "k": "V"
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Etkisi",
+     "m": "Edirne Rüstem Paşa Kervansarayı ve Lefkoşa Büyük Han'daki mescitleri etkilediği düşünülür.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "h4c",
+   "t": "canlandirma",
+   "c": [
+    0.1,
+    0.5,
+    0.4
+   ],
+   "b": "Mescidin altındaki şadırvan",
+   "k": [
+    {
+     "u": "Şadırvan",
+     "b": "Altı şadırvanlı köşk mescit",
+     "m": "Mescit, altında havuzlu şadırvanı olan sekiz kenarlı bir yapıdır. Anıtsal kapısı ve bu köşk mescit Bursa'nın simgeleri arasında sayılır.",
+     "k": "V",
+     "n": [
+      0.52,
+      0.67
+     ]
+    }
+   ]
+  },
+  {
+   "g": "h4b",
+   "t": "canlandirma",
+   "c": [
+    0.345,
+    0.325,
+    0.35
+   ]
+  },
+  {
+   "g": "h4",
+   "t": "genisletilmis",
+   "p": [
+    0.1,
+    0.3,
+    0.3
+   ],
+   "b": "Şimdi: revaklar"
+  },
+  {
+   "g": "G",
+   "t": "canlandirma",
+   "p": [
+    0.25,
+    0.3,
+    0.5
+   ],
+   "b": "İki katlı revaklar",
+   "k": [
+    {
+     "u": "Revak",
+     "b": "Tuğla kemer, kubbeli örtü",
+     "m": "Odaların önünü altta ve üstte revaklar çevreler; revak kemerleri tuğla, üstleri kubbelidir. Üst kat revakları ahşapken son tamirde kâgire dönüştürüldü.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.4
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "95 oda",
+     "m": "Zemin katta 45, üst katta 50 oda vardır. Odalar tonozla örtülüdür ve her birinin dışa açılan ikişer penceresi vardır.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "h5",
+   "t": "netlestirilmis",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": "Revaklar boyunca",
+   "k": [
+    {
+     "u": "Odalar",
+     "b": "Altlı üstlü iki oda",
+     "m": "İpek tüccarları altlı üstlü iki oda tutardı: üsttekinde konaklayıp işlerini görür, alttakinde mallarını saklarlardı.",
+     "k": "V",
+     "n": [
+      0.3,
+      0.55
+     ],
+     "a": [
+      0,
+      0.25,
+      0.65
+     ]
+    },
+    {
+     "u": "İpek",
+     "b": "Hâlâ ipek satılıyor",
+     "m": "Üst katta ipek ticareti yapan işletmeler, alt katta çeşitli ürünler satan esnaf yer alır.",
+     "k": "E",
+     "n": [
+      0.15,
+      0.68
+     ],
+     "a": [
+      0,
+      0.35,
+      0.6
+     ]
+    }
+   ]
+  },
+  {
+   "g": "v18",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    18,
+    1
+   ],
+   "b": "Gökyüzüne"
+  },
+  {
+   "g": "v16",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    16,
+    1
+   ]
+  },
+  {
+   "g": "v14",
+   "t": "uydu",
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    14,
+    1
+   ]
+  },
+  {
+   "g": "v12",
+   "t": "uydu",
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    12,
+    1
+   ]
+  },
+  {
+   "g": "v9",
+   "t": "uydu",
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "u": [
+    40.18444,
+    29.06361,
+    9,
+    1
+   ]
+  },
+  {
+   "g": "v6",
+   "t": "uydu",
+   "u": [
+    40.18444,
+    29.06361,
+    6,
+    1
+   ]
+  }
+ ]
+}

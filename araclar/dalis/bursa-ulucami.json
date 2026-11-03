@@ -1,0 +1,743 @@
+{
+ "eser": "bursa-ulucami",
+ "onek": "Photorealistic, high-resolution documentary architectural photograph of the Ulu Cami (Grand Mosque) of Bursa, Turkey (early Ottoman, 1396-1399). Natural warm late-afternoon light, crisp detail. No people, no text, no captions, no watermark.",
+ "kareler": [
+  {
+   "ad": "u6",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 6
+   }
+  },
+  {
+   "ad": "u9",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 9
+   }
+  },
+  {
+   "ad": "u12",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 12
+   }
+  },
+  {
+   "ad": "u14",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 14
+   }
+  },
+  {
+   "ad": "u16",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 16
+   }
+  },
+  {
+   "ad": "u18",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 18
+   },
+   "portal": [
+    0.3,
+    0.3,
+    0.4
+   ]
+  },
+  {
+   "ad": "k1",
+   "kaynak": "/medya/eserler/bursa-ulucami-3.jpg",
+   "genislet": true,
+   "netlestir": true,
+   "genisletIstem": "Above: the hills and a soft evening sky continuing the existing sky. Below: more red-tiled rooftops and market streets of the city seen from the air. The mosque appears only once.",
+   "yer": "orta",
+   "portal": [
+    0.262,
+    0.134,
+    0.4
+   ],
+   "baslik": "Bursa'nın ortasında",
+   "bakislar": [
+    {
+     "u": "Ulu cami",
+     "b": "Çok ayaklı caminin en anıtsal örneği",
+     "m": "I. Bayezid 1396-1400 arasında, Niğbolu Seferi dönüşü verdiği emirle yaptırdı. Yirmi kubbeli yapı, Türkiye'de iç cemaat yeri en geniş camidir.",
+     "k": "V",
+     "n": [
+      0.33,
+      0.53
+     ],
+     "a": [
+      0.1,
+      0.33,
+      0.5
+     ]
+    },
+    {
+     "u": "Minareler",
+     "b": "İki tuğla minare",
+     "m": "Batıdakini I. Bayezid, doğudakini I. Mehmed yaptırdı denir. 1889 yangınında ahşap külahlar yanınca bugünkü boğumlu taş külahlar yapıldı.",
+     "k": "V",
+     "n": [
+      0.37,
+      0.48
+     ],
+     "a": [
+      0.17,
+      0.3,
+      0.42
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "Altı yüzyılın en büyüğü",
+     "m": "Osmanlı'nın Bursa'da inşa ettirdiği ilk büyük camidir ve altı yüzyıl boyunca şehrin en büyük camisi olarak kalmıştır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "ad": "k2",
+   "kaynak": "/medya/eserler/bursa-ulucami-1.jpg",
+   "genislet": true,
+   "genisletIstem": "The grey area is all ABOVE the photo: fill it with the continuation of the hazy mountain slopes of Uludag rising behind the city and a soft warm evening sky. Nothing else.",
+   "yer": "alt",
+   "baslik": "Kuzey cephesi",
+   "yazi": "ust",
+   "portal": [
+    0.29,
+    0.58,
+    0.42
+   ],
+   "bakislar": [
+    {
+     "u": "Kapılar",
+     "b": "Ana kapı kuzeyde",
+     "m": "Doğu ve batıdakilerle üç kapısı var; Hünkâr Mahfili'ne açılan dördüncüsü sonradan bir pencere bozularak yapıldı.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.93
+     ],
+     "a": [
+      0.2,
+      0.58,
+      0.42
+     ]
+    },
+    {
+     "u": "Cephe",
+     "b": "Sağır sivri kemerler",
+     "m": "Kalın kesme taş duvarların ağırlığını hafifletmek için her kubbe sırası hizasına sağır sivri kemerler yapılmış, içlerine ikişer sıra pencere açılmıştır.",
+     "k": "V",
+     "n": [
+      0.72,
+      0.82
+     ],
+     "a": [
+      0.4,
+      0.55,
+      0.45
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "1399, bir cuma",
+     "m": "Üç yıl süren inşaatın ardından açılış 1399'da bir cuma günü yapıldı. Evliya Çelebi onu \"Bursa'nın Ayasofyası\" diye anar.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "ad": "k2b",
+   "uret": {
+    "ref": [
+     {
+      "kare": "k2",
+      "kirp": [
+       0.29,
+       0.58,
+       0.42
+      ]
+     },
+     "/medya/eserler/bursa-ulucami-4.jpg"
+    ],
+    "istem": "Vertical drone photo. The drone has risen over the front facade of the mosque in the first reference and now looks steeply down (about 70 degrees) at its lead-covered roof: twenty equal domes in a grid of 5 columns by 4 rows, with one round glass lantern dome in the middle of the second row, exactly like the roof in the second reference. The top of the two brick minarets rise at the lower corners, the city of Bursa only at the very top edge. Same warm low evening light."
+   },
+   "portal": [
+    0.045,
+    0.1,
+    0.9
+   ],
+   "baslik": "Kubbelerin üstünde",
+   "bakislar": [
+    {
+     "u": "Plan",
+     "b": "Yirmi kubbe, beş sıra",
+     "m": "Sekizgen kasnaklara oturan kubbeler mihrap duvarına dik beş sıra hâlinde dizilir; mihrap eksenindekiler en yüksektir.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.47
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "1855 depremi",
+     "m": "On sekiz kubbe çöktü; yalnızca batı minaresinin dibindeki kubbe ile mihrap önü kubbesi ayakta kaldı.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "ad": "k3",
+   "kaynak": "/medya/eserler/bursa-ulucami-4.jpg",
+   "genislet": true,
+   "netlestir": true,
+   "genisletIstem": "This is a straight-down drone view of the roof, whose domes form a grid of 5 columns and 4 rows; the photo already shows nearly all of it. Directly above and below the domes, show the flat lead roof edge, then the stone cornice, then the streets and neighbouring rooftops of Bursa seen from directly above. Do NOT add more domes.",
+   "portal": [
+    0.345,
+    0.238,
+    0.32
+   ],
+   "baslik": "Çatıdan bakış",
+   "bakislar": [
+    {
+     "u": "Cam fener",
+     "b": "Tepesi açık kubbe",
+     "m": "Ortadaki kubbenin tepesi açıktır ve altında şadırvan vardır. Bu açıklık bugün camekânla kapatılmıştır.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.44
+     ],
+     "a": [
+      0.25,
+      0.22,
+      0.5
+     ]
+    }
+   ]
+  },
+  {
+   "ad": "k4",
+   "uret": {
+    "ref": [
+     {
+      "kare": "k3",
+      "kirp": [
+       0.354,
+       0.28,
+       0.3
+      ]
+     }
+    ],
+    "istem": "This reference is a low-resolution crop of a straight-down drone photo of the mosque roof. Recreate the SAME composition at the SAME scale and position as a sharp, high-detail vertical photo, as if the drone descended closer: the round glass-and-iron lantern dome with radial iron ribs in the centre, the lead-sheet octagonal domes and dark roof valleys around it exactly where they are in the reference. Through the glass panes the dim interior and a pool of light far below. Same top-down camera, same light and shadows."
+   },
+   "baslik": "Camın üstünde",
+   "portal": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "bakislar": []
+  },
+  {
+   "ad": "k5",
+   "uret": {
+    "ref": [
+     {
+      "kare": "k4",
+      "kirp": [
+       0.3,
+       0.3,
+       0.4
+      ]
+     }
+    ],
+    "istem": "Vertical photo. The camera has passed down through the glass lantern dome and now hangs INSIDE the mosque just below the oculus, looking straight down. In the centre far below: an octagonal white-marble şadırvan (ablution fountain) with its basin and small domed canopy, lit by a bright shaft of daylight from the oculus. Around it the stone floor with carpets and the tops of massive square stone piers and pointed arches receding toward the frame edges. Quiet, sacred atmosphere. Top-down view."
+   },
+   "portal": [
+    0.25,
+    0.35,
+    0.5
+   ],
+   "baslik": "Işıkla birlikte içeri",
+   "bakislar": [
+    {
+     "u": "Envanter",
+     "b": "Açılış günü",
+     "m": "Açılışta \"Somuncu Baba\" olarak tanınan Hamîdüddin-i Aksarâyî burada Fatiha suresini yedi farklı düzeyde tefsir etti.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "ad": "H",
+   "uret": {
+    "ref": [
+     "/medya/eserler/bursa-ulucami-2.jpg",
+     "/medya/dalis/bursa-ulucami/S.jpg"
+    ],
+    "istem": "Vertical wide-angle interior photograph of the Bursa Ulu Cami, taken from just behind the şadırvan, looking toward the qibla wall. LOWER CENTRE foreground: the octagonal white-marble şadırvan fountain basin with water, lit by soft daylight falling from the glass lantern dome high above (visible at the very top centre). MIDDLE: a forest of massive square cut-stone piers with pointed arches; on the LEFT pier at mid-height hangs a framed black-and-gold calligraphy panel like in the references; huge black calligraphic wall inscriptions on white plaster. BACKGROUND CENTRE-RIGHT on the qibla wall: the white marble mihrab niche, and just right of it the tall dark carved walnut minber with its steep staircase and triangular pointed crown. BACKGROUND LEFT: a raised carved wooden müezzin gallery (mahfil) on slender columns. Red carpets, calm symmetrical composition, every element clearly separated and visible."
+   },
+   "baslik": "Caminin içinde",
+   "portal": [
+    0.25,
+    0.5,
+    0.5
+   ],
+   "bakislar": [
+    {
+     "u": "Vikipedi",
+     "b": "Mimar kim?",
+     "m": "Mimarının Ali Neccar ya da Hacı İvaz olduğu sanılmaktadır. Dikdörtgen planlı cami yaklaşık 5.000 metrekaredir.",
+     "k": "V"
+    },
+    {
+     "u": "Gezi",
+     "b": "Buradan dört yere gideceğiz",
+     "m": "Şadırvan, hat levhaları, minber ve mihrap; her birinden sonra buraya döneceğiz.",
+     "k": ""
+    }
+   ]
+  },
+  {
+   "ad": "S",
+   "uret": {
+    "ref": [
+     {
+      "kare": "H",
+      "kirp": [
+       0.25,
+       0.5,
+       0.5
+      ]
+     }
+    ],
+    "istem": "Vertical close-up photo of the octagonal white-marble şadırvan fountain in the centre of the reference, same viewpoint and composition but much closer and sharper: the carved marble basin with brass spouts, the small tiered fountain jet in the middle, clear water, soft daylight falling from the glass lantern above. Stone floor and the bases of the piers at the edges."
+   },
+   "cikis": [
+    0.25,
+    0.5,
+    0.5
+   ],
+   "baslik": "Şadırvan",
+   "bakislar": [
+    {
+     "u": "Şadırvan",
+     "b": "Caminin içinde bir şadırvan",
+     "m": "Yirmi kubbeli yapının ortasındaki üstü açık kubbenin altındadır; Ulu Cami'nin en dikkat çekici özelliklerinden biridir.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.62
+     ]
+    },
+    {
+     "u": "Selçuklu geleneği",
+     "b": "Tepe açıklığı ve havuz",
+     "m": "Selçuklu yapılarında yaygın olan tepe açıklığı ve altında havuz geleneğinin devamıdır; camiyi Selçuklu geleneğine bağlar.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "ad": "H2",
+   "ayni": "H",
+   "portal": [
+    0.055,
+    0.445,
+    0.3
+   ],
+   "baslik": "Şimdi: hat levhaları"
+  },
+  {
+   "ad": "L",
+   "uret": {
+    "ref": [
+     {
+      "kare": "H",
+      "kirp": [
+       0.055,
+       0.445,
+       0.3
+      ]
+     },
+     "/medya/eserler/bursa-ulucami-2.jpg"
+    ],
+    "istem": "Vertical photo: much closer to the framed black-and-gold calligraphy panel on the stone pier in the first reference, same position and composition, now sharp: the gilded frame with twisted rope border and gold script on black exactly like the second reference, centred in the frame, the cut-stone pier around it, part of the arches at the top."
+   },
+   "baslik": "Hat levhaları",
+   "bakislar": [
+    {
+     "u": "Vikipedi",
+     "b": "192 levha ve duvar yazısı",
+     "m": "19. yüzyılın ikinci yarısı ile 20. yüzyıl başında farklı hattatların yazdığı 192 levha ve duvar yazısı hat sanatının özgün örnekleri arasında gösterilir.",
+     "k": "V"
+    }
+   ],
+   "portal": [
+    0.258,
+    0.24,
+    0.485
+   ]
+  },
+  {
+   "ad": "k7",
+   "kaynak": "/medya/eserler/bursa-ulucami-2.jpg",
+   "genislet": true,
+   "genisletIstem": "The framed calligraphy panel hangs on a massive pier of the mosque: above and below it continue the cut-stone wall of the pier and soft interior light; at the very bottom a little of the carpeted floor.",
+   "baslik": "Besmele levhası",
+   "bakislar": [
+    {
+     "u": "Levha",
+     "b": "Besmele",
+     "m": "Siyah zemin üzerine altın yaldızlı yazı: \"Bismillâhirrahmânirrahîm\".",
+     "k": "Fotoğraf: Vakıf envanteri",
+     "n": [
+      0.5,
+      0.5
+     ],
+     "a": [
+      0.05,
+      0.25,
+      0.9
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Deprem sonrası hattatlar",
+     "m": "1855 depreminden sonra Sultan Abdülmecid'in emriyle İstanbul'dan gönderilen ünlü hattatlar büyük yazıları elden geçirdi, yenilerini ekledi.",
+     "k": "V"
+    }
+   ],
+   "cikis": [
+    0.258,
+    0.24,
+    0.485
+   ]
+  },
+  {
+   "ad": "L2",
+   "ayni": "L",
+   "cikis": [
+    0.055,
+    0.445,
+    0.3
+   ],
+   "baslik": ""
+  },
+  {
+   "ad": "H3",
+   "ayni": "H",
+   "portal": [
+    0.48,
+    0.4,
+    0.32
+   ],
+   "baslik": "Şimdi: minber"
+  },
+  {
+   "ad": "M",
+   "uret": {
+    "ref": [
+     {
+      "kare": "H",
+      "kirp": [
+       0.48,
+       0.4,
+       0.32
+      ]
+     }
+    ],
+    "istem": "Vertical photo: much closer view of the tall dark carved walnut minber in the reference, same position and composition, now sharp and detailed. Hard walnut wood in the kündekari technique (interlocking carved panels without nails): steep straight staircase of fourteen steps with a small carved door at its foot and a carved inscription panel above the door; side panels divided into geometric multi-armed stars filled with fine carved vegetal ornament; pierced openwork railing with eight-pointed stars and octagons; at the top a tall triangular pointed crown with pierced vegetal ornament. The white marble mihrab partly visible on the left. Warm light."
+   },
+   "cikis": [
+    0.48,
+    0.4,
+    0.32
+   ],
+   "baslik": "Kündekâri minber",
+   "bakislar": [
+    {
+     "u": "Minber",
+     "b": "Kim yaptı?",
+     "m": "Sert ceviz ağacından, çivisiz geçme kündekâri tekniğiyle Hacı Abdülaziz oğlu Mehmed yaptı. Selçuklu oymacılığından Osmanlı ahşap işçiliğine geçişin önemli örneklerindendir.",
+     "k": "V",
+     "n": [
+      0.6,
+      0.5
+     ]
+    },
+    {
+     "u": "Taç",
+     "b": "Üçgen minber tacı",
+     "m": "Delikişi tekniğinde bitkisel süslüdür; kenarlardan gelen rumîlerle dalgalı bir biçim alır.",
+     "k": "V",
+     "n": [
+      0.52,
+      0.06
+     ],
+     "a": [
+      0.2,
+      0.0,
+      0.6
+     ]
+    },
+    {
+     "u": "Korkuluk",
+     "b": "İki yönü farklı korkuluk",
+     "m": "Doğu yönünde sekiz kollu yıldız ve sekizgenlerden geometrik bir düzen; öbür yönde zemin oyma ve delikişi panolar dönüşümlü kullanılmış.",
+     "k": "V",
+     "n": [
+      0.47,
+      0.45
+     ],
+     "a": [
+      0.15,
+      0.2,
+      0.6
+     ]
+    },
+    {
+     "u": "Aynalık",
+     "b": "Çok kollu yıldızlar",
+     "m": "Yan yüzeyler çok kollu yıldızlarla geometrik bölümlere ayrılmış, her parçanın içi bitkisel motiflerle doldurulmuştur.",
+     "k": "V",
+     "n": [
+      0.7,
+      0.72
+     ],
+     "a": [
+      0.4,
+      0.4,
+      0.6
+     ]
+    },
+    {
+     "u": "Kitabe",
+     "b": "802 (1399)",
+     "m": "Minber kapısının üstündeki kitabede inşa tarihi ve banisi yazar; caminin yapım kitabesi olmadığından buradaki 802 (1399) yılı yapım tarihi kabul edilir.",
+     "k": "V"
+    },
+    {
+     "u": "Rivayet",
+     "b": "Minberin gizemi",
+     "m": "1980'de doğu yüzdeki düzenin Güneş'i ve gezegenleri, batı yüzdekinin galaksiyi simgelediği iddia edildi.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "ad": "H4",
+   "ayni": "H",
+   "portal": [
+    0.36,
+    0.45,
+    0.28
+   ],
+   "baslik": "Şimdi: mihrap"
+  },
+  {
+   "ad": "R",
+   "uret": {
+    "ref": [
+     {
+      "kare": "H",
+      "kirp": [
+       0.36,
+       0.45,
+       0.28
+      ]
+     }
+    ],
+    "istem": "Vertical photo: much closer view of the white marble mihrab niche on the qibla wall in the reference, same position and composition, now sharp: the tall rectangular marble frame, the pointed niche with a muqarnas hood, carved inscription bands, the edge of the dark walnut minber on the right, red carpet below, large black calligraphy on the white wall above."
+   },
+   "cikis": [
+    0.36,
+    0.45,
+    0.28
+   ],
+   "baslik": "Mihrap",
+   "bakislar": [
+    {
+     "u": "Vikipedi",
+     "b": "Depremde ayakta kalan kubbe",
+     "m": "1855 depreminde on sekiz kubbe çökerken mihrap önü kubbesi ayakta kalan iki kubbeden biriydi.",
+     "k": "V",
+     "n": [
+      0.52,
+      0.5
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Kâbe örtüsü",
+     "m": "1517'de Mısır'ın fethinden sonra getirilen Kâbe kapı örtüsünü Yavuz Sultan Selim camiye hediye etti; minberin soluna asıldı.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "ad": "H5",
+   "ayni": "H",
+   "portal": [
+    0.0,
+    0.45,
+    0.28
+   ],
+   "baslik": "Şimdi: müezzin mahfili"
+  },
+  {
+   "ad": "K",
+   "uret": {
+    "ref": [
+     {
+      "kare": "H",
+      "kirp": [
+       0.0,
+       0.45,
+       0.28
+      ]
+     }
+    ],
+    "istem": "Vertical photo: much closer view of the raised carved wooden müezzin gallery (mahfil) on slender columns at the left of the reference, same position and composition, now sharp: carved wooden balustrade, slender columns, a small staircase, the framed black-and-gold calligraphy panel on the stone pier beside it, red carpet below."
+   },
+   "cikis": [
+    0.0,
+    0.45,
+    0.28
+   ],
+   "baslik": "Müezzin mahfili",
+   "bakislar": [
+    {
+     "u": "Vikipedi",
+     "b": "1549",
+     "m": "Müezzin mahfili 1549'da yapıldı. Karşısındaki taş vaiz kürsüsü ise 1815 tarihlidir.",
+     "k": "V",
+     "n": [
+      0.25,
+      0.55
+     ]
+    }
+   ]
+  },
+  {
+   "ad": "H6",
+   "ayni": "H",
+   "portal": [
+    0.25,
+    0.0,
+    0.5
+   ],
+   "baslik": "Yukarı, ışığa doğru"
+  },
+  {
+   "ad": "k4u",
+   "ayni": "k4",
+   "cikis": [
+    0.345,
+    0.238,
+    0.32
+   ],
+   "baslik": "Camdan dışarı"
+  },
+  {
+   "ad": "k3u",
+   "ayni": "k3",
+   "cikis": [
+    0.045,
+    0.1,
+    0.9
+   ],
+   "baslik": ""
+  },
+  {
+   "ad": "k2bu",
+   "ayni": "k2b",
+   "cikis": [
+    0.405,
+    0.405,
+    0.19
+   ],
+   "baslik": ""
+  },
+  {
+   "ad": "u18x",
+   "ayni": "u18",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 18
+   },
+   "baslik": "Gökyüzüne"
+  },
+  {
+   "ad": "u16x",
+   "ayni": "u16",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 16
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "u14x",
+   "ayni": "u14",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 14
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "u12x",
+   "ayni": "u12",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 12
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "u9x",
+   "ayni": "u9",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 9
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "u6x",
+   "ayni": "u6",
+   "uydu": {
+    "lat": 40.18389,
+    "lng": 29.06194,
+    "z": 6
+   },
+   "baslik": ""
+  }
+ ],
+ "ozet": "Uzaydan Bursa'ya iniş, çatıdan içeri; şadırvan, levha, minber, mihrap ve mahfil.",
+ "hedef": {
+  "lat": 40.18389,
+  "lng": 29.06194
+ }
+}

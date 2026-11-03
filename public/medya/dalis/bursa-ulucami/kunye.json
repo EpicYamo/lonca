@@ -1,0 +1,522 @@
+[
+ {
+  "ad": "u6",
+  "gorsel": "u6",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 6
+  },
+  "model": null
+ },
+ {
+  "ad": "u9",
+  "gorsel": "u9",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 9
+  },
+  "model": null
+ },
+ {
+  "ad": "u12",
+  "gorsel": "u12",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 12
+  },
+  "model": null
+ },
+ {
+  "ad": "u14",
+  "gorsel": "u14",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 14
+  },
+  "model": null
+ },
+ {
+  "ad": "u16",
+  "gorsel": "u16",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 16
+  },
+  "model": null
+ },
+ {
+  "ad": "u18",
+  "gorsel": "u18",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.3,
+   0.3,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 18
+  },
+  "model": null
+ },
+ {
+  "ad": "k1",
+  "gorsel": "k1",
+  "tur": "netlestirilmis",
+  "kaynak": "/medya/eserler/bursa-ulucami-3.jpg",
+  "portal": [
+   0.262,
+   0.134,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "k2",
+  "gorsel": "k2",
+  "tur": "genisletilmis",
+  "kaynak": "/medya/eserler/bursa-ulucami-1.jpg",
+  "portal": [
+   0.29,
+   0.58,
+   0.42
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "k2b",
+  "gorsel": "k2b",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.045,
+   0.1,
+   0.9
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "k3",
+  "gorsel": "k3",
+  "tur": "netlestirilmis",
+  "kaynak": "/medya/eserler/bursa-ulucami-4.jpg",
+  "portal": [
+   0.345,
+   0.238,
+   0.32
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "k4",
+  "gorsel": "k4",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.3,
+   0.3,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "k5",
+  "gorsel": "k5",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.25,
+   0.35,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "H",
+  "gorsel": "H",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.25,
+   0.5,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "S",
+  "gorsel": "S",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.25,
+   0.5,
+   0.5
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "H2",
+  "gorsel": "H",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.055,
+   0.445,
+   0.3
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "L",
+  "gorsel": "L",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.258,
+   0.24,
+   0.485
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "k7",
+  "gorsel": "k7",
+  "tur": "genisletilmis",
+  "kaynak": "/medya/eserler/bursa-ulucami-2.jpg",
+  "portal": null,
+  "cikis": [
+   0.258,
+   0.24,
+   0.485
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "L2",
+  "gorsel": "L",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.055,
+   0.445,
+   0.3
+  ],
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "H3",
+  "gorsel": "H",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.48,
+   0.4,
+   0.32
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "M",
+  "gorsel": "M",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.48,
+   0.4,
+   0.32
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "H4",
+  "gorsel": "H",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.36,
+   0.45,
+   0.28
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "R",
+  "gorsel": "R",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.36,
+   0.45,
+   0.28
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "H5",
+  "gorsel": "H",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0,
+   0.45,
+   0.28
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "K",
+  "gorsel": "K",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0,
+   0.45,
+   0.28
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "H6",
+  "gorsel": "H",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.25,
+   0,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "k4u",
+  "gorsel": "k4",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.345,
+   0.238,
+   0.32
+  ],
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "k3u",
+  "gorsel": "k3",
+  "tur": "netlestirilmis",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.045,
+   0.1,
+   0.9
+  ],
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "k2bu",
+  "gorsel": "k2b",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.405,
+   0.405,
+   0.19
+  ],
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "u18x",
+  "gorsel": "u18",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 18
+  },
+  "model": null
+ },
+ {
+  "ad": "u16x",
+  "gorsel": "u16",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 16
+  },
+  "model": null
+ },
+ {
+  "ad": "u14x",
+  "gorsel": "u14",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 14
+  },
+  "model": null
+ },
+ {
+  "ad": "u12x",
+  "gorsel": "u12",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 12
+  },
+  "model": null
+ },
+ {
+  "ad": "u9x",
+  "gorsel": "u9",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 9
+  },
+  "model": null
+ },
+ {
+  "ad": "u6x",
+  "gorsel": "u6",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18389,
+   "lng": 29.06194,
+   "z": 6
+  },
+  "model": null
+ }
+]

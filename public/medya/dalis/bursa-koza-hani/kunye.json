@@ -1,0 +1,368 @@
+[
+ {
+  "ad": "v6",
+  "gorsel": "v6",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 6
+  },
+  "model": null
+ },
+ {
+  "ad": "v9",
+  "gorsel": "v9",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 9
+  },
+  "model": null
+ },
+ {
+  "ad": "v12",
+  "gorsel": "v12",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 12
+  },
+  "model": null
+ },
+ {
+  "ad": "v14",
+  "gorsel": "v14",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 14
+  },
+  "model": null
+ },
+ {
+  "ad": "v16",
+  "gorsel": "v16",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 16
+  },
+  "model": null
+ },
+ {
+  "ad": "v18",
+  "gorsel": "v18",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": [
+   0.3,
+   0.3,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 18
+  },
+  "model": null
+ },
+ {
+  "ad": "h1",
+  "gorsel": "h1",
+  "tur": "genisletilmis",
+  "kaynak": "/medya/eserler/bursa-koza-hani-1.jpg",
+  "portal": [
+   0.4,
+   0.45,
+   0.32
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h1b",
+  "gorsel": "h1b",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.1,
+   0.45,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h2",
+  "gorsel": "h2",
+  "tur": "netlestirilmis",
+  "kaynak": "/medya/eserler/bursa-koza-hani-3.jpg",
+  "portal": [
+   0.04,
+   0.42,
+   0.3
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h3",
+  "gorsel": "h3",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.25,
+   0.2,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h4",
+  "gorsel": "h4",
+  "tur": "genisletilmis",
+  "kaynak": "/medya/eserler/bursa-koza-hani-2.jpg",
+  "portal": [
+   0.345,
+   0.325,
+   0.35
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h4b",
+  "gorsel": "h4b",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.1,
+   0.5,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h4c",
+  "gorsel": "h4c",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.1,
+   0.5,
+   0.4
+  ],
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h4b2",
+  "gorsel": "h4b",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.345,
+   0.325,
+   0.35
+  ],
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "h4_2",
+  "gorsel": "h4",
+  "tur": "genisletilmis",
+  "kaynak": null,
+  "portal": [
+   0.1,
+   0.3,
+   0.3
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": null
+ },
+ {
+  "ad": "G",
+  "gorsel": "G",
+  "tur": "canlandirma",
+  "kaynak": null,
+  "portal": [
+   0.25,
+   0.3,
+   0.5
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "h5",
+  "gorsel": "h5",
+  "tur": "netlestirilmis",
+  "kaynak": "/medya/eserler/bursa-koza-hani-4.jpg",
+  "portal": [
+   0.3,
+   0.3,
+   0.4
+  ],
+  "cikis": null,
+  "uydu": null,
+  "model": "sohbet:gemini-3.1-flash-image"
+ },
+ {
+  "ad": "v18x",
+  "gorsel": "v18",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 18
+  },
+  "model": null
+ },
+ {
+  "ad": "v16x",
+  "gorsel": "v16",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 16
+  },
+  "model": null
+ },
+ {
+  "ad": "v14x",
+  "gorsel": "v14",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.375,
+   0.375,
+   0.25
+  ],
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 14
+  },
+  "model": null
+ },
+ {
+  "ad": "v12x",
+  "gorsel": "v12",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 12
+  },
+  "model": null
+ },
+ {
+  "ad": "v9x",
+  "gorsel": "v9",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": [
+   0.4375,
+   0.4375,
+   0.125
+  ],
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 9
+  },
+  "model": null
+ },
+ {
+  "ad": "v6x",
+  "gorsel": "v6",
+  "tur": "uydu",
+  "kaynak": null,
+  "portal": null,
+  "cikis": null,
+  "uydu": {
+   "lat": 40.18444,
+   "lng": 29.06361,
+   "z": 6
+  },
+  "model": null
+ }
+]

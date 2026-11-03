@@ -1,0 +1,429 @@
+{
+ "eser": "bursa-yesil-turbe",
+ "ozet": "Yeşil Türbe’nin turkuaz çinilerinden çinili mihrabına ve Çelebi Mehmed’in sandukasına uzanan, bezemelerin izinde bir dalış.",
+ "hedef": {
+  "lat": 40.1816,
+  "lng": 29.0742
+ },
+ "durum": "bekliyor",
+ "kaynak": "kalfa",
+ "vikipedi": {
+  "baslik": "Yeşil Türbe",
+  "url": "https://tr.wikipedia.org/wiki/Ye%C5%9Fil_T%C3%BCrbe"
+ },
+ "istek": "Bursa Yeşil Türbe'nin çinilerini ve sandukasını anlatan bir dalış",
+ "model": {
+  "plan": "gpt-6.1-sol",
+  "gorsel": "sohbet:gemini-3.1-flash-image"
+ },
+ "olusturma": "2026-11-03T14:47:29.418Z",
+ "guncelleme": "2026-11-03T14:47:29.418Z",
+ "kareler": [
+  {
+   "g": "u6",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    6,
+    0
+   ],
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ]
+  },
+  {
+   "g": "u9",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    9,
+    0
+   ],
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ]
+  },
+  {
+   "g": "u12",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    12,
+    0
+   ],
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ]
+  },
+  {
+   "g": "u14",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    14,
+    0
+   ],
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ]
+  },
+  {
+   "g": "u16",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    16,
+    0
+   ],
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ]
+  },
+  {
+   "g": "u18",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    18,
+    0
+   ],
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ]
+  },
+  {
+   "g": "d1",
+   "t": "netlestirilmis",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": "Bursa’nın yeşil simgesi",
+   "k": [
+    {
+     "u": "YEŞİL TÜRBE",
+     "b": "Bir tepenin üzerinde",
+     "m": "Yeşil Türbe, Yeşil Külliyesi’nin bir parçası olarak caminin güneyinde, küçük bir tepe üzerinde yer alır. Göz alıcı çinileri onu Bursa şehrinin simgesel yapılarından biri yapmıştır.",
+     "k": "E",
+     "n": [
+      0.597,
+      0.533
+     ]
+    },
+    {
+     "u": "BANİ VE MİMAR",
+     "b": "1421 yılında yaptırılan türbe",
+     "m": "Yeşil Türbe, Mehmet Çelebi tarafından 1421 yılında yaptırılmıştır. Yapının mimarı Hacı İvaz Paşa’dır.",
+     "k": "V"
+    },
+    {
+     "u": "BİR HÜKÜMDAR",
+     "b": "İkinci kurucunun anıt mezarı",
+     "m": "Külliyenin banisi Çelebi Mehmed, Fetret Devri’nde Osmanlı tahtında birliği yeniden sağlamıştır. Bu nedenle tarih yazınında “bani-i sânî”, yani ikinci kurucu olarak anılır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "d2",
+   "t": "yeniden-cizim",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": "Turkuaz yüzeye yaklaşırken",
+   "y": "ust",
+   "k": [
+    {
+     "u": "DIŞ CEPHE",
+     "b": "Çini ile mermerin buluşması",
+     "m": "Dış duvarlar turkuaz çinilerle kaplıdır. Mermer çerçeve köşeleri ve sivri kemerleri dolaşır; pencerelerin mermer söveleri bu renkli yüzeyde belirginleşir.",
+     "k": "V"
+    },
+    {
+     "u": "MALZEME",
+     "b": "Dış çinilerin farklı yapısı",
+     "m": "Cephe kaplamaları, alışılmış çinilerden farklı olarak renkli sırlı tuğla türündedir. Onarımlarda özgün kaplamaların büyük bölümü değişmiş, yerlerine yeni çiniler yerleştirilmiştir.",
+     "k": "V"
+    },
+    {
+     "u": "YEŞİLİN İZİ",
+     "b": "Külliyeye adını veren bezeme",
+     "m": "Türbenin zengin bezemeleri, külliyeye “Yeşil” adının verilmesine de ilham kaynağı olmuştur. Burada renk, yapının kimliğinin ayrılmaz bir parçasıdır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "m",
+   "t": "canlandirma",
+   "p": [
+    0,
+    0.274,
+    0.568
+   ],
+   "b": "Kubbenin altında bir çini dünyası",
+   "k": [
+    {
+     "u": "MEKÂN",
+     "b": "Bir kubbe, merkezi bir düzen",
+     "m": "İç mekân sekizgen planlıdır ve tek kubbeyle örtülür. Kubbeden ana yapıya geçişte Türk üçgeni kullanılmıştır. Ortada Çelebi Sultan Mehmed'in sandukası yer alır.",
+     "k": "V"
+    },
+    {
+     "u": "SANDUKALAR",
+     "b": "Bir aileyi bir araya getiren mekân",
+     "m": "Türbede toplam 9 sanduka bulunur. Hükümdarın yanında oğulları, kızları ve dadısı Daya Hatuna ait sandukalar da vardır.",
+     "k": "V"
+    },
+    {
+     "u": "BEZEME",
+     "b": "Çiniyle kuşatılan iç dünya",
+     "m": "Türbenin içi, sandukaları ve mihrabı çiniyle bezenmiştir. Renk ve desen, ayrı ayrıntıları aynı mekânın bütünlüğünde buluşturur.",
+     "k": "V"
+    },
+    {
+     "u": "Gezi",
+     "b": "Buradan 3 yere gideceğiz",
+     "m": "Duvarlarda turkuaz ritim, Çinili mihraba dalış, Çelebi Mehmed’in sandukası; her birinden sonra buraya döneceğiz.",
+     "k": ""
+    }
+   ]
+  },
+  {
+   "g": "k1",
+   "t": "canlandirma",
+   "c": [
+    0,
+    0.274,
+    0.568
+   ],
+   "b": "Duvarlarda turkuaz ritim",
+   "k": [
+    {
+     "u": "DUVAR ÇİNİLERİ",
+     "b": "Altıgenlerin kurduğu ritim",
+     "m": "Duvarlar 2.94 m yüksekliğe kadar, iki bordürle çevrili altıgen turkuaz çinilerle kaplıdır. Aralarında iri madalyonlar yer alır; tekrar eden biçimler içinde bu desenler öne çıkar.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.509
+     ]
+    },
+    {
+     "u": "BEZEME DİLİ",
+     "b": "Bordür ne yapar?",
+     "m": "Bordür, bezemeyi çevreleyen süslü şerittir. Bir desenin sınırını belirler, gözü yönlendirir ve farklı yüzeyleri birbirine bağlar.",
+     "k": "G",
+     "n": [
+      0.5,
+      0.513
+     ]
+    }
+   ]
+  },
+  {
+   "g": "m",
+   "t": "canlandirma",
+   "p": [
+    0.264,
+    0.338,
+    0.486
+   ],
+   "b": "Şimdi: Çinili mihraba dalış"
+  },
+  {
+   "g": "k2",
+   "t": "canlandirma",
+   "c": [
+    0.264,
+    0.338,
+    0.486
+   ],
+   "b": "Çinili mihraba dalış",
+   "k": [
+    {
+     "u": "MİHRAP",
+     "b": "Kıble duvarındaki sanat eseri",
+     "m": "Kıbleye bakan mihrap, çini bezemesiyle öne çıkar. Buradaki çiniler, İznik çiniciliğinin şaheser örnekleri olarak anlatılır.",
+     "k": "V",
+     "n": [
+      0.506,
+      0.459
+     ]
+    },
+    {
+     "u": "YAKINDAN BAK",
+     "b": "Mihrap nedir?",
+     "m": "Mihrap, kıble yönünü belirten duvar nişidir. İşlevi yön göstermektir; çevresindeki bezeme ise bakışı bu odakta toplar.",
+     "k": "G",
+     "n": [
+      0.507,
+      0.567
+     ]
+    }
+   ]
+  },
+  {
+   "g": "m",
+   "t": "canlandirma",
+   "p": [
+    0.218,
+    0.42,
+    0.58
+   ],
+   "b": "Şimdi: Çelebi Mehmed’in sandukası"
+  },
+  {
+   "g": "k3",
+   "t": "canlandirma",
+   "c": [
+    0.218,
+    0.42,
+    0.58
+   ],
+   "b": "Çelebi Mehmed’in sandukası",
+   "k": [
+    {
+     "u": "MERKEZDEKİ ANIT",
+     "b": "Çelebi Sultan Mehmed'in sandukası",
+     "m": "İç mekânın ortasında Çelebi Sultan Mehmed'in sandukası yer alır. Çiniyle kaplı bu anıtın üzerinde kabartma sülüs celisi ile yazılı bir kitabe bulunur.",
+     "k": "V"
+    },
+    {
+     "u": "BURSA’YA DÖNÜŞ",
+     "b": "Saklanan vefat haberi",
+     "m": "Çelebi Mehmed’in ölüm haberi, devlet yeniden istikrarsızlığa sürüklenmesin diye kırk gün gizlenmiştir. Naaşı tahnit yöntemiyle korunmuş, ardından Bursa’daki türbesine getirilerek defnedilmiştir.",
+     "k": "E"
+    },
+    {
+     "u": "SANDUKA NEDİR?",
+     "b": "Hatırayı görünür kılan biçim",
+     "m": "Sanduka, mezarın üzerinde bulunan anıtsal üst yapıdır. Bir kişinin hatırasını mekânda görünür kılar; bezemesi ve kitabesi de bu hatıraya eşlik eder.",
+     "k": "G"
+    }
+   ]
+  },
+  {
+   "g": "m",
+   "t": "canlandirma",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": ""
+  },
+  {
+   "g": "u18",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    18,
+    1
+   ],
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "b": "Gökyüzüne"
+  },
+  {
+   "g": "u16",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    16,
+    1
+   ],
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "b": ""
+  },
+  {
+   "g": "u14",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    14,
+    1
+   ],
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "b": ""
+  },
+  {
+   "g": "u12",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    12,
+    1
+   ],
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "b": ""
+  },
+  {
+   "g": "u9",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    9,
+    1
+   ],
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "b": ""
+  },
+  {
+   "g": "u6",
+   "t": "uydu",
+   "u": [
+    40.1816,
+    29.0742,
+    6,
+    1
+   ],
+   "b": ""
+  }
+ ]
+}

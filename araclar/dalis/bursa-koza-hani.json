@@ -1,0 +1,480 @@
+{
+ "eser": "bursa-koza-hani",
+ "onek": "Photorealistic, high-resolution documentary architectural photograph of the Koza Han in Bursa, Turkey, an Ottoman caravanserai built 1489-1491 of alternating brick and stone courses. Natural warm autumn light, crisp detail. No text, no captions, no watermark.",
+ "kareler": [
+  {
+   "ad": "v6",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 6
+   }
+  },
+  {
+   "ad": "v9",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 9
+   }
+  },
+  {
+   "ad": "v12",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 12
+   }
+  },
+  {
+   "ad": "v14",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 14
+   }
+  },
+  {
+   "ad": "v16",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 16
+   }
+  },
+  {
+   "ad": "v18",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 18
+   },
+   "portal": [
+    0.3,
+    0.3,
+    0.4
+   ]
+  },
+  {
+   "ad": "h1",
+   "kaynak": "/medya/eserler/bursa-koza-hani-1.jpg",
+   "genislet": true,
+   "genisletIstem": "Above: the green slopes of Uludag and a soft sky. Below: more red-tiled rooftops and market streets of the historic bazaar district seen from the air.",
+   "portal": [
+    0.4,
+    0.45,
+    0.32
+   ],
+   "baslik": "Hanlar Bölgesi'nin üstünde",
+   "bakislar": [
+    {
+     "u": "Konum",
+     "b": "Ulu Cami'nin hemen yanında",
+     "m": "Koza Han, Hanlar Bölgesi'nde Ulu Cami ile Orhan Camii arasındadır.",
+     "k": "V",
+     "n": [
+      0.26,
+      0.4
+     ],
+     "a": [
+      0.05,
+      0.2,
+      0.55
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "Pek çok adı var",
+     "m": "\"Yeni Han\", \"Beylik Han\", \"Simkeş Han\", \"Sırmakeş Han\" gibi adlarla anıldı; içinde ipek kozası ticareti yapıldığı için Koza Han adını aldı.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "ad": "h1b",
+   "uret": {
+    "ref": [
+     {
+      "kare": "h1",
+      "kirp": [
+       0.4,
+       0.45,
+       0.32
+      ]
+     }
+    ],
+    "istem": "Vertical drone photo continuing this aerial view of the historic bazaar district of Bursa: the drone has descended much lower over the red-tiled roofs toward a large two-storey Ottoman han built of alternating brick and stone courses, with rows of small lead domes over its galleries and a square courtyard full of golden autumn plane trees. Same warm low sun, same rooftops around it."
+   },
+   "baslik": "Hana alçalırken",
+   "portal": [
+    0.1,
+    0.45,
+    0.5
+   ],
+   "bakislar": [
+    {
+     "u": "Avlu",
+     "b": "Kareye yakın bir avlu",
+     "m": "İki katlı ana blok kareye yakın dikdörtgen bir avlunun çevresindedir; doğusunda ahır ve depoların olduğu ikinci bir avlu (İç Koza Han) vardır.",
+     "k": "V",
+     "n": [
+      0.55,
+      0.32
+     ]
+    }
+   ]
+  },
+  {
+   "ad": "h2",
+   "kaynak": "/medya/eserler/bursa-koza-hani-3.jpg",
+   "genislet": true,
+   "netlestir": true,
+   "genisletIstem": "Above: autumn trees and a clear blue sky. Below: the stone-paved square in front of the han. Keep the brick facade identical; it appears only once.",
+   "baslik": "Han kapısının önünde",
+   "portal": [
+    0.04,
+    0.42,
+    0.3
+   ],
+   "bakislar": [
+    {
+     "u": "Duvar",
+     "b": "Tuğla ve kesme taş",
+     "m": "Dış duvarlarda tuğla ve kesme taştan karma teknik kullanılmıştır.",
+     "k": "V",
+     "n": [
+      0.6,
+      0.45
+     ]
+    },
+    {
+     "u": "Envanter",
+     "b": "Kim yaptırdı?",
+     "m": "Sultan II. Bayezid, İstanbul'daki külliyesine gelir sağlamak için yaptırdı. İnşaat Mart 1489'da başladı, 30 Eylül 1491'de bitti. Mimarı Abdülûlâ bin Pulad Şah'tır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "ad": "h3",
+   "uret": {
+    "ref": [
+     {
+      "kare": "h2",
+      "kirp": [
+       0.04,
+       0.42,
+       0.3
+      ]
+     },
+     "/medya/eserler/bursa-koza-hani-2.jpg"
+    ],
+    "istem": "Vertical photo. The camera has walked through the entrance door of the brick-and-stone han in the first reference and stands inside its vaulted stone gate passage: dim barrel vault overhead, worn stone floor, and at the end of the passage a bright opening onto the courtyard where the small domed octagonal mescit standing on arches and the golden plane trees of the second reference are visible."
+   },
+   "portal": [
+    0.25,
+    0.2,
+    0.5
+   ],
+   "baslik": "Kemerli geçitten",
+   "bakislar": [
+    {
+     "u": "Vikipedi",
+     "b": "Üst kata merdiven",
+     "m": "Girişin iki yanındaki birer taş merdiven üst kata çıkar.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "ad": "h4",
+   "kaynak": "/medya/eserler/bursa-koza-hani-2.jpg",
+   "genislet": true,
+   "genisletIstem": "Above: the golden autumn canopy of the courtyard plane trees and a glimpse of sky. Below: the stone-paved courtyard with tea-garden tables and chairs.",
+   "portal": [
+    0.345,
+    0.325,
+    0.35
+   ],
+   "baslik": "Avluda",
+   "bakislar": [
+    {
+     "u": "Bugün",
+     "b": "Çay bahçesi",
+     "m": "Hanın avlusu çay bahçesi olarak kullanılıyor; han bugün de ticari işlevini koruyor.",
+     "k": "E",
+     "n": [
+      0.35,
+      0.75
+     ],
+     "a": [
+      0.0,
+      0.35,
+      0.65
+     ]
+    },
+    {
+     "u": "Gezi",
+     "b": "Önce mescit, sonra revaklar",
+     "m": "Avlunun ortasındaki mescide ve altındaki şadırvana gidip buraya döneceğiz.",
+     "k": ""
+    }
+   ]
+  },
+  {
+   "ad": "h4b",
+   "uret": {
+    "ref": [
+     {
+      "kare": "h4",
+      "kirp": [
+       0.345,
+       0.325,
+       0.35
+      ]
+     }
+    ],
+    "istem": "Vertical photo, closer view of the same scene in the reference: the small octagonal domed mescit standing on pointed arches in the middle of the han courtyard, its lead-covered dome, the stone stairs leading up to its door, and BELOW it, between the arches, an octagonal şadırvan fountain pool with water. Behind it the two-storey arcaded galleries of the han with brick arches. Golden autumn plane tree leaves, warm light. Keep the same position and composition as the reference."
+   },
+   "baslik": "Köşk mescit",
+   "portal": [
+    0.1,
+    0.5,
+    0.4
+   ],
+   "bakislar": [
+    {
+     "u": "Mescit",
+     "b": "Sekiz kenarlı, kurşun kubbeli",
+     "m": "Avlunun ortasında ayrı bir mescit: sekiz kenarlı, üstü kurşun kaplı bir kubbeyle örtülü.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.3
+     ],
+     "a": [
+      0.2,
+      0.0,
+      0.6
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Selçuklu geleneği",
+     "m": "Selçuklu köşk mescidi geleneğini sürdürür ama planı kare ya da dikdörtgen, çift merdivenli Selçuklu örneklerinden farklıdır.",
+     "k": "V"
+    },
+    {
+     "u": "Vikipedi",
+     "b": "Etkisi",
+     "m": "Edirne Rüstem Paşa Kervansarayı ve Lefkoşa Büyük Han'daki mescitleri etkilediği düşünülür.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "ad": "h4c",
+   "uret": {
+    "ref": [
+     {
+      "kare": "h4b",
+      "kirp": [
+       0.1,
+       0.5,
+       0.4
+      ]
+     }
+    ],
+    "istem": "Vertical photo, much closer, same position and composition as the reference: under the arches of the small octagonal mescit, an octagonal stone şadırvan fountain pool with clear water and brass spouts, the stone piers and pointed arches of the mescit around it, warm light, autumn leaves on the stone paving."
+   },
+   "cikis": [
+    0.1,
+    0.5,
+    0.4
+   ],
+   "baslik": "Mescidin altındaki şadırvan",
+   "bakislar": [
+    {
+     "u": "Şadırvan",
+     "b": "Altı şadırvanlı köşk mescit",
+     "m": "Mescit, altında havuzlu şadırvanı olan sekiz kenarlı bir yapıdır. Anıtsal kapısı ve bu köşk mescit Bursa'nın simgeleri arasında sayılır.",
+     "k": "V",
+     "n": [
+      0.52,
+      0.67
+     ]
+    }
+   ]
+  },
+  {
+   "ad": "h4b2",
+   "ayni": "h4b",
+   "cikis": [
+    0.345,
+    0.325,
+    0.35
+   ],
+   "baslik": ""
+  },
+  {
+   "ad": "h4_2",
+   "ayni": "h4",
+   "portal": [
+    0.1,
+    0.3,
+    0.3
+   ],
+   "baslik": "Şimdi: revaklar"
+  },
+  {
+   "ad": "G",
+   "uret": {
+    "ref": [
+     {
+      "kare": "h4",
+      "kirp": [
+       0.1,
+       0.3,
+       0.3
+      ]
+     }
+    ],
+    "istem": "Vertical photo, much closer, same position and composition as the reference: the two-storey arcaded galleries of the Ottoman han around the courtyard, pointed brick arches on stone piers, small lead domes over the gallery bays, wooden doors and two windows of each room behind the arcade, golden autumn plane tree branches in front."
+   },
+   "baslik": "İki katlı revaklar",
+   "portal": [
+    0.25,
+    0.3,
+    0.5
+   ],
+   "bakislar": [
+    {
+     "u": "Revak",
+     "b": "Tuğla kemer, kubbeli örtü",
+     "m": "Odaların önünü altta ve üstte revaklar çevreler; revak kemerleri tuğla, üstleri kubbelidir. Üst kat revakları ahşapken son tamirde kâgire dönüştürüldü.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.4
+     ]
+    },
+    {
+     "u": "Vikipedi",
+     "b": "95 oda",
+     "m": "Zemin katta 45, üst katta 50 oda vardır. Odalar tonozla örtülüdür ve her birinin dışa açılan ikişer penceresi vardır.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "ad": "h5",
+   "kaynak": "/medya/eserler/bursa-koza-hani-4.jpg",
+   "genislet": true,
+   "netlestir": true,
+   "genisletIstem": "Above: the brick vaults and pointed arches of the gallery ceiling. Below: the polished stone floor of the gallery. It is a long arcaded upper gallery of the han with silk scarves displayed.",
+   "baslik": "Revaklar boyunca",
+   "portal": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "bakislar": [
+    {
+     "u": "Odalar",
+     "b": "Altlı üstlü iki oda",
+     "m": "İpek tüccarları altlı üstlü iki oda tutardı: üsttekinde konaklayıp işlerini görür, alttakinde mallarını saklarlardı.",
+     "k": "V",
+     "n": [
+      0.3,
+      0.55
+     ],
+     "a": [
+      0.0,
+      0.25,
+      0.65
+     ]
+    },
+    {
+     "u": "İpek",
+     "b": "Hâlâ ipek satılıyor",
+     "m": "Üst katta ipek ticareti yapan işletmeler, alt katta çeşitli ürünler satan esnaf yer alır.",
+     "k": "E",
+     "n": [
+      0.15,
+      0.68
+     ],
+     "a": [
+      0.0,
+      0.35,
+      0.6
+     ]
+    }
+   ]
+  },
+  {
+   "ad": "v18x",
+   "ayni": "v18",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 18
+   },
+   "baslik": "Gökyüzüne"
+  },
+  {
+   "ad": "v16x",
+   "ayni": "v16",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 16
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "v14x",
+   "ayni": "v14",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 14
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "v12x",
+   "ayni": "v12",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 12
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "v9x",
+   "ayni": "v9",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 9
+   },
+   "baslik": ""
+  },
+  {
+   "ad": "v6x",
+   "ayni": "v6",
+   "uydu": {
+    "lat": 40.18444,
+    "lng": 29.06361,
+    "z": 6
+   },
+   "baslik": ""
+  }
+ ],
+ "ozet": "Uzaydan çarşıya iniş, kemerli geçitten avluya; köşk mescit, şadırvan ve revaklar.",
+ "hedef": {
+  "lat": 40.18444,
+  "lng": 29.06361
+ }
+}
