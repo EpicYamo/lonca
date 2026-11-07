@@ -816,6 +816,11 @@ let modulSuzgeci = "hepsi";
 const tarihYaz = (t) => (t ? new Date(t).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
 
 async function modulleriListele() {
+  // Sunucu ustaya yalnızca kendi modüllerini döndürür; onay kuyruğu admin'e özeldir.
+  $("#sayfa-moduller .sayfa-h").textContent = yoneticiMi() ? "Modüller" : "Modüllerim";
+  $("#moduller-aciklama").textContent = yoneticiMi()
+    ? "Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür."
+    : "Atölyede yazıp onaya gönderdiğin modüller. Admin onaylayınca uygulamada görünür.";
   let moduller;
   try { moduller = await yApi("/api/moduller?durum=hepsi"); }
   catch (h) { $("#liste").replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
@@ -1353,7 +1358,7 @@ async function onerileriCiz() {
 
 async function sayaclariGuncelle() {
   const yaz = (secici, n) => { const s = $(secici); s.hidden = !n; s.textContent = String(n); };
-  try { yaz("#sayac-modul", (await yApi("/api/moduller?durum=hepsi", { yeniden: false })).filter((m) => m.durum === "bekliyor").length); } catch {}
+  if (yoneticiMi()) try { yaz("#sayac-modul", (await yApi("/api/moduller?durum=hepsi", { yeniden: false })).filter((m) => m.durum === "bekliyor").length); } catch {}
   try { yaz("#sayac-oneri", (await yApi("/api/eser-oneriler", { yeniden: false })).length); } catch {}
 }
 

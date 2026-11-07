@@ -143,6 +143,28 @@ test("vatandaş atölyeyi kullanamaz; bir usta başka ustanın taslağını ezem
   assert.equal((await s.istek("POST", "/api/moduller", { usta: true, govde: { id: "taslak-a", ad: "Taslak 2", kod } })).statusCode, 201);
 });
 
+test("onay kuyruğunu yalnızca admin görür; usta yalnızca kendi modüllerini görür", async () => {
+  const kod = await readFile(path.join(KOK, "sdk", "ornekler", "yuzyil-avi.js"), "utf8");
+  const editor = await rolluAc("kuyruk-editor", "editor");
+  const ogretmen = await kaydol({ kimlik: "kuyruk-usta-a", sifre: "sifresifre" });
+  const diger = await kaydol({ kimlik: "kuyruk-usta-b", sifre: "sifresifre" });
+  const gonder = (jeton, id) => s.istek("POST", "/api/moduller", { basliklar: yetki(jeton), govde: { id, ad: id, kod } });
+  assert.equal((await gonder(ogretmen.jeton, "kuyruk-a")).statusCode, 201);
+  assert.equal((await gonder(diger.jeton, "kuyruk-b")).statusCode, 201);
+
+  const liste = async (jeton) => (await s.istek("GET", "/api/moduller?durum=hepsi", { basliklar: yetki(jeton) })).json().map((m) => m.id);
+  assert.deepEqual(await liste(ogretmen.jeton), ["kuyruk-a"]);
+  assert.deepEqual(await liste(diger.jeton), ["kuyruk-b"]);
+  const tum = await liste(editor.jeton);
+  assert.ok(tum.includes("kuyruk-a") && tum.includes("kuyruk-b"));
+
+  // Yayında olmayan kodu yalnızca sahibi ve admin okur.
+  const kodOku = (jeton) => s.istek("GET", "/api/moduller/kuyruk-a/kod", { basliklar: yetki(jeton) });
+  assert.equal((await kodOku(ogretmen.jeton)).statusCode, 200);
+  assert.equal((await kodOku(editor.jeton)).statusCode, 200);
+  assert.equal((await kodOku(diger.jeton)).statusCode, 403);
+});
+
 test("cihazdaki profil yalnızca sunucuda veri yokken taşınır, üzerine yazmaz", async () => {
   const { jeton } = await kaydol({ kimlik: "tasima-testi", sifre: "sifresifre" });
   const ilk = await s.istek("POST", "/api/hesap/tasi", { basliklar: yetki(jeton), govde: { profil: { ad: "Cihaz Profili", puan: 120 }, basarimlar: { "modul-1": { "basarim-a": true } } } });
