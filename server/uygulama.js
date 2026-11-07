@@ -1088,7 +1088,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
         return { ...yanit, istek: sohbet.at(-1).metin };
       } catch (h) {
         req.log.error(h);
-        await atolye.kalfaBitir(sahip, oturum, { hata: h.message, ayrintilar: h.ayrintilar ?? [] }).catch(() => {});
+        await atolye.kalfaBitir(sahip, oturum, { hata: h.message, ayrintilar: h.ayrintilar ?? [], kalfaDurumu: h.kalfaDurumu }).catch(() => {});
         return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });
       }
     }

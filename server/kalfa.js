@@ -14,6 +14,8 @@ ts.validateLocaleAndSetLanguage("tr", ts.sys);
 
 const MAKS_DENEME = 3;   
 const MAKS_ADIM = 8;     
+// Admin turunda il listesi + en çok 12 madde okuma + izin kartı tek tek gelirse 8 adım yetmez.
+const MAKS_ADIM_ADMIN = 18;
 const MAKS_SATIR = 2000;
 // Sağlayıcıya giden tek bir isteğin en uzun süresi (KALFA_ZAMAN_ASIMI_SN ile değişir). Takılan bir model
 // Studio'yu dakikalarca bekletmesin diye; 5xx'te yapılan yeniden denemelerin her biri ayrı sayılır.
@@ -110,6 +112,10 @@ export function veridenOneriler(eserler, { dil = "tr", kod = false } = {}) {
 export const IZIN_KARARLARI = { dis_kaynak: ["ver", "reddet"], kayit: ["bilgi-bankasi", "modul", "reddet"] };
 const MAKS_DIS_KAYNAK = 12;
 const MAKS_TOPLU_KAYIT = 10;
+// Karar turunda izinli maddelerin metni kalfaya yeniden verilir (yeniden okumasın diye): madde başına ve toplamda sınır.
+const MAKS_MADDE_METNI = 2500;
+const MAKS_MADDE_TOPLAMI = 25000;
+const MAKS_MODUL_HEDEF = 400;
 
 export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env, disFetch = (...a) => fetch(...a), eserEkle = null }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
@@ -208,10 +214,10 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
 # ADMİN KİPİ
 Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle de modül yapabilirsin; ama her adımda adminden izin alırsın ve UYDURMAZSIN.
 - Bilgi bankasında olmayan bir eser, il ya da bölge istenirse yönlendirme yapma: izin_iste (tur: "dis_kaynak", konu: eserin ya da ilin adı) ile Vikipedi'den bilgi toplamak için izin iste. İzin verilmeden dis_kaynak_liste / dis_kaynak_ara / dis_kaynak_oku çağıramazsın. Admin reddederse bilgi bankasındaki en yakın eserleri öner.
-- İzin verilince: bir il ya da bölge istendiyse ÖNCE dis_kaynak_liste (il, isteğe bağlı tur) ile o ildeki tarihî yapıların maddelerini listele; tek bir eser istendiyse dis_kaynak_ara ile maddeyi bul. Sonra uygun maddeleri dis_kaynak_oku ile oku (bir oturumda en çok ${MAKS_DIS_KAYNAK} madde; vakıf eserlerine (cami, han, hamam, türbe, çeşme, medrese…) öncelik ver). Yalnızca okuduğun maddede AÇIKÇA geçen bilgiyi kullan; ezberinden ya da başka bir yerden hiçbir ad, tarih, kişi ekleme. Uygun madde yoksa bunu söyle.
+- İzin verilince: bir il ya da bölge istendiyse ÖNCE dis_kaynak_liste (il, isteğe bağlı tur) ile o ildeki tarihî yapıların maddelerini listele; tek bir eser istendiyse dis_kaynak_ara ile maddeyi bul. Sonra uygun maddeleri dis_kaynak_oku ile oku (okuyacağın maddelerin hepsini AYNI yanıtta birlikte çağır; bir oturumda en çok ${MAKS_DIS_KAYNAK} madde; vakıf eserlerine (cami, han, hamam, türbe, çeşme, medrese…) öncelik ver). Yalnızca okuduğun maddede AÇIKÇA geçen bilgiyi kullan; ezberinden ya da başka bir yerden hiçbir ad, tarih, kişi ekleme. Uygun madde yoksa bunu söyle.
 - Maddeleri okuduktan sonra içeriğin nereye gideceğini izin_iste (tur: "kayit", konu, kaynak_urller: okuduğun maddelerin adresleri, en çok ${MAKS_TOPLU_KAYIT}) ile TEK kartta sor: bilgi bankasına mı eklensin (herkes kullanır; "doğrulanmamış" işaretlenir, kaynak bağlantısı kayıtta kalır) yoksa yalnızca bu modüle mi özel kalsın. Tek madde için kaynak_url de verebilirsin. İzin her madde için bir eklemeliktir.
 - Admin "bilgi bankasına ekle" derse her madde için ayrı bilgi_bankasina_ekle çağır: tarihçe maddedeki cümlelere sadık bir özet (maddede olmayan yıl yazma), yüzyıl yalnızca maddede açıkça geçiyorsa. Konum ve kaynak künyesini sunucu maddeden alır. Sonra modülde o eserleri dönen kimliklerle eserler.getir ile oku.
-- Admin "yalnızca bu modüle" derse maddedeki bilgiyi modülün koduna sabit olarak koy: const DIS_ICERIK = [{ ad, metin, kaynak: { ad: "Vikipedi", url: "<okuduğun maddenin adresi>" } }, …]. Bu içeriği gösterdiğin her ekranın başında "Kaynak doğrulanmamış: Vikipedi" yaz ve bağlantıyı göster.
+- Admin "yalnızca bu modüle" derse maddedeki bilgiyi modülün koduna sabit olarak koy: const DIS_ICERIK = [{ ad, metin, kaynak: { ad: "Vikipedi", url: "<okuduğun maddenin adresi>" } }, …]. Bu içeriği gösterdiğin her ekranın başında "Kaynak doğrulanmamış: Vikipedi" yaz ve bağlantıyı göster. Ölçülü ol: madde başına 2–4 kısa bilgi ya da soru, modül en çok ~${MAKS_MODUL_HEDEF} satır.
 - Bilgi bankasında "dogrulanmis: false" taşıyan kayıtlar dış kaynaktan gelmiştir; ekranda "Doğrulanmamış (Vikipedi)" ya da "Kaynak doğrulanmamış: <kaynak>" göster. Vakıf Katılım envanterinden gelen kayıtlar "Doğrulanmış vakıf eseri ✓" sayılır.
 - Yanıtlarında izin istemek için yanit_ver değil izin_iste kullan; admin kartta bir düğmeye basarak yanıt verir.`;
 
@@ -533,6 +539,8 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
     } else if (dil === "en") konusma.at(-1).metin += "\n\n(Studio arayüzü İngilizce: usta Türkçe yazmadıkça İngilizce yanıtla.)";
     if (insa) konusma.at(-1).metin += "\n\n(Usta modülü şimdi yazmanı istiyor: modul_yaz ile teslim et.)";
     if (admin && (durumK.izinler.length || durumK.disKaynaklar.length)) konusma.at(-1).metin += `\n\n${izinOzeti(durumK)}`;
+    const maddeMetni = admin ? izinliMaddeMetinleri(durumK) : "";
+    if (maddeMetni) konusma.at(-1).metin += `\n\n${maddeMetni}`;
 
     const durum = adaptor.baslat(konusma);
     let sonHatalar = [], deneme = 0;
@@ -573,7 +581,7 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
     }
     const disKullan = (d) => { if (d && !izler.disKullanilan.some((x) => x.url === d.url)) izler.disKullanilan.push(d); };
 
-    for (let adim = 1; adim <= MAKS_ADIM && deneme < MAKS_DENEME; adim++) {
+    for (let adim = 1; adim <= (admin ? MAKS_ADIM_ADMIN : MAKS_ADIM) && deneme < MAKS_DENEME; adim++) {
       const { cagrilar, metin, sonuclariBildir } = await adaptor.iste(durum);
       if (!cagrilar.length) {
         // Araç çağırmadan düz metinle yanıtlayan modeller: bu bir sohbet yanıtıdır.
@@ -648,7 +656,10 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
               aramalar.push({ dis: String(c.girdi?.sorgu ?? "").slice(0, 60), bulunan: r.bulunan ?? 0, kaynak: DIS_KAYNAK_ADI });
               sonuclar.push({ id: c.id, icerik: JSON.stringify(r) });
             } else {
-              const r = await vikipediOku(c.girdi, disFetch);
+              // Bu oturumda okunmuş madde yeniden çekilmez (zaman ve Vikipedi hız sınırı).
+              const baslik = String(c.girdi?.baslik ?? "").trim().toLocaleLowerCase("tr");
+              const r = durumK.disKaynaklar.find((d) => d.baslik.toLocaleLowerCase("tr") === baslik && d.dil === (c.girdi?.dil === "en" ? "en" : "tr"))
+                ?? await vikipediOku(c.girdi, disFetch);
               if (!r) { sonuclar.push({ id: c.id, hata: true, icerik: "Bu başlıkta bir Vikipedi maddesi yok; dis_kaynak_ara ile doğru başlığı bul." }); continue; }
               if (!okunanKaynak(r.url)) {
                 durumK.disKaynaklar.push(r);
@@ -722,6 +733,8 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
     }
     const hata = new Error(deneme ? "Kalfa geçerli bir modül üretemedi" : "Kalfa bir yanıt üretemedi");
     hata.ayrintilar = sonHatalar;
+    // Okunan maddeler ve izinler kaybolmasın: atölye oturumu hata durumunda da bu durumu yazar (yeniden okuma yok).
+    if (admin) hata.kalfaDurumu = durumK;
     throw hata;
   }
 
@@ -753,6 +766,34 @@ const maddeAdi = (i, url) => i.maddeler?.find((m) => m.url === url)?.baslik ?? i
 
 // Kayıt izninin kapsadığı madde adresleri (tek kaynak_url'li eski izinler de).
 export const izinUrlleri = (i) => (Array.isArray(i?.urller) ? i.urller : i?.kaynak_url ? [i.kaynak_url] : []);
+
+// Karar verilmiş ama henüz kullanılmamış kayıt izinlerinin maddeleri: metinleri son mesaja eklenir. Kalfa önceki turda
+// okuduğu metni görmez (yalnızca özet kalır); "modüle özel" içerik için 10 maddeyi yeniden okuması turu çok uzatıyordu.
+export function izinliMaddeMetinleri({ izinler = [], disKaynaklar = [] }) {
+  const urller = [];
+  let modulIcin = false;
+  for (const i of izinler) {
+    if (i.tur !== "kayit" || i.durum !== "verildi" || !["modul", "bilgi-bankasi"].includes(i.karar)) continue;
+    if (i.karar === "modul") modulIcin = true;
+    for (const u of izinUrlleri(i)) {
+      if (!(i.kullanilanlar ?? []).some((x) => adresAnahtari(x) === adresAnahtari(u)) && !urller.some((x) => adresAnahtari(x) === adresAnahtari(u))) urller.push(u);
+    }
+  }
+  const parcalar = [];
+  let toplam = 0;
+  for (const u of urller) {
+    const d = disKaynaklar.find((x) => adresAnahtari(x.url) === adresAnahtari(u));
+    if (!d?.metin) continue;
+    const kalan = MAKS_MADDE_TOPLAMI - toplam;
+    if (kalan < 200) break;
+    const metin = d.metin.length > Math.min(MAKS_MADDE_METNI, kalan) ? `${d.metin.slice(0, Math.min(MAKS_MADDE_METNI, kalan))}…` : d.metin;
+    toplam += metin.length;
+    parcalar.push(`### ${d.baslik} (${d.url})\n${metin}`);
+  }
+  if (!parcalar.length) return "";
+  const olcu = modulIcin ? `\nModüle özel içerikte ölçülü ol: madde başına 2–4 kısa bilgi ya da soru, modül en çok ~${MAKS_MODUL_HEDEF} satır.` : "";
+  return `(Admin'in izin verdiği maddeler zaten okundu; yeniden dis_kaynak_oku çağırma. Yalnızca aşağıdaki metinlerde geçen bilgiyi kullan.${olcu}\n\n${parcalar.join("\n\n")})`;
+}
 
 // Admin'in verdiği izinlerin ve okunan maddelerin kalfaya giden özeti (model durumu her turda buradan bilir).
 function izinOzeti({ izinler, disKaynaklar }) {

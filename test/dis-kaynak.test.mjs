@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { kalfaHazirla, istemDegistir } from "../server/kalfa.js";
+import { kalfaHazirla, istemDegistir, izinliMaddeMetinleri } from "../server/kalfa.js";
 import { kaynaktaDayanakVar, yuzyilKaynaktaVar, modulDogrulamasi, koddakiDisBaglantilar, adresAnahtari, bulunmaEki, vikipediIlListesi } from "../server/dis-kaynak.js";
 import { deneySunucusu, KOK } from "./yardimci.mjs";
 
@@ -45,6 +45,10 @@ test("modül doğrulaması: Vikipedi bağlantısı ya da doğrulanmamış kayıt
   assert.equal(modulDogrulamasi({ kod: `const u = "${MADDE_URL}";`, eserler }).dogrulanmis, false);
   assert.deepEqual(koddakiDisBaglantilar(`"${MADDE_URL}" ve "https://tr.wikipedia.org/wiki/Galata%20Kulesi"`).length, 2);
   assert.equal(adresAnahtari(MADDE_URL), adresAnahtari("https://tr.wikipedia.org/wiki/Galata%20Kulesi"));
+  // Parantezli madde adresleri kesilmez; adresin dışındaki parantez ve noktalama adrese katılmaz.
+  const hamam = "https://tr.wikipedia.org/wiki/%C4%B0sa_Bey_Hamam%C4%B1_(Sel%C3%A7uk)";
+  assert.deepEqual(koddakiDisBaglantilar(`url: "${hamam}" (bkz. https://tr.wikipedia.org/wiki/Hisar_Camii). ${hamam.replace("(", "%28").replace(")", "%29")},`),
+    [hamam, "https://tr.wikipedia.org/wiki/Hisar_Camii", hamam.replace("(", "%28").replace(")", "%29")]);
 });
 
 test("usta: dış kaynak araçları yok; bilgi bankasında olmayan eser için öneri kartı hazırlanır", async () => {
@@ -285,4 +289,77 @@ test("admin: toplu kayıt izniyle iki madde eklenir, izinsiz üçüncü ve aynı
   assert.equal(son.durum, "kullanildi");
   assert.deepEqual(son.kullanilanlar, [hisar, hamam]);
   assert.deepEqual(son.eserIdler, { [hisar]: "izmir-1", [hamam]: "izmir-2" });
+});
+
+// ---------- Uzun karar turu: izinli maddelerin metni kalfaya yeniden verilir ----------
+test("karar turu: izinli ve kullanılmamış maddelerin metni son mesaja girer, sınırlar uygulanır", async () => {
+  const madde = (i, uzunluk) => ({ kaynak: "Vikipedi", dil: "tr", baslik: `Madde ${i}`, url: vikiUrl(`Madde ${i}`), metin: `Metin${i} ${"x".repeat(uzunluk)}` });
+  const disKaynaklar = Array.from({ length: 12 }, (_, i) => madde(i, 4000));
+  const urller = disKaynaklar.slice(0, 11).map((d) => d.url);
+  const durum = { disKaynaklar, izinler: [
+    { id: "d1", tur: "dis_kaynak", konu: "İzmir", durum: "verildi", karar: "ver" },
+    { id: "k1", tur: "kayit", konu: "İzmir", urller, kullanilanlar: [urller[0]], durum: "verildi", karar: "modul" },
+    { id: "k2", tur: "kayit", konu: "Başka", urller: [disKaynaklar[11].url], durum: "reddedildi", karar: "reddet" },
+  ] };
+  const metin = izinliMaddeMetinleri(durum);
+  assert.match(metin, /zaten okundu; yeniden dis_kaynak_oku çağırma/);
+  assert.match(metin, /madde başına 2–4 kısa bilgi ya da soru, modül en çok ~400 satır/);
+  assert.ok(!metin.includes("Metin0 ")); // kullanılmış madde
+  assert.ok(!metin.includes("Metin11 ")); // reddedilen izin
+  assert.ok(metin.includes(`### Madde 1 (${urller[1]})`));
+  // Madde başına en çok 2500, toplam en çok 25000 karakter.
+  const govdeler = metin.split("### ").slice(1).map((p) => p.slice(p.indexOf("\n") + 1).trimEnd().replace(/\)$/, ""));
+  assert.ok(govdeler.every((g) => g.length <= 2501));
+  assert.ok(govdeler.reduce((t, g) => t + g.length, 0) <= 25000 + govdeler.length);
+  assert.equal(govdeler.length, 10);
+  assert.equal(izinliMaddeMetinleri({ izinler: [{ tur: "kayit", durum: "bekliyor", urller }], disKaynaklar }), "");
+
+  // calistir: metin son kullanıcı mesajında; okunmuş madde yeniden çekilmez.
+  const k = kalfaHazirla({ kok: KOK, eserler: [...hamEserler], ortam: ORTAM, disFetch: async () => { throw new Error("Vikipedi'ye gidilmemeli"); } });
+  const s = saglayici([["dis_kaynak_oku", { baslik: "Madde 3" }], ["yanit_ver", { metin: "Tamam", oneriler: ["Yap"] }]]);
+  try { await k.calistir([{ rol: "usta", metin: "Yalnızca bu modüle özel kalsın" }], undefined, { admin: true, izinDurumu: durum }); } finally { s.geri(); }
+  const son = s.istekler[0].messages.at(-1).content;
+  assert.ok(son.startsWith("Yalnızca bu modüle özel kalsın") && son.includes("### Madde 2 ("));
+  assert.match(s.aracYaniti(1), /Metin3/);
+});
+
+test("API: istemci bağlantıyı koparsa kalfa sunucuda sürer ve sonucu oturuma yazar", async () => {
+  const asil = globalThis.fetch;
+  globalThis.fetch = async (url, secenek) => {
+    if (!String(url).startsWith("http://saglayici.test")) return asil(url, secenek);
+    await new Promise((r) => setTimeout(r, 600)); // yavaş sağlayıcı
+    const cagri = { id: "1", type: "function", function: { name: "yanit_ver", arguments: JSON.stringify({ metin: "Uzun iş bitti", oneriler: ["Devam"] }) } };
+    return Response.json({ choices: [{ message: { role: "assistant", content: "", tool_calls: [cagri] } }] });
+  };
+  const s = await deneySunucusu({ ...ORTAM, KALFA_SAHTE: "" });
+  try {
+    await s.app.listen({ port: 0, host: "127.0.0.1" });
+    const adres = `http://127.0.0.1:${s.app.server.address().port}`;
+    const o = (await s.istek("POST", "/api/atolye/oturumlar", { yonetici: true, govde: {} })).json();
+    const kes = new AbortController();
+    const istek = asil(`${adres}/api/kalfa`, { method: "POST", signal: kes.signal, headers: { "content-type": "application/json", "x-yonetici-sifre": "gizli-sifre" }, body: JSON.stringify({ oturum: o.id, istek: "İzmir rehberi" }) });
+    await new Promise((r) => setTimeout(r, 150));
+    kes.abort(); // Cloudflare'in vazgeçmesi gibi
+    await assert.rejects(istek);
+    let son;
+    for (let i = 0; i < 40; i++) {
+      son = (await s.istek("GET", `/api/atolye/oturumlar/${o.id}`, { yonetici: true })).json();
+      if (!son.bekleyen && son.mesajlar.length >= 2) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    assert.equal(son.bekleyen, null);
+    assert.deepEqual(son.mesajlar.map((m) => [m.rol, m.metin]), [["usta", "İzmir rehberi"], ["kalfa", "Uzun iş bitti"]]);
+  } finally { globalThis.fetch = asil; await s.app.close(); }
+});
+
+test("admin: adım sınırı aşılınca hata okunan maddeleri taşır (oturum yeniden okumaz)", async () => {
+  const k = kalfaHazirla({ kok: KOK, eserler: [...hamEserler], ortam: ORTAM, disFetch: izmirFetch });
+  const durum = { izinler: [{ id: "d1", tur: "dis_kaynak", konu: "İzmir", durum: "verildi", karar: "ver" }], disKaynaklar: [] };
+  const s = saglayici(Array.from({ length: 18 }, () => ["dis_kaynak_oku", { baslik: "Hisar Camii" }]));
+  let hata;
+  try { await k.calistir([{ rol: "usta", metin: "İzin veriyorum" }], undefined, { admin: true, izinDurumu: durum }); } catch (h) { hata = h; } finally { s.geri(); }
+  assert.equal(s.istekler.length, 18); // admin adım sınırı 18
+  assert.match(hata.message, /yanıt üretemedi/);
+  assert.deepEqual(hata.kalfaDurumu.disKaynaklar.map((d) => d.baslik), ["Hisar Camii"]);
+  assert.equal(izmirIstekleri.filter((x) => x.titles === "Hisar Camii").length >= 1, true);
 });
