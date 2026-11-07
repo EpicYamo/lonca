@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ -f .env ]]; then set -a; . ./.env; set +a; fi
-LONCA_ALAN_ADI="${LONCA_ALAN_ADI:-kozmos.42.fr}"  # docker-compose.sunucu.yml ile aynı varsayılan
+LONCA_ALAN_ADI="${LONCA_ALAN_ADI:-kozmos.itaskira.com}"  # docker-compose.sunucu.yml ile aynı varsayılan
 : "${LONCA_EPOSTA:?.env içinde LONCA_EPOSTA tanımlı olmalı (sertifika bildirimleri için)}"
 DC=(docker compose -f docker-compose.yml -f docker-compose.sunucu.yml)
 EK=()

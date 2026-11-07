@@ -6,7 +6,7 @@
 #   ./apk.sh --kur       → derledikten sonra USB/kablosuz bağlı telefona adb ile kurar
 #
 # Ortam değişkenleri (isteğe bağlı):
-#   LONCA_SUNUCU_URL=https://kozmos.42.fr   uygulamanın bağlanacağı tek sunucu (varsayılan; .env'den de okunur).
+#   LONCA_SUNUCU_URL=https://kozmos.itaskira.com   uygulamanın bağlanacağı tek sunucu (varsayılan; .env'den de okunur).
 #                                           Yerel deneme için tam adres verilebilir: http://192.168.1.20:3000
 #                                           "yok" verilirse sunucu gömülmez, uygulama yalnızca çevrimdışı çalışır
 #   LONCA_API_ANAHTARI=...                  sunucu API anahtarı istiyorsa (.env'den de okunur)
@@ -59,7 +59,7 @@ bilgi "Android SDK: $ANDROID_HOME"
 
 # ---------- Sunucu: ortam > .env > projenin alan adı ("yok" ise gömülmez) ----------
 if [[ -z "${LONCA_SUNUCU_URL:-}" && -f .env ]]; then LONCA_SUNUCU_URL=$(sed -n 's/^LONCA_SUNUCU_URL=//p' .env | tail -n 1); fi
-LONCA_SUNUCU_URL="${LONCA_SUNUCU_URL:-https://kozmos.42.fr}"
+LONCA_SUNUCU_URL="${LONCA_SUNUCU_URL:-https://kozmos.itaskira.com}"
 bilgi "Sunucu: $LONCA_SUNUCU_URL"
 ANAHTAR_ARG=()
 [[ -n "${LONCA_API_ANAHTARI:-}" ]] && ANAHTAR_ARG+=(--anahtar "$LONCA_API_ANAHTARI")

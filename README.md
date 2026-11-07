@@ -97,7 +97,7 @@ Lonca. No port is published on the server and no certificate is needed:
 Cloudflare terminates HTTPS and the tunnel connects outwards.
 
 1. Cloudflare dashboard → Zero Trust → Networks → Tunnels → create a Cloudflared
-   tunnel and copy its token. Add a public hostname: `kozmos.42.fr` → `HTTP`,
+   tunnel and copy its token. Add a public hostname: `kozmos.itaskira.com` → `HTTP`,
    `lonca:3000`.
 2. In `.env`: `CLOUDFLARE_TUNNEL_TOKEN`, a strong `LONCA_API_ANAHTARI`,
    `YONETICI_SIFRE` and the UstaGPT key.
@@ -105,7 +105,7 @@ Cloudflare terminates HTTPS and the tunnel connects outwards.
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --build
-curl https://kozmos.42.fr/api/merhaba
+curl https://kozmos.itaskira.com/api/merhaba
 ```
 
 The overlay sets `LONCA_IP_BASLIGI=cf-connecting-ip` so rate limits count the
@@ -122,7 +122,7 @@ container, whose port 3000 is no longer published.
 1. Point the domain's DNS `A` record (and `AAAA` if any) at the server's public IP.
    Open ports 80 and 443.
 2. In `.env`: `LONCA_EPOSTA=…` and a strong `LONCA_API_ANAHTARI`. The domain
-   defaults to the project's `kozmos.42.fr`; set `LONCA_ALAN_ADI` to use another. Optional
+   defaults to the project's `kozmos.itaskira.com`; set `LONCA_ALAN_ADI` to use another. Optional
    `LONCA_YOL_ONEKI=/lonca` serves under
    `https://domain/lonca/` (the API works there; browser redirects of
    `/app`/`/studio` assume the root).
@@ -138,7 +138,7 @@ Until the certificate exists Nginx serves a temporary self-signed one, so it
 can start and answer the HTTP-01 challenge. Needs Docker Compose 2.24+.
 
 The Android app connects to exactly one server, fixed at build time: `./apk.sh`
-embeds `LONCA_SUNUCU_URL` (default `https://kozmos.42.fr`; a full `http://IP:3000`
+embeds `LONCA_SUNUCU_URL` (default `https://kozmos.itaskira.com`; a full `http://IP:3000`
 works for local testing, `yok` builds an offline-only app). There is no network
 scanning. The app sends the API key in `x-lonca-anahtar`, falls back to the bundled
 offline snapshot when the server cannot be reached and retries once a minute.

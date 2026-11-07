@@ -2,10 +2,10 @@
 # cloudflared container'ı Cloudflare'e dışa doğru bağlanır; HTTPS'i Cloudflare sonlandırır.
 #
 # Bir kez, Cloudflare panelinde: Zero Trust → Networks → Tunnels → Create a tunnel (Cloudflared), token'ı kopyala.
-#   Public hostname: kozmos.42.fr  →  Service: HTTP, URL: lonca:3000
+#   Public hostname: kozmos.itaskira.com  →  Service: HTTP, URL: lonca:3000
 # .env: CLOUDFLARE_TUNNEL_TOKEN=...  LONCA_API_ANAHTARI=...  YONETICI_SIFRE=...  (+ UstaGPT anahtarı)
 #   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --build
-#   curl https://kozmos.42.fr/api/merhaba
+#   curl https://kozmos.itaskira.com/api/merhaba
 #
 # Not: Cloudflare yanıt başlıklarını en çok 100 sn bekler (ücretsiz plan); daha uzun süren tek bir istek 524 alır.
 services:

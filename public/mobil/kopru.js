@@ -1,7 +1,7 @@
 // Lonca Android köprüsü. Web'de hiçbir şey yapmaz; Capacitor içinde açıldığında uygulamayı "gerçek uygulama" yapar:
 //
 //  - Tek, sabit bir Lonca sunucusuna bağlanır: APK'ya derlenirken gömülen adres (LONCA_SUNUCU_URL, varsayılan
-//    https://kozmos.42.fr). Ağ taraması ya da IP keşfi yoktur. Bağlanınca bütün /api istekleri bu sunucuya gider
+//    https://kozmos.itaskira.com). Ağ taraması ya da IP keşfi yoktur. Bağlanınca bütün /api istekleri bu sunucuya gider
 //    (Studio'da canlıya alınan modüller ve dalışlar hemen görünür), pakette olmayan medya da native tarafta oradan
 //    getirilir. Sunucuya ulaşılamazsa paketteki anlık görüntüyle çevrimdışı çalışır ve arada bir yeniden dener.
 //  - Android geri tuşu: açık pencere → modülün kendi geri düğmesi → modülü kapat → profil → uygulamayı arka plana al.

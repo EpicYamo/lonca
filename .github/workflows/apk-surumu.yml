@@ -5,7 +5,7 @@
 #   ANDROID_KEYSTORE_BASE64    imza anahtarı (lonca.keystore) base64 olarak; alias "lonca"
 #   ANDROID_KEYSTORE_SIFRE     anahtar deposu ve anahtar şifresi (apk.sh ikisini aynı kabul eder)
 #   LONCA_API_ANAHTARI         isteğe bağlı; sunucu anahtar istiyorsa APK'ya gömülür
-# İsteğe bağlı değişken (Variables): LONCA_SUNUCU_URL, APK'nın bağlanacağı sunucu (boşsa https://kozmos.42.fr).
+# İsteğe bağlı değişken (Variables): LONCA_SUNUCU_URL, APK'nın bağlanacağı sunucu (boşsa https://kozmos.itaskira.com).
 # İmza sırları yoksa hata ayıklama (debug) APK'sı yayımlanır ve sürüm notunda belirtilir.
 name: APK sürümü
 

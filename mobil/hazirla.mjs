@@ -8,9 +8,9 @@
 // eklenir. Anlık görüntü, sunucu kodu `inject` ile çağrılarak üretilir; böylece veri biçimi değişse de
 // uygulamanın gördüğü yanıt sunucununkiyle birebir aynı kalır.
 //
-// Kullanım: node mobil/hazirla.mjs [--sunucu https://kozmos.42.fr] [--anahtar API_ANAHTARI]
+// Kullanım: node mobil/hazirla.mjs [--sunucu https://kozmos.itaskira.com] [--anahtar API_ANAHTARI]
 //   --sunucu  uygulamanın bağlanacağı sunucu (tam adres, http:// ya da https://). Verilmezse .env'deki
-//             LONCA_SUNUCU_URL, o da yoksa https://kozmos.42.fr; "yok" verilirse uygulama yalnızca çevrimdışı çalışır.
+//             LONCA_SUNUCU_URL, o da yoksa https://kozmos.itaskira.com; "yok" verilirse uygulama yalnızca çevrimdışı çalışır.
 //   --anahtar verilmezse .env'deki LONCA_API_ANAHTARI kullanılır.
 import { cp, mkdir, rm, writeFile, readFile, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -30,7 +30,7 @@ for (let i = 0; i < arg.length; i++) {
 
 try { process.loadEnvFile(path.join(KOK, ".env")); } catch {}
 anahtar ||= process.env.LONCA_API_ANAHTARI ?? "";
-sunucu = (sunucu || process.env.LONCA_SUNUCU_URL || "https://kozmos.42.fr").trim().replace(/\/+$/, "");
+sunucu = (sunucu || process.env.LONCA_SUNUCU_URL || "https://kozmos.itaskira.com").trim().replace(/\/+$/, "");
 if (sunucu === "yok") sunucu = "";
 if (sunucu && !/^https?:\/\/[^/\s]+/i.test(sunucu)) throw new Error(`Sunucu adresi http:// ya da https:// ile başlamalı: ${sunucu}`);
 
