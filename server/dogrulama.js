@@ -229,3 +229,10 @@ export function atolyeIstekDogrula({ istek, kod } = {}) {
   if (kod != null && (typeof kod !== "string" || kod.length > ATOLYE_MAKS_KOD)) hatalar.push("kod çok uzun");
   return hatalar;
 }
+
+// Modül görünürlüğü: "herkes" (onaydan geçip uygulamada yayımlanır) ya da "ozel" (yalnızca paylaşım bağlantısıyla açılır).
+export const MODUL_GORUNURLUKLERI = ["herkes", "ozel"];
+export const modulGorunurlukDogrula = (g) =>
+  g == null || MODUL_GORUNURLUKLERI.includes(g) ? null : `gorunurluk: ${MODUL_GORUNURLUKLERI.join(" | ")}`;
+// Paylaşım bağlantısındaki anahtar: modül kimliği ya da base64url anahtar.
+export const paylasimAnahtariGecerli = (a) => typeof a === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(a);

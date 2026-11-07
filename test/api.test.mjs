@@ -314,3 +314,14 @@ test("vitrin il listesini, dalış özeti kareleri olmadan döner", async () => 
   assert.ok(!("kareler" in ozet[0]));
   assert.ok((await s.istek("GET", "/api/dalislar")).json()[0].kareler.length > 0);
 });
+
+test("assetlinks.json yalnızca ANDROID_IMZA_SHA256 doluysa yayımlanır", async () => {
+  assert.equal((await s.istek("GET", "/.well-known/assetlinks.json")).statusCode, 404);
+  const imza = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, "0")).join(":");
+  const d = await deneySunucusu({ ANDROID_IMZA_SHA256: `${imza}, bozuk` });
+  const y = await d.istek("GET", "/.well-known/assetlinks.json");
+  assert.equal(y.statusCode, 200);
+  assert.equal(y.json()[0].target.package_name, "com.kozmos.lonca");
+  assert.deepEqual(y.json()[0].target.sha256_cert_fingerprints, [imza.toUpperCase()]);
+  await d.app.close();
+});

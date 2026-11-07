@@ -344,6 +344,16 @@
   // ---------- Uygulama yaşam döngüsü ----------
   sessiz(P.App?.addListener("backButton", geri));
   sessiz(P.App?.addListener("pause", () => { try { window.speechSynthesis?.cancel(); } catch {} }));
+  // Paylaşım bağlantısı (https://<alan>/m/<anahtar> ya da lonca://m/<anahtar>) uygulamayı açınca modülü aç.
+  // Anahtar window.loncaPaylasim'e de yazılır: uygulama soğuk açılışta olay dinleyicisinden önce gelirse oradan okur.
+  const paylasimiIlet = (adres) => {
+    const m = String(adres ?? "").match(/^(?:https?:\/\/[^/]+|lonca:\/)\/m\/([A-Za-z0-9_-]{1,64})\/?(?:[?#].*)?$/);
+    if (!m) return;
+    window.loncaPaylasim = m[1];
+    window.dispatchEvent(new CustomEvent("lonca-paylasim", { detail: m[1] }));
+  };
+  sessiz(P.App?.addListener("appUrlOpen", (o) => paylasimiIlet(o?.url)));
+  sessiz(P.App?.getLaunchUrl?.().then((o) => paylasimiIlet(o?.url)));
   sessiz(P.App?.addListener("resume", async () => {
     if (durum.canli) { if (!(await yokla(3000))) koptu(); }
     else if (await dene()) canliOldu(!modulAcik());
