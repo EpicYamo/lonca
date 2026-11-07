@@ -1286,27 +1286,37 @@ $("#katki-formu").elements.tur.replaceChildren(...KATKI_TURLERI.map(([id, ad]) =
 let katkiCoz = null, katkiEser = null;
 let katkiFotolari = [];
 const KATKI_FOTO_SINIRI = 6;
+// Her fotoğraf { dosya, dataUrl } olarak tutulur: önizleme blob: adresi yerine okunmuş veriyle çizilir (Android WebView'de
+// blob önizlemesi bozuk görünebiliyordu) ve gönderirken dosya yeniden okunmaz.
 function katkiFotolariniCiz() {
   const liste = $("#katki-foto-listesi");
-  for (const img of liste.querySelectorAll("img")) URL.revokeObjectURL(img.src);
-  liste.replaceChildren(...katkiFotolari.map((dosya, i) => {
+  liste.replaceChildren(...katkiFotolari.map((foto, i) => {
     const kaldir = el("button", { type: "button", className: "katki-foto-kaldir", textContent: "×", ariaLabel: `${i + 1}. fotoğrafı çıkar` });
     kaldir.addEventListener("click", () => { katkiFotolari.splice(i, 1); katkiFotolariniCiz(); });
-    return el("li", {}, el("img", { src: URL.createObjectURL(dosya), alt: `${i + 1}. fotoğraf${i === 0 ? " (kapak)" : ""}` }), kaldir);
+    return el("li", {}, el("img", { src: foto.dataUrl, alt: `${i + 1}. fotoğraf${i === 0 ? " (kapak)" : ""}` }), kaldir);
   }));
   $("#katki-foto-ekle").hidden = katkiFotolari.length >= KATKI_FOTO_SINIRI;
 }
-$("#katki-formu").elements.foto.addEventListener("change", (e) => {
+const dosyaOku = (dosya) => new Promise((coz, red) => { const r = new FileReader(); r.onload = () => coz(r.result); r.onerror = () => red(r.error); r.readAsDataURL(dosya); });
+// Görüntü çözülemiyorsa (bozuk ya da telefona inmemiş bulut fotoğrafı) reddet.
+const gorselCozulurMu = (src) => new Promise((coz) => { const img = new Image(); img.onload = () => coz(img.naturalWidth > 0); img.onerror = () => coz(false); img.src = src; });
+$("#katki-formu").elements.foto.addEventListener("change", async (e) => {
   const durum = $("#katki-durum");
-  durum.textContent = "";
-  for (const dosya of [...(e.target.files ?? [])]) {
-    if (katkiFotolari.length >= KATKI_FOTO_SINIRI) { durum.textContent = `En fazla ${KATKI_FOTO_SINIRI} fotoğraf eklenebilir.`; durum.className = "katki-durum hata"; break; }
-    if (!/^image\/(jpeg|png|webp)$/.test(dosya.type)) continue;
-    if (dosya.size > 6 * 1024 * 1024) { durum.textContent = `${dosya.name}: en fazla 6 MB olabilir.`; durum.className = "katki-durum hata"; continue; }
-    katkiFotolari.push(dosya);
-  }
+  // Yalnızca önceki fotoğraf uyarısını temizle; formun doğrulama hatası yerinde kalsın.
+  if (durum.dataset.foto) { durum.textContent = ""; delete durum.dataset.foto; }
+  const fotoHata = (m) => { durum.textContent = m; durum.className = "katki-durum hata"; durum.dataset.foto = "1"; };
+  const dosyalar = [...(e.target.files ?? [])];
   e.target.value = "";
-  katkiFotolariniCiz();
+  for (const dosya of dosyalar) {
+    if (katkiFotolari.length >= KATKI_FOTO_SINIRI) { fotoHata(`En fazla ${KATKI_FOTO_SINIRI} fotoğraf eklenebilir.`); break; }
+    if (!/^image\/(jpeg|png|webp)$/.test(dosya.type)) { fotoHata(`${dosya.name}: yalnızca JPEG, PNG ya da WebP eklenebilir.`); continue; }
+    if (dosya.size > 6 * 1024 * 1024) { fotoHata(`${dosya.name}: en fazla 6 MB olabilir.`); continue; }
+    let dataUrl = null;
+    try { dataUrl = await dosyaOku(dosya); } catch {}
+    if (!dataUrl || !(await gorselCozulurMu(dataUrl))) { fotoHata(`${dosya.name}: fotoğraf okunamadı, başka bir fotoğraf dene.`); continue; }
+    katkiFotolari.push({ dosya, dataUrl });
+    katkiFotolariniCiz();
+  }
 });
 // Studio önizlemesinde vatandaş formu yerine eser, Studio'nun içerik formunda düzenlemeye açılır.
 function duzeltmeIste(eser) {
@@ -1323,6 +1333,7 @@ function katkiAc(eser = null) {
   $("#katki-yeni").hidden = !!eser;
   $("#katki-not-alan").hidden = !eser;
   $("#katki-durum").textContent = "";
+  delete $("#katki-durum").dataset.foto;
   $("#katki-gonder").disabled = false;
   katkiFotolari = []; katkiFotolariniCiz();
   $("#katki").hidden = false;
@@ -1340,7 +1351,7 @@ $("#eser-oner").addEventListener("click", () => katkiAc());
 $("#katki-formu").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.currentTarget.elements, durum = $("#katki-durum");
-  const hata = (m) => { durum.textContent = m; durum.className = "katki-durum hata"; };
+  const hata = (m) => { durum.textContent = m; durum.className = "katki-durum hata"; delete durum.dataset.foto; };
   try {
     $("#katki-gonder").disabled = true;
     let govde;
@@ -1348,14 +1359,19 @@ $("#katki-formu").addEventListener("submit", async (e) => {
       if (f.not.value.trim().length < 5) { $("#katki-gonder").disabled = false; return hata("Lütfen birkaç kelimeyle anlat."); }
       govde = { tur: "not", eserId: katkiEser.id, not: f.not.value };
     } else {
-      if (f.ad.value.trim().length < 2 || f.il.value.trim().length < 2 || f.tarihce.value.trim().length < 20 || f.kaynak.value.trim().length < 3) {
+      // Eksik alanları tek tek söyle; genel bir mesaj neyin yanlış olduğunu gizliyordu.
+      const eksikler = [];
+      if (f.ad.value.trim().length < 2) eksikler.push("Eserin adını yaz.");
+      if (f.il.value.trim().length < 2) eksikler.push("İli yaz.");
+      if (f.tarihce.value.trim().length < 20) eksikler.push("Tarihçe en az 20 karakter olmalı.");
+      if (f.kaynak.value.trim().length < 3) eksikler.push("Kaynağı yaz (en az 3 karakter).");
+      if (eksikler.length) {
         $("#katki-gonder").disabled = false;
-        return hata("Ad, il, en az bir cümlelik tarihçe ve kaynak gerekli.");
+        return hata(eksikler.join(" · "));
       }
       const fotograflar = [];
-      for (const [i, dosya] of katkiFotolari.entries()) {
+      for (const [i, { dosya, dataUrl }] of katkiFotolari.entries()) {
         durum.className = "katki-durum"; durum.textContent = `Fotoğraflar yükleniyor ${i + 1}/${katkiFotolari.length}…`;
-        const dataUrl = await new Promise((coz, red) => { const r = new FileReader(); r.onload = () => coz(r.result); r.onerror = red; r.readAsDataURL(dosya); });
         const y = await fetch("/api/medya", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dosya: dataUrl }) });
         const s = await y.json();
         if (!y.ok) { $("#katki-gonder").disabled = false; return hata(`${dosya.name}: ${s.hata}`); }
