@@ -61,7 +61,7 @@
 .vm-amblem { width: 1.3em; height: 1.3em; flex: none; object-fit: contain; }
 /* Kartın fotoğrafı üstünde, sol üst köşeye basılmış yuvarlak mühür (web'in dar modül satırında damga kalır). */
 :is(.kabuk .uygulama-satiri, .oc-kart) .vakif-muhur {
-  position: absolute; top: .8rem; left: .85rem; z-index: 2; width: 92px; height: 92px; margin: 0; pointer-events: none;
+  position: absolute; top: .7rem; left: .75rem; z-index: 2; width: 68px; height: 68px; margin: 0; pointer-events: none;
   transform: rotate(-12deg); border-radius: 50%; box-shadow: 0 6px 16px rgba(0, 0, 0, .25);
   /* Kâğıt yarı saydam: arkadaki fotoğraf buzlu camdan görünür. */
   -webkit-backdrop-filter: blur(5px) saturate(1.2) brightness(1.08); backdrop-filter: blur(5px) saturate(1.2) brightness(1.08);
