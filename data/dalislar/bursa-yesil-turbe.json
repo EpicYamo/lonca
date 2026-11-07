@@ -130,16 +130,22 @@
      ]
     },
     {
-     "u": "BANİ VE MİMAR",
-     "b": "1421 yılında yaptırılan türbe",
-     "m": "Yeşil Türbe, Mehmet Çelebi tarafından 1421 yılında yaptırılmıştır. Yapının mimarı Hacı İvaz Paşa’dır.",
-     "k": "V"
+     "u": "NE ZAMAN?",
+     "b": "Ölümünden sonra tamamlanan türbe",
+     "m": "Türbenin inşasına ne zaman başlandığı kesin olarak bilinmiyor. Yeri Çelebi Mehmed'in sağlığında belirlendi; yapının onun vefatından sonra tamamlandığı kabul edilir.",
+     "k": "E"
     },
     {
      "u": "BİR HÜKÜMDAR",
      "b": "İkinci kurucunun anıt mezarı",
      "m": "Külliyenin banisi Çelebi Mehmed, Fetret Devri’nde Osmanlı tahtında birliği yeniden sağlamıştır. Bu nedenle tarih yazınında “bani-i sânî”, yani ikinci kurucu olarak anılır.",
      "k": "E"
+    },
+    {
+     "u": "MİMAR",
+     "b": "Hacı İvaz Paşa",
+     "m": "Yeşil Külliye'nin bir parçası olan türbenin mimarı olarak Hacı İvaz Paşa anılır.",
+     "k": "V"
     }
    ]
   },
@@ -265,7 +271,7 @@
     {
      "u": "MİHRAP",
      "b": "Kıble duvarındaki sanat eseri",
-     "m": "Kıbleye bakan mihrap, çini bezemesiyle öne çıkar. Buradaki çiniler, İznik çiniciliğinin şaheser örnekleri olarak anlatılır.",
+     "m": "Türbenin içi, sandukaları ve duvarları gibi mihrabı da çiniyle kaplıdır. Kıbleye bakan bu mihrap bir sanat eseri olarak anılır.",
      "k": "V",
      "n": [
       0.506,
