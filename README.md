@@ -108,6 +108,18 @@ docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --bu
 curl https://kozmos.itaskira.com/api/merhaba
 ```
 
+**Updating from GitHub:** the server keeps a clone of the repository, read through
+a read-only deploy key (`~/.ssh/config` host alias `github-lonca` →
+`git clone github-lonca:EpicYamo/lonca.git /opt/lonca`). Then:
+
+```bash
+cd /opt/lonca && ./docker/guncelle.sh      # LONCA_DAL=main for another branch; default dev
+```
+
+It fast-forwards the branch, rebuilds and waits for `/api/merhaba`. If Studio
+edits on the server changed tracked files in `data/` or `public/medya/`, it stops
+and lists them instead of overwriting.
+
 The overlay sets `LONCA_IP_BASLIGI=cf-connecting-ip` so rate limits count the
 real visitor instead of the tunnel. Cloudflare waits at most 100 s for response
 headers (free plan); a single request that takes longer gets a 524.
