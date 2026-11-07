@@ -90,7 +90,7 @@
 .kabuk .uygulama-listesi > li.renk-murdum { --kart: #2b1236; }
 .kabuk .uygulama-listesi > li + li .uygulama-satiri::before { display: none; }
 .kabuk .uygulama-satiri {
-  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "kapak kapak" "ikon metin" "ac ac";
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "kapak" "metin" "ac";
   align-items: start; gap: .9rem .85rem; width: 100%; height: 100%; min-height: 0; padding: 0 1.15rem 1.15rem; border: 0; border-radius: inherit;
   background: none; color: inherit; text-align: left; transition: transform .16s var(--egri);
 }
@@ -98,7 +98,8 @@
 .kabuk .uygulama-satiri:focus-visible { outline: 3px solid var(--altin); outline-offset: -3px; }
 .kabuk .us-kapak { grid-area: kapak; display: block; position: relative; margin: 0 -1.15rem; aspect-ratio: 16 / 9; max-height: 230px; background: #222 center / cover no-repeat; }
 .kabuk .us-kapak::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, var(--kart) 100%); }
-.kabuk .uygulama-satiri .uygulama-ikonu { grid-area: ikon; position: relative; z-index: 1; width: 46px; height: 46px; margin-top: -24px; box-shadow: 0 0 0 3px var(--kart), 0 8px 18px rgba(0, 0, 0, .35); }
+/* Keşfet kartı sade: kapak fotoğrafı ve mühür yeterli, küçük çinili modül ikonu gösterilmez. */
+.kabuk .uygulama-satiri .uygulama-ikonu { display: none; }
 .kabuk .us-metin { grid-area: metin; display: grid; gap: .3rem; min-width: 0; }
 .kabuk .us-ad { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; font-size: 1.5rem; line-height: 1.1; color: #fff; }
 .kabuk .us-kategori { order: -1; color: var(--altin); font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
@@ -108,7 +109,7 @@
 .kabuk .uygulama-satiri .basarim-cubugu { background: rgba(255, 255, 255, .18); }
 .kabuk .uygulama-satiri .basarim-cubugu i { background: var(--altin); }
 .kabuk .uygulama-li .ac-pill {
-  grid-area: ac; display: inline-flex; align-items: center; justify-content: center; justify-self: end; min-width: 84px; min-height: 44px; padding: 0 1.2rem;
+  grid-area: ac; display: inline-flex; align-items: center; justify-content: center; justify-self: center; min-width: 140px; min-height: 44px; padding: 0 1.4rem;
   border-radius: 99px; background: #fff; color: var(--kart); font: 800 .88rem var(--yazi-sistem); letter-spacing: .08em;
 }
 .kabuk .raf-dugme {
