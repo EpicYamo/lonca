@@ -7,7 +7,6 @@
     "path": "android",
     "backgroundColor": "#ffffff",
     "allowMixedContent": false,
-    "captureInput": true,
     "webContentsDebuggingEnabled": true
   },
   "server": {

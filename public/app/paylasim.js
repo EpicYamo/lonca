@@ -124,9 +124,17 @@ function davetAlaniKur(ac) {
     kart.classList.add("sarsil");
   };
   // Yazarken ABCD-EFGH biçimine getir.
+  // Değer yalnızca gerçekten değişince yeniden yazılır: her tuşta yeniden yazmak Android klavyesinin yazım durumunu
+  // bozar, silme tuşu ilk basışta çalışmaz. İmleç de yerinde kalır (silme sonda değilse sona zıplamaz).
   girdi.addEventListener("input", () => {
     const k = girdi.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-    girdi.value = k.length > 4 ? `${k.slice(0, 4)}-${k.slice(4)}` : k;
+    const yeni = k.length > 4 ? `${k.slice(0, 4)}-${k.slice(4)}` : k;
+    if (yeni !== girdi.value) {
+      const imlecSonda = girdi.selectionStart === girdi.value.length;
+      const imlec = girdi.selectionStart;
+      girdi.value = yeni;
+      if (!imlecSonda && imlec != null) girdi.setSelectionRange(Math.min(imlec, yeni.length), Math.min(imlec, yeni.length));
+    }
     hataYeri.textContent = "";
   });
   kart.querySelector("form").addEventListener("submit", async (e) => {
