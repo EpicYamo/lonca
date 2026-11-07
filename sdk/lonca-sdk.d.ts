@@ -318,9 +318,9 @@ declare module "@lonca/sdk" {
     /** Girdi dinleyicisi; dönen işlev dinlemeyi bırakır. Örn. oyun.dinle("basla", (o) => zipla()). */
     dinle(tur: GirdiOlayi["tur"], fn: (olay: GirdiOlayi) => void): () => void;
     /** Kısa ses efekti ya da ton: { frekans: 440, sure: 0.1, dalga?: "sine" | "square" | "triangle" | "sawtooth", ses?: 0–1, bitis?: frekans }. */
-    ses(efekt: SesEfekti | { frekans: number; sure?: number; dalga?: "sine" | "square" | "triangle" | "sawtooth"; ses?: number; bitis?: number }): void;
+    ses(efekt: SesEfekti | (string & {}) | { frekans: number; sure?: number; dalga?: "sine" | "square" | "triangle" | "sawtooth" | (string & {}); ses?: number; bitis?: number }): void;
     /** Titreşim (Android'de dokunsal geri bildirim; yoksa sessizce geçer). Sayı verilirse milisaniye. */
-    titres(tur?: "hafif" | "orta" | "guclu" | "basari" | "hata" | number): void;
+    titres(tur?: "hafif" | "orta" | "guclu" | "basari" | "hata" | (string & {}) | number): void;
     /** a–b arasında rastgele ONDALIKLI sayı (b yoksa 0–a). Dizi indeksi için KULLANMA: oyun.sec / oyun.tamSayi. */
     rastgele(a: number, b?: number): number;
     /** a–b arasında (ikisi dahil) rastgele tam sayı: ızgara hücresi, zar. */

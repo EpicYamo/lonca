@@ -109,7 +109,10 @@ ${govde}
   assert.ok(kalfa.dogrula(oyunKodu(`  await sahne.ciz({ tip: "tuval", id: "masa" });\n  oyun.ciz("alan", (k) => k.temizle());`)).some((h) => h.includes('oyun.ciz("alan")')));
   assert.ok(kalfa.dogrula(oyunKodu(`  await sahne.ciz({ tip: "tuval", id: "masa" });\n  oyun.dongu(async (dt) => { await oyun.bekle(1); });`)).some((h) => h.includes("async")));
   assert.ok(kalfa.dogrula(oyunKodu(`  const d = [1, 2];\n  const x = d[oyun.rastgele(0, 1)];`)).some((h) => h.includes("oyun.sec")));
-  assert.deepEqual(kalfa.dogrula(oyunKodu(`  const d = [1, 2];\n  const x = oyun.sec(d) ?? d[oyun.tamSayi(0, 1)];`)), []);
+  assert.deepEqual(kalfa.dogrula(oyunKodu(`  const d = [1, 2];\n  const x = oyun.sec(d) ?? d[oyun.tamSayi(0, 1)];\n  await sahne.ciz({ tip: "metin", metin: String(x) });`)), []);
+  // Ağacı yalnızca döndürüp çizmeyen modül (ekran açılış ekranında takılır) reddedilir.
+  assert.ok(kalfa.dogrula(oyunKodu(`  const ciz = () => ({ tip: "metin", metin: "a" });\n  await ciz();`)).some((h) => h.includes("sahne.ciz")));
+  assert.ok(kalfa.dogrula(oyunKodu(`  let oyun2 = 1;\n  { let sahne = "kapak"; }`)).some((h) => h.includes('"sahne"')));
   // Tarayıcının kendi döngüsü ve tuvali modülde yoktur.
   assert.ok(kalfa.dogrula(oyunKodu(`  requestAnimationFrame(() => {});`)).length);
   assert.ok(kalfa.dogrula(oyunKodu(`  setInterval(() => {}, 16);`)).length);
@@ -135,6 +138,9 @@ test("usta ve admin istemi gerçek zamanlı oyunu anlatır, oyunu quiz'e indirge
       assert.match(istem, /tip: "tuval"/);
       assert.match(istem, /Çini Yakala/, "tuval oyunu örneği istemde");
       assert.match(istem, /konu dışı DEĞİLDİR/);
+      assert.match(istem, /YAPABİLDİKLERİN/);
+      assert.match(istem, /YAPAMADIKLARIN/);
+      assert.match(istem, /boyama/);
     }
     assert.match(usta, /admin'e öneri gönderebileceğini/, "usta veri kuralları yerinde");
     assert.match(admin, /ADMİN KİPİ/);

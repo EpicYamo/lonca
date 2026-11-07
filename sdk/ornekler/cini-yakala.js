@@ -11,7 +11,7 @@ export default async function basla() {
   let rekor = (await depo.oku("rekor")) ?? 0;
   /** @type {any} */
   let d = null;              // oyun durumu
-  let ekran = "kapak";       // kapak | oyun | eser | bitti
+  let gorunum = "kapak";     // kapak | oyun | eser | bitti (ad "ekran" değil: SDK'daki ekran ile karışmasın)
   let gosterilen = null;     // katmanda gösterilen eser
 
   await sahne.ayarla({ baslik: "Çini Yakala", tema: { zemin: "gece", renk: "firuze", yazi: "sans" } });
@@ -20,14 +20,14 @@ export default async function basla() {
   for await (const olay of sahne.olaylar()) {
     if (olay.tur !== "dokun") continue;
     if (olay.id === "basla" || olay.id === "tekrar") yeniOyun();
-    else if (olay.id === "devam") { ekran = "oyun"; gosterilen = null; oyun.dongu(adim); }
-    else if (olay.id === "kapak") { oyun.durdur(); ekran = "kapak"; }
+    else if (olay.id === "devam") { gorunum = "oyun"; gosterilen = null; oyun.dongu(adim); }
+    else if (olay.id === "kapak") { oyun.durdur(); gorunum = "kapak"; }
     await ciz();
   }
 
   function yeniOyun() {
     d = { x: EN / 2, cini: [], dogma: 0, puan: 0, can: 3, hiz: 160, sonEser: 0 };
-    ekran = "oyun";
+    gorunum = "oyun";
     oyun.dongu(adim);
   }
 
@@ -56,7 +56,7 @@ export default async function basla() {
     if (d.puan > 0 && d.puan % 5 === 0 && d.sonEser !== d.puan && fotolu.length) {
       d.sonEser = d.puan;                                        // ödül: bir eserin fotoğrafı
       gosterilen = fotolu[(d.puan / 5 - 1) % fotolu.length];
-      oyun.durdur(); oyun.ses("gol"); ekran = "eser"; ciz();
+      oyun.durdur(); oyun.ses("gol"); gorunum = "eser"; ciz();
     }
   }
 
@@ -77,25 +77,25 @@ export default async function basla() {
     oyun.ses("kaybettin");
     if (d.puan > rekor) { rekor = d.puan; await depo.yaz("rekor", rekor); }
     if (d.puan) await profil.puanEkle(d.puan, "Çini Yakala");
-    ekran = "bitti";
+    gorunum = "bitti";
     await ciz();
   }
 
   // Ekran: kapak (lobi) ya da tam ekran tuval; eser ve oyun sonu kartları tuvalin üstünde katman olarak açılır.
   function ciz() {
-    if (ekran === "kapak") {
+    if (gorunum === "kapak") {
       return sahne.ciz({ tip: "kapak", ust: "Oyun", baslik: "Çini Yakala", eser: fotolu[0], alt: `Parmağınla sepeti sürükle, çinileri yakala. Rekor: ${rekor}`,
         cocuklar: [{ tip: "dugme", id: "basla", metin: "Başla", ikon: "oyun" }] });
     }
     const katman = [];
-    if (ekran === "eser" && gosterilen) {
+    if (gorunum === "eser" && gosterilen) {
       katman.push({ tip: "kart", cocuklar: [
         { tip: "baslik", metin: `${d.puan} çini!`, boyut: 2 },
         { tip: "eser", eser: gosterilen, id: "eser", boyut: "buyuk" },
         { tip: "metin", metin: gosterilen.kaynak, soluk: true },
         { tip: "dugme", id: "devam", metin: "Devam", ikon: "ok" },
       ] });
-    } else if (ekran === "bitti") {
+    } else if (gorunum === "bitti") {
       katman.push({ tip: "kart", cocuklar: [
         { tip: "baslik", metin: "Oyun bitti", boyut: 2 },
         { tip: "istatistik", deger: d.puan, etiket: `Puan · rekor ${rekor}`, ikon: "kupa" },
