@@ -209,7 +209,7 @@ test("özel modül onay kuyruğuna girmez, yalnızca paylaşım bağlantısıyla
   assert.equal((await s.istek("GET", `/api/paylasim/${ozel.davetKodu}/kod`)).body, kod);
   const yonlen = await s.istek("GET", `/m/${ozel.paylasim}`);
   assert.equal(yonlen.statusCode, 302);
-  assert.equal(yonlen.headers.location, `/?modul=${ozel.paylasim}`);
+  assert.equal(yonlen.headers.location, `/app/?modul=${ozel.paylasim}&gomulu=1`);
 
   // Yeniden kaydedince anahtar değişmez; herkese açığa çevrilince onay bekler ve özel bağlantı kapanır.
   const yeniden = (await gonder({ id: "paylasim-ozel", gorunurluk: "ozel" })).json();

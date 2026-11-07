@@ -583,3 +583,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .kapak-alani { padding-top: 2.6rem; }
 .ep-fotolar:focus-visible { outline-offset: -4px; }
 .uygulama-satiri .ac-pill { flex: none; }
+
+/* Web sitesinden açılan modül oynatıcısı (/app/?modul=<id>&gomulu=1): yalnızca modül ekranı görünür. */
+html.gomulu .ust-bar, html.gomulu #ana-ekran, html.gomulu #profil-ekrani { display: none !important; }
