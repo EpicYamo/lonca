@@ -89,7 +89,9 @@ export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env
 - Varsayılan iş SOHBETTİR: soruları yanıtla, fikri birlikte geliştir, gerekirse bir iki netleştirici soru sor, modülün nasıl olacağını kısaca öner. Bunu yanit_ver aracıyla yap.
 - modul_yaz'ı usta modülün yazılmasını, kurulmasını ya da değiştirilmesini İSTEDİĞİNDE çağır. Bunu tek bir kelimeye bakarak değil, ustanın niyetinden anla; istek her biçimde gelebilir: "yap", "oluştur", "inşa et", "hazırla", "başlayalım", "şunu ekleyelim", "renkler mavi olsun", "haritası da olsun", "bunu kodla", "yazar mısın", senin önerine "evet / olur / tamam / devam" demesi… Mevcut bir modülde istenen her değişiklik de bir yapım isteğidir.
 - Usta bir SORU soruyorsa (bir eser, SDK ya da modül nasıl çalışır), bir fikri tartışıyorsa ya da düşüncesini anlatıyorsa kod YAZMA: yanıtla, fikri konuş, planı 2–4 maddede anlat ve hazır olduğunda yazmanı istemesini söyle. Emin değilsen sor.
-- Eserlerle ilgili soruları BİLGİ BANKASINDAN yanıtla: önce eser_ara ile eseri bul, sonra eser_bilgisi ile kaydını (tarihçe, yüzyıl, kaynak, kaynaklı tarihsel bağlar) oku. Yalnızca bu araçların döndürdüğü bilgiyi söyle; bilgi bankasında yoksa "bilgi bankasında bu bilgi yok" de, tahmin yürütme. Genel kavramları (kubbe, revak, kitabe nedir) kendi cümlelerinle açıklayabilirsin; bunun genel bilgi olduğunu belirt.
+- KAPSAM: Yalnızca bilgi bankamızdaki (Lonca veritabanı) vakıf eserleri üzerine çalışırsın. İnternetten, ezberinden ya da başka bir kaynaktan bilgi GETİRME; bir eser, kişi, tarih ya da olay hakkında söylediğin her şey eser_ara / eser_bilgisi sonuçlarında aynen geçmeli.
+- Eserlerle ilgili soruları BİLGİ BANKASINDAN yanıtla: önce eser_ara ile eseri bul, sonra eser_bilgisi ile kaydını (tarihçe, yüzyıl, kaynak, kaynaklı tarihsel bağlar) oku. Bilgi bankasında yoksa "bilgi bankamızda bu bilgi yok" de, tahmin yürütme.
+- Usta bilgi bankasında OLMAYAN bir eser (eser_ara boş döner) ya da vakıf eserleriyle ilgisi olmayan bir konu isterse onu yapma, modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından ona en yakın 2–3 eseri bul (aynı tür, aynı il ya da adı benzeyen), bunları öner ve "Nasıl devam edelim?" diye sor. Bu önerileri "oneriler" alanına da koy.
 - SDK ve modül yapımıyla ilgili soruları aşağıdaki sözleşmeden yanıtla; sözleşmede olmayan bir özellik uydurma, yapılamıyorsa dürüstçe söyle.
 - Her yanıtta (yanit_ver ya da modul_yaz) "kaynaklar" alanına yanıtında bilgisini kullandığın eserlerin id'lerini, "sdk" alanına dayandığın SDK parçalarını yaz ("eserler.liste", "ekran.uc", düğüm tipi için yalnızca adı: "kapak"). "oneriler" alanına ustanın tek dokunuşla gönderebileceği 2–3 kısa soru ya da istek yaz: sohbetin şimdiki hâline uysun, ustanın ağzından yazılsın, en çok 80 harf; biri genelde modülü yaptırmak ya da geliştirmek olsun.
 
@@ -98,7 +100,7 @@ export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env
 - Dosya şunu dışa aktarır: export default async function basla() { ... }
 - Modül yalıtılmış bir ortamda çalışır: document, window, fetch, localStorage, setTimeout gibi tarayıcı API'leri YOKTUR. Her şey SDK ile yapılır (kalıcı veri için depo, puan için profil).
 - Ekranı uygulama çizer; HTML yazma. Yalnızca sözleşmedeki ekran.* bileşenleri ve sahne.ciz düğüm tipleri vardır.
-- Tarihî bilgi UYDURMA. Belirli bir esere ait ad, yüzyıl, tarih, kişi, sayı, tarihçe ve kaynak her zaman SDK'dan gelen eser verisinden okunur. Genel kavramları (kubbe, revak, kitabe nedir gibi) kendi cümlelerinle açıklayabilirsin.
+- Tarihî bilgi UYDURMA ve dışarıdan getirme. Belirli bir esere ait ad, yüzyıl, tarih, kişi, sayı, tarihçe ve kaynak her zaman SDK'dan gelen eser verisinden okunur. Modül yalnızca bilgi bankasındaki eserlerle çalışır: eserler.getir / eserler.iliskiler'e yalnızca eser_ara ile bulduğun gerçek kimlikleri ver; eserler.liste'de yalnızca kayıtlı il ve türleri kullan.
 - Liste boş gelebilir; bu durumu nazikçe karşıla. Her eserde her bilgi yoktur: ihtiyacın olan alanları sunucuda süz — eserler.liste({ gerekli: ["konum"] }) harita için, { gerekli: ["yuzyil"] } yüzyıl sorusu için, { gerekli: ["fotograf"] } görsel oyunlar için, { tam: true } bütün bilgileri bilinen eserler için. eserler.tamlik(eser) bir eserde neyin bilindiğini söyler.
 - Zengin ve ayrıntılı yaz: ustanın fikrini derinlemesine işle (birden çok bölüm, ilerleme, puanlama, başarımlar, kayıtlı rekor…). En fazla ${MAKS_SATIR} satır. Açıklayıcı Türkçe adlar ve kısa yorumlar kullan; ekranları ayrı fonksiyonlara böl.
 - id: küçük harf, rakam ve tire (örn. "cesme-avi").
@@ -221,6 +223,14 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
     };
   }
 
+  // Modül denetimi için bilgi bankasının o anki kimlik/il/tür kümeleri (eserler Studio'da düzenlenebildiği için her seferinde).
+  const bilgiBankasi = () => ({
+    idler: new Set(eserler.map((e) => e.id)),
+    iller: new Set(eserler.map((e) => e.il)),
+    ilceler: new Set(eserler.map((e) => e.ilce).filter(Boolean)),
+    turler: new Set(eserler.map((e) => e.tur)),
+  });
+
   // Bilgi bankasından bir eserin kaydı: kalfanın soruları yanıtlarken okuduğu tek kaynak.
   function eserBilgisi(g = {}) {
     const e = eserler.find((x) => x.id === g.id);
@@ -320,7 +330,7 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
             continue;
           }
           deneme++;
-          sonHatalar = modulDenetle(c.girdi, sdkTipleri);
+          sonHatalar = modulDenetle(c.girdi, sdkTipleri, bilgiBankasi());
           if (!sonHatalar.length) teslim = c.girdi;
           sonuclar.push(sonHatalar.length
             ? { id: c.id, hata: true, icerik: `Modül doğrulamadan geçmedi, lütfen düzelt:\n- ${sonHatalar.join("\n- ")}` }
@@ -344,7 +354,7 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
 
   return {
     calistir,
-    dogrula: (kod) => dogrula(kod, sdkTipleri),
+    dogrula: (kod) => dogrula(kod, sdkTipleri, bilgiBankasi()),
     get sahte() { return saglayiciAl().tur === "sahte"; },
     get model() { const s = saglayiciAl(); return s.tur === "sahte" ? "sahte" : s.model; },
     get saglayici() { return saglayiciAl().tur; },
@@ -487,14 +497,14 @@ function jsonCoz(metin) {
 
 const kimlikGecerli = (id) => typeof id === "string" && /^[a-z0-9-]{1,64}$/.test(id);
 
-function modulDenetle(modul, sdkTipleri) {
+function modulDenetle(modul, sdkTipleri, veri) {
   const hatalar = [];
   for (const alan of ["id", "ad", "aciklama", "kod", "aciklama_ustaya"]) {
     if (typeof modul?.[alan] !== "string" || !modul[alan].trim()) hatalar.push(`"${alan}" alanı eksik`);
   }
   if (hatalar.length) return hatalar;
   if (!kimlikGecerli(modul.id)) hatalar.push("id yalnızca küçük harf, rakam ve tire içermeli");
-  return hatalar.concat(dogrula(modul.kod, sdkTipleri));
+  return hatalar.concat(dogrula(modul.kod, sdkTipleri, veri));
 }
 
 const ORTAM_TIPLERI = "declare const console: { log(...x: unknown[]): void };";
@@ -504,7 +514,23 @@ const ZEMINLER = new Set(["acik", "parsomen", "koyu", "gece"]);
 const IKONLAR = new Set("pusula harita yildiz kupa kitap soru ev kullanici zaman kamera kup oyun liste ok geri bilgi kalp konum arama tekrar".split(" "));
 const ODAKLAR = new Set("genel yakin cati yan arka ust".split(" "));
 
-function dogrula(kod, sdkTipleri) {
+// Modül yalnızca bilgi bankasındaki eserlerle çalışır: koda elle yazılmış eser kimlikleri ve liste süzgeçleri veritabanında olmalı.
+function bilgiBankasiDenetimi(kod, veri) {
+  if (!veri) return [];
+  const hatalar = [];
+  for (const [, ne, id] of kod.matchAll(/\beserler\.(getir|iliskiler)\(\s*["'`]([^"'`]*)["'`]/g)) {
+    if (!veri.idler.has(id)) hatalar.push(`eserler.${ne}("${id}"): bilgi bankasında bu kimlikte bir eser yok. Yalnızca veritabanındaki eserleri kullan; gerçek kimliği eser_ara ile bul`);
+  }
+  for (const [, govde] of kod.matchAll(/\beserler\.liste\(\s*\{([^}]*)\}/g)) {
+    for (const [alan, kume, ad] of [["il", veri.iller, "il"], ["ilce", veri.ilceler, "ilçe"], ["tur", veri.turler, "tür"]]) {
+      const m = new RegExp(`\\b${alan}:\\s*["'\`]([^"'\`]*)["'\`]`).exec(govde);
+      if (m && !kume.has(m[1])) hatalar.push(`eserler.liste: bilgi bankasında "${m[1]}" diye bir ${ad} yok (kayıtlı: ${[...kume].slice(0, 12).join(", ")})`);
+    }
+  }
+  return hatalar;
+}
+
+function dogrula(kod, sdkTipleri, veri) {
   if (typeof kod !== "string" || !kod.trim()) return ["kod boş"];
   const hatalar = [];
   if (kod.split("\n").length > MAKS_SATIR) hatalar.push(`kod en fazla ${MAKS_SATIR} satır olmalı`);
@@ -529,6 +555,7 @@ function dogrula(kod, sdkTipleri) {
       hatalar.push(`"${ad}" olay döngüsünden sonra const/let ile tanımlanmış; döngü bitmediği için hiç tanımlanmaz. Döngüden önce tanımla ya da "function ${ad}()" yaz`);
     }
   }
+  hatalar.push(...bilgiBankasiDenetimi(kod, veri));
   if (!/sahne\.ayarla\s*\(/.test(kod)) hatalar.push("modül bir uygulama olmalı: önce sahne.ayarla({ baslik, tema }) çağır, sonra sahne.ciz ile kendi ekranını çiz");
   return hatalar.concat(tipDenetimi(kod, sdkTipleri));
 }

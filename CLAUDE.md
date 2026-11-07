@@ -78,6 +78,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `ANDROID_IMZA_SHA256` | APK imza sertifikasının SHA-256 parmak izi; doluysa `/.well-known/assetlinks.json` yayımlanır ve `/m/<anahtar>` paylaşım bağlantıları Android'de uygulamayı açar |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |
+| `DALIS_VIKIPEDI=1` | Dalış kalfası Vikipedi'yi ek kaynak olarak kullanır; boşsa yalnızca bilgi bankası |
 | `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Birincil sağlayıcı (UstaGPT, OpenAI uyumlu): `KALFA_API_URL` / `DALIS_API_URL` boşsa iki kalfa da bunu kullanır. Modeller Studio'da seçilir (`data/kalfa-ayarlari.json`, `.env` modellerini geçersiz kılar) |
 | `LONCA_API_ANAHTARI` | `mobil/hazirla.mjs`'nin mobil pakete koyduğu API anahtarı |
 | `LONCA_ALAN_ADI`, `LONCA_EPOSTA`, `LONCA_YOL_ONEKI` | İnternette yayın: Nginx + Let's Encrypt (`docker-compose.sunucu.yml`, `docker/`) |
