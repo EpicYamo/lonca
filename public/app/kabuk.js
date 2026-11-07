@@ -361,7 +361,14 @@ let klavyePayi = 0;
 function odagiGoster() {
   const e = document.activeElement;
   if (!yaziAlani(e)) return;
-  requestAnimationFrame(() => e.scrollIntoView({ block: "center", inline: "nearest", behavior: hareketAz() ? "auto" : "smooth" }));
+  requestAnimationFrame(() => {
+    // Alan zaten görünüyorsa kaydırma: yazarken art arda gelen çağrılar sayfayı oynatıp yazmayı yavaşlatmasın.
+    const vv = window.visualViewport;
+    const alt = (vv ? vv.offsetTop + vv.height : innerHeight) - (parseFloat(kok.style.getPropertyValue("--klavye")) || 0);
+    const r = e.getBoundingClientRect();
+    if (r.top >= 8 && r.bottom <= alt - 8) return;
+    e.scrollIntoView({ block: "center", inline: "nearest", behavior: hareketAz() ? "auto" : "smooth" });
+  });
 }
 function klavyeKur() {
   // Klavye açıkken başka bir alana geçince de (ör. formda bir sonraki alan) görünür yere gel.
