@@ -184,7 +184,7 @@ function yontemlerOlustur(modul) {
     let uygulamaModu = false;
     const hedefKoy = (...d) => (uygulamaModu ? katman.koy(...d) : sahneyeKoy(...d));
     const ekranlar = ekranYontemleri({
-      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => katkiAc(e),
+      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => duzeltmeIste(e),
       rozetKaydet: ({ ad }) => {
         const t = profil.basarimKazan(modul.id, `rozet-${ad}`, ad);
         if (t) profil.puanEkle(25);
@@ -246,7 +246,7 @@ function yontemlerOlustur(modul) {
       },
       "sahne.bildir": async (m) => bildir(m),
       "sahne.efekt": async (ad) => sahneApi.efekt(ad),
-      "ekran.duzeltme": async (eser) => (eser?.id ? katkiAc(eser) : { gonderildi: false }),
+      "ekran.duzeltme": async (eser) => (eser?.id ? duzeltmeIste(eser) : { gonderildi: false }),
       "profil.bilgi": async () => profil.profilBilgi(),
       "profil.puanEkle": async (n, neden) => {
         const r = profil.puanEkle(n);
@@ -348,7 +348,8 @@ function kolajDongusu(liste) {
 }
 
 const eserSayfasi = eserSayfasiKur({
-  el, api, seslendir, bildir, katkiAc: (e) => katkiAc(e),
+  el, api, seslendir, bildir, katkiAc: (e) => duzeltmeIste(e),
+  hataYazisi: ONIZLEME ? "Bu eserde eksik var, düzenle" : "Bir hata mı gördün? Bildir",
   dalisModulu: () => modulListesi.find((m) => /dalis/.test(m.id)) ?? null,
   modulAc: (m) => moduluAc(m),
 });
@@ -754,6 +755,12 @@ $("#katki-formu").elements.foto.addEventListener("change", (e) => {
   e.target.value = "";
   katkiFotolariniCiz();
 });
+// Studio önizlemesinde vatandaş formu yerine eser, Studio'nun içerik formunda düzenlemeye açılır.
+function duzeltmeIste(eser) {
+  if (!ONIZLEME || !eser?.id) return katkiAc(eser);
+  parent.postMessage({ tur: "eser-duzenle", id: eser.id }, location.origin);
+  return Promise.resolve({ gonderildi: false });
+}
 function katkiAc(eser = null) {
   katkiEser = eser;
   const f = $("#katki-formu");

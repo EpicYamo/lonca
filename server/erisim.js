@@ -144,7 +144,9 @@ ${hata ? `<p class="h">${kacis(hata)}</p>` : ""}<input type="password" name="ana
       if (!gerekli) return rep.redirect(devam);
       if (!anaMi(req.body?.anahtar)) return rep.code(401).type("text/html; charset=utf-8").send(sayfa(devam, "Anahtar yanlış."));
       const { deger } = cihazEkle(`tarayıcı · ${String(req.headers["user-agent"] ?? "").slice(0, 40)}`);
-      rep.header("set-cookie", `${CEREZ}=${encodeURIComponent(deger)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000`);
+      // Nginx arkasında HTTPS ise (X-Forwarded-Proto) çerez yalnızca şifreli bağlantıda gönderilir.
+      const guvenli = req.protocol === "https" ? "; Secure" : "";
+      rep.header("set-cookie", `${CEREZ}=${encodeURIComponent(deger)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=31536000${guvenli}`);
       return rep.redirect(devam);
     });
     app.get("/cikis", async (req, rep) => {

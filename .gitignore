@@ -15,6 +15,8 @@ data/yuklenen/
 data/eser-gecmisi.json
 data/gecmis/
 data/moduller/eski/
+# Studio'da seçilen kalfa modelleri (her makinede ayrı)
+data/kalfa-ayarlari.json
 
 # Eşleşen cihazların anahtar özetleri (her makinede ayrı)
 data/cihazlar.json

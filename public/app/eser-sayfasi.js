@@ -8,7 +8,7 @@ const $ = (s) => document.querySelector(s);
 const yuzyilYazi = (y) => (y ? `${y}. yüzyıl` : null);
 const ENG_YUZYIL = (y) => (y ? `${y}${[, "st", "nd", "rd"][y % 10 > 3 || Math.floor(y / 10) === 1 ? 0 : y % 10] ?? "th"} century` : null);
 
-export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, dalisModulu, modulAc }) {
+export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi, dalisModulu, modulAc }) {
   const d = $("#eser-penceresi");
   let eser = null, dil = "tr", harita = null, istekNo = 0;
 
@@ -172,6 +172,7 @@ export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, dalisModul
     if (!e.tarihce?.en) dil = "tr";
     metniCiz();
     $("#ep-kaynak").textContent = `Kaynak: ${e.kaynak}`;
+    if (hataYazisi) $("#ep-hata").textContent = hataYazisi;
     $("#ep-hata").onclick = () => { d.close(); katkiAc(e); };
 
     const rozetler = $("#ep-rozetler");
