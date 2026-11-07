@@ -57,12 +57,35 @@ Everything works without any configuration:
 | `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
 | `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
 | `KALFA_SINIR` | Journeyman requests allowed per IP in ten minutes |
+| `LONCA_API_ANAHTARI` | API key: when set, every `/api` request needs the `x-lonca-anahtar` header (or a paired device key / browser login) |
 
 To try it on a phone, connect to the same Wi-Fi and open
 `http://<computer-ip>:3000/app`. The app can be added to the home screen (there
 is a web app manifest). Browsers only grant location permission on HTTPS or
 localhost; if the phone cannot get a location, the demo location (Bursa, Hanlar
 district) is used.
+
+### Docker
+
+The image contains Node 22, ffmpeg/ffprobe and python3 + Pillow (needed by the
+dive journeyman). Keys are never baked into the image: `.env` is read at run time
+through `env_file`. `data/` and `public/medya/` are mounted as volumes.
+
+```bash
+cp .env.example .env                                   # set LONCA_API_ANAHTARI (openssl rand -hex 24)
+docker compose up -d --build                           # listens on 0.0.0.0:3000
+docker compose exec lonca node araclar/eslestir.mjs    # 6-digit pairing code for a phone
+```
+
+**Connecting the Android app on the same Wi-Fi:** the app finds the server by
+probing `GET /api/merhaba` (always open, returns `{ lonca, anahtarGerekli }`), so
+the key is never sent to every address on the network. It then either sends the
+main key in `x-lonca-anahtar`, or exchanges a pairing code for its own device key
+with `POST /api/eslestir { kod, ad }` → `{ anahtar }`. Codes are single-use and
+expire after five minutes. List or revoke devices with
+`node araclar/eslestir.mjs --liste` / `--sil <id>`. In a browser, `/app/` and
+`/studio/` redirect to `/giris` once; the key is exchanged for a revocable
+HttpOnly cookie (`/cikis` logs out).
 
 ## Commands
 
@@ -273,6 +296,11 @@ city-agnostic (`eserler.liste({ il })`).
   against their first bytes to confirm they really are JPEG, PNG or WebP.
 - **Admin rights:** admin actions require the `x-yonetici-sifre` header, compared
   in constant time. A non-admin cannot overwrite a published module.
+- **API key:** with `LONCA_API_ANAHTARI` set, `/api` is closed to anyone without
+  the main key, a paired device key or a browser login cookie
+  (`server/erisim.js`). Device keys are stored only as SHA-256 hashes in
+  `data/cihazlar.json`. Traffic on the LAN is plain HTTP, so use it only on a
+  network you trust.
 - **Rate limiting:** the journeyman, suggestions and uploads are rate-limited per
   IP.
 - **Personal data:** profile and achievements stay on the device. Location goes

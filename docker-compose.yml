@@ -1,0 +1,26 @@
+# Kullanım:
+#   cp .env.example .env    # anahtarları doldur; LONCA_API_ANAHTARI'yı mutlaka ayarla (openssl rand -hex 24)
+#   docker compose up -d --build
+#   docker compose exec lonca node araclar/eslestir.mjs   # telefon için eşleştirme kodu
+services:
+  lonca:
+    build: .
+    image: lonca:yerel
+    init: true
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: "3000"
+      # Eşleştirme çıktısında gösterilecek adres (container içinden Mac'in Wi-Fi IP'si görünmez).
+      # Örnek: LONCA_ADRES=$(ipconfig getifaddr en0):3000 docker compose up -d
+      LONCA_ADRES: ${LONCA_ADRES:-}
+    ports:
+      # 0.0.0.0: aynı Wi-Fi'deki telefon erişebilsin. Yalnızca bu bilgisayar için 127.0.0.1:3000:3000 yap.
+      - "0.0.0.0:${LONCA_PORT:-3000}:3000"
+    volumes:
+      # Eserler, modüller, dalışlar, cihaz anahtarları ve yüklenen fotoğraflar
+      - ./data:/app/data
+      # Eser fotoğrafları ve dalış kareleri (dalış kalfası buraya yazar)
+      - ./public/medya:/app/public/medya
