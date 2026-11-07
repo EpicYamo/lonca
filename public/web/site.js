@@ -21,7 +21,10 @@ export const modulAdresi = (id) => `/app/?modul=${encodeURIComponent(id)}&gomulu
 const eserAdresi = (id) => `/#/eser/${encodeURIComponent(id)}`;
 const turAdi = (t) => TUR_ADLARI[t] ?? "Yapı";
 const yuzyilYazi = (y) => (y ? `${y}. yüzyıl` : null);
-const kunye = (e) => [turAdi(e.tur), yuzyilYazi(e.yuzyil), e.ilce].filter(Boolean).join(" · ");
+// Birden çok ilden eser varsa künyede il de yazılır (Osmangazi, Bursa); tek ilde yalnızca ilçe.
+let cokIlli = false;
+const yer = (e) => (cokIlli ? [e.ilce, e.il].filter(Boolean).join(", ") : e.ilce || e.il);
+const kunye = (e) => [turAdi(e.tur), yuzyilYazi(e.yuzyil), yer(e)].filter(Boolean).join(" · ");
 
 $("#logo").innerHTML = loncaLogo({ boyut: 30 });
 $("#alt-logo").innerHTML = loncaLogo({ boyut: 26 });
@@ -107,7 +110,7 @@ $("#ust-gezinme").addEventListener("click", (e) => {
 });
 
 // ---------- Veri ----------
-const veri = { vitrin: null, moduller: [], eserler: [], dalislar: [], iliskiler: [] };
+const veri = { vitrin: null, moduller: [], eserler: [], dalislar: [], iliskiler: [], iller: [] };
 const eserBul = (id) => veri.eserler.find((e) => e.id === id);
 const yukleniyor = Promise.allSettled([
   getir("/api/vitrin").then((v) => { veri.vitrin = v; }),
@@ -212,7 +215,7 @@ function sayilarCiz() {
   const kalem = (n, ad, bag) => el("li", {}, el("a", { href: bag }, el("strong", { metin: String(n) }), el("span", { metin: ad })));
   $("#sayilar").replaceChildren(
     kalem(s.eser, "vakıf eseri", "/#eserler"), kalem(s.fotografli, "fotoğraflı", "/#eserler"),
-    kalem(s.konumlu, "haritada", "/#harita"), kalem(s.ilce, "ilçe", "/#eserler"),
+    kalem(s.konumlu, "haritada", "/#harita"), kalem(veri.iller.length, "il", "/#eserler"), kalem(s.ilce, "ilçe", "/#eserler"),
     kalem(veri.moduller.length, "modül", "/#moduller"));
 }
 
@@ -236,7 +239,7 @@ function modullerCiz() {
 }
 
 // ---------- 4. Eserler: süzgeçli duvar ----------
-const suzgec = { tur: "", ilce: "", yuzyil: "" };
+const suzgec = { tur: "", il: "", ilce: "", yuzyil: "" };
 const SAYFA = 24;
 let gosterilen = SAYFA;
 
@@ -254,7 +257,7 @@ function eserTasi(e) {
 
 function suzulmus() {
   return veri.eserler
-    .filter((e) => (!suzgec.tur || e.tur === suzgec.tur) && (!suzgec.ilce || e.ilce === suzgec.ilce) && (!suzgec.yuzyil || String(e.yuzyil) === suzgec.yuzyil))
+    .filter((e) => (!suzgec.tur || e.tur === suzgec.tur) && (!suzgec.il || e.il === suzgec.il) && (!suzgec.ilce || e.ilce === suzgec.ilce) && (!suzgec.yuzyil || String(e.yuzyil) === suzgec.yuzyil))
     .sort((a, b) => (b.fotograflar?.length ? 1 : 0) - (a.fotograflar?.length ? 1 : 0) || a.ad.localeCompare(b.ad, "tr"));
 }
 
@@ -271,12 +274,26 @@ function suzgecCiz() {
   cipler($("#tur-cipleri"), [["", "Tümü", veri.eserler.length], ...turler.map(([t, n]) => [t, turAdi(t), n])], "tur");
   const yuzyillar = [...say((e) => e.yuzyil)].filter(([y]) => y).sort((a, b) => a[0] - b[0]);
   cipler($("#yuzyil-cipleri"), [["", "Hepsi"], ...yuzyillar.map(([y, n]) => [String(y), `${y}. yy`, n])], "yuzyil");
-  const sec = $("#ilce-sec");
-  if (sec.options.length === 1) {
-    for (const [ilce, n] of [...say((e) => e.ilce)].filter(([i]) => i).sort((a, b) => a[0].localeCompare(b[0], "tr")))
-      sec.append(el("option", { value: ilce, metin: `${ilce} (${n})` }));
-    sec.addEventListener("change", () => { suzgec.ilce = sec.value; gosterilen = SAYFA; duvarCiz(); });
+  // Önce il, sonra o ilin ilçeleri.
+  const ilSec = $("#il-sec");
+  if (ilSec.options.length === 1) {
+    for (const [il, n] of [...say((e) => e.il)].filter(([i]) => i).sort((a, b) => a[0].localeCompare(b[0], "tr")))
+      ilSec.append(el("option", { value: il, metin: `${il} (${n})` }));
+    if (veri.iller.length === 1) { ilSec.value = veri.iller[0]; suzgec.il = veri.iller[0]; }
+    ilSec.addEventListener("change", () => { suzgec.il = ilSec.value; suzgec.ilce = ""; gosterilen = SAYFA; ilceleriDoldur(); duvarCiz(); });
+    $("#ilce-sec").addEventListener("change", (e) => { suzgec.ilce = e.target.value; gosterilen = SAYFA; duvarCiz(); });
+    ilceleriDoldur();
   }
+}
+
+function ilceleriDoldur() {
+  const sec = $("#ilce-sec");
+  const say = new Map();
+  for (const e of veri.eserler) if (e.ilce && (!suzgec.il || e.il === suzgec.il)) say.set(e.ilce, (say.get(e.ilce) ?? 0) + 1);
+  sec.replaceChildren(el("option", { value: "", metin: suzgec.il ? `${suzgec.il}: tüm ilçeler` : "Tüm ilçeler" }),
+    ...[...say].sort((a, b) => a[0].localeCompare(b[0], "tr")).map(([ilce, n]) => el("option", { value: ilce, metin: `${ilce} (${n})` })));
+  sec.disabled = !suzgec.il;
+  sec.title = suzgec.il ? "" : "Önce il seç";
 }
 
 function duvarCiz() {
@@ -413,7 +430,7 @@ function eserSayfasi(id) {
     el("div", { sinif: "es-duzen" },
       galeri,
       el("aside", { sinif: "es-yan" },
-        el("dl", { sinif: "es-kunye" }, satir("Tür", turAdi(e.tur)), satir("Yüzyıl", yuzyilYazi(e.yuzyil)), satir("İlçe", e.ilce), satir("Adres", e.adres), satir("Kaynak", e.kaynak)),
+        el("dl", { sinif: "es-kunye" }, satir("Tür", turAdi(e.tur)), satir("Yüzyıl", yuzyilYazi(e.yuzyil)), satir("İl", e.il), satir("İlçe", e.ilce), satir("Adres", e.adres), satir("Kaynak", e.kaynak)),
         el("div", { sinif: "es-eylemler" },
           dalis && dalisModulu ? el("a", { sinif: "dugme", href: modulAdresi(dalisModulu.id) }, "Dalışını izle") : null,
           el("button", { type: "button", sinif: "dugme cizgili", onclick: async (ev) => {
@@ -448,7 +465,7 @@ function yonlendir() {
     sayfa.querySelector("h1")?.focus?.();
     return;
   }
-  document.title = "Lonca · Bursa vakıf eserleri";
+  document.title = "Lonca · Vakıf eserleri";
   const geriDonus = !sayfa.hidden;
   sayfa.hidden = true; ana.hidden = false;
   const hedef = location.hash.length > 1 && document.getElementById(location.hash.slice(1));
@@ -494,6 +511,11 @@ await yukleniyor;
 if (!veri.moduller.length && !veri.eserler.length) {
   $("#vitrin-sahneler").replaceChildren(el("p", { sinif: "bos yukleme-hatasi", metin: "İçerik yüklenemedi. Bağlantını kontrol edip sayfayı yenile." }));
 }
+veri.iller = [...new Set(veri.eserler.map((e) => e.il).filter(Boolean))].sort((x, y) => x.localeCompare(y, "tr"));
+cokIlli = veri.iller.length > 1;
+$("#eserler-ozet").textContent = veri.iller.length > 1
+  ? `Camiler, türbeler, hanlar, hamamlar… ${veri.iller.length} ildeki kayıtlı vakıf eserleri.`
+  : veri.iller.length === 1 ? `Camiler, türbeler, hanlar, hamamlar… ${veri.iller[0]} ilindeki kayıtlı vakıf eserleri.` : $("#eserler-ozet").textContent;
 vitrin = vitrinKur();
 sayilarCiz();
 modullerCiz();

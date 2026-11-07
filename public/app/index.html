@@ -29,6 +29,8 @@
   <link rel="stylesheet" href="/app/uygulama/harita.css">
   <link rel="stylesheet" href="/app/uygulama/sayfalar.css">
   <link rel="stylesheet" href="/app/uygulama/modul.css">
+  <!-- Web sitesinin modül oynatıcısı: geniş ekran düzeni yalnızca ?gomulu ile yüklenir (Android uygulaması görmez). -->
+  <script>if (document.documentElement.classList.contains("gomulu")) document.write('<link rel="stylesheet" href="/web/oynatici.css">');</script>
   <script src="/mobil/kopru.js"></script>
   <script type="importmap">
     { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/", "three/examples/jsm/": "/vendor/three/examples/jsm/" } }

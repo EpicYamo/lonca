@@ -94,11 +94,12 @@ function atlas({ eserler }) {
 
 // ---------- Sisli Vakıf Atlası: karanlık zemin, gerçek koordinatlardan takımyıldız, kaynaklı bağlar çizgi ----------
 function sisli({ eserler, iliskiler }) {
-  // Bursa merkezi (ortanca nokta çevresi) çerçevelenir; uzak ilçeler (İznik, İnegöl…) dışarıda kalır.
   const tum = eserler.filter((e) => e.konum?.lat && e.konum?.lng);
   const ortanca = (d) => d.sort((x, y) => x - y)[Math.floor(d.length / 2)] ?? 0;
   const [mLa, mLo] = [ortanca(tum.map((e) => e.konum.lat)), ortanca(tum.map((e) => e.konum.lng))];
-  const konumlu = tum.filter((e) => Math.abs(e.konum.lat - mLa) < 0.045 && Math.abs(e.konum.lng - mLo) < 0.075);
+  // Birden çok ilde bütün ülke görünür; tek ilde il merkezi çerçevelenir.
+  const cokIl = new Set(tum.map((e) => e.il)).size > 1;
+  const konumlu = cokIl ? tum : tum.filter((e) => Math.abs(e.konum.lat - mLa) < 0.045 && Math.abs(e.konum.lng - mLo) < 0.075);
   const enler = konumlu.map((e) => e.konum.lat), boylar = konumlu.map((e) => e.konum.lng);
   const [la0, la1, lo0, lo1] = [Math.min(...enler), Math.max(...enler), Math.min(...boylar), Math.max(...boylar)];
   const G = 600, Y = 440;

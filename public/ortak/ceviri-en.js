@@ -1044,4 +1044,12 @@ export const EN = {
   "Siteye dön": "Back to the site",
   "Tüm iller": "All provinces",
   "İl seç": "Choose province",
+  "Önce il seç": "Choose a province first",
+  "{0}: tüm ilçeler": "{0}: all districts",
+  "Eser, il, ilçe ya da tür ara": "Search by site, province, district or type",
+  "Camiler, türbeler, hanlar, hamamlar… Kayıtlı vakıf eserleri.": "Mosques, tombs, inns, baths… Registered foundation heritage.",
+  "Camiler, türbeler, hanlar, hamamlar… {0} ildeki kayıtlı vakıf eserleri.": "Mosques, tombs, inns, baths… Registered foundation heritage across {0} provinces.",
+  "Camiler, türbeler, hanlar, hamamlar… {0} ilindeki kayıtlı vakıf eserleri.": "Mosques, tombs, inns, baths… Registered foundation heritage in {0}.",
+  "Lonca: vakıf eserleri için modüller, eserler ve haritalar": "Lonca: modules, sites and maps for foundation heritage",
+  "Lonca · Vakıf eserleri": "Lonca · Foundation heritage",
 };
