@@ -1,0 +1,134 @@
+/* Android uygulaması (html.kabuk) · üst katmanlar: alttan açılan sayfalar (davet kodu, ayarlar ve formlar),
+   alttan gelen tam ekran eser sayfası, tam ekran arama, karşılama, tanıtım ve modül ekranı.
+   Hepsi yerinde ya da alttan gelir; yana kayan sayfa yoktur. */
+
+/* ---------- Perde ---------- */
+.kabuk .kabuk-perde:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 70; background: var(--perde); animation: perde-belir .22s ease-out both; }
+:root.sayfa-acik body { overflow: hidden; }
+
+/* ---------- Davet kodu: alttan sayfa. Dar ekranda alan ve düğme alt alta; hiçbir şey ekrandan taşmaz. ---------- */
+.kabuk #davet-karti {
+  position: fixed; left: 0; right: 0; bottom: var(--klavye, 0px); z-index: 71; box-sizing: border-box; display: grid; gap: .9rem;
+  width: 100%; max-width: 640px; margin: 0 auto;
+  padding: 1.8rem max(1.25rem, env(safe-area-inset-right)) calc(1.25rem + env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
+  border-radius: 28px 28px 0 0; background: var(--yuzey); box-shadow: var(--golge-yuksek);
+  transform: translateY(105%); visibility: hidden; transition: transform .26s var(--egri-cik), visibility 0s linear .26s;
+}
+.kabuk #davet-karti.acik { transform: none; visibility: visible; transition: transform .4s var(--egri-gir), visibility 0s; }
+.kabuk #davet-karti.suruklen { transition: none; }
+.kabuk #davet-karti :is(form, .davet-ust, .davet-ust > div, p) { min-width: 0; max-width: 100%; }
+.kabuk #davet-karti h2 { font-size: 1.35rem; }
+.kabuk #davet-karti .davet-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem; }
+.kabuk #davet-karti .davet-form input { width: 100%; min-width: 0; min-height: 54px; border-radius: 16px; font-size: 1.2rem; text-align: center; }
+.kabuk #davet-karti .davet-form button { width: 100%; min-height: 52px; border-radius: 99px; }
+.kabuk .kabuk-tutamac { display: block; position: absolute; top: 8px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 99px; background: var(--cizgi-guclu); }
+:root.kontrast.kabuk #davet-karti { border: 1px solid #fff; }
+
+/* ---------- Ayarlar, hesap, katkı, tanışma pencereleri: telefonda alttan sayfa ---------- */
+.kabuk .ayarlar { padding-bottom: var(--klavye, 0px); transition: padding-bottom .2s ease-out; }
+.kabuk .ayarlar-kutu {
+  box-sizing: border-box; width: 100%; max-width: 640px; max-height: calc(100dvh - 2.5rem - env(safe-area-inset-top) - var(--klavye, 0px));
+  overflow-x: hidden; scroll-padding-block: 1.5rem;
+}
+.kabuk .ayarlar-kutu :is(input, select, textarea) { max-width: 100%; min-width: 0; box-sizing: border-box; }
+.kabuk .ayarlar-kutu .dugme { border-radius: 99px; }
+.kabuk .ayarlar-kutu .dugme:not(.ikincil) { background: var(--ana); color: var(--ana-metin); }
+.kabuk .katki-ikili { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kabuk .katki-ikili input { width: 100%; min-width: 0; }
+.kabuk.klavye-acik :is(.ayarlar-kutu, #davet-karti) { padding-bottom: 1.1rem; }
+
+/* ---------- Eser sayfası: alttan gelen tam ekran sayfa; sol üstte kapatma ---------- */
+.kabuk .eser-penceresi { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; inset: 0; border-radius: 0; box-shadow: none; overflow-x: hidden; }
+.kabuk .eser-penceresi[open] { animation: alttan-gel .42s var(--egri-gir) both; }
+.kabuk .eser-penceresi::before { display: none; }
+.kabuk .eser-penceresi::backdrop { background: var(--perde); }
+.kabuk .ep-govde { min-width: 0; }
+.kabuk .ep-govde > h2 { font-size: 2rem; line-height: 1.1; }
+.kabuk .ep-x {
+  position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: auto; z-index: 5; display: grid; place-items: center;
+  width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; overflow: hidden;
+  background: rgba(0, 0, 0, .45); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.kabuk .ep-x svg { width: 22px; height: 22px; }
+.kabuk .ep-eylemler { position: sticky; bottom: 0; z-index: 4; flex-wrap: nowrap; gap: .5rem; margin-top: 1rem; padding-block: .75rem calc(.75rem + env(safe-area-inset-bottom)); background: var(--yuzey); box-shadow: 0 -.5px 0 var(--cizgi); }
+.kabuk .ep-eylemler .dugme { flex: 1 1 0; min-width: 0; min-height: 48px; padding-inline: .6rem; border-radius: 99px; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kabuk #ep-kapat { display: none; }
+.kabuk .galeri[open] { animation: alttan-gel .42s var(--egri-gir) both; }
+@keyframes alttan-gel { from { transform: translateY(100%); } }
+
+/* ---------- Tam ekran arama ---------- */
+:root.kabuk.arama-sayfasi body { overflow: hidden; }
+:root.kabuk.arama-sayfasi .arama-alani[role="search"] {
+  display: block !important; position: fixed; inset: 0; z-index: 60; max-width: none; margin: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top) + .5rem) max(.75rem, env(safe-area-inset-right)) calc(1rem + env(safe-area-inset-bottom) + var(--klavye, 0px)) max(.75rem, env(safe-area-inset-left));
+  background: var(--zemin); animation: arama-sayfa-gel .28s var(--egri-gir) both;
+}
+:root.kabuk.arama-sayfasi .arama-kutu { position: sticky; top: 0; z-index: 2; min-height: 56px; padding-left: 0; border-radius: 28px; background: var(--yuzey); box-shadow: var(--golge-kart); }
+:root.kabuk.arama-sayfasi .arama-kutu > svg { display: none; }
+:root.kabuk.arama-sayfasi .arama-kutu input { height: 56px; }
+:root.kabuk.arama-sayfasi .arama-geri {
+  position: relative; display: grid; place-items: center; flex: none; width: 48px; height: 48px; margin-left: 4px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--metin); cursor: pointer; overflow: hidden;
+}
+.arama-geri svg { width: 22px; height: 22px; }
+:root.kabuk.arama-sayfasi .arama-sonuc { max-height: none; margin-top: .75rem; border-radius: 20px; box-shadow: none; animation: none; }
+:root.kabuk.arama-sayfasi .arama-durum { margin: .9rem .5rem 0; color: var(--soluk); }
+:root.kabuk.arama-sayfasi .arama-durum:empty::before { content: "Eser adı, ilçe, il, tür ya da uygulama adı yaz."; }
+@keyframes arama-sayfa-gel { from { opacity: 0; transform: translateY(18px); } }
+
+/* ---------- Karşılama ve tanıtım ---------- */
+.kabuk .karsilama { padding: 0 0 var(--klavye, 0px); place-items: stretch; background: var(--yuzey); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.kabuk .ks-kutu { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 48dvh) 1fr; width: 100%; min-height: 100dvh; border-radius: 0; box-shadow: none; }
+.kabuk .ks-gorsel::after { background: linear-gradient(180deg, transparent 40%, var(--yuzey) 100%); }
+.kabuk .ks-govde { justify-content: flex-end; padding: .5rem 1.4rem calc(1.4rem + env(safe-area-inset-bottom)); }
+.kabuk .ks-govde h2 { font-size: 2.2rem; line-height: 1.08; }
+.kabuk .ks-dugmeler .dugme { min-height: 52px; border-radius: 99px; }
+
+/* ---------- Modül ekranı: Android uygulama çubuğu (web'de kapsül) ---------- */
+.kabuk .modul-cubugu {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: .25rem; min-height: calc(56px + env(safe-area-inset-top));
+  /* Modülün kendi teması (--zemin, --metin) çubuğa da geçer: parşömen modülde açık, gece modülünde koyu çubuk. */
+  padding: env(safe-area-inset-top) .25rem 0; background: color-mix(in srgb, var(--zemin) 88%, transparent); color: var(--metin);
+  border-bottom: .5px solid color-mix(in srgb, var(--metin) 14%, transparent); font-family: var(--yazi-sistem);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+}
+.kabuk .kapsul { display: none; }
+.mc-geri, .mc-dugme { display: grid; place-items: center; min-width: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: 600 1rem var(--yazi-sistem); cursor: pointer; }
+.mc-geri svg { width: 24px; height: 24px; }
+.mc-geri:active, .mc-dugme:active { background: var(--dolgu); }
+.mc-baslik { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.25rem; }
+.kabuk .modul-ekrani { overflow-x: clip; scroll-padding-top: calc(72px + env(safe-area-inset-top)); }
+.kabuk .modul-ekrani #sahne { min-width: 0; max-width: 100%; }
+.kabuk .modul-ekrani .s-ust { top: calc(56px + env(safe-area-inset-top)); }
+.kabuk .modul-ekrani:has(.s-dalis-sahne) .modul-cubugu { display: none; }
+.kabuk .modul-ekrani:has(.s-dalis-sahne) .kapsul { display: flex; }
+/* Modül ekranları değişirken içerik yerinde solup yükselir (sahne.css: .s-giris); görünüm geçişi kapalı, yana kayma yok. */
+.kabuk #sahne { view-transition-name: none; }
+
+/* ---------- Hareketi azalt ---------- */
+:root.hareket-az.kabuk :is(.kabuk-perde, .eser-penceresi[open], .galeri[open], .arama-alani, .ekran-gecis) { animation: none !important; }
+:root.hareket-az.kabuk :is(#davet-karti, .ayarlar) { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .kabuk :is(.kabuk-perde, .eser-penceresi[open], .galeri[open], .arama-alani, .ekran-gecis) { animation: none !important; }
+  .kabuk :is(#davet-karti, .ayarlar) { transition: none; }
+}
+
+/* ---------- Giriş, kayıt ve tanışma: tam sayfa (karşılama ekranı da tam sayfa; aradaki geçişte düzen değişmez) ----------
+   İçerik telefonda kenardan kenara, geniş ekranda 460px'lik sütunda ortalanır. Aşağı çekince kapanmaz (zarif.js);
+   "Vazgeç" ve Android geri tuşu kapatır. */
+.kabuk :is(#hesap-penceresi, #tanisma) {
+  align-items: stretch; padding: 0 0 var(--klavye, 0px); background: var(--yuzey);
+  -webkit-backdrop-filter: none; backdrop-filter: none; animation: tam-sayfa-gel .34s var(--egri-gir) both;
+}
+.kabuk :is(#hesap-penceresi, #tanisma) > .ayarlar-kutu {
+  align-content: center; width: 100%; max-width: none; height: calc(100dvh - var(--klavye, 0px)); max-height: none; margin: 0;
+  padding: calc(env(safe-area-inset-top) + 2rem) max(1.4rem, calc((100% - 460px) / 2)) calc(1.5rem + env(safe-area-inset-bottom));
+  border-radius: 0; box-shadow: none; overflow-y: auto; overscroll-behavior: contain; animation: none;
+}
+.kabuk :is(#hesap-penceresi, #tanisma) > .ayarlar-kutu::before { display: none; }
+.kabuk #hesap-penceresi .hesap-logo, .kabuk #hesap-penceresi .hesap-logo svg { width: 64px; height: 64px; }
+.kabuk #hesap-penceresi h2, .kabuk #tanisma h2 { font-size: 2rem; line-height: 1.1; }
+.kabuk :is(#hesap-penceresi, #tanisma) :is(.dugme, .hesap-gonder) { min-height: 52px; border-radius: 99px; }
+@keyframes tam-sayfa-gel { from { opacity: 0; transform: translateY(24px); } }
+:root.hareket-az.kabuk :is(#hesap-penceresi, #tanisma) { animation: none; }
+@media (prefers-reduced-motion: reduce) { .kabuk :is(#hesap-penceresi, #tanisma) { animation: none; } }

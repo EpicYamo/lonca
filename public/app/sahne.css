@@ -490,6 +490,27 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-dalis-duz .s-dalis-rozet { position: static; align-self: flex-start; color: var(--metin); background: color-mix(in srgb, var(--metin) 8%, transparent); border-color: var(--cizgi); }
 
 /* Erişilebilirlik: büyük yazıda uzun sözcükler kutudan taşmaz, yana kaydırılan şeritler klavyeyle odaklanınca belli olur. */
-.s-kok :is(h2, h3, h4, strong, .s-metin, .s-eser-ad, .s-dugme) { overflow-wrap: break-word; hyphens: auto; }
+.s-kok :is(h2, h3, h4, strong, .s-metin, .s-eser-ad, .s-dugme) { hyphens: auto; }
 .s-dugme { max-width: 100%; white-space: normal; }
 .s-fotograflar:focus-visible { outline: 3px solid var(--ana); outline-offset: 3px; }
+
+/* ---------- Taşma koruması: her düğüm, kalfa nasıl iç içe koyarsa koysun, ekrana sığar ----------
+   Esnek/ızgara öğeleri varsayılan olarak içeriklerinin en dar genişliğinin (uzun sözcük, bağlantı, kapak) altına
+   inmez; bu da bütün sayfayı yana taşırıp kaydırır. Öğeler kapsayıcısı kadar daralır, uzun sözcük gerekirse bölünür. */
+.s-kok { min-width: 0; overflow-wrap: anywhere; }
+:is(.s-sutun, .s-satir, .s-kart, .s-izgara, .s-kapak-icerik, .s-kapak-dugmeler, .s-eser-govde, .s-liste-ogesi) > * { min-width: 0; max-width: 100%; }
+.s-kok :is(img, video, canvas, iframe, svg) { max-width: 100%; }
+/* Satırda kendi başına bir blok olan düğümler satırın tamamını alır (yanına sıkışıp taşmaz). */
+.s-satir > :is(.s-kapak, .s-afis, .s-kaydirma, .s-izgara, .s-sutun, .s-kart, .s-liste, .s-fotograflar, .s-graf, .s-dalis) { flex: 1 1 100%; }
+.s-satir > .s-metin { flex: 1 1 12rem; }
+/* Kapak, afiş ve yatay şerit ekran kenarına kadar uzanır (-1rem); bu yalnızca sahnenin ana sütununda doğrudur.
+   Kart, ızgara ya da satır içinde kenara taşmak yerine kapsayıcısına oturur. */
+:is(.s-kart, .s-izgara, .s-satir, .s-kapak-dugmeler) :is(.s-kapak, .s-afis) { margin: 0; border-radius: 20px; }
+:is(.s-kart, .s-izgara, .s-satir, .s-kapak-dugmeler) .s-kapak { min-height: min(88vh, 30rem); min-height: min(88dvh, 30rem); }
+:is(.s-kart, .s-izgara, .s-satir, .s-kapak-dugmeler) .s-kaydirma { margin-inline: 0; padding-inline: 0; }
+/* Yalnızca kapaktan oluşan açılış ekranı ekranı doldurur; altında boş zemin kalmaz. */
+.s-kok-tam > .s-kapak:only-child, .s-kok-tam > .s-sutun:only-child > .s-kapak:only-child { min-height: 100vh; min-height: 100dvh; margin-bottom: -1rem; }
+/* Studio önizlemesi (telefon çerçevesi): masaüstü tarayıcının kalıcı kaydırma çubuğu içeriğin genişliğini yemesin;
+   telefonlarda olduğu gibi kaydırma çubuğu görünmez, sayfa yine kaydırılır. */
+html.onizleme { scrollbar-width: none; }
+html.onizleme::-webkit-scrollbar { display: none; }

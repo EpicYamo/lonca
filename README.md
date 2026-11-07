@@ -320,16 +320,22 @@ and absent fields. The same filters are available over HTTP through
 
 ## Data
 
-`data/eserler.json`: **165 works**, all from Vakıf Katılım's *Bursa Vakıf
-Eserleri Envanteri* (three volumes). Works from other sources (for example
-Wikipedia) are not added: every record must come from the Vakıf Katılım
-inventory. 131 works currently have coordinates and appear on the atlas.
+`data/eserler.json`: **505 works** from Vakıf Katılım's foundation heritage
+books: **Bursa** 165 (*Bursa Vakıf Eserleri Envanteri*, three volumes),
+**Konya** 263 (*Konya Vakıf Eserleri*, two volumes, 2024) and **Hatay** 77
+(*Hatay İli Vakıf Eserleri*). These are all the cities Vakıf Katılım has
+published. Works from other sources (for example Wikipedia) are not added:
+every record must come from a Vakıf Katılım book. Only works with coordinates
+appear on the map.
+
+The Hatay book is undated and may describe buildings before the 6 February 2023
+earthquakes; its "current state" sentences are the book's, not verified today.
 
 - **History and source:** Turkish and English history text, plus the source
   (volume and page).
 - **Century:** filled only when the book states a construction date. Repair
   dates are not construction dates; without a date the field stays empty.
-- **Photos:** **443 photos** across 165 works, all taken from the books.
+- **Photos:** all taken from the books (up to two per work for Konya and Hatay).
 - **Location:** the books carry no coordinates. Manually entered approximate
   locations are used for known buildings, together with positions found by
   `npm run konum`. Approximate locations are labelled as such in the app
@@ -348,11 +354,21 @@ Data pipeline (`araclar/`):
 | `kitap-ice-aktar.py` | Reads PDF text with positions. Splits two-page spreads, TR/EN columns and complex sub-sections, and repairs broken "Ş/İ" characters. |
 | `foto-cikar.py` | Extracts photos with their position on the page and attaches each to the work that starts before it. Section covers go to the next work. |
 | `veri-olustur.py` | Merges manual corrections (`data/bursa-ek.json`) with the photos. |
+| `envanter-ice-aktar.py` | Same as `kitap-ice-aktar.py` for the Konya and Hatay books (different layout: titles found by font size, vertical titles in Hatay). |
+| `veri-olustur-envanter.py` | Turns Konya/Hatay output into records (century only from a construction sentence, with checked corrections) and writes them into `data/eserler.json`. |
+| `konum-bul.mjs` | Searches OpenStreetMap for each work (name near its district centre, else the neighbourhood in its address). All results are approximate. |
 
 ```bash
 python3 araclar/kitap-ice-aktar.py kitaplar/bursa-envanteri-cilt-*.pdf > /tmp/ham.json
 python3 araclar/foto-cikar.py /tmp/ham.json kitaplar/bursa-envanteri-cilt-*.pdf > data/bursa-fotograflar.json
 python3 araclar/veri-olustur.py /tmp/ham.json data/bursa-ek.json data/bursa-fotograflar.json > data/eserler.json
+
+# Konya and Hatay
+python3 araclar/envanter-ice-aktar.py konya kitaplar/konya-envanteri-{1,2}_cilt-web.pdf > /tmp/konya-ham.json
+python3 araclar/veri-olustur-envanter.py /tmp/konya-ham.json > /tmp/konya-kayit.json
+FOTO_SINIRI=2 python3 araclar/foto-cikar.py /tmp/konya-kayit.json kitaplar/konya-envanteri-{1,2}_cilt-web.pdf > /tmp/konya-foto.json
+python3 araclar/veri-olustur-envanter.py /tmp/konya-ham.json /tmp/konya-foto.json --ekle data/eserler.json
+npm run konum -- --il Konya
 ```
 
 Adding another city only needs records with the same fields: `il`, `ilce`, `ad`,
@@ -429,7 +445,8 @@ test/         node:test suites · e2e/ end-to-end scenario
 - **Code:** Team Kozmos.
 - **Fonts:** SIL OFL (`public/ortak/fontlar/LICENSE.md`).
 - **Libraries:** Leaflet BSD-2; three.js and 3d-tiles-renderer MIT.
-- **Bursa work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*.
+- **Work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*,
+  *Konya Vakıf Eserleri* and *Hatay İli Vakıf Eserleri*.
   Used within the scope of the hackathon; the repository is private for this
   reason.
 - **Map data:** © OpenStreetMap contributors or © Google.

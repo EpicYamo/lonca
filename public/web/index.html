@@ -9,8 +9,8 @@
   <script>try { if (localStorage.getItem("lonca.tema") === "koyu") document.documentElement.dataset.tema = "koyu"; } catch {}</script>
   <script>try { if (localStorage.getItem("lonca.dil") === "en") { document.documentElement.lang = "en"; document.documentElement.classList.add("dil-bekle"); setTimeout(() => document.documentElement.classList.remove("dil-bekle"), 1500); } } catch {}</script>
   <style>.dil-bekle body { visibility: hidden; }</style>
-  <title>Lonca · Bursa vakıf eserleri</title>
-  <meta name="description" content="Bursa’nın vakıf eserlerini rehberler, oyunlar, haritalar ve dalışlarla keşfet.">
+  <title>Lonca · Vakıf eserleri</title>
+  <meta name="description" content="Türkiye’deki vakıf eserlerini rehberler, oyunlar, haritalar ve dalışlarla keşfet.">
   <link rel="icon" href="/simgeler/lonca-192.png">
   <link rel="apple-touch-icon" href="/simgeler/apple-touch-icon.png">
   <link rel="stylesheet" href="/ortak/tasarim.css">
@@ -53,7 +53,7 @@
       <h2 id="arama-baslik" class="gizli">Eser ara</h2>
       <label class="arama-girdi">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
-        <input id="arama-metin" type="search" autocomplete="off" maxlength="80" placeholder="Eser, ilçe ya da tür ara" aria-label="Eser, ilçe ya da tür ara" aria-controls="arama-sonuc">
+        <input id="arama-metin" type="search" autocomplete="off" maxlength="80" placeholder="Eser, il, ilçe ya da tür ara" aria-label="Eser, il, ilçe ya da tür ara" aria-controls="arama-sonuc">
         <button type="button" class="arama-kapat" id="arama-kapat">Kapat</button>
       </label>
       <p class="arama-durum" id="arama-durum" role="status"></p>
@@ -94,7 +94,7 @@
     <div id="ana-sayfa">
       <!-- 1. Modül vitrini: her modül kendi sahnesiyle. -->
       <section class="vitrin" id="vitrin" aria-roledescription="carousel" aria-label="Modüller vitrini">
-        <h1 class="gizli">Lonca: Bursa vakıf eserleri için modüller, eserler ve haritalar</h1>
+        <h1 class="gizli">Lonca: vakıf eserleri için modüller, eserler ve haritalar</h1>
         <div class="vitrin-sahneler" id="vitrin-sahneler" aria-live="off">
           <div class="vitrin-iskelet" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
         </div>
@@ -115,7 +115,7 @@
         </ul>
         <button type="button" class="sayilar-ara" id="sayilar-ara">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
-          <span>Eser, ilçe ya da tür ara</span><kbd>/</kbd>
+          <span>Eser, il, ilçe ya da tür ara</span><kbd>/</kbd>
         </button>
       </section>
 
@@ -129,6 +129,19 @@
         <ul class="modul-izgara" id="modul-izgara">
           <li class="iskelet-kart"></li><li class="iskelet-kart"></li><li class="iskelet-kart"></li><li class="iskelet-kart"></li>
         </ul>
+        <!-- Ustanın bireysel (özel) modülü listede yoktur; paylaştığı davet koduyla açılır. -->
+        <div class="davet" id="davet" aria-labelledby="davet-baslik" role="region">
+          <div class="davet-yazi">
+            <h3 id="davet-baslik">Davet kodun mu var?</h3>
+            <p id="davet-aciklama">Bir usta seninle özel modülünü paylaştıysa sana verdiği kodu yaz, modül hemen açılsın.</p>
+          </div>
+          <form class="davet-form" id="davet-form" novalidate>
+            <label class="gizli" for="davet-kodu">Davet kodu</label>
+            <input id="davet-kodu" name="kod" placeholder="ABCD-EFGH" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-describedby="davet-aciklama davet-hata">
+            <button type="submit" class="dugme">Modülü aç <span class="ok" aria-hidden="true">→</span></button>
+            <p class="davet-hata" id="davet-hata" role="alert"></p>
+          </form>
+        </div>
       </section>
 
       <!-- 4. Eserler -->
@@ -136,13 +149,17 @@
         <header class="bolum-ust">
           <p class="bolum-ust-yazi">Envanter</p>
           <h2 id="eserler-baslik">Eserler</h2>
-          <p class="bolum-aciklama" id="eserler-ozet">Camiler, türbeler, hanlar, hamamlar… Bursa'nın kayıtlı vakıf eserleri.</p>
+          <p class="bolum-aciklama" id="eserler-ozet">Camiler, türbeler, hanlar, hamamlar… Kayıtlı vakıf eserleri.</p>
         </header>
         <div class="eserler-duzen">
           <aside class="suzgec" aria-label="Eserleri süz">
             <div class="suzgec-grup">
               <h3 id="tur-baslik">Tür</h3>
               <div class="cipler" id="tur-cipleri" role="group" aria-labelledby="tur-baslik"></div>
+            </div>
+            <div class="suzgec-grup">
+              <label for="il-sec"><h3>İl</h3></label>
+              <select id="il-sec"><option value="">Tüm iller</option></select>
             </div>
             <div class="suzgec-grup">
               <label for="ilce-sec"><h3>İlçe</h3></label>
@@ -226,7 +243,7 @@
       <h2>Lonca</h2>
       <a href="/studio/" target="_blank" rel="noopener">Studio</a>
     </nav>
-    <p class="alt-telif">Eser metinleri ve fotoğrafları © Vakıf Katılım, Bursa Vakıf Eserleri Envanteri. Harita verileri © OpenStreetMap katkıcıları.</p>
+    <p class="alt-telif">Eser metinleri ve fotoğrafları © Vakıf Katılım, Bursa, Konya ve Hatay vakıf eserleri kitapları. Harita verileri © OpenStreetMap katkıcıları.</p>
   </footer>
 
   <script type="module" src="/web/site.js"></script>

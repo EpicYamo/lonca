@@ -435,7 +435,7 @@ function profilCipiGuncelle() {
 
 $("#vitrin").style.setProperty("--serit-desen", ciniArkaPlan("lonca", "firuze"));
 $("#katki-desen").style.backgroundImage = ciniArkaPlan("katki", "mercan");
-let modulListesi = [], seciliKategori = "hepsi";
+let modulListesi = [], seciliKategori = "hepsi", modulKapaklari = {};
 
 function uygulamaIkonu(m, boyut = "") {
   const desen = el("span", { className: `karo-desen uygulama-ikonu ${boyut}`, ariaHidden: "true" });
@@ -505,7 +505,11 @@ function uygulamalariCiz({ animasyonsuz = false } = {}) {
   $("#moduller").replaceChildren(...gorunen.map((m, i) => {
     const yeni = raf.yeniMi(m.id);
     const izinler = raf.istenenIzinler(m).map((iz) => raf.IZIN_BILGISI[iz].ad);
+    const kapak = el("span", { className: "us-kapak", ariaHidden: "true" });
+    const kapakFoto = modulKapaklari[m.id]?.foto;
+    kapak.style.backgroundImage = kapakFoto ? `url("${kapakFoto}")` : ciniArkaPlan(m.id, m.renk);
     const b = el("button", { className: "karo uygulama-satiri" },
+      kapak,
       uygulamaIkonu(m),
       el("span", { className: "us-metin" },
         el("span", { className: "us-ad" }, m.ad, yeni ? el("span", { className: "yeni-rozet", textContent: "Yeni" }) : null),
@@ -530,7 +534,7 @@ function uygulamalariCiz({ animasyonsuz = false } = {}) {
       rafCiz();
       document.querySelector(`#moduller [data-id="${m.id}"] .raf-dugme`)?.focus();
     });
-    const li = el("li", { className: `uygulama-li${yeni ? " yeni" : ""}${yeniGelenler.has(m.id) ? " geldi" : ""}` }, b, ekle);
+    const li = el("li", { className: `uygulama-li renk-${m.renk ?? "kobalt"}${yeni ? " yeni" : ""}${yeniGelenler.has(m.id) ? " geldi" : ""}` }, b, ekle);
     li.dataset.id = m.id;
     li.style.setProperty("--i", String(i));
     return li;
@@ -615,6 +619,7 @@ async function anaEkran({ gecisli = false } = {}) {
     modulListesi = liste;
     sonSurum = modulSurumu(liste);
     raf.yenileriBul(liste);
+    modulKapaklari = v?.kapaklar ?? {};
     oneCikanlariCiz(v?.kapaklar);
     uygulamalariCiz();
     rafCiz();
@@ -1188,7 +1193,8 @@ function profilEkrani() {
         istatistik(`${toplam ? Math.round((kazanilan / toplam) * 100) : 0}%`, "tamamlandı"),
         istatistik(String(gruplar.length), "modül"))),
     hesapBolumu(),
-    el("h2", { className: "bolum-baslik", textContent: "Başarımlar" }),
+    el("section", { className: "profil-basarim-bolum", ariaLabel: "Başarımlar" },
+    el("h2", { className: "bolum-baslik", id: "profil-basarim-baslik", textContent: "Başarımlar" }),
     gruplar.length ? el("div", { className: "pl-grup" }, ...gruplar.map(({ modul, basarimlar }) => {
       const kazanilan = basarimlar.filter((b) => b.kazanildi).length;
       const satir = el("button", { type: "button", className: "bl-satir" },
@@ -1199,7 +1205,7 @@ function profilEkrani() {
         el("span", { className: "pl-ok", ariaHidden: "true" }));
       satir.addEventListener("click", () => basarimlariGoster(modul, basarimlar));
       return satir;
-    })) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." }),
+    })) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." })),
     el("section", { className: "profil-ayarlar" },
       el("h2", { className: "bolum-baslik", id: "profil-ayar-baslik", textContent: "Ayarlar" }),
       el("div", { className: "pl-grup" },
@@ -1209,7 +1215,7 @@ function profilEkrani() {
         ayarSatiri("palet", "Adı ve rengi değiştir", tanismaAc),
         ayarSatiri("arti", "Eser öner", () => katkiAc()))),
     izinBolumu(),
-    el("p", { className: "kaynak-notu profil-kunye", textContent: "Lonca · Veriler: Vakıf Katılım, Bursa Vakıf Eserleri Envanteri. Fotoğraflar envanter kitaplarındandır." }),
+    el("p", { className: "kaynak-notu profil-kunye", textContent: "Lonca · Veriler: Vakıf Katılım, Bursa, Konya ve Hatay vakıf eserleri kitapları. Fotoğraflar envanter kitaplarındandır." }),
   );
 }
 function basarimlariGoster(modul, basarimlar) {
@@ -1503,6 +1509,13 @@ if (ONIZLEME) {
 export { TUR_ADI };
 
 // Web sitesinin üst çubuğu ve profil menüsü (web.js) hesap işlemlerini buradan çağırır; mantık tek yerde kalır.
+// Android kabuğu (kabuk.js) sekme değiştirirken profil ile ana ekran arasında veriyi yeniden yüklemeden geçer.
+window.loncaUygulama = {
+  profilGoster() { profilEkrani(); ekranGoster("profil"); },
+  anaGoster() { ekranGoster("ana"); profilCipiGuncelle(); },
+  eserAc: (id) => eserPenceresi(id),
+};
+
 window.loncaHesap = {
   get kullanici() { return hesapKullanici; },
   ac: (kip) => hesapPenceresiAc(kip),

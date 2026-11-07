@@ -17,14 +17,14 @@ Doğrulama kuralları `server/dogrulama.js → eserDogrula` içindedir; Studio, 
 | `tarihce.tr` | Kitap metni (kısaltılmış). Kendi cümleni katma; kısaltırken anlamı değiştirme. PDF bozukluklarını (`!`→ş, `%`→Ş/İ) düzelt. En az 20 harf. | E / V |
 | `tarihce.en` | Kitabın İngilizce sütunu; yoksa `null`. | E |
 | `fotograflar` | En çok 12; yerel `/medya/...` (jpg/png/webp) ya da `https://`. İlki kapak. | E / Commons |
-| `kaynak` | **Zorunlu.** `Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt N, s. X`. Envanterde olmayan bir eser kayda girmez; Vikipedi yalnızca var olan bir kaydın konumunu ya da dalış kartını destekleyebilir. | — |
+| `kaynak` | **Zorunlu.** `Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt N, s. X` · `Vakıf Katılım, Konya Vakıf Eserleri, Cilt N, s. X` · `Vakıf Katılım, Hatay İli Vakıf Eserleri, s. X`. Envanterde olmayan bir eser kayda girmez; Vikipedi yalnızca var olan bir kaydın konumunu ya da dalış kartını destekleyebilir. | — |
 | `sergi` | Müze/sergi notu; çoğunlukla `null`. | — |
 
 ### Kayıt yazarken
 - Kitap sırasını koru: konum, adlar, bani, tarih, kitabe, mimari, vakfiye, onarımlar, bugünkü durum. Kısaltırken önce mimari ayrıntıyı kısalt; **bani, tarih, vakıf ve bugünkü durum** cümlelerini atma.
 - Kitabe metni alıntılanıyorsa hem asıl metni hem günümüz Türkçesini ("Mealen: …") birlikte tut; birini tek başına bırakma.
 - Hicrî/miladî tarihleri kitaptaki biçimde yaz: `H. 981 / M. 1573`.
-- **Yalnızca Vakıf Katılım envanterindeki eserler.** Vikipedi'den ya da başka bir kaynaktan yeni eser eklenmez (Kasım 2026'da Vikipedi'den eklenmiş 22 kayıt bu yüzden kaldırıldı). Yeni şehir ancak Vakıf Katılım'ın o şehrin envanteri (örn. Konya, Hatay) içe aktarılarak eklenir.
+- **Yalnızca Vakıf Katılım envanterindeki eserler.** Vikipedi'den ya da başka bir kaynaktan yeni eser eklenmez (Kasım 2026'da Vikipedi'den eklenmiş 22 kayıt bu yüzden kaldırıldı). Konya ve Hatay kitapları Kasım 2026'da `araclar/envanter-ice-aktar.py` + `veri-olustur-envanter.py` ile içe aktarıldı; yüzyıl düzeltmeleri `YUZYIL_DUZELTME`'de.
 - Değişiklikten sonra `npm test`.
 
 ## Tarihsel ilişkiler (`data/eser-iliskileri.json → iliskiler[]`)

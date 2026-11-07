@@ -247,7 +247,7 @@ export default async function basla() {
     const aranan = kucuk(d.arama);
     return sehirListesi()
       .filter((e) => d.tur === "hepsi" || e.tur === d.tur)
-      .filter((e) => !aranan || kucuk(e.ad).includes(aranan) || kucuk(e.ilce).includes(aranan))
+      .filter((e) => !aranan || kucuk(e.ad).includes(aranan) || kucuk(e.ilce).includes(aranan) || kucuk(e.il).includes(aranan))
       .sort((a, b) => puan(b) - puan(a));
   }
 
@@ -356,7 +356,7 @@ export default async function basla() {
           { tip: "kaydirma", cocuklar: son.map((e) => ({ tip: "eser", eser: e, id: "eser", boyut: "kucuk" })) },
         ] : []),
         { tip: "baslik", metin: sehirSecili ? `${d.sehir} eserleri` : "Bütün eserler", boyut: 2 },
-        { tip: "girdi", id: "ara", ipucu: "Eser ya da ilçe ara (ör. han, Osmangazi)", deger: d.arama, dugme: "Ara" },
+        { tip: "girdi", id: "ara", ipucu: "Eser, il ya da ilçe ara (ör. han, Osmangazi)", deger: d.arama, dugme: "Ara" },
         { tip: "secenekler", id: "tur", secenekler: turSecenekleri(), secili: d.tur },
         sonuc.length
           ? { tip: "izgara", sutun: 2, cocuklar: gosterilen.map((e) => ({ tip: "eser", eser: e, id: "eser", boyut: "kucuk" })) }

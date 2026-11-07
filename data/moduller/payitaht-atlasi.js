@@ -317,7 +317,7 @@ export default async function basla() {
         {
           tip: "ust_cubuk",
           baslik: eser.ad,
-          alt: `${eser.ilce ?? "Bursa"} · ${turEtiketi}`,
+          alt: `${[eser.ilce, eser.il].filter(Boolean).join(", ") || "Türkiye"} · ${turEtiketi}`,
           geri: "geri",
         },
         { tip: "fotograflar", eser },
