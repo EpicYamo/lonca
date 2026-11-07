@@ -35,6 +35,36 @@ export function hesaplarKur(dosyaYolu) {
     return dogru ? { hesap } : { hata: "Kullanıcı adı ya da şifre yanlış." };
   }
 
+  // Hazır hesaplar (ILK_KULLANICILAR + ILK_SIFRE): yalnızca eksik olanlar editör olarak açılır, var olana dokunulmaz.
+  // İlk şifreyle açılan hesap, şifresini değiştirene kadar yetki almaz (sifreDegismeli).
+  async function tohumla(kimlikler, ilkSifre) {
+    if (!ilkSifre) return [];
+    const liste = await dosya.oku();
+    const zaman = new Date().toISOString();
+    const eklenen = [];
+    for (const k of kimlikler.map(kullaniciAdiDuzelt).filter(Boolean)) {
+      if (liste.some((h) => h.kimlik === k)) continue;
+      liste.push({
+        id: randomBytes(8).toString("hex"), kimlik: k, sifre: sifreOzetle(ilkSifre), rol: "editor", sifreDegismeli: true,
+        profil: { ad: k, renk: "kobalt", puan: 0 }, basarimlar: {},
+        olusturma: zaman, guncelleme: zaman,
+      });
+      eklenen.push(k);
+    }
+    if (eklenen.length) await dosya.yaz(liste);
+    return eklenen;
+  }
+
+  // İlk şifre değişiminde eski şifre istenmez (oturum zaten ilk şifreyle açıldı); sonrakilerde istenir.
+  async function sifreDegistir(id, { eskiSifre, yeniSifre }) {
+    const h = await idIle(id);
+    if (!h) return { hata: "hesap bulunamadı", kod: 404 };
+    if (!h.sifreDegismeli && !sifreDogrula(eskiSifre ?? "", h.sifre)) return { hata: "Mevcut şifre yanlış.", kod: 403 };
+    if (sifreDogrula(yeniSifre, h.sifre)) return { hata: "Yeni şifre eskisiyle aynı olamaz.", kod: 400 };
+    const yeni = await guncelle(id, (x) => { x.sifre = sifreOzetle(yeniSifre); delete x.sifreDegismeli; });
+    return { hesap: yeni };
+  }
+
   async function guncelle(id, degistirici) {
     const liste = await dosya.oku();
     const h = liste.find((x) => x.id === id);
@@ -63,7 +93,7 @@ export function hesaplarKur(dosyaYolu) {
     }
   });
 
-  const disaAcik = (h) => h && { id: h.id, kimlik: h.kimlik, rol: h.rol, profil: h.profil, basarimlar: h.basarimlar ?? {} };
+  const disaAcik = (h) => h && { id: h.id, kimlik: h.kimlik, rol: h.rol, profil: h.profil, basarimlar: h.basarimlar ?? {}, sifreDegismeli: !!h.sifreDegismeli };
 
-  return { kimlikleBul, idIle, kayitOl, girisYap, profilGuncelle, rolDegistir, cihazdanTasi, disaAcik };
+  return { kimlikleBul, idIle, kayitOl, girisYap, tohumla, sifreDegistir, profilGuncelle, rolDegistir, cihazdanTasi, disaAcik };
 }

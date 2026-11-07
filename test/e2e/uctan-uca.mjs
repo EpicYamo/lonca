@@ -31,31 +31,49 @@ try {
   const studio = await (await tarayici.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   studio.on("pageerror", (e) => hatalar.push(`Studio: ${e.message}`));
   await studio.goto(`${ADRES}/studio/`);
-  // Yönetici şifreli sunucuda atölye kilitli: usta hesabı aç
-  await studio.waitForSelector("#atolye-kilit:not([hidden])");
-  await studio.click("#kilit-kayit");
+  // Yönetici şifreli sunucuda Studio'nun tamamı giriş ister: kapıdan usta hesabı aç (kayıt olan herkes usta)
+  await studio.waitForSelector("#hesap-pencere[open]");
+  assert.ok(await studio.isVisible("#giris-kapisi"), "girişsiz Studio kapıda beklemeli");
+  await studio.click("[data-hesap-kip=kayit]");
   await studio.fill("#hesap-kimlik", "e2e-usta");
   await studio.fill("#hesap-sifre", "e2e-usta-sifre");
   await studio.click("#hesap-gonder");
-  await studio.waitForSelector("#hesap-pencere:not([open])", { state: "attached" });
+  await studio.waitForSelector("#giris-kapisi", { state: "hidden" });
   await studio.waitForSelector("#atolye-kilit", { state: "hidden" });
-  adim("usta hesabı açıldı, atölye kilidi kalktı");
+  adim("usta hesabı açıldı, Studio açıldı");
+  // İlk mesaj bir fikir: kalfa sohbet eder, kod yazmaz; yanıtın altında yeni öneri düğmeleri çıkar.
   await studio.fill("#istek", "Bursa hanları için süreli bir oyun");
   await studio.press("#istek", "Enter");
+  await studio.waitForSelector("#oneriler:not([hidden]) >> text=Bursa hanları için süreli bir oyun yap");
+  assert.equal(await studio.inputValue("#kod"), "", "kalfa istenmeden kod yazmamalı");
+  adim("kalfa önce sohbet etti, öneri düğmeleri yenilendi");
+  // Usta dalış kipini de görür
+  assert.ok(await studio.isVisible(".kip button[data-kip=dalis]"), "usta Dalış kipini görmeli");
+  await studio.click("#oneriler >> text=Bursa hanları için süreli bir oyun yap");
   await studio.waitForFunction(() => document.querySelector("#kod").value.includes("sahne.ayarla"), null, { timeout: 15000 });
   await studio.frameLocator("#cerceve").locator(".s-kapak").waitFor({ timeout: 10000 });
   adim("kalfa modülü yazdı, önizlemede kapak açıldı");
   await studio.click("#onaya-gonder");
-  await studio.waitForSelector("#durum.iyi");
+  // Kalfanın kendi "iyi" durumu da aynı kutuda; gönderimin sonucunu metinden bekle
+  await studio.waitForSelector("#durum.iyi >> text=onaya gönderildi");
   adim("modül onaya gönderildi");
 
   await studio.click(".sekme-d[data-sayfa=moduller]");
-  // Usta tüm modül listesini göremez: hesap penceresinden yönetici şifresine geçilir
+  // Usta listeyi görür ama yayınlayamaz; yeniden giriş de istenmez
+  await studio.waitForSelector(".modul-ogesi .etiket.bekliyor");
+  assert.ok(!(await studio.isVisible("#hesap-pencere[open]")), "usta Modüller'de yeniden giriş görmemeli");
+  assert.equal(await studio.locator(".modul-ogesi >> text=Yayınla").count(), 0, "usta yayınlayamaz");
+  adim("usta modülü listede görüyor, yayınlayamıyor");
+  // Çıkış → kapı → yönetici şifresiyle admin olarak gir
+  await studio.click("#hesap-d");
+  await studio.click("#hesap-kart button[value=cikis]");
   await studio.waitForSelector("#hesap-pencere[open]");
   await studio.click("#hesap-yonetici");
   await studio.waitForSelector("#giris[open]");
   await studio.fill("#giris-sifre", SIFRE);
   await studio.click("#giris-formu .birincil");
+  await studio.waitForSelector("#giris-kapisi", { state: "hidden" });
+  await studio.click(".sekme-d[data-sayfa=moduller]");
   await studio.click(".modul-ogesi >> text=Yayınla");
   await studio.waitForSelector(".etiket.onayli");
   adim("yönetici girişi yapıldı, modül yayınlandı");
@@ -92,6 +110,25 @@ try {
   const yayinda = await (await fetch(`${ADRES}/api/eserler?ad=${encodeURIComponent("Uçtan Uca")}`)).json();
   assert.equal(yayinda.length, 1);
   adim("öneri onaylandı ve eser yayına girdi");
+
+  await tel.click("#profil-cip");
+  await tel.waitForSelector("#profil-ekrani:not([hidden])");
+  await tel.getByRole("button", { name: "Hesap oluştur", exact: true }).click();
+  await tel.fill("#hesap-kimlik", "e2e-gezgin");
+  await tel.fill("#hesap-sifre", "e2e-gezgin-sifre");
+  await tel.click("#hesap-gonder");
+  await tel.waitForSelector(".hesap-kart >> text=@e2e-gezgin");
+  const tasinanPuan = await tel.evaluate(() => JSON.parse(localStorage.getItem("lonca.profil")).puan);
+  assert.ok(tasinanPuan > 0, "cihazdaki profil puanı ilk kayıt sırasında hesaba taşınmalı");
+  adim("App profilinden hesap açıldı, cihaz profili hesaba taşındı");
+
+  await tel.locator(".hesap-kart").getByRole("button", { name: "Oturumu kapat" }).click();
+  await tel.locator(".hesap-kart").getByRole("button", { name: "Giriş yap" }).click();
+  await tel.fill("#hesap-kimlik", "e2e-gezgin");
+  await tel.fill("#hesap-sifre", "e2e-gezgin-sifre");
+  await tel.click("#hesap-gonder");
+  await tel.waitForSelector(".hesap-kart >> text=@e2e-gezgin");
+  adim("App hesabıyla tekrar giriş yapıldı");
 
   assert.deepEqual(hatalar, [], "sayfa hatası olmamalı");
   console.log("\nUçtan uca senaryo başarılı.");

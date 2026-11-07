@@ -9,6 +9,7 @@ import { loncaLogo } from "/ortak/logo.js";
 import { modulSurumu } from "/ortak/arama.js";
 import * as raf from "./modullerim.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
+import { paylasimiDinle } from "./paylasim.js";
 
 const $ = (s) => document.querySelector(s);
 export const el = (etiket, ozellik = {}, ...cocuklar) => {
@@ -18,6 +19,10 @@ export const el = (etiket, ozellik = {}, ...cocuklar) => {
 };
 
 const ONIZLEME = new URLSearchParams(location.search).has("onizleme");
+const HESAP_JETON_ANAHTARI = "lonca.studio.hesap";
+const PROFIL_HESAP_ANAHTARI = "lonca.profil.hesap";
+let hesapKullanici = null;
+let hesapIslemi = false;
 
 const DEMO_KONUM = { lat: 40.1836, lng: 29.0625 };
 
@@ -589,7 +594,8 @@ function acilisBitir() {
 
 let calisan = null; // { modul, iptal, sahneApi }
 async function moduluAc(m, karo) {
-  if (!ONIZLEME) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
+  // Paylaşım bağlantısıyla açılan modül rafa eklenmez (özel modül uygulama listesinde yoktur).
+  if (!ONIZLEME && !m.kodYolu) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
   depo.yaz("lonca.son-modul", { id: m.id, zaman: Date.now() });
   calisan?.iptal.abort();
   const iptal = new AbortController();
@@ -614,7 +620,7 @@ async function moduluAc(m, karo) {
   if (desen && !g) desen.style.viewTransitionName = "";
 
   try {
-    const [yanit] = await Promise.all([api(`/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
+    const [yanit] = await Promise.all([api(m.kodYolu ?? `/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
     $("#acilis").style.viewTransitionName = "";
     await modulCalistir(await yanit.text(), yontemlerOlustur(m), { iptal: iptal.signal });
     if (bu !== calisan) return;
@@ -649,6 +655,194 @@ $("#geri").addEventListener("click", () => {
   anaEkran({ gecisli: true });
 });
 
+const hesapJetonuOku = () => { try { return localStorage.getItem(HESAP_JETON_ANAHTARI) ?? ""; } catch { return ""; } };
+const hesapBasliklari = () => hesapJetonuOku() ? { authorization: `Bearer ${hesapJetonuOku()}` } : {};
+async function hesapIstek(yol, { method = "GET", govde } = {}) {
+  const yanit = await fetch(yol, {
+    method,
+    headers: { ...hesapBasliklari(), ...(govde !== undefined ? { "content-type": "application/json" } : {}) },
+    body: govde !== undefined ? JSON.stringify(govde) : undefined,
+  });
+  const veri = await yanit.json().catch(() => ({}));
+  if (!yanit.ok) throw Object.assign(new Error(veri.hata ?? `İstek başarısız (${yanit.status})`), { status: yanit.status });
+  return veri;
+}
+function cihazBasarimlari() {
+  const liste = {};
+  const onek = "lonca.basarim.";
+  for (let i = 0; i < localStorage.length; i++) {
+    const anahtar = localStorage.key(i);
+    if (!anahtar?.startsWith(onek)) continue;
+    try { liste[anahtar.slice(onek.length)] = JSON.parse(localStorage.getItem(anahtar)); } catch {}
+  }
+  return liste;
+}
+function hesabiCihazaUygula(h) {
+  const bagliHesap = localStorage.getItem(PROFIL_HESAP_ANAHTARI);
+  const baskaHesap = !!bagliHesap && bagliHesap !== h.id;
+  if (baskaHesap) {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const anahtar = localStorage.key(i);
+      if (anahtar?.startsWith("lonca.basarim.")) localStorage.removeItem(anahtar);
+    }
+  }
+  if (!bagliHesap || baskaHesap) {
+    if (h.profil) localStorage.setItem("lonca.profil", JSON.stringify(h.profil));
+    for (const [modulId, kayit] of Object.entries(h.basarimlar ?? {})) {
+      localStorage.setItem(`lonca.basarim.${modulId}`, JSON.stringify(kayit));
+    }
+  } else if (h.profil) {
+    const cihaz = profil.profilOku() ?? { puan: 0 };
+    localStorage.setItem("lonca.profil", JSON.stringify({ ...cihaz, ad: h.profil.ad, renk: h.profil.renk }));
+  }
+  localStorage.setItem(PROFIL_HESAP_ANAHTARI, h.id);
+}
+async function hesapOturumuYukle(gelenHesap, { cihazProfiliniTasi = true } = {}) {
+  let h = gelenHesap;
+  const bagliHesap = localStorage.getItem(PROFIL_HESAP_ANAHTARI);
+  if (cihazProfiliniTasi && (!bagliHesap || bagliHesap === h.id)) {
+    const cihaz = profil.profilOku() ?? { ad: "Gezgin", renk: "kobalt", puan: 0 };
+    try {
+      h = await hesapIstek("/api/hesap/tasi", { method: "POST", govde: { profil: cihaz, basarimlar: cihazBasarimlari() } });
+    } catch (e) {
+      // Oturum açılmıştır; profil taşıma başarısızsa hesabı yine kullanılabilir tut.
+      if (e.status === 401) throw e;
+    }
+  }
+  hesapKullanici = h;
+  hesabiCihazaUygula(h);
+  profilCipiGuncelle();
+  if (!$("#profil-ekrani").hidden) profilEkrani();
+  return h;
+}
+async function hesapDurumunuYukle() {
+  if (!hesapJetonuOku()) return;
+  try {
+    const h = await hesapIstek("/api/hesap/ben");
+    await hesapOturumuYukle(h);
+  } catch (e) {
+    if (e.status === 401) localStorage.removeItem(HESAP_JETON_ANAHTARI);
+  }
+}
+
+function hesapBolumu() {
+  const bolum = el("section", { className: "hesap-kart" });
+  if (hesapKullanici) {
+    const rol = hesapKullanici.rol === "usta" ? "Öğretmen / usta" : hesapKullanici.rol === "editor" ? "Editör" : "Öğrenci / gezgin";
+    const cikis = el("button", { className: "dugme ikincil kucuk", type: "button", textContent: "Oturumu kapat" });
+    cikis.addEventListener("click", () => {
+      localStorage.removeItem(HESAP_JETON_ANAHTARI);
+      hesapKullanici = null;
+      if (!$("#profil-ekrani").hidden) profilEkrani();
+      bildir("Lonca hesabından çıkış yapıldı.");
+    });
+    bolum.append(
+      el("span", { className: "hesap-ust", textContent: "LONCA HESABI" }),
+      el("h2", { textContent: hesapKullanici.profil?.ad || hesapKullanici.kimlik }),
+      el("p", { className: "hesap-aciklama", textContent: `@${hesapKullanici.kimlik} · ${rol}` }),
+      el("p", { className: "hesap-aciklama", textContent: "Bu cihazdaki profilin hesabınla ilişkilendirildi." }),
+      cikis,
+    );
+  } else {
+    const giris = el("button", { className: "dugme ikincil kucuk", type: "button", textContent: "Giriş yap" });
+    const kayit = el("button", { className: "dugme kucuk", type: "button", textContent: "Hesap oluştur" });
+    giris.addEventListener("click", () => hesapPenceresiAc("giris"));
+    kayit.addEventListener("click", () => hesapPenceresiAc("kayit"));
+    bolum.append(
+      el("span", { className: "hesap-ust", textContent: "LONCA HESABI" }),
+      el("h2", { textContent: "Profilini hesabına bağla" }),
+      el("p", { className: "hesap-aciklama", textContent: "Cihazındaki profil ve başarımlarını hesabına taşı. Aynı hesapla Studio’ya da giriş yapabilirsin." }),
+      el("div", { className: "hesap-eylemler" }, giris, kayit),
+    );
+  }
+  return bolum;
+}
+
+let hesapPencereCoz = null;
+let hesapKipi = "giris";
+let hesapOdakOnce = null;
+function hesapPencereGuncelle() {
+  const kayit = hesapKipi === "kayit";
+  for (const dugme of $("#hesap-formu").querySelectorAll("[data-hesap-kip]")) {
+    const secili = dugme.dataset.hesapKip === hesapKipi;
+    dugme.classList.toggle("secili", secili);
+    dugme.setAttribute("aria-checked", String(secili));
+  }
+  $("#hesap-kayit-notu").hidden = !kayit;
+  $("#hesap-baslik").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
+  $("#hesap-gonder").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
+  $("#hesap-sifre").autocomplete = kayit ? "new-password" : "current-password";
+  $("#hesap-hata").hidden = true;
+  $("#hesap-hata").textContent = "";
+}
+function hesapPenceresiKapat(tamam = false) {
+  $("#hesap-penceresi").hidden = true;
+  const coz = hesapPencereCoz;
+  hesapPencereCoz = null;
+  coz?.(tamam);
+  const odak = hesapOdakOnce?.isConnected ? hesapOdakOnce : $("#profil-geri");
+  hesapOdakOnce = null;
+  odak?.focus({ preventScroll: true });
+}
+function hesapPenceresiAc(kip = "giris") {
+  if (hesapPencereCoz) return Promise.resolve(false);
+  hesapOdakOnce = document.activeElement;
+  hesapKipi = kip;
+  $("#hesap-formu").reset();
+  hesapPencereGuncelle();
+  $("#hesap-penceresi").hidden = false;
+  $("#hesap-kimlik").focus();
+  return new Promise((coz) => { hesapPencereCoz = coz; });
+}
+$("#hesap-formu").addEventListener("click", (e) => {
+  const dugme = e.target.closest("[data-hesap-kip]");
+  if (dugme) { hesapKipi = dugme.dataset.hesapKip; hesapPencereGuncelle(); }
+});
+$("#hesap-vazgec").addEventListener("click", () => hesapPenceresiKapat(false));
+$("#hesap-penceresi").addEventListener("click", (e) => { if (e.target === e.currentTarget) hesapPenceresiKapat(false); });
+document.addEventListener("keydown", (e) => {
+  if ($("#hesap-penceresi").hidden) return;
+  if (e.key === "Escape") { e.preventDefault(); hesapPenceresiKapat(false); return; }
+  if (e.key !== "Tab") return;
+  const odaklanabilir = [...$("#hesap-penceresi").querySelectorAll('button:not([disabled]), input:not([disabled])')].filter((x) => !x.hidden && x.offsetParent !== null);
+  const ilk = odaklanabilir[0], son = odaklanabilir.at(-1);
+  if (e.shiftKey && document.activeElement === ilk) { e.preventDefault(); son?.focus(); }
+  else if (!e.shiftKey && document.activeElement === son) { e.preventDefault(); ilk?.focus(); }
+});
+$("#hesap-formu").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (hesapIslemi) return;
+  hesapIslemi = true;
+  const dugme = $("#hesap-gonder");
+  dugme.disabled = true;
+  $("#hesap-hata").hidden = true;
+  const kayit = hesapKipi === "kayit";
+  const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
+  try {
+    const yanit = await fetch(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde),
+    });
+    const sonuc = await yanit.json().catch(() => ({}));
+    if (!yanit.ok) throw new Error(sonuc.hata ?? `İstek başarısız (${yanit.status})`);
+    localStorage.setItem(HESAP_JETON_ANAHTARI, sonuc.jeton);
+    try { await hesapOturumuYukle(sonuc.hesap); }
+    catch {
+      hesapKullanici = sonuc.hesap;
+      profilCipiGuncelle();
+      if (!$("#profil-ekrani").hidden) profilEkrani();
+    }
+    hesapPenceresiKapat(true);
+    bildir(kayit ? "Hesabın oluşturuldu. Profilin hesabına bağlandı." : `Hoş geldin, ${hesapKullanici.kimlik}.`);
+  } catch (h) {
+    $("#hesap-hata").textContent = h.message;
+    $("#hesap-hata").hidden = false;
+  } finally {
+    hesapIslemi = false;
+    dugme.disabled = false;
+  }
+});
+hesapDurumunuYukle();
+
 function profilEkrani() {
   const p = profil.profilBilgi();
   const sonraki = profil.seviyeEsigi(p.seviye + 1), bu = profil.seviyeEsigi(p.seviye);
@@ -661,6 +855,7 @@ function profilEkrani() {
   const toplam = gruplar.reduce((t, g) => t + g.basarimlar.length, 0);
 
   $("#profil-icerik").replaceChildren(
+    hesapBolumu(),
     el("section", { className: "profil-kart" },
       avatar,
       el("h2", { className: "profil-ad", textContent: p.ad }),
@@ -719,7 +914,12 @@ function tanismaAc() {
 }
 function tanismaKapat(kaydet) {
   const renk = document.querySelector('input[name="renk"]:checked')?.value ?? "kobalt";
-  profil.profilKaydet({ ad: kaydet ? $("#tanisma-ad").value : (profil.profilOku()?.ad ?? "Gezgin"), renk });
+  const guncel = profil.profilKaydet({ ad: kaydet ? $("#tanisma-ad").value : (profil.profilOku()?.ad ?? "Gezgin"), renk });
+  if (hesapKullanici) {
+    hesapIstek("/api/hesap/profil", { method: "PUT", govde: { ad: guncel.ad, renk: guncel.renk } })
+      .then((h) => { hesapKullanici = h; if (!$("#profil-ekrani").hidden) profilEkrani(); })
+      .catch(() => bildir("Profil cihazında kaydedildi; hesapla eşitlenemedi."));
+  }
   $("#tanisma").hidden = true;
   // Odak gizlenen formda kalmasın; klavye ve ekran okuyucu ana içerikten devam eder.
   if (document.activeElement?.closest("#tanisma") || document.activeElement === document.body) $("#uygulamalar-baslik").focus({ preventScroll: true });
@@ -952,6 +1152,8 @@ if (ONIZLEME) {
   // Paylaşılan bağlantı: /app/?eser=<id> eser sayfasını açar.
   const paylasilan = new URLSearchParams(location.search).get("eser");
   if (paylasilan && /^[a-z0-9-]{1,80}$/.test(paylasilan)) eserPenceresi(paylasilan);
+  // Paylaşılan modül: /m/<anahtar> → /app/?modul=<anahtar>; Android'de uygulama bağlantısı.
+  paylasimiDinle({ ac: (m) => moduluAc(m), hata: (mesaj) => bildir(mesaj, { tur: "hata", sure: 4000 }) });
 }
 
 export { TUR_ADI };

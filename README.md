@@ -61,6 +61,7 @@ Everything works without any configuration:
 | `KALFA_ZAMAN_ASIMI_SN` | Timeout for a single journeyman request to the provider (default 150 s) |
 | `OTURUM_ANAHTARI` | Signs Studio account tokens; generated into `data/.oturum-anahtari` when empty |
 | `HESAP_SINIR` | Sign-up / login attempts allowed per IP in ten minutes |
+| `ILK_SIFRE`, `ILK_KULLANICILAR` | Ready-made admin (role `editor`) accounts (default `arda,ibrahim,sevilay`) created with the initial password; each must set a new password on first login |
 | `LONCA_API_ANAHTARI` | API key: when set, every `/api` request needs the `x-lonca-anahtar` header (or a paired device key / browser login) |
 
 To try it on a phone, connect to the same Wi-Fi and open
@@ -274,9 +275,14 @@ and absent fields. The same filters are available over HTTP through
 
 1. The chat and the current code go to `POST /api/kalfa`. The API key stays on
    the server.
-2. The journeyman knows the SDK contract, the rules and the two example apps. It
-   uses the `eser_ara` tool to look at what is actually in the database, and
-   delivers the module through the `modul_yaz` tool.
+2. The journeyman knows the SDK contract, the rules and the two example apps. By
+   default it converses (`yanit_ver`): it answers questions and discusses the
+   idea, and writes code (`modul_yaz`) when the usta asks for it in any wording
+   ("yap", "hazırla", "başlayalım", "şunu da ekleyelim", "evet"…): the model reads
+   the intent, the server only refuses code for a plain question. It looks things up in the knowledge base with
+   `eser_ara` and `eser_bilgisi` (full record, history, source, relations). Every
+   reply carries the sources it drew from (work records with their citation, SDK
+   parts) and 2–3 suggested follow-ups shown as buttons in Studio.
 3. The code is audited:
    - Only `@lonca/sdk` may be imported; `eval` and dynamic import are forbidden.
    - Unknown node types, icons, 3D focus and theme names are rejected.
@@ -291,6 +297,12 @@ and absent fields. The same filters are available over HTTP through
    submitted for approval goes through the same audit.
 5. History is never invented: every fact about a work (name, century, history,
    source, photo) is read from the data while the module runs.
+6. Studio keeps each master's conversations and the module on the workbench on
+   the server, per account (`/api/atolye/oturumlar`, stored in `data/atolye/`).
+   Reloading the page restores the last conversation, the code and the preview;
+   if the page is reloaded while the journeyman is still working, the server
+   writes the answer into the conversation and Studio picks it up. Past
+   conversations are listed under the history button in the Kalfa panel.
 
 ## Data
 

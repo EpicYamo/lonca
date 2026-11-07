@@ -11,8 +11,9 @@ import { modelTaramasiKur, saglikEkle } from "./model-tarama.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
+import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, ROLLER } from "./dogrulama.js";
+import { modulGorunurlukDogrula, paylasimAnahtariGecerli, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -20,7 +21,8 @@ const MAKS_FOTO = 6 * 1024 * 1024;
 const RENKLER = ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"];
 const IKONLAR = ["cami", "han", "hamam", "medrese", "cesme", "turbe", "genel"];
 export const KATEGORILER = ["rehber", "oyun", "gezi", "ogren"];
-export const MODUL_DURUMLARI = ["bekliyor", "onayli", "kaldirildi", "arsiv", "reddedildi"];
+// "ozel": ustanın yalnızca paylaşım bağlantısıyla açılan modülü; uygulamada listelenmez, onay kuyruğuna girmez.
+export const MODUL_DURUMLARI = ["bekliyor", "onayli", "ozel", "kaldirildi", "arsiv", "reddedildi"];
 const kimlikGecerli = (id) => typeof id === "string" && /^[a-z0-9-]{1,64}$/.test(id);
 
 function mesafe(a, b) {
@@ -52,13 +54,13 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const iliskiler = Array.isArray(iliskiVerisi.iliskiler) ? iliskiVerisi.iliskiler : [];
   const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
 
-  const kalfa = kalfaHazirla({ kok, eserler, ortam });
+  const kalfa = kalfaHazirla({ kok, eserler, iliskiler, ortam });
   // Kalfa modellerinin sağlık taraması (çalışma verisi; Studio'daki "Modelleri test et").
   const modelTaramasi = modelTaramasiKur({ kalfa, dosya: jsonDosya(path.join(veri, "kalfa-model-durumu.json"), { sonuclar: {} }) });
   const DALIS_DIZINI = path.join(veri, "dalislar");
   const dalisKalfasi = dalisKalfasiKur({ kok, eserler, dalisDizini: DALIS_DIZINI, ortam });
   const yetki = yetkiKur(ortam.YONETICI_SIFRE);
-  const { yoneticiGerekli, yoneticiMi } = yetki;
+  const { yoneticiMi } = yetki;
   const kalfaSiniri = hizSiniri({ adet: Number(ortam.KALFA_SINIR ?? 30), pencereMs: 10 * 60_000, mesaj: "Kalfa şu an çok meşgul; birkaç dakika sonra tekrar dene." });
   const oneriSiniri = hizSiniri({ adet: 20, pencereMs: 10 * 60_000 });
   const hesapSiniri = hizSiniri({ adet: Number(ortam.HESAP_SINIR ?? 20), pencereMs: 10 * 60_000, mesaj: "Çok fazla hesap isteği; biraz sonra tekrar dene." });
@@ -76,24 +78,29 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   }
   const oturum = oturumAraclari(await oturumAnahtariGetir());
   const hesaplar = hesaplarKur(path.join(veri, "kullanicilar.json"));
+  // Ekibin hazır editör hesapları: ILK_SIFRE doluysa eksik olanlar açılır; ilk girişte şifre değiştirilmeden yetki yok.
+  await hesaplar.tohumla(String(ortam.ILK_KULLANICILAR ?? "arda,ibrahim,sevilay").split(","), ortam.ILK_SIFRE);
   // Jeton yalnızca hesabı gösterir; rol her istekte kayıttan okunur (rolü düşürülen ya da silinen hesap yetkisini hemen kaybeder).
   async function oturumSahibi(req) {
     const baslik = req.headers.authorization ?? "";
     const yuk = baslik.startsWith("Bearer ") ? oturum.jetonCoz(baslik.slice(7)) : null;
     return yuk ? hesaplar.idIle(yuk.id) : null;
   }
-  // Editör kaydı davet anahtarı ister: yönetici şifresi. Geliştirme modunda (şifre boş) herkes zaten yöneticidir.
-  const editorAnahtariDogru = (girilen) => !yetki.sifreli || (typeof girilen === "string" && girilen.length > 0 && yoneticiMi({ headers: { "x-yonetici-sifre": girilen } }));
-  const editorMi = async (req) => yoneticiMi(req) || (await oturumSahibi(req))?.rol === "editor";
-  const ustaMi = async (req) => yoneticiMi(req) || ["usta", "editor"].includes((await oturumSahibi(req))?.rol);
-  // Onay, yayın, içerik düzenleme: yönetici şifresi ya da editör hesabı.
+  // Şifresini henüz değiştirmemiş hesap giriş yapmış sayılır ama hiçbir yetki almaz.
+  const yetkiliHesap = async (req) => { const h = await oturumSahibi(req); return h && !h.sifreDegismeli ? h : null; };
+  const editorMi = async (req) => yoneticiMi(req) || (await yetkiliHesap(req))?.rol === "editor";
+  const ustaMi = async (req) => yoneticiMi(req) || ["usta", "editor"].includes((await yetkiliHesap(req))?.rol);
+  // Onay, yayın, içerik düzenleme, model ayarları: yönetici şifresi ya da editör (admin) hesabı.
   const editorGerekli = async (req, rep) => { if (!(await editorMi(req))) return rep.code(401).send({ hata: "Bu işlem için editör hesabı ya da yönetici şifresi gerekli" }); };
-  // Atölye (kalfa + modül gönderme): usta ya da editör hesabı.
+  // Atölye (kalfa + modül gönderme) ve Studio listelerini salt okunur görme: usta ya da editör hesabı.
   const ustaGerekli = async (req, rep) => { if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Atölyeyi kullanmak için usta ya da editör hesabıyla giriş yapmalısın" }); };
   const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
+  // Atölye oturumları (kalfa sohbeti + modül taslağı) kullanıcı başına saklanır; hesapsız yönetici "yonetici" altında.
+  const atolye = atolyeKur(path.join(veri, "atolye"));
+  const atolyeSahibi = async (req) => (await oturumSahibi(req))?.id ?? "yonetici";
 
   const app = Fastify({ logger: gunluk ? { level: "info" } : false, bodyLimit: 1024 * 1024, trustProxy: true });
-  const erisim = await erisimKur({ anahtar: ortam.LONCA_API_ANAHTARI, veri });
+  const erisim = await erisimKur({ anahtar: ortam.LONCA_API_ANAHTARI, veri, hesapOturumuGecerli: async (req) => !!(await oturumSahibi(req)) });
   erisim.kur(app);
 
   // ---------- Statik ----------
@@ -118,13 +125,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.post("/api/hesap/kayit", { preHandler: hesapSiniri }, async (req, rep) => {
     const hatalar = hesapGirdisiDogrula(req.body, { kayit: true });
     if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
-    const { kimlik, sifre, rol: istenen, editorAnahtari } = req.body;
-    let rol = istenen === "usta" ? "usta" : "vatandas";
-    if (istenen === "editor") {
-      if (!editorAnahtariDogru(editorAnahtari)) return rep.code(403).send({ hata: "Editör olmak için doğru davet anahtarı gerekli" });
-      rol = "editor";
-    }
-    const r = await hesaplar.kayitOl({ kimlik, sifre, rol });
+    // Kayıt olan herkes usta olur (rol seçilmez). Admin (editör) hesapları yalnızca ILK_KULLANICILAR'dan ya da rol değişimiyle gelir.
+    const { kimlik, sifre } = req.body;
+    const r = await hesaplar.kayitOl({ kimlik, sifre, rol: "usta" });
     if (r.hata) return rep.code(409).send({ hata: r.hata });
     return rep.code(201).send(jetonVer(r.hesap));
   });
@@ -143,6 +146,15 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const h = await oturumSahibi(req);
     if (!h) return rep.code(401).send({ hata: "Giriş yapılmamış" });
     return hesaplar.disaAcik(await hesaplar.profilGuncelle(h.id, req.body ?? {}));
+  });
+  app.put("/api/hesap/sifre", { preHandler: hesapSiniri }, async (req, rep) => {
+    const h = await oturumSahibi(req);
+    if (!h) return rep.code(401).send({ hata: "Giriş yapılmamış" });
+    const hatalar = sifreDegisimiDogrula(req.body);
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const r = await hesaplar.sifreDegistir(h.id, req.body);
+    if (r.hata) return rep.code(r.kod).send({ hata: r.hata });
+    return hesaplar.disaAcik(r.hesap);
   });
   app.post("/api/hesap/tasi", async (req, rep) => {
     const h = await oturumSahibi(req);
@@ -275,7 +287,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return { silindi: silinen.id, gecmis: g.id };
   });
 
-  app.get("/api/eser-gecmisi", { preHandler: editorGerekli }, async (req) => {
+  app.get("/api/eser-gecmisi", { preHandler: ustaGerekli }, async (req) => {
     const { eser } = req.query;
     const gecmis = await gecmisDosyasi.oku();
     return gecmis.filter((g) => !eser || g.eserId === eser).slice(0, 100).map((g) => ({
@@ -380,7 +392,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return rep.code(201).send({ id: kayit.id, durum: kayit.durum });
   });
 
-  app.get("/api/eser-oneriler", { preHandler: editorGerekli }, async (req) => {
+  app.get("/api/eser-oneriler", { preHandler: ustaGerekli }, async (req) => {
     const liste = await oneriDosyasi.oku();
     const durum = req.query.durum ?? "bekliyor";
     return liste.filter((o) => durum === "hepsi" || o.durum === durum).reverse()
@@ -431,7 +443,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (!/^[a-z0-9-]+\.(jpg|png|webp)$/.test(ad)) return rep.code(404).send();
     const yol = `/medya/yuklenen/${ad}`;
     const yayinda = eserler.some((e) => e.fotograflar?.includes(yol));
-    if (!yayinda && !(await editorMi(req))) return rep.code(404).send({ hata: "bulunamadı" });
+    if (!yayinda && !(await ustaMi(req))) return rep.code(404).send({ hata: "bulunamadı" });
     const dosya = path.join(YUKLENEN, ad);
     if (!existsSync(dosya)) return rep.code(404).send();
     const tur = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" }[ad.split(".").pop()];
@@ -478,8 +490,11 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const yayindakiler = async () => (await modulDosyasi.oku()).filter((m) => m.durum === "onayli");
   app.get("/api/moduller", async (req, rep) => {
     if (req.query.durum === "hepsi") {
-      if (!(await editorMi(req))) return rep.code(401).send({ hata: "Bu liste için editör hesabı ya da yönetici şifresi gerekli" });
-      return modulDosyasi.oku();
+      if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Bu liste için Studio'ya giriş yapmalısın" });
+      // Onay kuyruğu dahil bütün liste yalnızca admin'e; usta yalnızca kendi modüllerini görür.
+      if (await editorMi(req)) return modulDosyasi.oku();
+      const sahip = (await yetkiliHesap(req))?.id;
+      return (await modulDosyasi.oku()).filter((m) => m.sahip && m.sahip === sahip);
     }
     const liste = await yayindakiler();
     const etiket = `"${modulSurumu(liste)}"`;
@@ -499,7 +514,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const { id } = req.params;
     const m = (await modulDosyasi.oku()).find((x) => x.id === id);
     if (!m || !kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
-    if (m.durum !== "onayli" && !(await editorMi(req))) return rep.code(403).send({ hata: "modül yayında değil" });
+    // Yayında olmayan modülün kodunu admin ya da modülün sahibi olan usta okur.
+    if (m.durum !== "onayli" && !(await editorMi(req)) && !(m.sahip && m.sahip === (await yetkiliHesap(req))?.id))
+      return rep.code(403).send({ hata: "modül yayında değil" });
     const kod = await readFile(path.join(MODUL_DIZINI, `${id}.js`), "utf8");
     return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
   });
@@ -511,6 +528,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (typeof kod !== "string" || kod.length > MAKS_KOD) return rep.code(400).send({ hata: `kod gerekli (en fazla ${MAKS_KOD} karakter)` });
     const hatalar = kalfa.dogrula(kod);
     if (hatalar.length) return rep.code(400).send({ hata: "Modül doğrulamadan geçmedi", ayrintilar: hatalar });
+    const gorunurlukHatasi = modulGorunurlukDogrula(req.body.gorunurluk);
+    if (gorunurlukHatasi) return rep.code(400).send({ hata: gorunurlukHatasi });
+    const ozel = req.body.gorunurluk === "ozel";
 
     const liste = await modulDosyasi.oku();
     const onceki = liste.find((m) => m.id === id);
@@ -521,7 +541,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (onceki?.sahip && sahip !== onceki.sahip && !editor) return rep.code(409).send({ hata: "Bu kimlikte başka bir ustanın taslağı var; başka bir id seç" });
     // Yayındaki bir modülü editör (ya da yönetici) düzenlerse yayında kalır: kaydeden kişi zaten onay yetkilisi,
     // uygulamadan kaybolup yeniden onay beklemesin. Yeni modüller ve usta gönderimleri her zaman onay bekler.
-    const canliKalsin = editor && onceki?.durum === "onayli";
+    const canliKalsin = !ozel && editor && onceki?.durum === "onayli";
     const simdi = new Date().toISOString();
     const kayit = {
       id, ad: ad.trim().slice(0, 60), aciklama: String(aciklama).slice(0, 200),
@@ -531,7 +551,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       kategori: KATEGORILER.includes(kategori) ? kategori : undefined,
       kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
       sahip: sahip ?? onceki?.sahip ?? undefined,
-      durum: canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
+      // Özel modülün bağlantısı tahmin edilemez bir anahtar taşır; herkese açık modülün bağlantısı kimliğidir.
+      paylasim: ozel ? onceki?.paylasim ?? randomBytes(12).toString("base64url") : onceki?.paylasim,
+      durum: ozel ? "ozel" : canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
       ...(canliKalsin ? { yayin: simdi } : {}),
     };
     const kaynak = kaynakBul(kod, onceki);
@@ -557,6 +579,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const m = liste.find((x) => x.id === id);
     if (!m) return null;
     m.durum = durum;
+    if (durum === "ozel") m.paylasim ??= randomBytes(12).toString("base64url");
     m.guncelleme = new Date().toISOString();
     if (durum === "onayli") m.yayin = m.guncelleme;
     await modulDosyasi.yaz(liste);
@@ -582,6 +605,39 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return { silindi: id };
   });
 
+  // ---------- Paylaşım bağlantısı ----------
+  // /m/<anahtar>: özel modülde paylaşım anahtarı, yayındaki modülde kimlik. Tarayıcı web uygulamasında açar;
+  // Android'de uygulama yüklüyse aynı bağlantı (App Links) uygulamayı açar.
+  async function paylasilanModul(anahtar) {
+    if (!paylasimAnahtariGecerli(anahtar)) return null;
+    const liste = await modulDosyasi.oku();
+    return liste.find((m) => m.durum === "ozel" && m.paylasim === anahtar)
+      ?? liste.find((m) => m.durum === "onayli" && m.id === anahtar) ?? null;
+  }
+  const paylasimOzeti = (m) => ({ id: m.id, ad: m.ad, aciklama: m.aciklama, izinler: m.izinler, renk: m.renk, ikon: m.ikon, kategori: m.kategori, durum: m.durum });
+  app.get("/api/paylasim/:anahtar", async (req, rep) => {
+    const m = await paylasilanModul(req.params.anahtar);
+    rep.header("cache-control", "no-store");
+    return m ? paylasimOzeti(m) : rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
+  });
+  app.get("/api/paylasim/:anahtar/kod", async (req, rep) => {
+    const m = await paylasilanModul(req.params.anahtar);
+    if (!m) return rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
+    const kod = await readFile(path.join(MODUL_DIZINI, `${m.id}.js`), "utf8");
+    return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
+  });
+  app.get("/m/:anahtar", async (req, rep) => {
+    const { anahtar } = req.params;
+    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/app/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/app/");
+  });
+  // Android App Links doğrulaması: ANDROID_IMZA_SHA256 (APK imza sertifikasının SHA-256 parmak izleri, virgülle) doluysa yayımlanır.
+  const imzalar = String(ortam.ANDROID_IMZA_SHA256 ?? "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(x));
+  app.get("/.well-known/assetlinks.json", async (_, rep) => {
+    if (!imzalar.length) return rep.code(404).send({ hata: "ANDROID_IMZA_SHA256 tanımlı değil" });
+    return [{ relation: ["delegate_permission/common.handle_all_urls"],
+      target: { namespace: "android_app", package_name: "com.kozmos.lonca", sha256_cert_fingerprints: imzalar } }];
+  });
+
   // ---------- Dalışlar (uydudan içine kaydırmalı geziler) ----------
   // Tanımlar data/dalislar/<eser>.json; görüntüler public/medya/dalis/<eser>/. Uygulama yalnızca onaylıları görür;
   // Studio önizlemesi (?onizleme=1) onay bekleyenleri de görür ki editör yayından önce inceleyebilsin.
@@ -599,7 +655,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     // ?ozet=1: kareler olmadan yalnızca hangi eserin dalışı olduğu (eser sayfasındaki "Dalışı var" rozeti için).
     return req.query.ozet === "1" ? liste.map((d) => ({ eser: d.eser, ozet: d.ozet ?? null, durum: d.durum })) : liste;
   });
-  app.get("/api/dalislar-yonetim", { preHandler: editorGerekli }, async () =>
+  app.get("/api/dalislar-yonetim", { preHandler: ustaGerekli }, async () =>
     (await dalislariOku()).map(({ kareler, ...d }) => ({ ...d, kareSayisi: kareler?.length ?? 0, kartlar: (kareler ?? []).flatMap((k) => (k.k ?? []).map((b) => ({ ...b, kare: k.b ?? "" }))) })));
   app.post("/api/dalislar/:eser/durum", { preHandler: editorGerekli }, async (req, rep) => {
     const { eser } = req.params, { durum } = req.body ?? {};
@@ -625,13 +681,42 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   // Dalış kalfası: bir eser için geziyi baştan sona hazırlar (dakikalar sürer; Studio ilerlemeyi yoklar).
   app.get("/api/dalis-kalfasi", async () => ({ hazir: dalisKalfasi.hazir(), etkin: dalisKalfasi.etkin()?.id ?? null }));
-  app.post("/api/dalis-kalfasi", { preHandler: [editorGerekli, kalfaSiniri] }, async (req, rep) => {
-    const { istek, eser, uzerineYaz } = req.body ?? {};
+  // Dalış önerileri: Studio'daki öneri düğmeleri her mesajdan sonra buradan yenilenir. Yalnızca bilgi bankasındaki
+  // eser adlarıyla kurulur (fotoğrafı ve konumu olan, dalışı henüz olmayan eserler önce); ?haric= az önce istenenleri atlar.
+  app.get("/api/dalis-kalfasi/oneriler", { preHandler: ustaGerekli }, async (req) => {
+    const haric = new Set(String(req.query.haric ?? "").split(",").filter(kimlikGecerli).slice(0, 20));
+    const dalisli = new Set((await dalislariOku()).filter((d) => d.durum !== "kaldirildi").map((d) => d.eser));
+    const adaylar = eserler.filter((e) => e.konum && e.fotograflar?.length && !haric.has(e.id));
+    const karistir = (dizi) => dizi.map((e) => [Math.random(), e]).sort((a, b) => a[0] - b[0]).map(([, e]) => e);
+    const sirali = [...karistir(adaylar.filter((e) => !dalisli.has(e.id))), ...karistir(adaylar.filter((e) => dalisli.has(e.id)))];
+    const secilen = [], turler = new Set();
+    for (const e of sirali) { if (secilen.length < 3 && !turler.has(e.tur)) { secilen.push(e); turler.add(e.tur); } }
+    for (const e of sirali) { if (secilen.length < 3 && !secilen.includes(e)) secilen.push(e); }
+    const kaliplar = [
+      (e) => `${e.ad} için uydudan içine inen bir dalış`,
+      (e) => `${e.ad} için tarihçesini öne çıkaran kısa bir dalış`,
+      (e) => `${e.ad} için ayrıntılarını gezdiren bir dalış`,
+    ];
+    return { oneriler: secilen.map((e, i) => ({ eser: e.id, metin: kaliplar[i % kaliplar.length](e) })) };
+  });
+  // Usta da dalış hazırlatabilir; dalış "bekliyor" olarak kaydedilir, yayın admin onayıyla olur. Usta mevcut bir dalışın
+  // (yayındaki ya da onay bekleyen) üzerine yazamaz.
+  app.post("/api/dalis-kalfasi", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
+    const { istek, eser, uzerineYaz, oturum } = req.body ?? {};
+    const admin = await editorMi(req);
+    if (uzerineYaz && !admin) return rep.code(403).send({ hata: "Mevcut bir dalışın üzerine yalnızca admin yazabilir" });
     if (eser != null && !kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz eser kimliği" });
     if (istek != null && (typeof istek !== "string" || istek.length > 1000)) return rep.code(400).send({ hata: "istek en fazla 1000 harf" });
     if (!eser && !String(istek ?? "").trim()) return rep.code(400).send({ hata: "Kalfaya ne istediğini yaz" });
+    if (oturum != null && !atolyeKimligiGecerli(oturum)) return rep.code(400).send({ hata: "geçersiz oturum kimliği" });
+    const sahip = oturum != null ? await atolyeSahibi(req) : null;
+    if (oturum != null) {
+      try { await atolye.getir(sahip, oturum); } catch (h) { return rep.code(h.kod ?? 500).send({ hata: h.message }); }
+    }
     try {
-      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz });
+      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz, korunanlar: admin ? ["onayli"] : ["onayli", "bekliyor"] });
+      // Studio sayfası yenilense de dalışın ilerlemesi sohbetten yeniden izlenebilsin.
+      if (oturum != null) await atolye.dalisEkle(sahip, oturum, { istek: istek || eser, is: is.id }).catch((h) => req.log.warn(h, "dalış oturuma yazılamadı"));
       return { is: is.id };
     } catch (h) {
       return rep.code(h.kod ?? 500).send({ hata: h.message });
@@ -665,7 +750,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   // Kalfa modelleri: UstaGPT'nin model listesi (sunucu çağırır, anahtar tarayıcıya gitmez) ve şu anki seçim.
   const secimGoster = () => etkinSecim(ortam);
-  app.get("/api/kalfa/modeller", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.get("/api/kalfa/modeller", { preHandler: editorGerekli }, async (req, rep) => {
     try {
       const { modeller, zaman } = await modelKatalogum.liste({ yenile: req.query?.yenile === "1" });
       const tarama = await modelTaramasi.durum();
@@ -678,8 +763,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     }
   });
   // Model taraması: her metin modeline gerçek bir kalfa isteği gönderir (dakikalar sürer; Studio GET ile izler).
-  app.get("/api/kalfa/modeller/tara", { preHandler: yoneticiGerekli }, async () => modelTaramasi.durum());
-  app.post("/api/kalfa/modeller/tara", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.get("/api/kalfa/modeller/tara", { preHandler: editorGerekli }, async () => modelTaramasi.durum());
+  app.post("/api/kalfa/modeller/tara", { preHandler: editorGerekli }, async (req, rep) => {
     const bicim = kalfaTaramaDogrula(req.body);
     if (bicim.hatalar.length) return rep.code(400).send({ hata: bicim.hatalar[0], ayrintilar: bicim.hatalar });
     if (!kalfa.ustagpt) return rep.code(409).send({ hata: "Modül kalfası UstaGPT'ye bağlı değil (sahte mod ya da başka bir uç nokta); tarama yalnızca UstaGPT modelleri için yapılır" });
@@ -694,7 +779,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     req.log.info({ adet: hedef.length }, "kalfa model taraması başladı");
     return rep.code(202).send({ calisiyor: true, ilerleme });
   });
-  app.put("/api/kalfa/ayarlar", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.put("/api/kalfa/ayarlar", { preHandler: editorGerekli }, async (req, rep) => {
     const bicim = kalfaAyarDogrula(req.body);
     if (bicim.hatalar.length) return rep.code(400).send({ hata: bicim.hatalar[0], ayrintilar: bicim.hatalar });
     let modeller;
@@ -708,7 +793,61 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     req.log.info({ ayar }, "kalfa model seçimi güncellendi");
     return { secili: secimGoster() };
   });
+  // ---------- Atölye oturumları (Studio: kalfa sohbeti + modül taslağı, kullanıcı başına) ----------
+  const atolyeHatasi = (rep, h) => rep.code(h.kod ?? 500).send({ hata: h.message });
+  const oturumKimligi = (req, rep) => {
+    if (atolyeKimligiGecerli(req.params.id)) return true;
+    rep.code(400).send({ hata: "geçersiz oturum kimliği" });
+    return false;
+  };
+  app.get("/api/atolye/oturumlar", { preHandler: ustaGerekli }, async (req) => ({ oturumlar: await atolye.liste(await atolyeSahibi(req)) }));
+  app.post("/api/atolye/oturumlar", { preHandler: ustaGerekli }, async (req, rep) => {
+    let taslak = null;
+    if (req.body?.taslak != null) {
+      const d = atolyeTaslakDogrula(req.body.taslak);
+      if (d.hatalar.length) return rep.code(400).send({ hata: d.hatalar[0], ayrintilar: d.hatalar });
+      taslak = d.taslak;
+    }
+    return rep.code(201).send(await atolye.olustur(await atolyeSahibi(req), { taslak }));
+  });
+  app.get("/api/atolye/oturumlar/:id", { preHandler: ustaGerekli }, async (req, rep) => {
+    if (!oturumKimligi(req, rep)) return rep;
+    try { return await atolye.getir(await atolyeSahibi(req), req.params.id); } catch (h) { return atolyeHatasi(rep, h); }
+  });
+  app.put("/api/atolye/oturumlar/:id/taslak", { preHandler: ustaGerekli }, async (req, rep) => {
+    if (!oturumKimligi(req, rep)) return rep;
+    const d = atolyeTaslakDogrula(req.body);
+    if (d.hatalar.length) return rep.code(400).send({ hata: d.hatalar[0], ayrintilar: d.hatalar });
+    try { return await atolye.taslakYaz(await atolyeSahibi(req), req.params.id, d.taslak); } catch (h) { return atolyeHatasi(rep, h); }
+  });
+  app.delete("/api/atolye/oturumlar/:id", { preHandler: ustaGerekli }, async (req, rep) => {
+    if (!oturumKimligi(req, rep)) return rep;
+    try { return await atolye.sil(await atolyeSahibi(req), req.params.id); } catch (h) { return atolyeHatasi(rep, h); }
+  });
+
+  // Kalfa. "oturum" verilirse sohbet sunucudaki oturumdan kurulur ve yanıt (istemci beklemeyi bıraksa da) oturuma yazılır;
+  // verilmezse eski biçim: sohbet istekle gelir, hiçbir şey saklanmaz.
   app.post("/api/kalfa", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
+    if (req.body?.oturum != null) {
+      const { oturum, istek, kod } = req.body;
+      if (!atolyeKimligiGecerli(oturum)) return rep.code(400).send({ hata: "geçersiz oturum kimliği" });
+      const hatalar = atolyeIstekDogrula({ istek, kod });
+      if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+      const sahip = await atolyeSahibi(req);
+      let sohbet;
+      try { ({ sohbet } = await atolye.kalfaBaslat(sahip, oturum, { istek: istek.trim(), kod: kod ?? null })); }
+      catch (h) { return atolyeHatasi(rep, h); }
+      try {
+        const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+        if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
+        await atolye.kalfaBitir(sahip, oturum, { sonuc });
+        return sonuc;
+      } catch (h) {
+        req.log.error(h);
+        await atolye.kalfaBitir(sahip, oturum, { hata: h.message, ayrintilar: h.ayrintilar ?? [] }).catch(() => {});
+        return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });
+      }
+    }
     const { sohbet, kod } = req.body ?? {};
     const gecerli = Array.isArray(sohbet) && sohbet.length > 0 && sohbet.length <= 30 &&
       sohbet.every((m) => (m?.rol === "usta" || m?.rol === "kalfa") && typeof m.metin === "string" && m.metin.length <= 4000) &&
@@ -717,7 +856,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
     try {
       const sonuc = await kalfa.calistir(sohbet, kod || undefined);
-      kalfaUretiminiKaydet(sonuc);
+      if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
       return sonuc;
     } catch (h) {
       req.log.error(h);

@@ -29,7 +29,7 @@
     <header class="ust-bar" id="ust-bar">
       <p class="marka"><span class="marka-logo" id="marka-logo" aria-hidden="true"></span><span>Lonca</span></p>
       <div class="vitrin-dugmeler">
-        <button class="profil-cip" id="profil-cip"><span class="gizli">Profilim: </span>
+        <button class="profil-cip" id="profil-cip"><span class="gizli">Profilim ve hesabım: </span>
           <span class="avatar" id="cip-avatar" aria-hidden="true"></span>
           <span class="profil-cip-metin"><strong id="cip-ad">Gezgin</strong><span id="cip-seviye">Seviye 1</span></span>
         </button>
@@ -234,7 +234,7 @@
   <div id="tanisma" class="ayarlar" hidden>
     <form class="ayarlar-kutu tanisma-kutu" id="tanisma-formu" role="dialog" aria-modal="true" aria-labelledby="tanisma-baslik">
       <h2 id="tanisma-baslik">Lonca'ya hoş geldin</h2>
-      <p class="tanisma-alt">Sana nasıl seslenelim? Takma ad yeterli; adın cihazında kalır.</p>
+      <p class="tanisma-alt">Sana nasıl seslenelim? Hesap açarak profilini hesabına da bağlayabilirsin.</p>
       <label class="gizli" for="tanisma-ad">Takma ad</label>
       <input id="tanisma-ad" class="tanisma-girdi" maxlength="24" placeholder="Örn. Kervan Başı" autocomplete="nickname">
       <fieldset class="renk-secimi">
@@ -244,6 +244,29 @@
       <div class="tanisma-dugmeler">
         <button type="button" class="dugme ikincil" id="tanisma-gec">Şimdilik geç</button>
         <button class="dugme">Başla</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="hesap-penceresi" class="ayarlar" hidden>
+    <form id="hesap-formu" class="ayarlar-kutu hesap-kutu" role="dialog" aria-modal="true" aria-labelledby="hesap-baslik">
+      <h2 id="hesap-baslik">Lonca hesabı</h2>
+      <p class="tanisma-alt" id="hesap-aciklama">Profilini güvenli hesabına bağla; mevcut cihaz profilin ilk girişte taşınır.</p>
+      <div class="bolumlu hesap-kip" role="radiogroup" aria-label="Giriş ya da hesap oluştur">
+        <button type="button" data-hesap-kip="giris" aria-checked="true" role="radio" class="secili">Giriş yap</button>
+        <button type="button" data-hesap-kip="kayit" aria-checked="false" role="radio">Hesap oluştur</button>
+      </div>
+      <label class="hesap-alan">Kullanıcı adı
+        <input id="hesap-kimlik" class="tanisma-girdi" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.-]{3,32}" placeholder="Örn. ayse.yilmaz">
+      </label>
+      <label class="hesap-alan">Şifre
+        <input id="hesap-sifre" class="tanisma-girdi" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter">
+      </label>
+      <p id="hesap-kayit-notu" class="hesap-aciklama" hidden>Bu hesapla App profilini kullanabilir, aynı kullanıcı adıyla Studio’da modül hazırlayabilirsin.</p>
+      <p id="hesap-hata" class="hesap-hata" role="alert" hidden></p>
+      <div class="tanisma-dugmeler">
+        <button type="button" class="dugme ikincil" id="hesap-vazgec">Vazgeç</button>
+        <button type="submit" class="dugme" id="hesap-gonder">Giriş yap</button>
       </div>
     </form>
   </div>
