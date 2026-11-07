@@ -764,17 +764,35 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     await modulDosyasi.yaz(liste);
     return m;
   }
-  app.post("/api/moduller/:id/durum", { preHandler: editorGerekli }, async (req, rep) => {
+  // Usta kendi modülünü yönetebilir: onaydan (ya da yayından) geri çekip özel taslağa döndürür ve silebilir.
+  // Başka bir durum (yayınlama, reddetme, arşiv) yalnızca admin'in işidir. Sonuç: null = izinli, değilse { kod, hata }.
+  // Yanıt nesnesi (reply) döndürülmez: thenable olduğu için await onu undefined'a çözer ve işlem sürerdi.
+  async function sahipDenetle(req, id) {
+    if (await editorMi(req)) return null;
+    const m = (await modulDosyasi.oku()).find((x) => x.id === id);
+    if (!m) return { kod: 404, hata: "modül bulunamadı" };
+    const ben = (await yetkiliHesap(req))?.id;
+    if (!m.sahip || m.sahip !== ben) return { kod: 403, hata: "Yalnızca kendi modülünü yönetebilirsin" };
+    return null;
+  }
+  app.post("/api/moduller/:id/durum", { preHandler: ustaGerekli }, async (req, rep) => {
     const { durum } = req.body ?? {};
     if (!MODUL_DURUMLARI.includes(durum)) return rep.code(400).send({ hata: `durum: ${MODUL_DURUMLARI.join(" | ")}` });
+    if (!(await editorMi(req))) {
+      if (durum !== "ozel") return rep.code(403).send({ hata: "Usta modülünü yalnızca geri çekip özel taslağa döndürebilir; yayın ve onay admin'in işidir" });
+      const red = await sahipDenetle(req, req.params.id);
+      if (red) return rep.code(red.kod).send({ hata: red.hata });
+    }
     return (await durumDegistir(req.params.id, durum)) ?? rep.code(404).send({ hata: "modül bulunamadı" });
   });
   app.post("/api/moduller/:id/onayla", { preHandler: editorGerekli }, async (req, rep) =>
     (await durumDegistir(req.params.id, "onayli")) ?? rep.code(404).send({ hata: "modül bulunamadı" }));
 
-  app.delete("/api/moduller/:id", { preHandler: editorGerekli }, async (req, rep) => {
+  app.delete("/api/moduller/:id", { preHandler: ustaGerekli }, async (req, rep) => {
     const { id } = req.params;
     if (!kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
+    const red = await sahipDenetle(req, id);
+    if (red) return rep.code(red.kod).send({ hata: red.hata });
     const liste = await modulDosyasi.oku();
     const i = liste.findIndex((m) => m.id === id);
     if (i < 0) return rep.code(404).send({ hata: "modül bulunamadı" });

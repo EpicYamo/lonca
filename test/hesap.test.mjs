@@ -116,8 +116,6 @@ test("admin (editör) her şeyi düzenler; usta Studio listelerini yalnızca gö
     ["PUT", `/api/eserler/${eserId}`, { ad: "Değişti" }],
     ["POST", "/api/eserler", { ad: "Yeni" }],
     ["DELETE", `/api/eserler/${eserId}`],
-    ["POST", "/api/moduller/yok/durum", { durum: "onayli" }],
-    ["DELETE", "/api/moduller/yok"],
     ["POST", "/api/eser-oneriler/yok/karar", { karar: "onayla" }],
     ["GET", "/api/eserler-disa-aktar"],
     ["POST", "/api/dalislar/yok/durum", { durum: "onayli" }],
@@ -175,6 +173,48 @@ test("onay kuyruğunu yalnızca admin görür; usta yalnızca kendi modüllerini
   assert.equal((await kodOku(ogretmen.jeton)).statusCode, 200);
   assert.equal((await kodOku(editor.jeton)).statusCode, 200);
   assert.equal((await kodOku(diger.jeton)).statusCode, 403);
+});
+
+test("usta yalnızca kendi modülünü geri çekip silebilir; yayın ve onay admin'de kalır", async () => {
+  const kod = await readFile(path.join(KOK, "sdk", "ornekler", "yuzyil-avi.js"), "utf8");
+  const editor = await rolluAc("geri-editor", "editor");
+  const sahip = await kaydol({ kimlik: "geri-usta-a", sifre: "sifresifre" });
+  const diger = await kaydol({ kimlik: "geri-usta-b", sifre: "sifresifre" });
+  const vatandas = await rolluAc("geri-vatandas", "vatandas");
+  const gonder = (id) => s.istek("POST", "/api/moduller", { basliklar: yetki(sahip.jeton), govde: { id, ad: id, kod } });
+  const durum = (jeton, id, d) => s.istek("POST", `/api/moduller/${id}/durum`, { basliklar: yetki(jeton), govde: { durum: d } });
+  const sil = (jeton, id) => s.istek("DELETE", `/api/moduller/${id}`, { basliklar: yetki(jeton) });
+  assert.equal((await gonder("geri-a")).json().durum, "bekliyor");
+
+  // Başkası ve vatandaş dokunamaz; usta kendi modülünü bile yayınlayamaz ya da reddedemez.
+  assert.equal((await durum(diger.jeton, "geri-a", "ozel")).statusCode, 403);
+  assert.equal((await sil(diger.jeton, "geri-a")).statusCode, 403);
+  assert.equal((await durum(vatandas.jeton, "geri-a", "ozel")).statusCode, 401);
+  assert.equal((await sil(vatandas.jeton, "geri-a")).statusCode, 401);
+  for (const d of ["onayli", "reddedildi", "arsiv", "kaldirildi", "bekliyor"]) assert.equal((await durum(sahip.jeton, "geri-a", d)).statusCode, 403, d);
+  assert.equal((await durum(sahip.jeton, "yok", "ozel")).statusCode, 404);
+  assert.equal((await sil(sahip.jeton, "yok")).statusCode, 404);
+
+  // Onaydan geri çekince özel taslak olur, onay kuyruğundan çıkar.
+  const geri = await durum(sahip.jeton, "geri-a", "ozel");
+  assert.equal(geri.statusCode, 200);
+  assert.equal(geri.json().durum, "ozel");
+  const kuyruk = (await s.istek("GET", "/api/moduller?durum=hepsi", { basliklar: yetki(editor.jeton) })).json();
+  assert.equal(kuyruk.find((m) => m.id === "geri-a").durum, "ozel");
+
+  // Yayındaki modülünü de geri çekebilir: uygulamadan kalkar.
+  assert.equal((await gonder("geri-b")).statusCode, 201);
+  assert.equal((await durum(editor.jeton, "geri-b", "onayli")).statusCode, 200);
+  assert.ok((await s.istek("GET", "/api/moduller")).json().some((m) => m.id === "geri-b"));
+  assert.equal((await durum(sahip.jeton, "geri-b", "ozel")).statusCode, 200);
+  assert.ok(!(await s.istek("GET", "/api/moduller")).json().some((m) => m.id === "geri-b"));
+
+  // Sahibi siler: kayıt ve kod gider.
+  assert.equal((await sil(sahip.jeton, "geri-a")).statusCode, 200);
+  assert.equal((await sil(sahip.jeton, "geri-b")).statusCode, 200);
+  const kalan = (await s.istek("GET", "/api/moduller?durum=hepsi", { basliklar: yetki(sahip.jeton) })).json().map((m) => m.id);
+  assert.ok(!kalan.includes("geri-a") && !kalan.includes("geri-b"));
+  assert.equal((await s.istek("GET", "/api/moduller/geri-a/kod", { basliklar: yetki(editor.jeton) })).statusCode, 404);
 });
 
 test("özel modül onay kuyruğuna girmez, yalnızca paylaşım bağlantısıyla açılır", async () => {
