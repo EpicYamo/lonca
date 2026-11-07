@@ -72,6 +72,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |
 | `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Ortak yedek: `DALIS_*` boşsa dalış kalfası, `KALFA_*` boşsa modül kalfası bunu kullanır |
 | `LONCA_API_ANAHTARI` | `mobil/hazirla.mjs`'nin mobil pakete koyduğu API anahtarı |
+| `LONCA_ALAN_ADI`, `LONCA_EPOSTA`, `LONCA_YOL_ONEKI` | İnternette yayın: Nginx + Let's Encrypt (`docker-compose.sunucu.yml`, `docker/`) |
 
 `KALFA_*` yalnızca modül kalfası, `DALIS_*` yalnızca dalış kalfası içindir.
 

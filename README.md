@@ -87,6 +87,34 @@ expire after five minutes. List or revoke devices with
 `/studio/` redirect to `/giris` once; the key is exchanged for a revocable
 HttpOnly cookie (`/cikis` logs out).
 
+### Internet deployment (Nginx + HTTPS)
+
+On a server with a domain, `docker-compose.sunucu.yml` puts Nginx in front of
+Lonca: it terminates HTTPS with a Let's Encrypt certificate, redirects HTTP to
+HTTPS and proxies `/api`, `/medya`, `/sdk`, `/app` and `/studio` to the Lonca
+container, whose port 3000 is no longer published.
+
+1. Point the domain's DNS `A` record (and `AAAA` if any) at the server's public IP.
+   Open ports 80 and 443.
+2. In `.env`: `LONCA_ALAN_ADI=lonca.example.com`, `LONCA_EPOSTA=…`, and a strong
+   `LONCA_API_ANAHTARI`. Optional `LONCA_YOL_ONEKI=/lonca` serves under
+   `https://domain/lonca/` (the API works there; browser redirects of
+   `/app`/`/studio` assume the root).
+3. Start, then get the first certificate (once; renewal is automatic, Nginx
+   reloads by itself):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.sunucu.yml up -d --build
+./docker/sertifika-al.sh            # SERTIFIKA_DENEME=1 for a Let's Encrypt staging run
+```
+
+Until the certificate exists Nginx serves a temporary self-signed one, so it
+can start and answer the HTTP-01 challenge. Needs Docker Compose 2.24+.
+
+The Android app does not need the IP: the APK is built with the server's HTTPS
+origin (the DNS name), sends the API key in `x-lonca-anahtar`, and falls back
+to the bundled offline snapshot when the server cannot be reached.
+
 ## Commands
 
 | Command | What it does |
