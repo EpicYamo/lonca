@@ -1,0 +1,39 @@
+{
+  "appId": "com.kozmos.lonca",
+  "appName": "Lonca",
+  "webDir": "mobil/www",
+  "loggingBehavior": "debug",
+  "android": {
+    "path": "android",
+    "backgroundColor": "#ffffff",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  },
+  "server": {
+    "androidScheme": "https",
+    "hostname": "localhost"
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "native",
+      "initialViewportFitValueHint": "cover",
+      "style": "LIGHT"
+    },
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "launchShowDuration": 0,
+      "backgroundColor": "#ffffff",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_INSIDE",
+      "splashFullScreen": false,
+      "splashImmersive": false
+    },
+    "Keyboard": {
+      "resizeOnFullScreen": true
+    },
+    "CapacitorHttp": {
+      "enabled": false
+    }
+  }
+}

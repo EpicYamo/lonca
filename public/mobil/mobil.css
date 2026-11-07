@@ -1,0 +1,24 @@
+/* Yalnızca Android uygulamasında (html.lonca-native) geçerli dokunuşlar. */
+.lonca-native { -webkit-tap-highlight-color: transparent; }
+.lonca-native body { overscroll-behavior-y: none; -webkit-touch-callout: none; }
+/* Düğme ve kartlarda metin seçimi uygulama hissini bozar; okunacak metinler seçilebilir kalır. */
+.lonca-native button, .lonca-native [role="tab"], .lonca-native .kategori-cip, .lonca-native label.anahtar { user-select: none; -webkit-user-select: none; }
+/* Dokunma geri bildirimi: düzeni kaydırmadan, ~100 ms içinde. */
+.lonca-native button:not(:disabled):active { filter: brightness(.94); transition: filter 80ms ease-out; }
+.lonca-native .hareket-az button:active { transition: none; }
+
+/* Bağlantı bölümü (Erişilebilirlik penceresinde) */
+.mobil-baglanti .baglanti-durum { display: flex; align-items: center; gap: .55rem; margin: 0 0 .7rem; font-weight: 600; }
+.mobil-baglanti .baglanti-nokta { width: .7rem; height: .7rem; border-radius: 50%; flex: none; background: var(--murekkep-soluk, #8a8f99); }
+.mobil-baglanti[data-durum="canli"] .baglanti-nokta { background: #1f9d55; box-shadow: 0 0 0 3px rgba(31, 157, 85, .18); }
+.mobil-baglanti[data-durum="araniyor"] .baglanti-nokta { background: #c98a12; animation: baglanti-nabiz 1s ease-in-out infinite alternate; }
+.hareket-az .mobil-baglanti .baglanti-nokta { animation: none; }
+@keyframes baglanti-nabiz { to { opacity: .35; } }
+.mobil-baglanti .baglanti-girdi { font-family: var(--yazi-mono, ui-monospace, monospace); }
+.mobil-baglanti .baglanti-ipucu { font-size: .875rem; margin: .5rem 0 .8rem; opacity: .85; }
+.mobil-baglanti .baglanti-dugmeler { display: flex; gap: .6rem; flex-wrap: wrap; }
+.mobil-baglanti .baglanti-dugmeler .dugme { min-height: 48px; flex: 1 1 8rem; }
+
+/* Android dokunma hedefi: en az 48dp */
+.lonca-native .kapsul-dugme, .lonca-native .s-ust-geri, .lonca-native .geri, .lonca-native .katman-kapat, .lonca-native .ep-x,
+.lonca-native .ayar-dugme { min-width: 48px; min-height: 48px; }

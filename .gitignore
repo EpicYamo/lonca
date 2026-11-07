@@ -15,3 +15,8 @@ data/yuklenen/
 data/eser-gecmisi.json
 data/gecmis/
 data/moduller/eski/
+
+# Android uygulaması (./apk.sh ile üretilir)
+mobil/www/
+mobil/anahtar/
+dist/

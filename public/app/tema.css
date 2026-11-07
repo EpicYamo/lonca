@@ -1,0 +1,120 @@
+/* Lonca uygulaması — sade tema.
+   Beyaz tonlar, mürekkep siyahı metin ve tek vurgu rengi (Studio ile aynı firuze-yeşil).
+   :root[data-tema="koyu"] siyah temadır; ust bardaki ay/güneş düğmesiyle ya da Erişilebilirlik penceresinden açılır.
+   Modüllerin kendi temaları (acik, parsomen, koyu, gece) bu dosyadan etkilenmez; yalnızca Lonca'nın kendi ekranları. */
+
+:root {
+  --zemin: #f6f7f9;
+  --yuzey: #ffffff;
+  --yuzey-2: #f1f3f5;
+  --metin: #14171c;
+  --soluk: #4a5260;
+  --cizgi: #e3e6eb;
+  --cizgi-guclu: #cfd4dc;
+  --ana: #14171c;
+  --ana-metin: #ffffff;
+  --vurgu: #0b7a66;
+  --vurgu-zemin: rgba(11, 122, 102, .09);
+  --perde: rgba(20, 23, 28, .42);
+  --golge-kart: 0 1px 2px rgba(20, 23, 28, .05), 0 8px 24px -14px rgba(20, 23, 28, .18);
+  --foto-perde: linear-gradient(180deg, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, .45) 62%, rgba(0, 0, 0, .82) 100%);
+  color-scheme: light;
+}
+:root[data-tema="koyu"] {
+  --zemin: #0b0c0e;
+  --yuzey: #15171b;
+  --yuzey-2: #1c1f24;
+  --metin: #f1f2f4;
+  --soluk: #a7adb8;
+  --cizgi: #2a2e35;
+  --cizgi-guclu: #3a3f48;
+  --ana: #f1f2f4;
+  --ana-metin: #0b0c0e;
+  --vurgu: #3fcfae;
+  --vurgu-zemin: rgba(63, 207, 174, .12);
+  --perde: rgba(0, 0, 0, .62);
+  --golge-kart: 0 1px 2px rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+/* Yüksek kontrast kendi siyah/sarı paletini korur. */
+:root.kontrast { --vurgu: #ffd400; --yuzey-2: #000; --perde: rgba(0, 0, 0, .8); }
+
+body { background: var(--zemin); color: var(--metin); }
+:focus-visible { outline-color: var(--vurgu); }
+
+/* ---------- Üst bar ---------- */
+.ust-bar { background: color-mix(in srgb, var(--zemin) 88%, transparent); }
+.marka { color: var(--metin); }
+.marka-logo svg { filter: none; }
+.ust-bar .profil-cip { box-shadow: none; }
+.ayar-dugme, .tema-dugme { color: var(--metin); }
+.tema-dugme { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-radius: 14px; border: 1px solid var(--cizgi); background: var(--yuzey); padding: 0; }
+.tema-dugme svg { width: 22px; height: 22px; }
+.tema-dugme .tema-gunes { display: none; }
+:root[data-tema="koyu"] .tema-dugme .tema-gunes { display: block; }
+:root[data-tema="koyu"] .tema-dugme .tema-ay { display: none; }
+
+/* ---------- Kapak: fotoğraf kalır, lacivert ve yaldız gider ---------- */
+.kapak-alani { background: #1b1e23; box-shadow: var(--golge-kart); border-radius: 24px; }
+.kapak-alani::after { display: none; }
+.kolaj::before { background: linear-gradient(90deg, rgba(0, 0, 0, .55) 0%, rgba(0, 0, 0, .2) 50%, transparent 78%); }
+.kolaj::after { background: var(--foto-perde); }
+.vitrin-selam { color: #ffffff; opacity: .9; }
+.vitrin-baslik em { color: #ffffff; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .14em; text-decoration-color: rgba(255, 255, 255, .55); }
+.vitrin-alt { color: rgba(255, 255, 255, .88); }
+.vitrin-sayilar li { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .24); color: rgba(255, 255, 255, .9); }
+.kolaj-atif { background: rgba(0, 0, 0, .45); color: rgba(255, 255, 255, .9); }
+
+/* ---------- Bölümler ---------- */
+.bolum-baslik { color: var(--metin); }
+.ok-dugme { color: var(--metin); min-width: 44px; min-height: 44px; }
+.devam-karti, .gunun-karti, .uygulama-satiri, .katki-seridi { box-shadow: var(--golge-kart); }
+.devam-ok { background: var(--ana); color: var(--ana-metin); }
+.devam-cubuk i, .basarim-cubugu i { background: var(--vurgu); }
+
+.oc-kart { background: #1b1e23; box-shadow: var(--golge-kart); }
+.oc-arka::after { background: var(--foto-perde); }
+.oc-etiket { color: rgba(255, 255, 255, .85); }
+.oc-aciklama { color: rgba(255, 255, 255, .86); }
+.oc-alt-metin span { color: rgba(255, 255, 255, .75); }
+.oc-alt { background: rgba(255, 255, 255, .14); border-color: rgba(255, 255, 255, .2); }
+.oc-alt .ac-pill { background: #ffffff; color: #14171c; }
+
+.ikon-madalyon { color: var(--metin); box-shadow: 0 2px 6px rgba(0, 0, 0, .18); }
+.ac-pill { background: var(--yuzey-2); color: var(--metin); }
+.kategori-cip { min-height: 44px; }
+.kategori-cip.secili { background: var(--ana); border-color: var(--ana); color: var(--ana-metin); }
+.kategori-cip.secili small { background: color-mix(in srgb, var(--ana-metin) 18%, transparent); color: var(--ana-metin); }
+.uygulama-satiri:hover { border-color: var(--cizgi-guclu); box-shadow: var(--golge-kart); }
+.us-kategori { color: var(--vurgu); }
+.secki-foto { box-shadow: none; }
+.gunun-ust, .ep-ust { color: var(--vurgu); }
+.gunun-devam { color: var(--metin); text-decoration: underline; text-underline-offset: .2em; }
+
+/* ---------- Pencereler ---------- */
+.ayarlar { background: var(--perde); }
+.eser-penceresi::backdrop { background: var(--perde); }
+.eser-penceresi { box-shadow: 0 -12px 40px rgba(0, 0, 0, .2); }
+.ep-fotolar { background: #1b1e23; }
+.anahtar input:checked { background: var(--vurgu); }
+.dugme.ikincil { color: var(--metin); border-color: var(--cizgi-guclu); }
+
+/* ---------- Profil ---------- */
+.profil-ekrani .ust-serit { background: var(--zemin); color: var(--metin); border-bottom: 1px solid var(--cizgi); }
+.profil-ekrani .ust-serit::after { display: none; }
+.profil-ekrani .geri { border-color: var(--cizgi); background: var(--yuzey); color: var(--metin); }
+
+/* ---------- Koyu tema düzeltmeleri ---------- */
+:root[data-tema="koyu"] .cip { background: var(--yuzey-2); color: var(--metin); }
+:root[data-tema="koyu"] .harf { background: var(--yuzey-2); color: var(--metin); }
+:root[data-tema="koyu"] .mini-rozet { background: var(--yuzey-2); color: var(--metin); border-color: var(--cizgi-guclu); }
+:root[data-tema="koyu"] .marka-logo svg { filter: drop-shadow(0 0 1px rgba(255, 255, 255, .2)); }
+
+/* Sade görünüm: süsleme desenleri yerine düz yüzey. */
+:root.sade :is(.uygulama-ikonu, .katki-desen, .karo-desen, .acilis-desen, .devam-desen) { background-color: var(--yuzey-2) !important; }
+
+/* ---------- Dalış: durak noktaları ekrana sığsın ----------
+   34 duraklı bir dalışta nokta sütunu telefon ekranından taşıyordu; sütun sahnenin %60'ına sığar,
+   noktalar gerekirse sıklaşır (dokunma alanı satır boyunca genişler). */
+.s-dalis-noktalar { max-height: 60%; }
+.s-dalis-nokta { flex: 1 1 0; min-height: 0; max-height: 26px; width: 36px; }
