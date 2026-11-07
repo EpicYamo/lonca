@@ -80,10 +80,9 @@ try {
 
   const tel = await (await tarayici.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })).newPage();
   tel.on("pageerror", (e) => hatalar.push(`Uygulama: ${e.message}`));
-  await tel.goto(`${ADRES}/app/`);
-  await tel.click("#ks-devam");
-  await tel.fill("#tanisma-ad", "Deneme");
-  await tel.click("#tanisma-formu button:not([type=button])");
+  await tel.goto(`${ADRES}/`);
+  // Web sitesinde giriş ve tanışma zorunlu değil: doğrudan ana sayfa açılır.
+  assert.ok(!(await tel.isVisible("#karsilama")), "web'de karşılama penceresi çıkmamalı");
   await tel.click("#moduller .karo");
   await tel.waitForSelector(".s-kapak");
   assert.ok(await tel.isVisible("#kapsul"), "kapsül görünmeli");
@@ -113,6 +112,7 @@ try {
   adim("öneri onaylandı ve eser yayına girdi");
 
   await tel.click("#profil-cip");
+  await tel.click("#profil-menu >> text=Profilim");
   await tel.waitForSelector("#profil-ekrani:not([hidden])");
   await tel.getByRole("button", { name: "Hesap oluştur", exact: true }).click();
   await tel.fill("#hesap-kimlik", "e2e-gezgin");
