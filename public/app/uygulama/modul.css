@@ -59,3 +59,46 @@
 }
 /* Dalış gibi çubuksuz tam ekran modülde kapak bütün ekranı alır. */
 .kabuk .modul-ekrani:has(.s-dalis-sahne) :is(.s-kok-tam > .s-kapak:only-child, .s-kok-tam > .s-sutun:only-child > .s-kapak:only-child) { min-height: 100dvh; }
+
+/* ---------- Kapak düğmeleri: fotoğrafın üstünde her zaman okunur ----------
+   Açık zeminli modülde (Eser Keşfi) ikincil düğme açık renge dönüp beyaz yazıyı yutuyordu; kapakta koyu cam kalır.
+   Yan yana düğmeler sözcük bölmez: sığmayan düğme alt satıra geçip satırın tamamını alır. */
+.kabuk .modul-ekrani .s-kapak-dugmeler .s-dugme:is(.ikincil, .hayalet) {
+  background: rgba(10, 14, 28, .38); color: #fff; border-color: rgba(255, 255, 255, .34);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.kabuk .modul-ekrani .s-kapak-dugmeler .s-satir { flex-wrap: wrap; }
+.kabuk .modul-ekrani .s-kapak-dugmeler .s-satir > .s-dugme { flex: 1 1 auto; white-space: nowrap; hyphens: manual; }
+
+/* ---------- Koyu modülde birincil düğme: düz dolgu, parlama yok (Android dolu düğmesi) ---------- */
+.kabuk .modul-ekrani:is([data-zemin="koyu"], [data-zemin="gece"]) .s-dugme.ana { background: #5eead4; color: #06121f; box-shadow: none; }
+
+/* ---------- Dalışın sonu: düğmeler tam genişlik, aynı boy, sola hizalı ----------
+   İlk "Sıradaki gezi" dolu düğme, ötekiler tonlu; "Gerçek 3B" ve "Hata bildir" satırı eşit ikiye bölünür. */
+.kabuk .s-dalis-son { display: flex; flex-direction: column; gap: .75rem; padding: .25rem 0 1.25rem; }
+.kabuk .s-dalis-son > .s-satir { gap: .6rem; }
+.kabuk .s-dalis-son > .s-satir > .s-dugme { flex: 1 1 0; }
+.kabuk .s-dalis-son > .s-dugme { width: 100%; justify-content: flex-start; padding-inline: 1.15rem; text-align: left; }
+.kabuk .s-dalis-son > .s-dugme.ana ~ .s-dugme.ana { background: color-mix(in srgb, var(--metin) 10%, transparent); color: var(--metin); }
+
+/* ---------- Modül içindeki alttan sayfa (katman): kapatma düğmesi içeriği itmez ----------
+   Düğme tutamacın yanındaki başlık şeridinde durur; içerik boydan boya kalır, sayfa yana kaymaz. */
+.kabuk .katman-kutu { max-height: calc(100dvh - 2rem - env(safe-area-inset-top)); border-radius: 28px 28px 0 0; }
+.kabuk .katman-kutu::before { flex: none; width: 36px; height: 4px; margin: .5rem auto 0; background: var(--cizgi-guclu, var(--cizgi)); }
+.kabuk .katman-kapat {
+  position: static; flex: none; align-self: flex-end; width: 44px; height: 44px; margin: -.55rem .6rem 0 0;
+  border: 0; background: color-mix(in srgb, var(--metin) 9%, transparent); color: var(--metin);
+}
+.kabuk .katman-icerik { padding-top: .25rem; overflow-x: hidden; overscroll-behavior: contain; }
+.kabuk .katman-icerik > .ekran-gecis > :first-child { margin-right: 0; }
+.kabuk .katman-icerik :is(img, .gorsel) { max-width: 100%; }
+
+/* ---------- Kenardan kenara öğeler gerçekten kenara uzanır ----------
+   Üst çubuk, kapak, afiş ve yatay şerit -1rem payla ekran kenarına uzanır; taşma koruması (max-width: 100%) bunları
+   sütun genişliğinde kesiyordu: sağda boşluk kalıyor, çubuğun simgeleri ve alt çizgisi kenara varmıyordu. */
+.kabuk .modul-ekrani .s-sutun > :is(.s-ust-cubuk, .s-kapak, .s-afis, .s-kaydirma) { max-width: none; }
+
+/* Modül içindeki alttan sayfa, dalışın kapsülünün ve uygulama çubuğunun üstünde açılır. */
+.kabuk .katman { z-index: 80; }
+/* Yatay şerit kartı yakalarken kenar payını korur: ilk kart ekran kenarına yapışmaz. */
+.kabuk .modul-ekrani .s-kaydirma { scroll-padding-inline: 1rem; }
