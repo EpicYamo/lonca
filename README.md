@@ -61,6 +61,7 @@ Everything works without any configuration:
 | `KALFA_ZAMAN_ASIMI_SN` | Timeout for a single journeyman request to the provider (default 150 s) |
 | `OTURUM_ANAHTARI` | Signs Studio account tokens; generated into `data/.oturum-anahtari` when empty |
 | `HESAP_SINIR` | Sign-up / login attempts allowed per IP in ten minutes |
+| `ILK_SIFRE`, `ILK_KULLANICILAR` | Ready-made admin (role `editor`) accounts (default `arda,ibrahim,sevilay`) created with the initial password; each must set a new password on first login |
 | `LONCA_API_ANAHTARI` | API key: when set, every `/api` request needs the `x-lonca-anahtar` header (or a paired device key / browser login) |
 
 To try it on a phone, connect to the same Wi-Fi and open
