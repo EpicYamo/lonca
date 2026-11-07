@@ -1,10 +1,15 @@
 package com.kozmos.lonca;
 
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
 
 /** JS tarafının bulduğu Lonca sunucusunu native medya vekiline bildirir. */
 @CapacitorPlugin(name = "LoncaSunucu")
@@ -25,6 +30,25 @@ public class LoncaSunucuPlugin extends Plugin {
     public void durum(PluginCall call) {
         JSObject r = new JSObject();
         r.put("adres", adres);
+        call.resolve(r);
+    }
+
+    /** Telefonun kendi yerel ağ (IPv4) adresleri: JS tarafı sunucu ararken bu ağları tarar. İzin gerektirmez. */
+    @PluginMethod
+    public void agBilgisi(PluginCall call) {
+        JSArray ipler = new JSArray();
+        try {
+            for (NetworkInterface ag : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ag.isUp() || ag.isLoopback()) continue;
+                for (InetAddress a : Collections.list(ag.getInetAddresses())) {
+                    if (a instanceof Inet4Address && a.isSiteLocalAddress()) ipler.put(a.getHostAddress());
+                }
+            }
+        } catch (Exception e) {
+            // Adres okunamazsa boş liste döner; tarama yalnızca gömülü/son adreslerle sürer.
+        }
+        JSObject r = new JSObject();
+        r.put("ipler", ipler);
         call.resolve(r);
     }
 }

@@ -1,7 +1,7 @@
 // Lonca Android köprüsü. Web'de hiçbir şey yapmaz; Capacitor içinde açıldığında uygulamayı "gerçek uygulama" yapar:
 //
 //  - Lonca sunucusunu bulur: APK'ya gömülü genel adres (internet, Nginx arkası alan adı) → son adres →
-//    derleyen bilgisayarın yerel IP'leri → emülatör → aynı Wi-Fi'de /24 ağ taraması.
+//    (varsa) gömülü yerel adresler → emülatör → telefonun bağlı olduğu Wi-Fi'de /24 ağ taraması.
 //    Bulunca bütün /api istekleri canlı sunucuya gider (Studio'da canlıya alınan modüller ve dalışlar hemen görünür),
 //    pakette olmayan medya da native tarafta sunucudan getirilir. Bulamazsa paketteki anlık görüntüyle çevrimdışı çalışır.
 //  - Android geri tuşu: açık pencere → modülün kendi geri düğmesi → modülü kapat → profil → uygulamayı arka plana al.
@@ -82,7 +82,7 @@
     for (const s of sozler) s.then((a) => { if (a) coz(a); else if (--kalan === 0) coz(null); });
   });
   // Bağlanma sırası: 1) APK'ya gömülü genel sunucu (internetteki alan adı, ör. https://kozmos.42.fr)
-  // 2) son bağlanılan adres 3) derleyen bilgisayarın yerel IP'leri ve emülatör 4) /24 ağ taraması 5) paketteki veri.
+  // 2) son bağlanılan adres 3) (varsa) gömülü yerel adresler ve emülatör 4) telefonun ağında /24 tarama 5) paketteki veri.
   const GENEL = normalAdres(YAP.genel);
   const gorunen = (a) => String(a).replace(/^http:\/\//, "");
   function adaylar() {
@@ -92,7 +92,10 @@
   const ozelAg = (ip) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip) && ip !== "10.0.2.2";
   async function agiTara(iptal) {
     const denenen = new Set(adaylar());
-    const agler = [...new Set(adaylar().map((a) => new URL(a).hostname).filter(ozelAg).map((ip) => ip.split(".").slice(0, 3).join(".")))];
+    // Taranacak ağlar: telefonun kendi Wi-Fi ağı (APK'ya IP gömülmese de çalışır) + bilinen adreslerin ağları.
+    const kendi = (await sessiz(P.LoncaSunucu?.agBilgisi?.()))?.ipler ?? [];
+    const ipler = [...kendi, ...adaylar().map((a) => new URL(a).hostname)];
+    const agler = [...new Set(ipler.filter(ozelAg).map((ip) => ip.split(".").slice(0, 3).join(".")))];
     const hedefler = [];
     for (const ag of agler) for (let i = 1; i < 255; i++) {
       const a = `http://${ag}.${i}:${PORT}`;

@@ -8,12 +8,12 @@
 # Ortam değişkenleri (isteğe bağlı):
 #   LONCA_SUNUCU_URL=https://kozmos.42.fr   internetteki sunucu (varsayılan; .env'den de okunur); APK önce bunu dener.
 #                                           "yok" verilirse genel sunucu gömülmez
-#   LONCA_SUNUCU=http://192.168.1.20:3000   ek yerel sunucu adresi (yoksa bu bilgisayarın IP'leri gömülür)
+#   LONCA_SUNUCU=http://192.168.1.20:3000   isteğe bağlı sabit yerel sunucu adresi (verilmezse hiçbir IP gömülmez)
 #   PORT=3000                               sunucunun portu (ağ taraması da bu portta yapılır)
 #   LONCA_API_ANAHTARI=...                  sunucu API anahtarı istiyorsa (.env'den de okunur)
 #
-# Uygulama açılınca önce genel sunucuyu (LONCA_SUNUCU_URL), sonra aynı Wi-Fi'deki Lonca sunucusunu (npm run dev / Docker)
-# kendisi bulur; bulamazsa
+# Uygulama açılınca önce genel sunucuyu (LONCA_SUNUCU_URL), sonra telefonun bağlı olduğu Wi-Fi'deki Lonca sunucusunu
+# (npm run dev / Docker, PORT'ta) ağı tarayarak kendisi bulur; bulamazsa
 # APK içindeki verilerle çevrimdışı çalışır.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -60,20 +60,12 @@ bilgi "Android SDK: $ANDROID_HOME"
 
 [[ -d node_modules/@capacitor/android ]] || { bilgi "Bağımlılıklar kuruluyor"; npm install; }
 
-# ---------- Sunucu adayları: bu bilgisayarın yerel ağ IP'leri ----------
+# ---------- Sunucu adayları ----------
+# Derleyen bilgisayarın IP'leri gömülmez: telefon bulunduğu Wi-Fi ağını kendisi tarar.
+# Belirli bir yerel sunucu isteniyorsa LONCA_SUNUCU ile verilir.
 PORT="${PORT:-3000}"
 SUNUCU_ARG=()
 [[ -n "${LONCA_SUNUCU:-}" ]] && SUNUCU_ARG+=(--sunucu "$LONCA_SUNUCU")
-IPLER=""
-# CI'da derleme makinesinin IP'leri anlamsızdır; yalnızca LONCA_SUNUCU ve ağ taraması kullanılır.
-if [[ "${CI:-}" == true ]]; then :
-elif command -v ipconfig >/dev/null 2>&1; then
-  for i in en0 en1 en2 en3 en4 en5 en6 en7 en8; do ip=$(ipconfig getifaddr "$i" 2>/dev/null || true); [[ -n "$ip" ]] && IPLER="$IPLER $ip"; done
-fi
-if [[ -z "$IPLER" && "${CI:-}" != true ]] && command -v hostname >/dev/null 2>&1; then IPLER=$(hostname -I 2>/dev/null || true); fi
-for ip in $IPLER; do
-  [[ "$ip" =~ ^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.) ]] && SUNUCU_ARG+=(--sunucu "http://$ip:$PORT")
-done
 # Genel sunucu: ortam > .env > projenin alan adı. "yok" ise gömülmez.
 if [[ -z "${LONCA_SUNUCU_URL:-}" && -f .env ]]; then LONCA_SUNUCU_URL=$(sed -n 's/^LONCA_SUNUCU_URL=//p' .env | tail -n 1); fi
 LONCA_SUNUCU_URL="${LONCA_SUNUCU_URL:-https://kozmos.42.fr}"
