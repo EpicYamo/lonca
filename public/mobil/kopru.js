@@ -169,16 +169,43 @@
   }
 
   // ---------- Sesli okuma: WebView'da speechSynthesis yok → Android TTS ----------
-  const TTS = P.TextToSpeech;
-  if (TTS && !("speechSynthesis" in window)) {
-    window.SpeechSynthesisUtterance = class { constructor(text = "") { this.text = String(text); this.lang = "tr-TR"; this.rate = 1; this.voice = null; } };
-    window.speechSynthesis = {
-      getVoices: () => [{ name: "Android Türkçe", lang: "tr-TR", default: true, localService: true, voiceURI: "android-tr" }],
-      speak: (u) => sessiz(TTS.speak({ text: u.text, lang: "tr-TR", rate: Math.max(0.5, Math.min(2, u.rate || 1)), category: "playback" })),
-      cancel: () => sessiz(TTS.stop()),
-      pause() {}, resume() {}, speaking: false, pending: false,
-      addEventListener() {}, removeEventListener() {},
+  // LoncaSes (android/…/LoncaSesPlugin.java) dili bilen motoru kendisi seçer: varsayılan motorda Türkçe yoksa
+  // (ör. Samsung TTS) telefondaki Google motoruna geçer. Sesler, telefonda gerçekten bulunan dillerden kurulur;
+  // Türkçe hiç yoksa liste boş kalmaz, uygulama da "Türkçe ses bulunamadı" notunu gösterebilir.
+  const Ses = P.LoncaSes;
+  if (Ses && !("speechSynthesis" in window)) {
+    const DILLER = [["tr-TR", "Türkçe"], ["en-US", "English"]];
+    let sesler = [];
+    const dinleyiciler = new Set();
+    window.SpeechSynthesisUtterance = class {
+      constructor(text = "") { this.text = String(text); this.lang = "tr-TR"; this.rate = 1; this.voice = null; this.onend = null; this.onerror = null; }
     };
+    const ss = {
+      getVoices: () => sesler.slice(),
+      speak(u) {
+        ss.speaking = true;
+        Ses.konus({ metin: u.text, dil: u.voice?.lang || u.lang || "tr-TR", hiz: u.rate || 1 })
+          .then(() => { ss.speaking = false; u.onend?.({ type: "end" }); })
+          .catch((e) => { ss.speaking = false; u.onerror?.({ type: "error", error: String(e?.message ?? e) }); });
+      },
+      cancel: () => { ss.speaking = false; sessiz(Ses.dur()); },
+      pause() {}, resume() {}, speaking: false, pending: false,
+      addEventListener: (tur, f) => { if (tur === "voiceschanged") dinleyiciler.add(f); },
+      removeEventListener: (tur, f) => dinleyiciler.delete(f),
+      onvoiceschanged: null,
+    };
+    window.speechSynthesis = ss;
+    Ses.durum({ diller: DILLER.map(([d]) => d) })
+      .then(({ destekli = [] }) => {
+        sesler = DILLER.filter(([d]) => destekli.includes(d))
+          .map(([lang, ad]) => ({ name: `Android ${ad}`, lang, default: lang === "tr-TR", localService: true, voiceURI: `android-${lang}` }));
+        // Telefonda hiç uygun ses yoksa yine bir "boş olmayan" liste ver: uygulama Türkçe sesin eksik olduğunu yazsın.
+        if (!sesler.length) sesler = [{ name: "Android", lang: "und", default: true, localService: true, voiceURI: "android-yok" }];
+        const olay = { type: "voiceschanged" };
+        dinleyiciler.forEach((f) => { try { f(olay); } catch {} });
+        try { ss.onvoiceschanged?.(olay); } catch {}
+      })
+      .catch(() => {});
   }
 
   // ---------- Bildirim (uygulamanın kendi kutucuğu) ----------
