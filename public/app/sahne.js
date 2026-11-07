@@ -299,6 +299,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
           ? `linear-gradient(180deg, rgba(8,12,28,.15) 0%, rgba(8,12,28,.35) 45%, rgba(8,12,28,.92) 100%), url("${encodeURI(foto)}")`
           : `linear-gradient(180deg, rgba(8,12,28,.25), rgba(8,12,28,.9)), ${ciniArkaPlan(metin(n.desen ?? n.baslik), renk)}`;
         if (!foto) d.style.backgroundSize = "cover, 72px 72px";
+        else d.style.setProperty("--kapak-foto", `url("${encodeURI(foto)}")`); // web oynatıcısı (oynatici.css) fotoğrafı kendi oranında gösterir
         d.append(el("div", { className: "s-kapak-icerik" },
           n.ust ? el("span", { className: "s-kapak-ust", textContent: metin(n.ust) }) : null,
           el("h2", { className: "s-kapak-baslik", textContent: metin(n.baslik) }),
