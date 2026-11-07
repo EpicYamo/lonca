@@ -119,14 +119,14 @@ function kaynakKutusu(k) {
       ...eserler.map((e) => {
         const ac = el("button", { type: "button", className: "kaynak-eser", textContent: `${e.ad}${e.il ? ` (${e.il})` : ""}`, title: "Eser kaydını aç" });
         ac.addEventListener("click", () => eserDuzenlemeyeAc(e.id));
-        return el("li", {}, ac, e.kaynak ? el("small", { textContent: e.dogrulanmis === false ? `Kaynak doğrulanmamış: ${e.kaynakTuru ?? "Vikipedi"} · ${e.kaynak}` : `✓ ${e.kaynak}` }) : null);
+        return el("li", {}, ac, e.kaynak ? el("small", { textContent: e.dogrulanmis === false ? `Kaynak: ${e.kaynakTuru ?? "Vikipedi"} · ${e.kaynak}` : `✓ ${e.kaynak}` }) : null);
       })));
   }
   if (sdk.length) kutu.append(el("p", { className: "kaynak-baslik", textContent: "SDK sözleşmesi (@lonca/sdk)" }), el("p", { className: "kaynak-sdk" }, ...sdk.map((a) => el("code", { textContent: a }))));
   if (dis.length) {
-    kutu.append(el("p", { className: "kaynak-baslik", textContent: "Dış kaynak · doğrulanmamış" }), el("ul", { className: "kaynak-listesi" },
-      ...dis.map((d) => el("li", {}, el("a", { href: d.url, target: "_blank", rel: "noopener", className: "kaynak-eser", textContent: `${d.kaynak}: ${d.baslik}` }),
-        el("small", { textContent: `Kaynak doğrulanmamış: ${d.kaynak}` })))));
+    kutu.append(el("p", { className: "kaynak-baslik", textContent: "Dış kaynak (Vikipedi)" }), el("ul", { className: "kaynak-listesi" },
+      ...dis.map((d) => el("li", {}, el("a", { href: d.url, target: "_blank", rel: "noopener", className: "kaynak-eser", textContent: d.baslik }),
+        el("small", { textContent: `Kaynak: ${d.kaynak}` })))));
   }
   return kutu;
 }
@@ -145,14 +145,14 @@ function izinKarti(izin) {
     el("p", { className: "izin-baslik", textContent: izin.tur === "dis_kaynak" ? `İzin isteği · dış kaynak: ${izin.konu}` : `Karar isteği · ${izin.konu}` }));
   if (izin.maddeler?.length > 1) {
     // Toplu kayıt izni: kart bütün maddeleri listeler; karar her maddeye ayrı uygulanır.
-    kart.append(el("p", { className: "izin-kaynak", textContent: `Kaynak doğrulanmamış · ${izin.maddeler.length} madde:` }),
+    kart.append(el("p", { className: "izin-kaynak", textContent: `Kaynak: Vikipedi · ${izin.maddeler.length} madde:` }),
       el("ul", { className: "izin-maddeler" }, ...izin.maddeler.map((m) => el("li", {},
-        el("a", { href: m.url, target: "_blank", rel: "noopener", textContent: `${m.kaynak ?? "Vikipedi"}: ${m.baslik}` })))));
-  } else if (izin.kaynak_url) kart.append(el("p", { className: "izin-kaynak" }, "Kaynak doğrulanmamış: ",
-    el("a", { href: izin.kaynak_url, target: "_blank", rel: "noopener", textContent: `${izin.kaynak ?? "Vikipedi"}: ${izin.baslik ?? izin.konu}` })));
+        el("a", { href: m.url, target: "_blank", rel: "noopener", textContent: m.baslik })))));
+  } else if (izin.kaynak_url) kart.append(el("p", { className: "izin-kaynak" }, "Kaynak: ",
+    el("a", { href: izin.kaynak_url, target: "_blank", rel: "noopener", textContent: izin.kaynak ?? "Vikipedi" }), ` · ${izin.baslik ?? izin.konu}`));
   if (izin.tur === "kayit") kart.append(el("p", { className: "izin-not", textContent: izin.maddeler?.length > 1
-    ? "Karar her maddeye ayrı uygulanır. Bilgi bankasına eklenen kayıtlar herkesin modüllerinde kullanılır ve \"doğrulanmamış\" olarak işaretlenir; kaynak bağlantıları kayıtta kalır."
-    : "Bilgi bankasına eklenen kayıt herkesin modüllerinde kullanılır ve \"doğrulanmamış\" olarak işaretlenir; kaynak bağlantısı kayıtta kalır." }));
+    ? "Karar her maddeye ayrı uygulanır. Bilgi bankasına eklenen kayıtlar herkesin modüllerinde kullanılır, ✓ almaz ve \"Kaynak: Vikipedi\" ile gösterilir; kaynak bağlantıları kayıtta kalır."
+    : "Bilgi bankasına eklenen kayıt herkesin modüllerinde kullanılır, ✓ almaz ve \"Kaynak: Vikipedi\" ile gösterilir; kaynak bağlantısı kayıtta kalır." }));
   const dugmeler = el("div", { className: "dalis-dugmeler" });
   const durum = izinDurumlari.get(izin.id);
   if (durum && durum.durum !== "bekliyor") {
@@ -359,7 +359,7 @@ function adimlarYap({ tur = "modul", aramalar = [], deneme = 1, model = null } =
     if (a.okunan) return [`Bilgi bankasından okudu: ${a.ad ?? a.okunan}`];
     if (a.dis != null) return [`${a.kaynak}'de aradı: ${a.dis} → ${a.bulunan} madde`];
     if (a.disOkunan) return [`${a.kaynak} maddesini okudu: ${a.disOkunan}`];
-    if (a.eklenen) return [`Bilgi bankasına ekledi (doğrulanmamış): ${a.ad}`, "duzeltme"];
+    if (a.eklenen) return [`Bilgi bankasına ekledi (Kaynak: Vikipedi): ${a.ad}`, "duzeltme"];
     const sorgu = Object.entries(a.sorgu ?? {}).map(([k, v]) => `${k} ${v}`).join(", ") || "tümü";
     return [`Bilgi bankasında aradı: ${sorgu} → ${a.bulunan} eser`];
   });

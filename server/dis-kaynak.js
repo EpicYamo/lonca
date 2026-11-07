@@ -1,7 +1,7 @@
 // Dış kaynak (yalnızca admin kalfası): bilgi bankasında olmayan eserler için Vikipedi'den metin okunur.
 // Kalfa okuduğu maddenin dışına çıkamasın diye sunucu her eklemede metni, yüzyılı ve kaynak bağlantısını okunan
-// maddeyle karşılaştırır. Vikipedi içeriği "doğrulanmamış" sayılır: Vakıf Katılım envanteri gibi kurumsal bir
-// kaynak değildir; eser kaydında ve modül kartında tik yerine "Kaynak doğrulanmamış: Vikipedi" görünür.
+// maddeyle karşılaştırır. Vikipedi içeriği doğrulanmış sayılmaz: Vakıf Katılım envanteri gibi kurumsal bir
+// kaynak değildir; eser kaydında ve modül kartında tik yerine "Kaynak: Vikipedi" görünür.
 
 export const DIS_KAYNAK_ADI = "Vikipedi";
 const DILLER = new Set(["tr", "en"]);
