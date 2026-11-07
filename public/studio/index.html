@@ -2,93 +2,154 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f5f7">
+  <script>try { if (localStorage.getItem("lonca.studio.tema") === "koyu") document.documentElement.dataset.tema = "koyu"; } catch {}</script>
   <title>Lonca Studio</title>
   <link rel="icon" href="/simgeler/lonca-192.png">
   <link rel="stylesheet" href="/ortak/tasarim.css">
   <link rel="stylesheet" href="/studio/studio.css">
 </head>
 <body>
+  <svg class="ikon-seti" hidden aria-hidden="true">
+    <symbol id="i-atolye" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+    <symbol id="i-moduller" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-icerik" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="7.5" ry="2.5"/><path d="M4.5 5.5v13c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5v-13"/><path d="M4.5 12c0 1.4 3.4 2.5 7.5 2.5s7.5-1.1 7.5-2.5"/></symbol>
+    <symbol id="i-sohbet" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 0 1-12.4 7.5L3.5 20.5l1-4.4A8.5 8.5 0 1 1 20.5 12z"/></symbol>
+    <symbol id="i-kod" viewBox="0 0 24 24"><path d="M15.5 17.5l5.5-5.5-5.5-5.5"/><path d="M8.5 6.5L3 12l5.5 5.5"/></symbol>
+    <symbol id="i-telefon" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-yenile" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6l2.5 2.5"/><path d="M20.5 3.5v5h-5"/></symbol>
+    <symbol id="i-gonder" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5.5 11.5L12 5l6.5 6.5"/></symbol>
+    <symbol id="i-oynat" viewBox="0 0 24 24"><path d="M7.5 4.5l12 7.5-12 7.5z"/></symbol>
+    <symbol id="i-onay" viewBox="0 0 24 24"><path d="M20 6.5L9.5 17 4 11.5"/></symbol>
+    <symbol id="i-indir" viewBox="0 0 24 24"><path d="M12 3.5v11"/><path d="M7 10l5 5 5-5"/><path d="M4.5 20.5h15"/></symbol>
+    <symbol id="i-yukle" viewBox="0 0 24 24"><path d="M12 20.5v-11"/><path d="M7 14l5-5 5 5"/><path d="M4.5 3.5h15"/></symbol>
+    <symbol id="i-arti" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-asagi" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-kalkan" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.3-7.5 9.5-4.3-1.2-7.5-4.9-7.5-9.5V6z"/></symbol>
+    <symbol id="i-dosya" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/></symbol>
+    <symbol id="i-gunes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
+    <symbol id="i-ay" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="i-foto" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/></symbol>
+  </svg>
+
+  <a class="atla" href="#ana">İçeriğe atla</a>
+
   <header class="ust">
     <div class="marka">
       <span class="amblem" id="amblem" aria-hidden="true"></span>
-      <div class="marka-metin">
-        <h1>Lonca <span>Studio</span></h1>
-        <span class="marka-alt">~/atölye <b>›</b> sen ustasın, yapay zekâ kalfan<span class="imlec" aria-hidden="true"></span></span>
-      </div>
+      <h1>Lonca <span>Studio</span></h1>
     </div>
-    <nav class="sekmeler" aria-label="Studio bölümleri">
-      <button class="sekme-d secili" data-sayfa="atolye" data-no="01" aria-current="page">Atölye</button>
-      <button class="sekme-d" data-sayfa="moduller" data-no="02">Modüller <span class="sayac" id="sayac-modul" hidden></span></button>
-      <button class="sekme-d" data-sayfa="icerik" data-no="03">İçerik <span class="sayac" id="sayac-oneri" hidden></span></button>
-    </nav>
+    <p class="baglam" aria-live="polite"><span class="baglam-ayrac" aria-hidden="true">/</span><span id="baglam-ad">Atölye</span></p>
     <span class="bosluk-esnek"></span>
-    <p id="model" class="rozet" title="Kalfanın kullandığı yapay zekâ modeli"><span class="nokta"></span><span id="model-ad">Kalfa bağlanıyor…</span></p>
+    <p id="model" class="rozet" title="Kalfanın kullandığı yapay zekâ modeli"><span class="nokta" aria-hidden="true"></span><span id="model-ad">Kalfa bağlanıyor…</span></p>
+    <button id="tema-d" class="ikon-d" type="button" aria-label="Koyu temaya geç" title="Tema">
+      <svg class="ik tema-ay" aria-hidden="true"><use href="#i-ay"/></svg><svg class="ik tema-gunes" aria-hidden="true"><use href="#i-gunes"/></svg>
+    </button>
     <button id="yonetici" class="rozet yonetici" type="button" title="Yönetici girişi">Yönetici</button>
   </header>
 
-  <main class="tezgah sayfa" id="sayfa-atolye">
-    <!-- 1. Chat -->
-    <section class="panel sohbet" aria-labelledby="sohbet-baslik">
-      <h2 id="sohbet-baslik" class="panel-baslik" data-no="A">Kalfa</h2>
+  <nav class="sekmeler" aria-label="Studio bölümleri">
+    <button class="sekme-d secili" data-sayfa="atolye" aria-current="page">
+      <svg class="ik" aria-hidden="true"><use href="#i-atolye"/></svg><span class="sekme-ad">Atölye</span>
+    </button>
+    <button class="sekme-d" data-sayfa="moduller">
+      <svg class="ik" aria-hidden="true"><use href="#i-moduller"/></svg><span class="sekme-ad">Modüller</span><span class="sayac" id="sayac-modul" hidden></span>
+    </button>
+    <button class="sekme-d" data-sayfa="icerik">
+      <svg class="ik" aria-hidden="true"><use href="#i-icerik"/></svg><span class="sekme-ad">İçerik</span><span class="sayac" id="sayac-oneri" hidden></span>
+    </button>
+  </nav>
+
+  <div class="ana" id="ana" tabindex="-1">
+  <main class="tezgah sayfa" id="sayfa-atolye" data-gorunum="kalfa">
+    <div class="gorunum-sec" role="tablist" aria-label="Atölye görünümü">
+      <button type="button" role="tab" data-gorunum="kalfa" aria-selected="true" aria-controls="pane-kalfa">
+        <svg class="ik" aria-hidden="true"><use href="#i-sohbet"/></svg>Kalfa<i class="yeni-isaret" aria-hidden="true"></i>
+      </button>
+      <button type="button" role="tab" data-gorunum="kod" aria-selected="false" aria-controls="pane-kod">
+        <svg class="ik" aria-hidden="true"><use href="#i-kod"/></svg>Kod<i class="yeni-isaret" aria-hidden="true"></i>
+      </button>
+      <button type="button" role="tab" data-gorunum="onizleme" aria-selected="false" aria-controls="pane-onizleme">
+        <svg class="ik" aria-hidden="true"><use href="#i-telefon"/></svg>Önizleme<i class="yeni-isaret" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- 1. Kalfa -->
+    <section class="panel sohbet" id="pane-kalfa" data-pane="kalfa" aria-labelledby="sohbet-baslik">
+      <div class="panel-ust">
+        <h2 id="sohbet-baslik" class="panel-baslik"><svg class="ik" aria-hidden="true"><use href="#i-sohbet"/></svg>Kalfa</h2>
+        <div class="kip" role="radiogroup" aria-label="Kalfa ne hazırlasın?">
+          <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
+          <button type="button" role="radio" aria-checked="false" data-kip="dalis">Dalış</button>
+        </div>
+      </div>
       <ol id="mesajlar" class="mesajlar" aria-live="polite">
         <li class="mesaj kalfa">
           <p>Hoş geldin usta. Vakıf eserleriyle ilgili bir fikir anlat; modülünü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
         </li>
       </ol>
-      <div class="kip" role="radiogroup" aria-label="Kalfa ne hazırlasın?">
-        <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
-        <button type="button" role="radio" aria-checked="false" data-kip="dalis">Dalış</button>
-        <span class="kip-not" id="kip-not">Fikrini mini uygulamaya çevirir</span>
+      <div class="besteci">
+        <div id="oneriler" class="oneriler" aria-label="Örnek fikirler">
+          <button type="button">Çocuklar için Bursa hanlarında süreli bir hazine avı oyunu</button>
+          <button type="button">Bursa türbelerini gece temasıyla gezdiren, haritalı ve 3B bir rehber</button>
+          <button type="button">Eserleri yüzyıllara göre gezdiren, koleksiyonlu bir zaman yolculuğu</button>
+        </div>
+        <div id="dalis-oneriler" class="oneriler" aria-label="Örnek dalışlar" hidden>
+          <button type="button">Bursa Yeşil Türbe'nin çinilerini ve sandukasını anlatan bir dalış</button>
+          <button type="button">Emir Sultan Külliyesi'ne uydudan inip avlusunu ve türbesini gezdir</button>
+          <button type="button">Yıldırım Bayezid Külliyesi'nde banisini ve yapılışını öne çıkaran kısa bir dalış</button>
+        </div>
+        <form id="sohbet-formu" class="sohbet-formu">
+          <label for="istek" class="gizli">Kalfaya mesaj</label>
+          <textarea id="istek" rows="2" placeholder="Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
+          <div class="besteci-alt">
+            <span class="kip-not" id="kip-not">Fikrini mini uygulamaya çevirir</span>
+            <button id="gonder" class="birincil gonder-d" aria-label="Gönder">
+              <svg class="ik" aria-hidden="true"><use href="#i-gonder"/></svg>
+            </button>
+          </div>
+        </form>
       </div>
-      <div id="oneriler" class="oneriler" aria-label="Örnek fikirler">
-        <button type="button">Çocuklar için Bursa hanlarında süreli bir hazine avı oyunu</button>
-        <button type="button">Bursa türbelerini gece temasıyla gezdiren, haritalı ve 3B bir rehber</button>
-        <button type="button">Eserleri yüzyıllara göre gezdiren, koleksiyonlu bir zaman yolculuğu</button>
-      </div>
-      <div id="dalis-oneriler" class="oneriler" aria-label="Örnek dalışlar" hidden>
-        <button type="button">Bursa Yeşil Türbe'nin çinilerini ve sandukasını anlatan bir dalış</button>
-        <button type="button">Emir Sultan Külliyesi'ne uydudan inip avlusunu ve türbesini gezdir</button>
-        <button type="button">Yıldırım Bayezid Külliyesi'nde banisini ve yapılışını öne çıkaran kısa bir dalış</button>
-      </div>
-      <form id="sohbet-formu" class="sohbet-formu">
-        <label for="istek" class="gizli">Kalfaya mesaj</label>
-        <textarea id="istek" rows="3" placeholder="Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
-        <button id="gonder" class="birincil" aria-label="Gönder">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z" fill="currentColor"/></svg>
-        </button>
-      </form>
     </section>
 
-    <!-- 2. Code -->
-    <section class="panel kod-paneli" aria-labelledby="kod-baslik">
-      <div class="kod-ust">
-        <h2 id="kod-baslik" class="panel-baslik" data-no="B">Modül</h2>
-        <input id="ad" class="ad-girdisi" placeholder="Modülün adı" aria-label="Modülün adı">
+    <div class="ayirici" data-ayir="sol" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Kalfa panelinin genişliği" aria-controls="pane-kalfa"></div>
+
+    <!-- 2. Kod -->
+    <section class="panel kod-paneli" id="pane-kod" data-pane="kod" aria-labelledby="kod-baslik">
+      <div class="panel-ust">
+        <h2 id="kod-baslik" class="gizli">Modül</h2>
+        <div class="dosya-sekmesi">
+          <svg class="ik" aria-hidden="true"><use href="#i-dosya"/></svg>
+          <input id="ad" class="ad-girdisi" placeholder="Adsız modül" aria-label="Modülün adı">
+        </div>
         <select id="surumler" class="surumler" aria-label="Editörün önceki sürümleri" title="Kalfa ya da başka bir modül editörü değiştirmeden önceki hâller" hidden></select>
       </div>
-      <div class="bilgi">
-        <label>Kimlik <input id="id" placeholder="ornek-modul" pattern="[a-z0-9-]{1,64}"></label>
-        <label>Karo rengi
-          <select id="renk">
-            <option value="">Otomatik</option><option value="kobalt">Kobalt</option><option value="firuze">Firuze</option>
-            <option value="mercan">Mercan</option><option value="altin">Altın</option><option value="zumrut">Zümrüt</option><option value="murdum">Mürdüm</option>
-          </select>
-        </label>
-        <label>Çizim
-          <select id="ikon">
-            <option value="">Genel</option><option value="cami">Cami</option><option value="han">Han</option><option value="hamam">Hamam</option>
-            <option value="medrese">Medrese</option><option value="cesme">Çeşme</option><option value="turbe">Türbe</option>
-          </select>
-        </label>
-        <label>Kategori
-          <select id="kategori">
-            <option value="">Otomatik</option><option value="rehber">Rehber</option><option value="oyun">Oyun</option>
-            <option value="gezi">Gezi</option><option value="ogren">Öğren</option>
-          </select>
-        </label>
-        <label class="genis">Açıklama <input id="aciklama" placeholder="Uygulamada görünecek tek cümle"></label>
-      </div>
+      <details class="bilgi-kutu" id="bilgi-kutu" open>
+        <summary><svg class="ik" aria-hidden="true"><use href="#i-asagi"/></svg>Modül bilgileri</summary>
+        <div class="bilgi">
+          <label>Kimlik <input id="id" placeholder="ornek-modul" pattern="[a-z0-9-]{1,64}" autocapitalize="off" spellcheck="false"></label>
+          <label>Karo rengi
+            <select id="renk">
+              <option value="">Otomatik</option><option value="kobalt">Kobalt</option><option value="firuze">Firuze</option>
+              <option value="mercan">Mercan</option><option value="altin">Altın</option><option value="zumrut">Zümrüt</option><option value="murdum">Mürdüm</option>
+            </select>
+          </label>
+          <label>Çizim
+            <select id="ikon">
+              <option value="">Genel</option><option value="cami">Cami</option><option value="han">Han</option><option value="hamam">Hamam</option>
+              <option value="medrese">Medrese</option><option value="cesme">Çeşme</option><option value="turbe">Türbe</option>
+            </select>
+          </label>
+          <label>Kategori
+            <select id="kategori">
+              <option value="">Otomatik</option><option value="rehber">Rehber</option><option value="oyun">Oyun</option>
+              <option value="gezi">Gezi</option><option value="ogren">Öğren</option>
+            </select>
+          </label>
+          <label class="genis">Açıklama <input id="aciklama" placeholder="Uygulamada görünecek tek cümle"></label>
+        </div>
+      </details>
       <div class="editor" id="editor">
         <div class="satirlar" id="satirlar" aria-hidden="true"></div>
         <div class="editor-alan">
@@ -97,60 +158,82 @@
           <textarea id="kod" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Kalfa modülü yazınca kod burada görünür. İstersen elle de düzenleyebilirsin."></textarea>
         </div>
       </div>
-      <div class="eylemler">
-        <button id="onizle" type="button" class="ikincil">Önizle</button>
-        <button id="onaya-gonder" type="button" class="birincil">Onaya gönder</button>
+      <div class="eylemler panel-alt">
         <div id="durum" class="durum" role="status"></div>
+        <button id="onizle" type="button" class="ikincil"><svg class="ik" aria-hidden="true"><use href="#i-oynat"/></svg>Önizle</button>
+        <button id="onaya-gonder" type="button" class="birincil">Onaya gönder</button>
       </div>
     </section>
 
-    <section class="onizleme" aria-labelledby="onizleme-baslik">
-      <h2 id="onizleme-baslik" class="gizli">Canlı önizleme</h2>
-      <div class="telefon">
-        <div class="telefon-ust" aria-hidden="true"><span id="saat">09:41</span><span class="centik"></span><span>●●●</span></div>
-        <iframe id="cerceve" title="Modülün telefondaki önizlemesi" src="/app/?onizleme=1"></iframe>
+    <div class="ayirici" data-ayir="sag" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Önizleme panelinin genişliği" aria-controls="pane-onizleme"></div>
+
+    <!-- 3. Önizleme -->
+    <section class="panel onizleme" id="pane-onizleme" data-pane="onizleme" aria-labelledby="onizleme-baslik">
+      <div class="panel-ust">
+        <h2 id="onizleme-baslik" class="panel-baslik"><svg class="ik" aria-hidden="true"><use href="#i-telefon"/></svg>Önizleme</h2>
+        <span class="canli-etiket"><span class="nokta" aria-hidden="true"></span>canlı</span>
+        <button id="onizleme-yenile" type="button" class="ikon-d" aria-label="Önizlemeyi yenile" title="Önizlemeyi yenile">
+          <svg class="ik" aria-hidden="true"><use href="#i-yenile"/></svg>
+        </button>
       </div>
-      <p class="onizleme-not">C
+      <div class="sahne" id="sahne">
+        <div class="telefon">
+          <div class="telefon-ust" aria-hidden="true"><span id="saat">09:41</span><span class="centik"></span><span class="pil"></span></div>
+          <iframe id="cerceve" title="Modülün telefondaki önizlemesi" src="/app/?onizleme=1"></iframe>
+        </div>
+      </div>
+      <p class="onizleme-not">Modül, uygulamanın gerçek çalışma ortamında çalışır.</p>
     </section>
   </main>
 
   <main class="sayfa sayfa-genis" id="sayfa-moduller" hidden>
-    <div class="sayfa-ust">
-      <h2 class="panel-baslik" data-no="02">Modüller</h2>
-      <div class="suzgec" id="modul-suzgec" role="group" aria-label="Duruma göre süz"></div>
+    <div class="sayfa-baslik">
+      <div>
+        <h2 class="sayfa-h">Modüller</h2>
+        <p class="aciklama">Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür.</p>
+      </div>
     </div>
+    <div class="suzgec" id="modul-suzgec" role="group" aria-label="Duruma göre süz"></div>
     <ul id="liste" class="modul-listesi"></ul>
   </main>
 
   <main class="sayfa sayfa-genis icerik" id="sayfa-icerik" hidden>
+    <div class="sayfa-baslik icerik-baslik">
+      <div>
+        <h2 class="sayfa-h">İçerik</h2>
+        <p class="aciklama">Vakıf eserlerinin verisi, uygulamadan gelen öneriler ve her değişikliğin geçmişi.</p>
+      </div>
+    </div>
     <section class="panel kuyruk" aria-labelledby="kuyruk-baslik">
-      <h2 id="kuyruk-baslik" class="panel-baslik" data-no="03">Onay kuyruğu</h2>
+      <h3 id="kuyruk-baslik" class="bolum-h">Onay kuyruğu</h3>
       <p class="aciklama">Uygulamadan gelen yeni eser önerileri, düzenlemeler ve hata bildirimleri. Onaylanmadan hiçbiri yayına girmez.</p>
       <ul id="oneriler-listesi" class="oneri-listesi"></ul>
-      <h2 id="gecmis-baslik" class="panel-baslik ikinci" data-no="04">Değişiklik geçmişi</h2>
+      <h3 id="gecmis-baslik" class="bolum-h ikinci">Değişiklik geçmişi</h3>
       <p class="aciklama">Her kayıt, silme, onay ve içe aktarma burada. Herhangi birini geri alabilirsin; geri alma da geri alınabilir.</p>
       <label class="onay-kutusu kucuk"><input id="gecmis-suz" type="checkbox"> Yalnızca açık eser</label>
       <ul id="gecmis-listesi" class="gecmis-listesi" aria-labelledby="gecmis-baslik"></ul>
     </section>
     <section class="panel eser-yonetimi" aria-labelledby="eser-baslik">
-      <div class="sayfa-ust">
-        <h2 id="eser-baslik" class="panel-baslik" data-no="03">Eserler</h2>
+      <div class="bolum-ust">
+        <h3 id="eser-baslik" class="bolum-h">Eserler</h3>
         <div class="ust-eylemler">
-          <button id="disa-aktar" class="ikincil kucuk-d" type="button" title="Bütün eserleri JSON dosyası olarak indir">⇣ Dışa aktar</button>
-          <button id="ice-aktar" class="ikincil kucuk-d" type="button" title="Dışa aktarılmış bir JSON dosyasını yükle">⇡ İçe aktar</button>
+          <button id="disa-aktar" class="ikincil kucuk-d" type="button" title="Bütün eserleri JSON dosyası olarak indir"><svg class="ik" aria-hidden="true"><use href="#i-indir"/></svg>Dışa aktar</button>
+          <button id="ice-aktar" class="ikincil kucuk-d" type="button" title="Dışa aktarılmış bir JSON dosyasını yükle"><svg class="ik" aria-hidden="true"><use href="#i-yukle"/></svg>İçe aktar</button>
           <input id="ice-dosya" type="file" accept="application/json,.json" hidden>
-          <button id="yeni-eser" class="ikincil kucuk-d" type="button">+ Yeni eser</button>
+          <button id="yeni-eser" class="birincil kucuk-d" type="button"><svg class="ik" aria-hidden="true"><use href="#i-arti"/></svg>Yeni eser</button>
         </div>
       </div>
       <div id="aktar-durum" class="durum" role="status"></div>
       <section class="tamlik" id="tamlik" aria-label="Veri tamlığına göre süz"></section>
-      <input id="eser-ara" class="arama" type="search" placeholder="Eser ara…" aria-label="Eser ara">
       <div class="eser-duzen">
-        <ul id="eser-listesi" class="eser-listesi"></ul>
+        <div class="eser-sutun">
+          <input id="eser-ara" class="arama" type="search" placeholder="Eser ara…" aria-label="Eser ara">
+          <ul id="eser-listesi" class="eser-listesi"></ul>
+        </div>
         <form id="eser-formu" class="eser-formu" hidden>
           <div class="form-ust">
-            <h3 id="form-baslik">Eser</h3>
-            <span id="kirli" class="kirli-isaret" hidden>● kaydedilmemiş değişiklik</span>
+            <h4 id="form-baslik">Eser</h4>
+            <span id="kirli" class="kirli-isaret" hidden>kaydedilmemiş değişiklik</span>
             <button id="eser-gecmisi-ac" class="metin-d" type="button" hidden>bu eserin geçmişi</button>
           </div>
           <div class="form-izgara">
@@ -159,9 +242,9 @@
             <label>Tür <select name="tur" required></select></label>
             <label>İl <input name="il" maxlength="40" value="Bursa"></label>
             <label>İlçe <input name="ilce" maxlength="40"></label>
-            <label>Yüzyıl <input name="yuzyil" type="number" min="1" max="21" placeholder="bilinmiyor"></label>
-            <label>Enlem <input name="lat" type="number" step="any" placeholder="40.18"></label>
-            <label>Boylam <input name="lng" type="number" step="any" placeholder="29.06"></label>
+            <label>Yüzyıl <input name="yuzyil" type="number" inputmode="numeric" min="1" max="21" placeholder="bilinmiyor"></label>
+            <label>Enlem <input name="lat" type="number" inputmode="decimal" step="any" placeholder="40.18"></label>
+            <label>Boylam <input name="lng" type="number" inputmode="decimal" step="any" placeholder="29.06"></label>
             <label class="onay-kutusu"><input name="yaklasik" type="checkbox"> Konum yaklaşık</label>
             <label class="genis">Adres <input name="adres" maxlength="240"></label>
             <label class="genis">Tarihçe (Türkçe) <textarea name="tarihce_tr" rows="8" required></textarea></label>
@@ -172,26 +255,31 @@
             <div class="fotolar-baslik"><span>Fotoğraflar <span id="foto-sayi"></span></span><span id="foto-ipucu">ilk fotoğraf kapak olur</span></div>
             <ul id="foto-listesi" class="foto-listesi" aria-label="Fotoğraflar"></ul>
             <label class="foto-birak" id="foto-birak">
+              <svg class="ik buyuk" aria-hidden="true"><use href="#i-foto"/></svg>
               <span><b>Fotoğrafları sürükle bırak</b> ya da tıklayıp seç (birden çok seçilebilir)</span>
-              <span class="mono" style="font-size:.7rem">JPEG · PNG · WebP · en fazla 6 MB</span>
+              <span class="mono kucuk-yazi">JPEG · PNG · WebP · en fazla 6 MB</span>
               <input id="foto-sec" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
             </label>
           </div>
-          <div class="eylemler">
+          <div class="eylemler form-eylemler">
             <button class="birincil" type="submit">Kaydet ve yayınla</button>
             <button class="ikincil" type="button" id="eser-vazgec">Vazgeç</button>
             <button class="tehlike" type="button" id="eser-sil">Sil</button>
             <div id="eser-durum" class="durum" role="status"></div>
           </div>
         </form>
-        <p id="eser-bos" class="aciklama">Düzenlemek için soldan bir eser seç ya da yeni eser ekle.</p>
+        <div id="eser-bos" class="bos-durum">
+          <svg class="ik buyuk" aria-hidden="true"><use href="#i-icerik"/></svg>
+          <p class="aciklama">Düzenlemek için listeden bir eser seç ya da yeni eser ekle.</p>
+        </div>
       </div>
     </section>
   </main>
+  </div>
 
   <dialog id="kaydedilmedi" class="giris">
     <form method="dialog">
-      <h2 class="panel-baslik">Kaydedilmemiş değişiklikler</h2>
+      <h2 class="pencere-h">Kaydedilmemiş değişiklikler</h2>
       <p class="aciklama">Bu eserde kaydetmediğin değişiklikler var. Ne yapalım?</p>
       <div class="eylemler"><button class="birincil" value="kaydet">Kaydet</button><button class="tehlike" value="at">Değişiklikleri at</button><button class="ikincil" value="vazgec">Geri dön</button></div>
     </form>
@@ -199,7 +287,7 @@
 
   <dialog id="ice-aktar-pencere" class="giris">
     <form method="dialog">
-      <h2 class="panel-baslik">İçe aktar</h2>
+      <h2 class="pencere-h">İçe aktar</h2>
       <p class="aciklama" id="ice-ozet"></p>
       <p class="aciklama"><b>Birleştir:</b> aynı kimlikteki eserler güncellenir, yeniler eklenir, diğerleri olduğu gibi kalır.<br><b>Tamamen değiştir:</b> dosyada olmayan eserler silinir.<br>Hatalı tek bir kayıt bile varsa hiçbir şey değişmez. İçe aktarma geçmişten geri alınabilir.</p>
       <div class="eylemler"><button class="birincil" value="birlestir">Birleştir</button><button class="tehlike" value="degistir">Tamamen değiştir</button><button class="ikincil" value="iptal">Vazgeç</button></div>
@@ -209,7 +297,7 @@
 
   <dialog id="giris" class="giris">
     <form method="dialog" id="giris-formu">
-      <h2 class="panel-baslik">Yönetici girişi</h2>
+      <h2 class="pencere-h"><svg class="ik" aria-hidden="true"><use href="#i-kalkan"/></svg>Yönetici girişi</h2>
       <p class="aciklama">Onay, yayından kaldırma, silme ve içerik düzenleme için gerekli. Şifre sunucudaki .env dosyasında (YONETICI_SIFRE).</p>
       <label>Şifre <input id="giris-sifre" type="password" autocomplete="current-password" required></label>
       <p id="giris-hata" class="durum kotu" role="alert"></p>
@@ -223,5 +311,6 @@
   </footer>
 
   <script type="module" src="/studio/studio.js"></script>
+  <script type="module" src="/studio/duzen.js"></script>
 </body>
 </html>
