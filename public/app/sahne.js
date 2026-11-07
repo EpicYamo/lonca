@@ -1,4 +1,4 @@
-import { haritaKur, BAG_RENK, bagTuruAdi } from "./harita.js";
+import { haritaKur, bagTuruAdi } from "./harita.js";
 import { ikon } from "/ortak/ikonlar.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { konfeti, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
@@ -161,109 +161,98 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
           return kap;
         }
         const NS = "http://www.w3.org/2000/svg";
-        const svg = document.createElementNS(NS, "svg");
-        svg.setAttribute("viewBox", "0 0 440 360");
-        svg.setAttribute("role", "img");
-        svg.setAttribute("aria-label", `${metin(merkez.ad)} ve ${iliskiler.length} kaynaklı tarihsel bağ`);
-        const cx = 220, cy = 155, R = 112;
-        const kisa = (s, n) => { const t = metin(s); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
-        const defs = document.createElementNS(NS, "defs");
-        const cizgiGrubu = document.createElementNS(NS, "g");
-        const dugumGrubu = document.createElementNS(NS, "g");
+        const svgEl = (ad, ozellik = {}) => {
+          const d = document.createElementNS(NS, ad);
+          for (const [k, v] of Object.entries(ozellik)) d.setAttribute(k, v);
+          return d;
+        };
+        const turSinifi = (tur) => `s-graf-t-${/^[a-z]+$/.test(metin(tur)) ? tur : "komsu"}`;
+        const ilkFoto = (e) => e?.fotograflar?.find?.((f) => typeof f === "string" && f);
+        const tekil = Math.random().toString(36).slice(2, 8);
+        // Ad iki satıra bölünür; düğüm altındaki yazı dar alana sığsın diye her satır en çok 15 harf.
+        // Parantezli diğer adlar çizimde atlanır, tam ad alttaki listede kalır.
+        const satirlar = (ad) => {
+          const kelimeler = (metin(ad).replace(/\s*\([^)]*\)/g, "").trim() || metin(ad)).split(/\s+/).filter(Boolean), s = [""];
+          for (const k of kelimeler) {
+            const son = s.length - 1;
+            if (!s[son] || (s[son] + " " + k).length <= 15) s[son] = s[son] ? `${s[son]} ${k}` : k;
+            else if (s.length < 2) s.push(k);
+            else { s[son] += ` ${k}`; break; }
+          }
+          return s.map((x) => (x.length > 16 ? x.slice(0, 15) + "…" : x));
+        };
+
+        kap.append(el("header", { className: "s-graf-ust" },
+          el("strong", { textContent: metin(merkez.ad) }),
+          el("span", { textContent: `${iliskiler.length} kaynaklı tarihsel bağ` })));
+
+        // Yerleşim: merkez eser ortada, bağlı eserler bir elips üzerinde. Çizgiler yol değil, kaynaklı bağdır.
+        const W = 380, H = 336, cx = 190, cy = 162, Rx = 132, Ry = 106, rM = 40, rD = 25;
+        const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `${metin(merkez.ad)} ve ${iliskiler.length} kaynaklı tarihsel bağ` });
+        const defs = svgEl("defs"), cizgiGrubu = svgEl("g"), dugumGrubu = svgEl("g");
         svg.append(defs, cizgiGrubu, dugumGrubu);
+        const fotoDaire = (x, y, r, foto, sinif, ad) => {
+          const g = svgEl("g");
+          g.append(svgEl("circle", { cx: x, cy: y, r, class: `${sinif}-zemin` }));
+          if (!foto) {
+            const harf = svgEl("text", { x, y: y + r * 0.34, "text-anchor": "middle", class: "s-graf-harf", "font-size": r, "aria-hidden": "true" });
+            harf.textContent = metin(ad).trim().slice(0, 1);
+            g.append(harf);
+          } else {
+            const kirpId = `graf-${tekil}-${defs.childNodes.length}`;
+            const kirp = svgEl("clipPath", { id: kirpId });
+            kirp.append(svgEl("circle", { cx: x, cy: y, r }));
+            defs.append(kirp);
+            g.append(svgEl("image", { href: foto, x: x - r, y: y - r, width: r * 2, height: r * 2, preserveAspectRatio: "xMidYMid slice", "clip-path": `url(#${kirpId})`, "aria-hidden": "true" }));
+          }
+          g.append(svgEl("circle", { cx: x, cy: y, r, class: `${sinif}-halka` }));
+          return g;
+        };
 
-        const hale = document.createElementNS(NS, "circle");
-        hale.setAttribute("cx", cx);
-        hale.setAttribute("cy", cy);
-        hale.setAttribute("r", 39);
-        hale.setAttribute("class", "s-graf-hale");
-        dugumGrubu.append(hale);
-        const merkezDaire = document.createElementNS(NS, "circle");
-        merkezDaire.setAttribute("cx", cx);
-        merkezDaire.setAttribute("cy", cy);
-        merkezDaire.setAttribute("r", 32);
-        merkezDaire.style.fill = "var(--ana, #b99345)";
-        merkezDaire.style.stroke = "var(--zemin)";
-        merkezDaire.style.strokeWidth = "4";
-        dugumGrubu.append(merkezDaire);
-        const merkezYazi = document.createElementNS(NS, "text");
-        merkezYazi.setAttribute("x", cx);
-        merkezYazi.setAttribute("y", cy + 4);
-        merkezYazi.setAttribute("text-anchor", "middle");
-        merkezYazi.style.fill = "var(--ana-metin, #fff)";
-        merkezYazi.style.font = "700 10px var(--yazi-baslik, sans-serif)";
-        merkezYazi.textContent = kisa(merkez.ad, 16);
-        dugumGrubu.append(merkezYazi);
-
+        const baslangic = iliskiler.length <= 2 ? 0 : -Math.PI / 2;
         iliskiler.forEach((il, i) => {
-          const aci = (i / iliskiler.length) * Math.PI * 2 - Math.PI / 2;
-          const x = cx + Math.cos(aci) * R;
-          const y = cy + Math.sin(aci) * R;
-          const cizgi = document.createElementNS(NS, "line");
-          cizgi.setAttribute("x1", cx);
-          cizgi.setAttribute("y1", cy);
-          cizgi.setAttribute("x2", x);
-          cizgi.setAttribute("y2", y);
-          cizgi.setAttribute("stroke", BAG_RENK[il.tur] ?? BAG_RENK.komsu);
-          cizgi.setAttribute("stroke-width", "3");
-          cizgi.setAttribute("stroke-opacity", ".62");
-          cizgi.setAttribute("stroke-linecap", "round");
+          const aci = baslangic + (i / iliskiler.length) * Math.PI * 2;
+          const x = cx + Math.cos(aci) * Rx, y = cy + Math.sin(aci) * Ry;
+          const uz = Math.hypot(x - cx, y - cy) || 1, ux = (x - cx) / uz, uy = (y - cy) / uz;
+          const cizgi = svgEl("line", { x1: cx + ux * (rM + 4), y1: cy + uy * (rM + 4), x2: x - ux * (rD + 3), y2: y - uy * (rD + 3), class: `s-graf-cizgi ${turSinifi(il.tur)}` });
+          cizgi.style.setProperty("--sira", i);
           cizgiGrubu.append(cizgi);
 
-          const g = document.createElementNS(NS, "g");
           // Çizim yalnızca fare/dokunma içindir; klavye ve ekran okuyucu aynı bağları alttaki listeden seçer.
-          g.style.cursor = "pointer";
-          const baslik = document.createElementNS(NS, "title");
-          baslik.textContent = `${metin(il.eser.ad)} — ${metin(il.baslik || bagTuruAdi(il.tur))}`;
-          const foto = il.eser.fotograflar?.find?.((f) => typeof f === "string");
-          if (foto) {
-            const kirp = document.createElementNS(NS, "clipPath");
-            const kirpId = `graf-foto-${i}-${Math.random().toString(36).slice(2)}`;
-            kirp.setAttribute("id", kirpId);
-            const daireKirp = document.createElementNS(NS, "circle");
-            daireKirp.setAttribute("cx", x);
-            daireKirp.setAttribute("cy", y);
-            daireKirp.setAttribute("r", 10);
-            kirp.append(daireKirp);
-            defs.append(kirp);
-            const resim = document.createElementNS(NS, "image");
-            resim.setAttribute("href", foto);
-            resim.setAttribute("x", x - 10);
-            resim.setAttribute("y", y - 10);
-            resim.setAttribute("width", 20);
-            resim.setAttribute("height", 20);
-            resim.setAttribute("preserveAspectRatio", "xMidYMid slice");
-            resim.setAttribute("clip-path", `url(#${kirpId})`);
-            resim.setAttribute("aria-hidden", "true");
-            g.append(resim);
-          }
-          const daire = document.createElementNS(NS, "circle");
-          daire.setAttribute("cx", x);
-          daire.setAttribute("cy", y);
-          daire.setAttribute("r", 12);
-          daire.setAttribute("fill", foto ? "transparent" : BAG_RENK[il.tur] ?? BAG_RENK.komsu);
-          daire.setAttribute("class", "s-graf-dugum");
-          daire.style.stroke = "var(--zemin)";
-          daire.style.strokeWidth = "3";
-          const yazi = document.createElementNS(NS, "text");
-          yazi.setAttribute("x", x);
-          yazi.setAttribute("y", y + 26);
-          yazi.setAttribute("text-anchor", "middle");
-          yazi.setAttribute("class", "s-graf-dugum-adi");
-          yazi.textContent = kisa(il.eser.ad, 16);
-          g.append(baslik, daire, yazi);
-          const sec = () => gonder({ tur: "dokun", id: `eser:${metin(il.eser.id)}`, eser: il.eser });
-          g.addEventListener("click", sec);
+          const g = svgEl("g", { class: `s-graf-dugum ${turSinifi(il.tur)}` });
+          g.style.setProperty("--sira", i);
+          const ipucu = svgEl("title");
+          ipucu.textContent = `${metin(il.eser.ad)}: ${metin(il.baslik || bagTuruAdi(il.tur))}`;
+          g.append(ipucu, fotoDaire(x, y, rD, ilkFoto(il.eser), "s-graf-dugum", il.eser.ad));
+          // Üst yarıdaki düğümlerin adı düğümün üstüne yazılır, böylece merkeze inen çizginin üstüne binmez.
+          const adSatirlari = satirlar(il.eser.ad), ustte = Math.sin(aci) < -0.3;
+          adSatirlari.forEach((satir, j) => {
+            const ty = ustte ? y - rD - 8 - (adSatirlari.length - 1 - j) * 13 : y + rD + 14 + j * 13;
+            const t = svgEl("text", { x, y: ty, "text-anchor": "middle", class: "s-graf-dugum-adi" });
+            t.textContent = satir;
+            g.append(t);
+          });
+          const vurgula = (acik) => { svg.classList.toggle("s-graf-odakli", acik); cizgi.classList.toggle("acik", acik); g.classList.toggle("acik", acik); };
+          g.addEventListener("pointerenter", () => vurgula(true));
+          g.addEventListener("pointerleave", () => vurgula(false));
+          g.addEventListener("click", () => gonder({ tur: "dokun", id: `eser:${metin(il.eser.id)}`, eser: il.eser }));
           dugumGrubu.append(g);
         });
-        kap.append(el("p", { className: "s-graf-ipucu", textContent: `${iliskiler.length} kaynaklı bağ · çizgiler yol/rota değildir. Açıklamayı ve künyeyi aşağıda incele.` }), svg);
+        const merkezG = fotoDaire(cx, cy, rM, ilkFoto(merkez), "s-graf-merkez", merkez.ad);
+        merkezG.classList.add("s-graf-merkez");
+        dugumGrubu.append(merkezG);
+        kap.append(svg);
+
+        const turler = [...new Set(iliskiler.map((il) => metin(il.tur)))];
+        kap.append(el("ul", { className: "s-graf-lejant", ariaLabel: "Bağ türleri" },
+          ...turler.map((t) => el("li", { className: turSinifi(t) }, el("span", { className: "s-graf-nokta", ariaHidden: "true" }), el("span", { textContent: bagTuruAdi(t) })))));
 
         const liste = el("div", { className: "s-graf-liste" });
         for (const il of iliskiler) {
-          const d = el("button", { className: `s-graf-oge s-graf-${metin(il.tur)}`, type: "button" });
-          const foto = il.eser.fotograflar?.find?.((f) => typeof f === "string");
+          const d = el("button", { className: `s-graf-oge ${turSinifi(il.tur)}`, type: "button" });
+          const foto = ilkFoto(il.eser);
           d.append(
-            foto ? el("img", { className: "s-graf-foto", src: foto, alt: "", loading: "lazy" }) : el("span", { className: "s-graf-foto s-graf-foto-bos", ariaHidden: "true", textContent: "✧" }),
+            foto ? el("img", { className: "s-graf-foto", src: foto, alt: "", loading: "lazy" }) : el("span", { className: "s-graf-foto s-graf-foto-bos", ariaHidden: "true", textContent: metin(il.eser.ad).slice(0, 1) }),
             el("span", { className: "s-graf-govde" },
               el("span", { className: "s-graf-tur", textContent: bagTuruAdi(il.tur) }),
               el("strong", { textContent: metin(il.eser.ad) }),
