@@ -19,6 +19,8 @@ data/moduller/eski/
 data/kalfa-ayarlari.json
 # Kalfa model taramasının sonuçları (araclar/kalfa-model-tara.mjs, Studio "Modelleri test et")
 data/kalfa-model-durumu.json
+# Studio atölye oturumları: kullanıcı başına kalfa sohbetleri ve modül taslakları (server/atolye.js)
+data/atolye/
 
 # Eşleşen cihazların anahtar özetleri (her makinede ayrı)
 data/cihazlar.json
