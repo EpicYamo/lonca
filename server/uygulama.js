@@ -116,6 +116,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.register(fastifyStatic, { root: path.join(kok, "public"), prefix: "/", setHeaders: yenidenDogrula });
   app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false, setHeaders: yenidenDogrula });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "leaflet", "dist"), prefix: "/vendor/leaflet/", decorateReply: false });
+  // Keşfet'in 3B vektör haritası (MapLibre GL): yalnızca derlenmiş betik ve stil.
+  app.register(fastifyStatic, { root: path.join(kok, "node_modules", "maplibre-gl", "dist"), prefix: "/vendor/maplibre/", decorateReply: false, allowedPath: (p) => ["/maplibre-gl.js", "/maplibre-gl.css"].includes(p) });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
   // Web sitesi kökte (public/web/), Android uygulamasından ayrı. Uygulama sayfası (public/app/) /app/ adresinde kalır:
   // modüller orada çalışır (sitenin "Modülü aç" bağlantısı /app/?modul=<id>&gomulu=1), Studio önizlemesi (/app/?onizleme)

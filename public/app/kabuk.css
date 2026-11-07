@@ -161,3 +161,14 @@
   :is(.karsilama.gidiyor, .tn-noktalar i) { transition: none; }
   .dalga { display: none; }
 }
+
+/* ---------- 3B Keşfet haritası (MapLibre): işaretler, konum noktası, pusula ---------- */
+.kh-harita.maplibregl-map { position: absolute; inset: 0; font-family: var(--yazi-sistem); }
+.kh-harita .maplibregl-marker { cursor: pointer; }
+.kh-harita .maplibregl-marker.kh-isaret-kap { display: grid; place-items: center; width: 34px; height: 34px; }
+.kh-harita .maplibregl-marker.kh-isaret-kap .kh-isaret { margin: 0; }
+.kh-konum { display: block; width: 18px; height: 18px; border-radius: 50%; background: #1a73e8; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(26, 115, 232, .25), 0 1px 4px rgba(0, 0, 0, .35); }
+.kh-harita .maplibregl-ctrl-group { border-radius: 14px; background: var(--yuzey); box-shadow: var(--golge-yuksek); }
+.kh-harita .maplibregl-ctrl-group button { width: 44px; height: 44px; }
+.kh-harita .maplibregl-ctrl-attrib { font-size: .68rem; }
+.kh-harita .maplibregl-ctrl-attrib a { color: var(--vurgu); }

@@ -102,9 +102,7 @@
 .kabuk .modul-ekrani .s-ust { top: calc(56px + env(safe-area-inset-top)); }
 .kabuk .modul-ekrani:has(.s-dalis-sahne) .modul-cubugu { display: none; }
 .kabuk .modul-ekrani:has(.s-dalis-sahne) .kapsul { display: flex; }
-/* Modül ekranları değişirken içerik yerinde solup yükselir (yana kayma yok). */
-.kabuk .modul-ekrani .ekran-gecis { animation: modul-icerik-gir .38s var(--egri-gir) both; }
-@keyframes modul-icerik-gir { from { opacity: 0; transform: translateY(14px); } }
+/* Modül ekranları değişirken içerik yerinde solup yükselir (sahne.css: .s-giris); görünüm geçişi kapalı, yana kayma yok. */
 .kabuk #sahne { view-transition-name: none; }
 
 /* ---------- Hareketi azalt ---------- */
