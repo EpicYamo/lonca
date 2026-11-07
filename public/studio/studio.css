@@ -211,6 +211,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .rozet.yonetici { min-height: var(--dokunma); cursor: pointer; transition: border-color var(--sure-k), color var(--sure-k); }
 @media (hover: hover) { .rozet.yonetici:hover { border-color: var(--cizgi-guclu); color: var(--metin); } }
 .rozet.yonetici.canli { color: var(--vurgu); border-color: var(--vurgu-cizgi); }
+.hesap-d .ik { width: 15px; height: 15px; }
+#hesap-ad { overflow: hidden; text-overflow: ellipsis; }
 
 .tema-gunes { display: none; }
 :root[data-tema="koyu"] .tema-gunes { display: block; }
@@ -657,6 +659,32 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
 .giris label { margin-top: 14px; }
 .giris input { font-family: var(--yazi-kod); }
 .giris .eylemler { margin-top: 18px; }
+
+/* Hesap: giriş / kayıt penceresi ve atölye kilidi */
+.hesap-kip { display: flex; margin: 4px 0 2px; }
+.hesap-kip button { flex: 1; }
+.hesap-kayit { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; border: 0; min-width: 0; }
+.hesap-kayit legend { padding: 0; margin-bottom: 6px; font: 600 .72rem var(--yazi-govde); color: var(--soluk); letter-spacing: .02em; }
+.giris .rol-secenek {
+  flex-direction: row; align-items: flex-start; gap: 10px; margin: 0; padding: 10px 12px; cursor: pointer;
+  border: 1px solid var(--cizgi-guclu); border-radius: var(--r-m); background: var(--zemin-2);
+  font: 400 .86rem var(--yazi-govde); color: var(--metin); letter-spacing: 0; transition: border-color var(--sure-k), background-color var(--sure-k);
+}
+.giris .rol-secenek input { width: 18px; min-height: 0; height: 18px; margin: 1px 0 0; padding: 0; flex: none; accent-color: var(--vurgu); }
+.rol-secenek span { display: grid; gap: 2px; }
+.rol-secenek small { color: var(--soluk); font-size: .78rem; line-height: 1.4; }
+.rol-secenek:has(input:checked) { border-color: var(--vurgu-cizgi); background: var(--vurgu-zemin); }
+.rol-secenek:has(input:focus-visible) { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.hesap-pencere .eylemler .metin-d { margin-left: auto; }
+
+.kilit-karti {
+  display: grid; justify-items: start; gap: 8px; margin: 0 12px 12px; padding: 18px;
+  border: 1px solid var(--cizgi-guclu); border-radius: var(--r-l); background: var(--zemin-2);
+}
+.kilit-karti h3 { margin: 0; font: 400 1.05rem var(--yazi-baslik); color: var(--baslik); }
+.kilit-karti .eylemler { margin-top: 6px; }
+.kilit-ikon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--vurgu-zemin); color: var(--vurgu); }
+.sohbet.kilitli .besteci { display: none; }
 @keyframes pencere-gel { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 
 /* Kalfa modelleri penceresi */
@@ -811,6 +839,8 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
   .ust h1 { font-size: 1.02rem; }
   #model { display: none; }
   .rozet.yonetici { padding: 0 .7rem; font-size: .72rem; }
+  .hesap-d { width: var(--dokunma); justify-content: center; padding: 0; }
+  .hesap-d #hesap-ad { display: none; }
   .durum-cubugu { display: none; }
 
   .sekmeler {

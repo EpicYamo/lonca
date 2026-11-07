@@ -188,11 +188,13 @@ async function gonder(metin) {
   sonaKaydir();
 
   try {
-    const y = await fetch("/api/kalfa", {
+    const kalfaya = () => fetch("/api/kalfa", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-yonetici-sifre": sifreOku(), ...hesapBasligi() },
       body: JSON.stringify({ sohbet, kod: $("#kod").value || undefined }),
     });
+    let y = await kalfaya();
+    if (y.status === 401 && await oturumIste()) y = await kalfaya();
     const s = await y.json();
     yaziyor.remove();
     if (!y.ok) {
@@ -266,10 +268,10 @@ const yoneticiMi = () => !yonetimSifreli || !!sifreOku();
 
 async function yApi(yol, { method = "GET", govde, yeniden = true, basliklar = {} } = {}) {
   const y = await fetch(yol, {
-    method, headers: { ...(govde !== undefined ? { "content-type": "application/json" } : {}), "x-yonetici-sifre": sifreOku(), ...basliklar },
+    method, headers: { ...(govde !== undefined ? { "content-type": "application/json" } : {}), "x-yonetici-sifre": sifreOku(), ...hesapBasligi(), ...basliklar },
     body: govde !== undefined ? JSON.stringify(govde) : undefined,
   });
-  if (y.status === 401 && yeniden && await girisIste()) return yApi(yol, { method, govde, basliklar, yeniden: false });
+  if (y.status === 401 && yeniden && await oturumIste()) return yApi(yol, { method, govde, basliklar, yeniden: false });
   const veri = y.headers.get("content-type")?.includes("json") ? await y.json() : await y.text();
   if (!y.ok) throw Object.assign(new Error(veri?.hata ?? `İstek başarısız (${y.status})`), { ayrintilar: veri?.ayrintilar ?? [] });
   return veri;
@@ -298,7 +300,140 @@ function yoneticiRozeti(girildi) {
   r.textContent = !yonetimSifreli ? "Geliştirme modu" : girildi ? "Yönetici ✓" : "Yönetici girişi";
   r.title = !yonetimSifreli ? "YONETICI_SIFRE tanımlı değil: onay işlemleri şifresiz" : "";
 }
-$("#yonetici").addEventListener("click", () => { if (yonetimSifreli) girisIste().then(() => { modulleriListele(); icerikYukle(); }); });
+$("#yonetici").addEventListener("click", () => { if (yonetimSifreli) girisIste().then(() => { atolyeKilidiGuncelle(); modulleriListele(); icerikYukle(); }); });
+
+// ---------- Hesap (usta / editör) ----------
+// Sunucu yönetici şifresiyle çalışıyorsa atölye usta ya da editör hesabı ister (server/uygulama.js: ustaGerekli).
+// Jeton localStorage'da durur; rol her istekte sunucuda hesaptan okunur. İlk sürüm: yalives7 (fix dalı).
+const JETON_ANAHTARI = "lonca.studio.hesap";
+const ROL_ADI = { vatandas: "Vatandaş", usta: "Usta", editor: "Editör" };
+const ROL_ACIKLAMA = {
+  vatandas: "Atölyeyi kullanmak için usta ya da editör hesabı gerekir.",
+  usta: "Kalfayla modül yazıp onaya gönderebilirsin. Yayın editör onayıyla olur.",
+  editor: "Modül yazabilir, onaylayıp yayınlayabilir, içeriği düzenleyebilirsin.",
+};
+let hesapGerekli = false, hesap = null;
+
+const jetonOku = () => { try { return localStorage.getItem(JETON_ANAHTARI) ?? ""; } catch { return ""; } };
+const jetonYaz = (j) => { try { j ? localStorage.setItem(JETON_ANAHTARI, j) : localStorage.removeItem(JETON_ANAHTARI); } catch {} };
+function hesapBasligi() { const j = jetonOku(); return j ? { authorization: `Bearer ${j}` } : {}; }
+const atolyeAcik = () => !hesapGerekli || ["usta", "editor"].includes(hesap?.rol) || (yonetimSifreli && !!sifreOku());
+
+function hesapRozetiGuncelle() {
+  const d = $("#hesap-d");
+  d.hidden = !hesapGerekli;
+  d.classList.toggle("canli", !!hesap);
+  $("#hesap-ad").textContent = hesap ? `${hesap.kimlik} · ${ROL_ADI[hesap.rol] ?? hesap.rol}` : "Giriş yap";
+  d.setAttribute("aria-label", hesap ? `Hesap: ${hesap.kimlik}, ${ROL_ADI[hesap.rol] ?? hesap.rol}` : "Giriş yap ya da hesap oluştur");
+  d.title = hesap ? "Hesap" : "Giriş yap ya da hesap oluştur";
+}
+function atolyeKilidiGuncelle() {
+  const acik = atolyeAcik();
+  $("#pane-kalfa").classList.toggle("kilitli", !acik);
+  $("#atolye-kilit").hidden = acik;
+}
+async function hesabiYukle() {
+  if (!jetonOku()) return;
+  try {
+    const y = await fetch("/api/hesap/ben", { headers: hesapBasligi() });
+    if (y.status === 401) jetonYaz("");
+    else if (y.ok) hesap = await y.json();
+  } catch { /* sunucuya ulaşılamadı: jeton kalır, sonraki açılışta yeniden denenir */ }
+}
+
+// Giriş / kayıt penceresi. Başarılıysa true döner; "Yönetici şifresiyle gir" de geçerli bir yoldur.
+function hesapPenceresiAc({ kip = "giris" } = {}) {
+  const d = $("#hesap-pencere"), f = $("#hesap-formu");
+  let simdiki = kip;
+  const uygula = () => {
+    const kayit = simdiki === "kayit";
+    for (const b of d.querySelectorAll("[data-hesap-kip]")) {
+      const secili = b.dataset.hesapKip === simdiki;
+      b.classList.toggle("secili", secili);
+      b.setAttribute("aria-checked", String(secili));
+    }
+    $("#hesap-baslik-metin").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
+    $("#hesap-gonder").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
+    $("#hesap-kayit-alanlari").hidden = !kayit;
+    $("#hesap-sifre").autocomplete = kayit ? "new-password" : "current-password";
+    $("#hesap-davet-etiketi").hidden = !kayit || f.elements.rol.value !== "editor";
+    $("#hesap-yonetici").hidden = !yonetimSifreli;
+  };
+  $("#hesap-hata").textContent = "";
+  $("#hesap-sifre").value = ""; $("#hesap-davet").value = "";
+  uygula();
+  const kipSec = (e) => { const b = e.target.closest("[data-hesap-kip]"); if (b) { simdiki = b.dataset.hesapKip; $("#hesap-hata").textContent = ""; uygula(); } };
+  const rolSec = () => uygula();
+  let yoneticiyle = false;
+  const yoneticiTik = () => { yoneticiyle = true; d.close("yonetici"); };
+  d.addEventListener("click", kipSec);
+  f.addEventListener("change", rolSec);
+  $("#hesap-yonetici").addEventListener("click", yoneticiTik);
+  // Gönderimi pencere içinde ele al: hata olursa pencere açık kalır, yazılanlar silinmez.
+  const gonder = async (e) => {
+    if (e.submitter?.value !== "gonder") return;
+    e.preventDefault();
+    const kayit = simdiki === "kayit";
+    const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
+    if (kayit) {
+      govde.rol = f.elements.rol.value;
+      if (govde.rol === "editor") govde.editorAnahtari = $("#hesap-davet").value;
+    }
+    $("#hesap-gonder").disabled = true;
+    $("#hesap-hata").textContent = "";
+    try {
+      const y = await fetch(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde),
+      });
+      const veri = await y.json().catch(() => ({}));
+      if (!y.ok) { $("#hesap-hata").textContent = veri.hata ?? `İşlem başarısız (${y.status})`; return; }
+      jetonYaz(veri.jeton);
+      hesap = veri.hesap;
+      d.close("tamam");
+    } catch { $("#hesap-hata").textContent = "Sunucuya ulaşılamadı."; }
+    finally { $("#hesap-gonder").disabled = false; }
+  };
+  f.addEventListener("submit", gonder);
+  d.showModal();
+  (simdiki === "kayit" || !$("#hesap-kimlik").value ? $("#hesap-kimlik") : $("#hesap-sifre")).focus();
+  return new Promise((coz) => {
+    d.addEventListener("close", async () => {
+      d.removeEventListener("click", kipSec);
+      f.removeEventListener("change", rolSec);
+      f.removeEventListener("submit", gonder);
+      $("#hesap-yonetici").removeEventListener("click", yoneticiTik);
+      const tamam = d.returnValue === "tamam";
+      if (tamam) { hesapRozetiGuncelle(); atolyeKilidiGuncelle(); bildirim(`Hoş geldin, ${hesap.kimlik}.`); }
+      if (yoneticiyle) return coz(await girisIste());
+      coz(tamam);
+    }, { once: true });
+  });
+}
+// 401 alan istekler için: hesap gerekiyorsa hesap penceresi, değilse yönetici şifresi.
+async function oturumIste() {
+  const sonuc = hesapGerekli ? await hesapPenceresiAc() : await girisIste();
+  atolyeKilidiGuncelle();
+  return sonuc;
+}
+// Editör listeleri (Modüller, İçerik) yetki ister; çıkışta onları yeniden istemek yerine atölyeye dönülür.
+function hesapCikis() {
+  jetonYaz(""); hesap = null;
+  hesapRozetiGuncelle(); atolyeKilidiGuncelle();
+  if (!yoneticiMi()) sayfaAc("atolye");
+  bildirim("Çıkış yapıldı.");
+}
+const editorListeleriniYenile = () => { if (hesap?.rol === "editor" || yoneticiMi()) { modulleriListele(); icerikYukle(); } };
+$("#hesap-d").addEventListener("click", () => {
+  if (!hesap) return hesapPenceresiAc().then((t) => { if (t) editorListeleriniYenile(); });
+  $("#hesap-kart-ad").textContent = `${hesap.kimlik} · ${ROL_ADI[hesap.rol] ?? hesap.rol}`;
+  $("#hesap-kart-rol").textContent = ROL_ACIKLAMA[hesap.rol] ?? "";
+  const k = $("#hesap-kart");
+  k.addEventListener("close", () => { if (k.returnValue === "cikis") hesapCikis(); }, { once: true });
+  k.returnValue = "";
+  k.showModal();
+});
+$("#kilit-giris").addEventListener("click", () => hesapPenceresiAc({ kip: "giris" }));
+$("#kilit-kayit").addEventListener("click", () => hesapPenceresiAc({ kip: "kayit" }));
 
 // ---------- Sayfalar ----------
 function sayfaAc(ad) {
@@ -673,7 +808,7 @@ $("#eser-vazgec").addEventListener("click", async () => {
 
 async function fotoGoster(img, yol) {
   if (!yol.startsWith("/medya/yuklenen/")) { img.src = yol; return; }
-  try { const y = await fetch(yol, { headers: { "x-yonetici-sifre": sifreOku() } }); if (y.ok) img.src = URL.createObjectURL(await y.blob()); } catch {}
+  try { const y = await fetch(yol, { headers: { "x-yonetici-sifre": sifreOku(), ...hesapBasligi() } }); if (y.ok) img.src = URL.createObjectURL(await y.blob()); } catch {}
 }
 
 async function fotolariDegistir(yeni, neden) {
@@ -794,7 +929,7 @@ function bildirim(metin, geriAl) {
   const kutu = $("#bildirimler");
   const geriB = el("button", { type: "button", textContent: "Geri al" });
   const kapatB = el("button", { type: "button", className: "kapat", textContent: "×", ariaLabel: "Kapat" });
-  const b = el("div", { className: "bildirim", role: "status" }, el("span", { textContent: metin }), geriB, kapatB);
+  const b = el("div", { className: "bildirim", role: "status" }, el("span", { textContent: metin }), geriAl ? geriB : null, kapatB);
   const kaldir = () => b.remove();
   const sure = setTimeout(kaldir, 10000);
   kapatB.addEventListener("click", () => { clearTimeout(sure); kaldir(); });
@@ -1116,8 +1251,12 @@ $("#model").addEventListener("click", () => modelPenceresiniAc("kalfaModeli"));
 $("#kalfa-ayar-d").addEventListener("click", () => modelPenceresiniAc(kip === "dalis" ? "dalisMetinModelleri" : "kalfaModeli"));
 
 editoruGuncelle();
-fetch("/api/ayarlar").then((y) => y.json()).then((a) => {
+fetch("/api/ayarlar").then((y) => y.json()).then(async (a) => {
   yonetimSifreli = !!a.yonetim?.sifreli;
+  hesapGerekli = !!a.hesap?.gerekli;
   yoneticiRozeti(!!sifreOku());
+  if (hesapGerekli) await hesabiYukle();
+  hesapRozetiGuncelle();
+  atolyeKilidiGuncelle();
   sayaclariGuncelle();
 }).catch(() => {});

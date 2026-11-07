@@ -31,6 +31,15 @@ try {
   const studio = await (await tarayici.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   studio.on("pageerror", (e) => hatalar.push(`Studio: ${e.message}`));
   await studio.goto(`${ADRES}/studio/`);
+  // Yönetici şifreli sunucuda atölye kilitli: usta hesabı aç
+  await studio.waitForSelector("#atolye-kilit:not([hidden])");
+  await studio.click("#kilit-kayit");
+  await studio.fill("#hesap-kimlik", "e2e-usta");
+  await studio.fill("#hesap-sifre", "e2e-usta-sifre");
+  await studio.click("#hesap-gonder");
+  await studio.waitForSelector("#hesap-pencere:not([open])", { state: "attached" });
+  await studio.waitForSelector("#atolye-kilit", { state: "hidden" });
+  adim("usta hesabı açıldı, atölye kilidi kalktı");
   await studio.fill("#istek", "Bursa hanları için süreli bir oyun");
   await studio.press("#istek", "Enter");
   await studio.waitForFunction(() => document.querySelector("#kod").value.includes("sahne.ayarla"), null, { timeout: 15000 });
@@ -41,6 +50,9 @@ try {
   adim("modül onaya gönderildi");
 
   await studio.click(".sekme-d[data-sayfa=moduller]");
+  // Usta tüm modül listesini göremez: hesap penceresinden yönetici şifresine geçilir
+  await studio.waitForSelector("#hesap-pencere[open]");
+  await studio.click("#hesap-yonetici");
   await studio.waitForSelector("#giris[open]");
   await studio.fill("#giris-sifre", SIFRE);
   await studio.click("#giris-formu .birincil");

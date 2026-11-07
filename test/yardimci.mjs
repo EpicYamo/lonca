@@ -12,11 +12,18 @@ export async function deneySunucusu(ortam = {}) {
   await copyFile(path.join(KOK, "data", "eserler.json"), path.join(veri, "eserler.json"));
   await copyFile(path.join(KOK, "data", "eser-iliskileri.json"), path.join(veri, "eser-iliskileri.json"));
   await writeFile(path.join(veri, "moduller", "index.json"), "[]");
-  const { app, kalfa } = await uygulamaKur({ kok: KOK, veri, gunluk: false, ortam: { KALFA_SAHTE: "1", YONETICI_SIFRE: "gizli-sifre", ...ortam } });
+  const { app, kalfa } = await uygulamaKur({ kok: KOK, veri, gunluk: false, ortam: { KALFA_SAHTE: "1", YONETICI_SIFRE: "gizli-sifre", HESAP_SINIR: "1000", ...ortam } });
   await app.ready();
-  const istek = (method, url, { govde, yonetici = false, basliklar = {} } = {}) => app.inject({
+  // Atölye uçları (kalfa, modül gönderme) usta hesabı ister; testler için bir usta açılır.
+  const ustaKaydi = await app.inject({ method: "POST", url: "/api/hesap/kayit", payload: { kimlik: "test-usta", sifre: "test-sifre-123", rol: "usta" } });
+  const ustaJetonu = ustaKaydi.json().jeton;
+  const istek = (method, url, { govde, yonetici = false, usta = false, basliklar = {} } = {}) => app.inject({
     method, url, payload: govde,
-    headers: { ...(yonetici ? { "x-yonetici-sifre": "gizli-sifre" } : {}), ...basliklar },
+    headers: {
+      ...(yonetici ? { "x-yonetici-sifre": "gizli-sifre" } : {}),
+      ...(usta ? { authorization: `Bearer ${ustaJetonu}` } : {}),
+      ...basliklar,
+    },
   });
-  return { app, kalfa, veri, istek };
+  return { app, kalfa, veri, istek, ustaJetonu };
 }

@@ -19,14 +19,15 @@ Kullanıcı Türkçe yazar; yanıtlar Türkçe olsun.
 - **Tarih uydurulmaz.** Eserlerle ilgili her ad, tarih, kişi bir kaynakta aynen geçmeli. Yüzyıl yalnızca yapım tarihinden gelir (onarım tarihi değil); yoksa `null`. Yaklaşık konum `yaklasik: true` taşır. İçerik işlerinde `.claude/skills/vakif-eseri-icerik` skill'ini kullan.
 - **İnsan onayı:** kalfa ve dalış kalfası yalnızca taslak üretir (`durum: "bekliyor"`); yayın editör onayıyla olur (`"onayli"`).
 - **Modül sözleşmesi** `sdk/lonca-sdk.d.ts`'dedir. Modül yalnızca `@lonca/sdk` import eder, ağa/DOM'a erişemez, `sahne.ayarla` zorunlu, en çok 2000 satır. SDK'ya düğüm/ekran eklersen `.d.ts`, `sdk/lonca-sdk.js`, `public/app/sahne.js` ve `server/kalfa.js` denetimini birlikte güncelle.
-- **Girdi doğrulaması sunucuda** (`server/dogrulama.js`). Yeni bir alan/uç nokta eklerken doğrulamasını ve testini de ekle. Yönetici işlemleri `x-yonetici-sifre` başlığıyla korunur (`server/guvenlik.js`).
+- **Girdi doğrulaması sunucuda** (`server/dogrulama.js`). Yeni bir alan/uç nokta eklerken doğrulamasını ve testini de ekle.
+- **Yetki** (`server/uygulama.js`): `editorGerekli` (onay, yayın, içerik) = yönetici şifresi (`x-yonetici-sifre`) ya da editör hesabı; `ustaGerekli` (kalfa, modül gönderme) = usta/editör hesabı; model ayarları yalnızca yönetici şifresiyle. Hesap jetonu `Authorization: Bearer` başlığında; rol her istekte `data/kullanicilar.json`'dan okunur (`server/hesap.js`, `server/guvenlik.js`).
 - **Adlandırma Türkçe.** Değişken, fonksiyon, dosya ve JSON alanları ASCII Türkçe (`eserler`, `yuzyil`, `tarihce`, `kalfaHazirla`, `dalis-kalfasi.js`); kullanıcıya görünen metin düzgün Türkçe (ç, ğ, ı, ö, ş, ü). Kod yorumları Türkçe.
 - **Derleme adımı yok.** Saf ES modülleri (`"type": "module"`), Node ≥ 20.19, tarayıcı tarafı doğrudan `public/`'ten sunulur. TypeScript yalnızca kalfanın tip denetimi için kullanılır. Yeni bağımlılık eklemeden önce gerçekten gerekli mi düşün.
 - **Dosya alanları:**
   - `public/studio/`: Studio. Yerleşim mantığı `duzen.js`'de, iş mantığı `studio.js`'de. Varsayılan açık tema + koyu tema anahtarı (`lonca.studio.tema`).
   - `public/app/`: vatandaş uygulaması. Arayüz işinde `.claude/skills/lonca-arayuz` kurallarına uy (belirteçler `zarif.css`'te). `public/ortak/` (özellikle `tasarim.css`) iki tarafça paylaşılır; değiştirmeden önce etkisini iki tarafta da kontrol et.
   - `server/`: API ve kalfalar. `data/`: içerik (JSON). `mobil/` + `android/`: Capacitor paketi.
-- **Çalışırken oluşan veriler commit'lenmez:** `data/eser-oneriler.json`, `data/yuklenen/`, `data/eser-gecmisi.json`, `data/gecmis/`, `data/moduller/eski/`, `data/kalfa-ayarlari.json` (gitignore'da). Büyük kaynaklar (`kitaplar/`, `veri-kaynak/`) depoda değil.
+- **Çalışırken oluşan veriler commit'lenmez:** `data/eser-oneriler.json`, `data/yuklenen/`, `data/eser-gecmisi.json`, `data/gecmis/`, `data/moduller/eski/`, `data/kalfa-ayarlari.json`, `data/kullanicilar.json`, `data/.oturum-anahtari` (gitignore'da). Büyük kaynaklar (`kitaplar/`, `veri-kaynak/`) depoda değil.
 - **Telif:** Bursa metin ve fotoğrafları © Vakıf Katılım (depo bu yüzden özel). Vikipedi/Commons içeriği CC BY-SA; kaynak bağlantısı kayıtta kalır.
 
 ## Komutlar
@@ -67,7 +68,9 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `ANTHROPIC_API_KEY` | `KALFA_SAGLAYICI=anthropic` için |
 | `KALFA_SAHTE=1` | Kalfayı hazır şablonla çalıştır (çevrimdışı) |
 | `KALFA_SINIR` | IP başına 10 dakikadaki kalfa isteği sınırı |
-| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz) |
+| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz). Doluysa atölye usta/editör hesabı ister; editör kaydının davet anahtarı da budur |
+| `OTURUM_ANAHTARI` | Hesap jetonlarını imzalar; boşsa `data/.oturum-anahtari`'na üretilir |
+| `HESAP_SINIR` | IP başına 10 dakikadaki kayıt/giriş denemesi sınırı |
 | `GOOGLE_HARITA_ANAHTARI` | Google harita + gerçek 3B; boşsa OpenStreetMap, 3B kapalı |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |
@@ -80,7 +83,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 ## Mimari
 
 - **Sunucu** (Fastify): `server/index.js` → `server/uygulama.js` (tüm rotalar), `kalfa.js` (modül kalfası: `eser_ara` / `modul_yaz` araçları, kurallar + TS tip denetimi, en çok 3 deneme), `dalis-kalfasi.js` + `dalis-uretim.js` (dalış ajanı ve görüntü üretimi), `dogrulama.js`, `guvenlik.js`, `depo.js` (JSON dosya deposu).
-- **Başlıca API'ler:** `/api/eserler` (+`/yakin`, `/:id`, tamlık filtreleri), `/api/eser-iliskileri`, `/api/eser-oneriler`, `/api/eser-gecmisi`, `/api/moduller`, `/api/kalfa`, `/api/dalislar`, `/api/dalis-kalfasi`, `/api/medya`.
+- **Başlıca API'ler:** `/api/eserler` (+`/yakin`, `/:id`, tamlık filtreleri), `/api/eser-iliskileri`, `/api/eser-oneriler`, `/api/eser-gecmisi`, `/api/moduller`, `/api/kalfa`, `/api/dalislar`, `/api/dalis-kalfasi`, `/api/medya`, `/api/hesap` (kayıt, giriş, ben, profil, rol).
 - **SDK** (`sdk/`): `lonca-sdk.js` modül iframe'inde çalışır; `lonca-sdk.d.ts` sözleşme; `ornekler/` kalfanın öğrendiği örnekler (`hanlar-rehberi.js`, `yuzyil-avi.js`).
 - **Uygulama** (`public/app/`): modül sandbox iframe'de çalışır (`calistirici.js`), arayüz ağacını `sahne.js` çizer; `ekranlar.js`, `harita.js` (Leaflet), `uc-gercek.js` (Google 3D Tiles), `dalis.js` (dalış oynatıcı), `profil.js`.
 - **Studio** (`public/studio/`): Atölye (kalfa | kod | önizleme), Modüller, İçerik, Dalışlar.

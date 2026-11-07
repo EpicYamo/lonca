@@ -36,15 +36,20 @@ test("yakındaki eserler konum ister ve uzaklığa göre sıralanır", async () 
   for (let i = 1; i < liste.length; i++) assert.ok(liste[i].mesafe_m >= liste[i - 1].mesafe_m);
 });
 
+test("giriş yapmamış biri modül gönderemez", async () => {
+  const y = await s.istek("POST", "/api/moduller", { govde: { id: "kotu", ad: "Kötü", kod: "x" } });
+  assert.equal(y.statusCode, 401);
+});
+
 test("geçersiz modül reddedilir, ayrıntılar döner", async () => {
-  const y = await s.istek("POST", "/api/moduller", { govde: { id: "kotu", ad: "Kötü", kod: "export default async function basla() { document.body.innerHTML = 'x'; }" } });
+  const y = await s.istek("POST", "/api/moduller", { usta: true, govde: { id: "kotu", ad: "Kötü", kod: "export default async function basla() { document.body.innerHTML = 'x'; }" } });
   assert.equal(y.statusCode, 400);
   assert.ok(y.json().ayrintilar.length > 0);
 });
 
 test("modül yaşam döngüsü: onay → yayın → kaldırma → arşiv → silme", async () => {
   const kod = await ornekKod();
-  let y = await s.istek("POST", "/api/moduller", { govde: { id: "yuzyil-avi", ad: "Yüzyıl Avı", kod, renk: "murdum" } });
+  let y = await s.istek("POST", "/api/moduller", { usta: true, govde: { id: "yuzyil-avi", ad: "Yüzyıl Avı", kod, renk: "murdum" } });
   assert.equal(y.statusCode, 201);
   assert.equal(y.json().durum, "bekliyor");
 
@@ -58,7 +63,7 @@ test("modül yaşam döngüsü: onay → yayın → kaldırma → arşiv → sil
   assert.equal((await s.istek("GET", "/api/moduller")).json().length, 1);
   assert.equal((await s.istek("GET", "/api/moduller/yuzyil-avi/kod")).statusCode, 200);
 
-  assert.equal((await s.istek("POST", "/api/moduller", { govde: { id: "yuzyil-avi", ad: "Ele geçirme", kod } })).statusCode, 409);
+  assert.equal((await s.istek("POST", "/api/moduller", { usta: true, govde: { id: "yuzyil-avi", ad: "Ele geçirme", kod } })).statusCode, 409);
 
   for (const durum of ["kaldirildi", "arsiv"]) {
     y = await s.istek("POST", "/api/moduller/yuzyil-avi/durum", { govde: { durum }, yonetici: true });
@@ -259,7 +264,7 @@ test("modül sürümü onayla değişir; liste ETag ile yoklanabilir", async () 
   assert.equal((await s.istek("GET", "/api/moduller", { basliklar: { "if-none-match": etiket } })).statusCode, 304);
 
   const kod = await ornekKod();
-  await s.istek("POST", "/api/moduller", { govde: { id: "surum-deneme", ad: "Sürüm Deneme", kod } });
+  await s.istek("POST", "/api/moduller", { usta: true, govde: { id: "surum-deneme", ad: "Sürüm Deneme", kod } });
   assert.equal((await s.istek("GET", "/api/moduller/surum")).json().surum, ilk.surum, "onay beklerken sürüm değişmez");
   await s.istek("POST", "/api/moduller/surum-deneme/durum", { govde: { durum: "onayli" }, yonetici: true });
   const sonra = (await s.istek("GET", "/api/moduller/surum")).json();
