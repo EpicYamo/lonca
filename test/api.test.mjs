@@ -10,6 +10,15 @@ after(async () => { await s.app.close(); });
 
 const ornekKod = () => readFile(path.join(KOK, "sdk", "ornekler", "yuzyil-avi.js"), "utf8");
 
+test("Studio ve site kodu her açılışta yeniden doğrulanır (Cloudflare 4 saatlik önbelleği uygulamasın)", async () => {
+  for (const yol of ["/studio/studio.js", "/studio/studio.css", "/studio/", "/ortak/dil.js", "/sdk/lonca-sdk.js"]) {
+    const y = await s.istek("GET", yol);
+    assert.equal(y.statusCode, 200, yol);
+    assert.equal(y.headers["cache-control"], "no-cache", yol);
+    assert.ok(y.headers.etag, `${yol} ETag taşımalı`);
+  }
+});
+
 test("eserler listelenir ve her eserde kaynak vardır", async () => {
   const y = await s.istek("GET", "/api/eserler");
   assert.equal(y.statusCode, 200);

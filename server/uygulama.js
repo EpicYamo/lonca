@@ -108,8 +108,13 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   erisim.kur(app);
 
   // ---------- Statik ----------
-  app.register(fastifyStatic, { root: path.join(kok, "public"), prefix: "/" });
-  app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false });
+  // Kod ve sayfa dosyaları her açılışta ETag ile yeniden doğrulanır (değişmediyse 304). "max-age=0" yetmez: Cloudflare
+  // onu kendi tarayıcı önbellek süresiyle (4 saat) değiştiriyor ve yayından sonra tarayıcı eski Studio/uygulama kodunu
+  // çalıştırıyordu; "no-cache" ise olduğu gibi geçiyor. Görseller ve diğer dosyalar varsayılan önbellekte kalır.
+  const kodDosyasi = /\.(html|js|mjs|css|json|webmanifest)$/i;
+  const yenidenDogrula = (rep, yol) => { if (kodDosyasi.test(yol)) rep.header("cache-control", "no-cache"); };
+  app.register(fastifyStatic, { root: path.join(kok, "public"), prefix: "/", setHeaders: yenidenDogrula });
+  app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false, setHeaders: yenidenDogrula });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "leaflet", "dist"), prefix: "/vendor/leaflet/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
   // Web sitesi kökte: / doğrudan ana sayfa (sayfadaki bütün yollar mutlak). "App" artık yalnızca Android uygulaması;
