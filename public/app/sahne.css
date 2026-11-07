@@ -422,6 +422,22 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-dalis-nokta::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, .45); box-shadow: 0 0 6px rgba(0, 0, 0, .5); transition: transform .2s, background .2s; }
 .s-dalis-nokta[aria-current="step"]::before { background: #fff; transform: scale(1.5); }
 .s-dalis-son { padding: .5rem 0 1rem; }
+/* Web düzeni (geniş ekran, dalis.js "genis" sınıfını verir): görüntü ortada dikey sütun, iki yanı o karenin bulanık
+   kopyası; bilgi kartı görüntünün üstünü kapatmaz, sağda dikey ortalı durur. */
+.s-dalis-fon { display: none; }
+.s-dalis-sahne.genis { --sutun: min(66dvh, calc(100vw - 50rem)); width: 100%; }
+.s-dalis-sahne.genis .s-dalis-fon { display: block; position: absolute; inset: -60px; background: #0b0f1a center / cover no-repeat;
+  filter: blur(36px) brightness(.42) saturate(1.1); transition: background-image .6s; }
+.s-dalis-sahne.genis .s-dalis-tuval { position: relative; z-index: 1; width: var(--sutun); margin: 0 auto; box-shadow: 0 0 80px rgba(0, 0, 0, .55); }
+.s-dalis-sahne.genis::after { background: linear-gradient(180deg, rgba(6, 9, 18, .55) 0%, transparent 18%, transparent 80%, rgba(6, 9, 18, .5) 100%); z-index: 1; }
+.s-dalis-sahne.genis .s-dalis-kart, .s-dalis-sahne.genis .s-dalis-kart.ust {
+  left: calc(50% + var(--sutun) / 2 + 2rem); right: auto; top: 0; bottom: 0; margin: auto 0; height: fit-content;
+  width: min(27rem, calc(50% - var(--sutun) / 2 - 4rem)); max-width: none; }
+.s-dalis-sahne.genis .s-dalis-kart p { font-size: 1rem; }
+.s-dalis-sahne.genis .s-dalis-kart.buyuk strong { font-size: clamp(2rem, 3vw, 3rem); }
+.s-dalis-sahne.genis .s-dalis-ustler { left: calc(50% - var(--sutun) / 2 + .9rem); right: auto; }
+.s-dalis-sahne.genis .s-dalis-noktalar { right: calc(50% - var(--sutun) / 2 + .45rem); }
+.s-dalis-sahne.genis .s-dalis-cubuk { z-index: 3; }
 .s-dalis-duz .s-dalis-liste { list-style: none; margin: 0 auto; padding: 0 1rem; display: grid; gap: 1.4rem; max-width: 640px; }
 .s-dalis-duz figure { margin: 0; }
 .s-dalis-duz img { width: 100%; aspect-ratio: 2 / 3; max-height: 70vh; object-fit: cover; border-radius: 16px; display: block; }

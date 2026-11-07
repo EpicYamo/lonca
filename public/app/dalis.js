@@ -18,6 +18,7 @@ const GORSEL_YOLU = /^\/medya\/[a-z0-9\-_/]+\.(?:jpe?g|png|webp)$/i;
 const BIRIM_VH = 80;                              // bir "birim" kaydırma mesafesi (ekran yüksekliğinin yüzdesi)
 const GIRIS = 0.6, HAREKET = 0.5, OKU = 0.85, DONUS = 0.4, GECIS = 1.35, SON = 0.4; // aşama uzunlukları (birim)
 const MAKS_KARE = 40, MAKS_BAKIS = 6;
+const GENIS = "(min-width: 1180px) and (min-aspect-ratio: 5/4)"; // web düzeni: görüntü ortada, kart yanda
 const YENI_HAREKET_MS = 180;                     // tekerlek olayları arasında bu kadar boşluk yoksa aynı hareket sayılır
 const ADIM_MS = [650, 1500], BIRIM_MS = 420;     // bir adımın süresi: mesafeyle uzar, sınırlar içinde kalır
 const TAM = [0, 0, 1];
@@ -146,7 +147,9 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
       d.addEventListener("click", () => git(durmalar.find((x) => x >= duraklar[i]) ?? duraklar[i]));
       return d;
     }));
-  const sahne = el("div", { className: "s-dalis-sahne" }, tuval, svg, cubuk,
+  // Geniş ekranda görüntünün iki yanını dolduran bulanık arka plan (o anki karenin kendisi).
+  const fon = el("div", { className: "s-dalis-fon", ariaHidden: "true" });
+  const sahne = el("div", { className: "s-dalis-sahne" }, fon, tuval, svg, cubuk,
     el("div", { className: "s-dalis-ustler" }, rozet, durakYazisi), kart, ipucu, noktalar);
   iz.append(sahne);
   kutu.append(iz);
@@ -165,10 +168,19 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
 
   let hedef = 0, simdiki = 0, cizilecek = true, oncekiBakis, oncekiKare = -1, calisiyor = true, cw = 0, ch = 0, dpr = 1;
 
+  // Web (geniş ekran) düzeni: sahne tam genişlik, görüntü ortada dikey sütun, kart sağda. Telefonda ve Android
+  // uygulamasında kart görüntünün üstünde durur.
+  const genisSorgu = matchMedia(GENIS);
+  const genisle = () => { sahne.classList.toggle("genis", genisSorgu.matches); oncekiBakis = undefined; boyutla(); };
+  genisSorgu.addEventListener("change", genisle);
+  sahne.classList.toggle("genis", genisSorgu.matches);
+  let tuvalSol = 0, tuvalUst = 0;
+
   function boyutla() {
     dpr = Math.min(2, devicePixelRatio || 1);
-    const r = sahne.getBoundingClientRect();
-    cw = Math.max(1, Math.round(r.width * dpr)); ch = Math.max(1, Math.round(r.height * dpr));
+    const r = sahne.getBoundingClientRect(), t = tuval.getBoundingClientRect();
+    tuvalSol = t.left - r.left; tuvalUst = t.top - r.top;
+    cw = Math.max(1, Math.round(t.width * dpr)); ch = Math.max(1, Math.round(t.height * dpr));
     if (tuval.width !== cw || tuval.height !== ch) { tuval.width = ara2.width = cw; tuval.height = ara2.height = ch; }
     svg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
     ctx.imageSmoothingQuality = actx.imageSmoothingQuality = "high";
@@ -365,11 +377,13 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     // Ok: kartın kenarından işaret noktasına doğru çizilir.
     const d = sonuc?.d;
     if (b?.nokta && d && gorunur > 0.01) {
-      const x = ((b.nokta[0] * d.W - d.sx) * d.olcek) / dpr, y = ((b.nokta[1] * d.H - d.sy) * d.olcek) / dpr;
+      const x = tuvalSol + ((b.nokta[0] * d.W - d.sx) * d.olcek) / dpr, y = tuvalUst + ((b.nokta[1] * d.H - d.sy) * d.olcek) / dpr;
       const sk = sahne.getBoundingClientRect(), kk = kart.getBoundingClientRect();
       const ust = kart.classList.contains("ust");
-      const kx = kenet(x, kk.left - sk.left + 22, kk.right - sk.left - 22);
-      const ky = ust ? kk.bottom - sk.top : kk.top - sk.top;
+      // Kart yandaysa (web düzeni) ok kartın sol kenarından, değilse üst/alt kenarından çıkar.
+      const yanda = sahne.classList.contains("genis");
+      const kx = yanda ? kk.left - sk.left : kenet(x, kk.left - sk.left + 22, kk.right - sk.left - 22);
+      const ky = yanda ? kenet(y, kk.top - sk.top + 22, kk.bottom - sk.top - 22) : ust ? kk.bottom - sk.top : kk.top - sk.top;
       const cizim = yumusak(0.04, 0.3, u);
       cizgi.setAttribute("x1", kx); cizgi.setAttribute("y1", ky);
       cizgi.setAttribute("x2", kx + (x - kx) * cizim); cizgi.setAttribute("y2", ky + (y - ky) * cizim);
@@ -385,6 +399,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
       oncekiKare = gosterilen;
       const k = kareler[gosterilen];
       rozet.textContent = ETIKETLER[k.etiket];
+      fon.style.backgroundImage = `url("${k.gorsel}")`;
       rozet.classList.toggle("canlandirma", k.etiket !== "gercek");
       durakYazisi.textContent = `${gosterilen + 1}/${N}${k.baslik ? ` · ${k.baslik}` : ""}`;
       noktalar.querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-current", j === gosterilen ? "step" : "false"));
@@ -421,7 +436,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   requestAnimationFrame(dongu);
 
   return Promise.resolve({ guncelle() {}, yokEt() {
-    calisiyor = false; gozlem.disconnect(); clearTimeout(bekleyenYerlesme); cancelAnimationFrame(animasyon?.kare ?? 0);
+    calisiyor = false; gozlem.disconnect(); genisSorgu.removeEventListener("change", genisle); clearTimeout(bekleyenYerlesme); cancelAnimationFrame(animasyon?.kare ?? 0);
     for (const [h, ad, f, s] of dinleyiciler) h.removeEventListener(ad, f, s);
   } });
 }
