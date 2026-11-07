@@ -17,7 +17,7 @@
   "gorsel": "sohbet:gemini-3.1-flash-image"
  },
  "olusturma": "2026-11-03T14:47:29.418Z",
- "guncelleme": "2026-11-03T14:47:29.418Z",
+ "guncelleme": "2026-11-07T09:36:10.591Z",
  "kareler": [
   {
    "g": "u6",
@@ -153,9 +153,9 @@
    "g": "d2",
    "t": "yeniden-cizim",
    "p": [
+    0.19,
     0.3,
-    0.3,
-    0.4
+    0.625
    ],
    "b": "Turkuaz yüzeye yaklaşırken",
    "y": "ust",
@@ -176,6 +176,24 @@
      "u": "YEŞİLİN İZİ",
      "b": "Külliyeye adını veren bezeme",
      "m": "Türbenin zengin bezemeleri, külliyeye “Yeşil” adının verilmesine de ilham kaynağı olmuştur. Burada renk, yapının kimliğinin ayrılmaz bir parçasıdır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "kapi",
+   "t": "netlestirilmis",
+   "p": [
+    0.353,
+    0.516,
+    0.3
+   ],
+   "b": "Taç kapının önünde",
+   "k": [
+    {
+     "u": "KİTABE",
+     "b": "Kapının üzerindeki çini yazı",
+     "m": "Taç kapının üzerinde çini bir yazı kuşağı yer alır. Kaynakta türbenin kitabesi şöyle aktarılır: “Hâzihit türbetül merhûmis saîdis şehîdis Sultân ibnüs Sultân Muhammed bin Bâyezîd Hân, tuvuffiye fî Cemâdil evvel senete erbâîn ve işrîn ve semâne mi’e.”",
      "k": "E"
     }
    ]
