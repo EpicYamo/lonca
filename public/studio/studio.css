@@ -1081,6 +1081,8 @@ body { height: min(100dvh, var(--gorunur-yukseklik, 100dvh)); }
 .izin-baslik { font-weight: 600; color: var(--metin); }
 .izin-kaynak, .izin-not { color: var(--soluk); line-height: 1.4; overflow-wrap: anywhere; }
 .izin-kaynak a { color: var(--vurgu); }
+.izin-maddeler { margin: 0; padding-left: 1.1rem; display: grid; gap: .15rem; overflow-wrap: anywhere; }
+.izin-maddeler a { color: var(--vurgu); }
 .izin-girdi { width: 100%; box-sizing: border-box; font: inherit; padding: .4rem .5rem; border: 1px solid var(--cizgi); border-radius: var(--r-s); background: var(--zemin); color: var(--metin); resize: vertical; }
 .izin-sonuc { font-weight: 500; color: var(--soluk); }
 .izin-sonuc.hata { color: var(--hata, #b42318); }

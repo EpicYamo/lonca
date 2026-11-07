@@ -2,8 +2,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { kalfaHazirla } from "../server/kalfa.js";
-import { kaynaktaDayanakVar, yuzyilKaynaktaVar, modulDogrulamasi, koddakiDisBaglantilar, adresAnahtari } from "../server/dis-kaynak.js";
+import { kalfaHazirla, istemDegistir } from "../server/kalfa.js";
+import { kaynaktaDayanakVar, yuzyilKaynaktaVar, modulDogrulamasi, koddakiDisBaglantilar, adresAnahtari, bulunmaEki, vikipediIlListesi } from "../server/dis-kaynak.js";
 import { deneySunucusu, KOK } from "./yardimci.mjs";
 
 const { eserler: hamEserler } = JSON.parse(await readFile(path.join(KOK, "data", "eserler.json"), "utf8"));
@@ -159,4 +159,130 @@ test("API: izin kartını yalnızca admin yanıtlar", async () => {
   const o2 = (await s.istek("POST", "/api/atolye/oturumlar", { yonetici: true, govde: {} })).json();
   const y2 = await s.istek("POST", "/api/kalfa", { yonetici: true, govde: { oturum: o2.id, istek: "evet", izin: { id: "abcd1234", karar: "ver" } } });
   assert.equal(y2.statusCode, 404);
+});
+
+// ---------- İl düzeyinde genişleme (bilgi bankasında olmayan il, ör. İzmir) ----------
+const IZMIR = {
+  "Kategori:İzmir ilindeki camiler": [{ ns: 0, title: "Tire Ulu Camii" }, { ns: 14, title: "Kategori:Konak'taki camiler" }, { ns: 14, title: "Kategori:Konak'taki yapılar" }],
+  "Kategori:Konak'taki camiler": [{ ns: 0, title: "Hisar Camii" }, { ns: 0, title: "Kemeraltı Camii (İzmir)" }],
+  "Kategori:İzmir ilindeki hamamlar": [{ ns: 0, title: "Namazgâh Hamamı" }],
+};
+const MADDELER = {
+  "Hisar Camii": "Hisar Camii, İzmir'in Konak ilçesinde Kemeraltı çarşısında bulunan bir camidir. Cami 1597 yılında yapılmıştır.",
+  "Namazgâh Hamamı": "Namazgâh Hamamı, İzmir'in Konak ilçesinde bulunan tarihî bir hamamdır. Hamam Osmanlı döneminde yapılmıştır.",
+  "Tire Ulu Camii": "Tire Ulu Camii, İzmir'in Tire ilçesinde bulunan bir camidir. Cami Aydınoğulları döneminde yapılmıştır.",
+};
+const vikiUrl = (b) => `https://tr.wikipedia.org/wiki/${encodeURIComponent(b.replace(/ /g, "_"))}`;
+const izmirIstekleri = [];
+const izmirFetch = async (url) => {
+  const u = new URL(url);
+  const p = u.searchParams;
+  izmirIstekleri.push(Object.fromEntries(p));
+  if (p.get("prop") === "categoryinfo") {
+    return Response.json({ query: { pages: p.get("titles").split("|").map((t) => (IZMIR[t] ? { title: t, categoryinfo: { pages: 1, subcats: 1 } } : { title: t, missing: true })) } });
+  }
+  if (p.get("list") === "categorymembers") return Response.json({ query: { categorymembers: IZMIR[p.get("cmtitle")] ?? [] } });
+  if (p.get("list") === "search") return Response.json({ query: { search: p.get("srsearch").includes("han") ? [{ title: "Kızlarağası Hanı", snippet: "han" }] : [] } });
+  const b = p.get("titles");
+  return Response.json({ query: { pages: [MADDELER[b] ? { title: b, fullurl: vikiUrl(b), extract: MADDELER[b] } : { title: b, missing: true }] } });
+};
+
+test("bulunma eki ünlü uyumu ve sertleşmeyle", () => {
+  assert.deepEqual(["İzmir", "Bursa", "Sinop", "Kars", "Konya", "Tokat", "Bolu", "Ürgüp"].map(bulunmaEki),
+    ["İzmir'deki", "Bursa'daki", "Sinop'taki", "Kars'taki", "Konya'daki", "Tokat'taki", "Bolu'daki", "Ürgüp'teki"]);
+});
+
+test("il listesi: dolu kategoriler, aynı türün alt kategorileri ve arama birleşir, tekrarsız", async () => {
+  izmirIstekleri.length = 0;
+  const r = await vikipediIlListesi({ il: "İzmir" }, izmirFetch);
+  const basliklar = r.sonuclar.map((x) => x.baslik);
+  assert.deepEqual(new Set(basliklar), new Set(["Tire Ulu Camii", "Namazgâh Hamamı", "Hisar Camii", "Kemeraltı Camii (İzmir)", "Kızlarağası Hanı"]));
+  assert.equal(new Set(basliklar).size, basliklar.length);
+  assert.ok(r.kategoriler.includes("Konak'taki camiler"));
+  assert.ok(!r.kategoriler.includes("Konak'taki yapılar")); // başka türün alt kategorisine inilmez
+  // Olmayan kategorilerin üyeleri tek tek sorulmaz: önce tek istekte varlık denetimi.
+  const uyeIstekleri = izmirIstekleri.filter((x) => x.list === "categorymembers").map((x) => x.cmtitle);
+  assert.deepEqual(new Set(uyeIstekleri), new Set(["Kategori:İzmir ilindeki camiler", "Kategori:İzmir ilindeki hamamlar", "Kategori:Konak'taki camiler"]));
+  assert.ok(izmirIstekleri.find((x) => x.prop === "categoryinfo").titles.includes("Kategori:İzmir'deki camiler"));
+});
+
+test("istem: admin istemi usta yönlendirme satırını ve kayıtlı iller kısıtını içermez, usta istemi içerir", async () => {
+  const yanit = ["yanit_ver", { metin: "Merhaba", oneriler: ["Başlayalım"] }];
+  const s = saglayici([yanit, yanit]);
+  try {
+    const k = kalfaHazirla({ kok: KOK, eserler: [...hamEserler], ortam: ORTAM, disFetch: izmirFetch });
+    await k.calistir([{ rol: "usta", metin: "İzmir'deki vakıf eserleriyle bir rehber yap" }]);
+    await k.calistir([{ rol: "usta", metin: "İzmir'deki vakıf eserleriyle bir rehber yap" }], undefined, { admin: true });
+  } finally { s.geri(); }
+  const [usta, admin] = s.istekler.map((x) => x.messages[0].content);
+  const yonlendirme = "- Usta bilgi bankasında OLMAYAN bir eser";
+  assert.ok(usta.includes(yonlendirme) && usta.includes("- KAPSAM: Yalnızca bilgi bankamızdaki") && usta.includes("Şu an kayıtlı iller:"));
+  assert.ok(!admin.includes(yonlendirme) && !admin.includes("- KAPSAM: Yalnızca bilgi bankamızdaki") && !admin.includes("Şu an kayıtlı iller:"));
+  assert.match(admin, /"yalnızca kayıtlı illeri yapabilirim" DEME/);
+  assert.match(admin, /Bilgi bankasındaki \(doğrulanmış\) iller: .*; diğer iller için izinle dış kaynak kullanılabilir\./);
+  assert.ok(!usta.includes("dis_kaynak_liste") && admin.includes("dis_kaynak_liste"));
+  assert.ok(s.istekler[1].tools.some((t) => t.function.name === "dis_kaynak_liste"));
+  assert.ok(!s.istekler[0].tools.some((t) => t.function.name === "dis_kaynak_liste"));
+  assert.throws(() => istemDegistir("a b", [["c", "d"]]), /bulunamadı/);
+});
+
+test("admin: dis_kaynak_liste izinsiz reddedilir, izinle il maddelerini döndürür", async () => {
+  const k = kalfaHazirla({ kok: KOK, eserler: [...hamEserler], ortam: ORTAM, disFetch: izmirFetch });
+  let s = saglayici([["dis_kaynak_liste", { il: "İzmir" }], ["izin_iste", { tur: "dis_kaynak", konu: "İzmir", soru: "İzmir için Vikipedi'den toplayayım mı?" }]]);
+  let r;
+  try { r = await k.calistir([{ rol: "usta", metin: "İzmir'deki vakıf eserleriyle bir rehber yap" }], undefined, { admin: true }); } finally { s.geri(); }
+  assert.match(s.aracYaniti(1), /izin vermedi/);
+  assert.equal(r.izin.tur, "dis_kaynak");
+  const durum = r.kalfaDurumu;
+  Object.assign(durum.izinler[0], { durum: "verildi", karar: "ver" });
+  s = saglayici([["dis_kaynak_liste", { il: "İzmir" }], ["yanit_ver", { metin: "Buldum." }]]);
+  try { r = await k.calistir([{ rol: "usta", metin: "İzin veriyorum" }], undefined, { admin: true, izinDurumu: durum }); } finally { s.geri(); }
+  const liste = JSON.parse(s.aracYaniti(1));
+  assert.ok(liste.sonuclar.some((x) => x.baslik === "Hisar Camii"));
+  assert.ok(r.aramalar.some((a) => a.dis?.includes("İzmir")));
+});
+
+test("admin: toplu kayıt izniyle iki madde eklenir, izinsiz üçüncü ve aynı maddeye ikinci ekleme reddedilir", async () => {
+  const eserler = [...hamEserler];
+  const eklenen = [];
+  const eserEkle = async (veri) => { const e = { id: `izmir-${eklenen.length + 1}`, ...veri }; eklenen.push(e); eserler.push(e); return { eser: e }; };
+  const k = kalfaHazirla({ kok: KOK, eserler, ortam: ORTAM, disFetch: izmirFetch, eserEkle });
+  const [hisar, hamam, tire] = ["Hisar Camii", "Namazgâh Hamamı", "Tire Ulu Camii"].map(vikiUrl);
+  let durum = { izinler: [{ id: "d1", tur: "dis_kaynak", konu: "İzmir", durum: "verildi", karar: "ver" }], disKaynaklar: [] };
+
+  // Üç madde okunur; toplu kayıt kartı yalnızca ikisini kapsar.
+  let s = saglayici([
+    ["dis_kaynak_oku", { baslik: "Hisar Camii" }], ["dis_kaynak_oku", { baslik: "Namazgâh Hamamı" }], ["dis_kaynak_oku", { baslik: "Tire Ulu Camii" }],
+    ["izin_iste", { tur: "kayit", konu: "İzmir", soru: "Bu iki madde bilgi bankasına eklensin mi?", kaynak_urller: [hisar, hamam, "https://tr.wikipedia.org/wiki/Okunmamis"] }],
+    ["izin_iste", { tur: "kayit", konu: "İzmir", soru: "Bu iki madde bilgi bankasına eklensin mi?", kaynak_urller: [hisar, hamam] }],
+  ]);
+  let r;
+  try { r = await k.calistir([{ rol: "usta", metin: "Devam" }], undefined, { admin: true, izinDurumu: durum }); } finally { s.geri(); }
+  assert.match(s.aracYaniti(4), /Okunmamis: önce dis_kaynak_oku/);
+  assert.deepEqual(r.izin.maddeler.map((m) => m.baslik), ["Hisar Camii", "Namazgâh Hamamı"]);
+  assert.equal(r.izin.kaynak_url, undefined);
+  durum = r.kalfaDurumu;
+  assert.equal(durum.disKaynaklar.length, 3);
+  const izin = durum.izinler.at(-1);
+  assert.deepEqual(izin.urller, [hisar, hamam]);
+  Object.assign(izin, { durum: "verildi", karar: "bilgi-bankasi" });
+
+  const kayit = (url, ad, tur, tarihce) => ["bilgi_bankasina_ekle", { kaynak_url: url, ad, il: "İzmir", ilce: "Konak", tur, tarihce }];
+  s = saglayici([
+    kayit(hisar, "Hisar Camii", "cami", "Hisar Camii Konak ilçesinde Kemeraltı çarşısında bulunan bir camidir. Cami 1597 yılında yapılmıştır."),
+    kayit(tire, "Tire Ulu Camii", "cami", "Tire Ulu Camii Tire ilçesinde bulunan bir camidir. Cami Aydınoğulları döneminde yapılmıştır."),
+    kayit(hamam, "Namazgâh Hamamı", "hamam", "Namazgâh Hamamı Konak ilçesinde bulunan tarihî bir hamamdır. Hamam Osmanlı döneminde yapılmıştır."),
+    kayit(hisar, "Hisar Camii", "cami", "Hisar Camii Konak ilçesinde Kemeraltı çarşısında bulunan bir camidir."),
+    ["yanit_ver", { metin: "Ekledim." }],
+  ]);
+  try { r = await k.calistir([{ rol: "usta", metin: "Bilgi bankasına eklensin" }], undefined, { admin: true, izinDurumu: durum }); } finally { s.geri(); }
+  assert.match(s.aracYaniti(2), /izni vermedi/); // Tire: okundu ama izin kartında yoktu
+  assert.match(s.aracYaniti(4), /izni vermedi/); // Hisar: izin bu madde için kullanıldı
+  assert.deepEqual(eklenen.map((e) => e.ad), ["Hisar Camii", "Namazgâh Hamamı"]);
+  assert.ok(eklenen.every((e) => e.dogrulanmis === false && e.kaynakTuru === "Vikipedi"));
+  assert.deepEqual(eklenen.map((e) => e.kaynakUrl), [hisar, hamam]);
+  const son = r.kalfaDurumu.izinler.at(-1);
+  assert.equal(son.durum, "kullanildi");
+  assert.deepEqual(son.kullanilanlar, [hisar, hamam]);
+  assert.deepEqual(son.eserIdler, { [hisar]: "izmir-1", [hamam]: "izmir-2" });
 });

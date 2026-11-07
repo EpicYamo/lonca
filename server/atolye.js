@@ -22,6 +22,13 @@ function kararCumlesi(izin, karar) {
   if (izin.tur === "dis_kaynak") return karar === "ver"
     ? `İzin veriyorum: ${ad} için Vikipedi'den bilgi çekebilirsin.`
     : `İzin vermiyorum: ${ad} için dış kaynak kullanma; bilgi bankasındaki eserlerle devam et.`;
+  // Toplu izin: karar kartta listelenen her maddeye ayrı ayrı uygulanır.
+  if (izin.maddeler?.length > 1) {
+    const liste = izin.maddeler.map((m) => `\n- ${m.baslik} (${m.url})`).join("");
+    if (karar === "bilgi-bankasi") return `${ad} için şu ${izin.maddeler.length} madde bilgi bankasına eklensin; her biri için ayrı ekle ve modüle devam et:${liste}`;
+    if (karar === "modul") return `${ad} için şu maddeler bilgi bankasına eklenmesin; bilgiler yalnızca bu modüle özel kalsın. Modüle devam et:${liste}`;
+    return `${ad} için şu maddeler hiçbir yere eklenmesin; bunları kullanma:${liste}`;
+  }
   const madde = izin.baslik ? ` (Vikipedi: ${izin.baslik})` : "";
   if (karar === "bilgi-bankasi") return `${ad}${madde} bilgi bankasına eklensin (kaynak: ${izin.kaynak_url}). Ekle ve modüle devam et.`;
   if (karar === "modul") return `${ad}${madde} bilgi bankasına eklenmesin; bilgiler yalnızca bu modüle özel kalsın. Modüle devam et.`;

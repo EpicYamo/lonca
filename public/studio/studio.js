@@ -143,9 +143,16 @@ const KARAR_ADI = { ver: "İzin verildi", reddet: "Reddedildi", "bilgi-bankasi":
 function izinKarti(izin) {
   const kart = el("div", { className: "izin-karti" },
     el("p", { className: "izin-baslik", textContent: izin.tur === "dis_kaynak" ? `İzin isteği · dış kaynak: ${izin.konu}` : `Karar isteği · ${izin.konu}` }));
-  if (izin.kaynak_url) kart.append(el("p", { className: "izin-kaynak" }, "Kaynak doğrulanmamış: ",
+  if (izin.maddeler?.length > 1) {
+    // Toplu kayıt izni: kart bütün maddeleri listeler; karar her maddeye ayrı uygulanır.
+    kart.append(el("p", { className: "izin-kaynak", textContent: `Kaynak doğrulanmamış · ${izin.maddeler.length} madde:` }),
+      el("ul", { className: "izin-maddeler" }, ...izin.maddeler.map((m) => el("li", {},
+        el("a", { href: m.url, target: "_blank", rel: "noopener", textContent: `${m.kaynak ?? "Vikipedi"}: ${m.baslik}` })))));
+  } else if (izin.kaynak_url) kart.append(el("p", { className: "izin-kaynak" }, "Kaynak doğrulanmamış: ",
     el("a", { href: izin.kaynak_url, target: "_blank", rel: "noopener", textContent: `${izin.kaynak ?? "Vikipedi"}: ${izin.baslik ?? izin.konu}` })));
-  if (izin.tur === "kayit") kart.append(el("p", { className: "izin-not", textContent: "Bilgi bankasına eklenen kayıt herkesin modüllerinde kullanılır ve \"doğrulanmamış\" olarak işaretlenir; kaynak bağlantısı kayıtta kalır." }));
+  if (izin.tur === "kayit") kart.append(el("p", { className: "izin-not", textContent: izin.maddeler?.length > 1
+    ? "Karar her maddeye ayrı uygulanır. Bilgi bankasına eklenen kayıtlar herkesin modüllerinde kullanılır ve \"doğrulanmamış\" olarak işaretlenir; kaynak bağlantıları kayıtta kalır."
+    : "Bilgi bankasına eklenen kayıt herkesin modüllerinde kullanılır ve \"doğrulanmamış\" olarak işaretlenir; kaynak bağlantısı kayıtta kalır." }));
   const dugmeler = el("div", { className: "dalis-dugmeler" });
   const durum = izinDurumlari.get(izin.id);
   if (durum && durum.durum !== "bekliyor") {
