@@ -1,0 +1,57 @@
+# ${LONCA_ALAN_ADI} ve ${LONCA_YOL_ONEKI} açılışta ortam değişkenlerinden doldurulur (nginx imajının
+# templates özelliği). Önek boşsa Lonca alan adının kökünde, "/lonca" ise https://alan/lonca/ altında yayınlanır.
+map $http_upgrade $lonca_baglanti {
+  default upgrade;
+  ""      close;
+}
+
+server {
+  listen 80;
+  listen [::]:80;
+  server_name ${LONCA_ALAN_ADI};
+
+  # Let's Encrypt HTTP-01 doğrulaması
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+  location / {
+    return 301 https://$host$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  http2 on;
+  server_name ${LONCA_ALAN_ADI};
+
+  ssl_certificate     /etc/nginx/ssl/etkin/fullchain.pem;
+  ssl_certificate_key /etc/nginx/ssl/etkin/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_session_cache shared:LONCA:10m;
+  ssl_session_timeout 1d;
+  add_header Strict-Transport-Security "max-age=31536000" always;
+
+  # /api/medya fotoğrafları (~8 MB) ve Studio'daki eser içe aktarma (25 MB'a kadar)
+  client_max_body_size 30m;
+
+  gzip on;
+  gzip_types application/json application/javascript text/javascript text/css image/svg+xml;
+
+  # /api, /medya, /sdk (Android uygulaması) ve /app, /studio (tarayıcı) aynı Lonca container'ına gider.
+  location ${LONCA_YOL_ONEKI}/ {
+    proxy_pass http://lonca:3000/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    # İstemci IP'si eklenmez, üzerine yazılır: sahte X-Forwarded-For ile hız sınırı aşılamasın
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $lonca_baglanti;
+    # Kalfa ve dalış istekleri uzun sürebilir; akışlı yanıtlar tamponlanmadan geçsin
+    proxy_buffering off;
+    proxy_read_timeout 600s;
+    proxy_send_timeout 600s;
+  }
+}

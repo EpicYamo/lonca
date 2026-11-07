@@ -10,7 +10,7 @@ import { dalisKalfasiKur } from "./dalis-kalfasi.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri } from "./guvenlik.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula } from "./dogrulama.js";
+import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, oneriEkiDogrula } from "./dogrulama.js";
 
 const MAKS_KOD = 150_000; 
 const MAKS_FOTO = 6 * 1024 * 1024;
@@ -281,12 +281,14 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       if (hatalar.length) return rep.code(400).send({ hata: "Öneri doğrulamadan geçmedi", ayrintilar: hatalar });
       temiz = eser;
     }
+    const ek = oneriEkiDogrula(tur, req.body ?? {}, temiz);
+    if (ek.hatalar.length) return rep.code(400).send({ hata: "Öneri doğrulamadan geçmedi", ayrintilar: ek.hatalar });
     const notMetni = typeof not === "string" ? not.trim().slice(0, 1500) : "";
     if (tur === "not" && notMetni.length < 5) return rep.code(400).send({ hata: "Düzeltme notu en az 5 karakter olmalı" });
     const oneriler = await oneriDosyasi.oku();
     if (oneriler.filter((o) => o.durum === "bekliyor").length >= 500) return rep.code(503).send({ hata: "Onay kuyruğu dolu" });
     const kayit = { id: randomBytes(6).toString("hex"), tur, eserId: tur === "yeni" ? null : eserId, veri: temiz, not: notMetni || null,
-      durum: "bekliyor", tarih: new Date().toISOString() };
+      kaynak: ek.kaynak, oneren: ek.oneren, durum: "bekliyor", tarih: new Date().toISOString() };
     oneriler.push(kayit);
     await oneriDosyasi.yaz(oneriler);
     return rep.code(201).send({ id: kayit.id, durum: kayit.durum });
