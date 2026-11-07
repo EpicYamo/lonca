@@ -44,3 +44,8 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Doğrulama işareti (public/ortak/dogrulama.js): doğrulanmış vakıf eseri ✓, dış kaynaklı içerikte kaynak etiketi */
+.dogrulama-tik { display: inline-flex; align-items: center; justify-content: center; inline-size: 1.15em; block-size: 1.15em; margin-inline-start: .35em; border-radius: 50%; background: #1f7a4d; color: #fff; font-size: .72em; font-weight: 700; line-height: 1; vertical-align: .12em; flex: none; }
+.dogrulama-tik.metinli { inline-size: auto; block-size: auto; padding: .15em .55em; border-radius: 999px; font-size: .78em; vertical-align: baseline; }
+.dogrulama-yok { display: inline-block; margin-inline-start: .35em; padding: .1em .5em; border: 1px solid currentColor; border-radius: 999px; font-size: .72em; font-weight: 500; opacity: .8; vertical-align: .1em; white-space: nowrap; }

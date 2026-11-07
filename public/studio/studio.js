@@ -95,10 +95,12 @@ async function kodAkit(kod) {
 }
 
 const sonaKaydir = () => { const m = $("#mesajlar"); m.scrollTo({ top: m.scrollHeight, behavior: "smooth" }); };
-function mesajEkle(rol, metin, { adimlar = [], hata = false, kaynaklar = null } = {}) {
+function mesajEkle(rol, metin, { adimlar = [], hata = false, kaynaklar = null, izin = null, eserIstegi = null } = {}) {
   const li = el("li", { className: `mesaj ${rol}${hata ? " hata" : ""}` }, el("p", { textContent: metin }));
   const kutu = kaynakKutusu(kaynaklar);
   if (kutu) li.append(kutu);
+  if (izin) li.append(izinKarti(izin));
+  if (eserIstegi) li.append(eserIstegiKarti(eserIstegi));
   if (adimlar.length) li.append(el("ul", { className: "adimlar" }, ...adimlar.map(([m, sinif], i) => el("li", { className: `adim ${sinif ?? ""}`, textContent: m, style: `--i:${i}` }))));
   $("#mesajlar").append(li);
   sonaKaydir();
@@ -108,20 +110,84 @@ function mesajEkle(rol, metin, { adimlar = [], hata = false, kaynaklar = null } 
 // Kalfanın yanıtının dayandığı kaynaklar: bilgi bankasındaki eser kayıtları (künyesiyle) ve SDK sözleşmesinin parçaları.
 // Sunucu bunları yalnızca araçların gerçekten döndürdüğü eserlerden ve sözleşmede bulunan adlardan kurar (server/kalfa.js).
 function kaynakKutusu(k) {
-  const eserler = k?.eserler ?? [], sdk = k?.sdk ?? [];
-  if (!eserler.length && !sdk.length) return null;
+  const eserler = k?.eserler ?? [], sdk = k?.sdk ?? [], dis = k?.dis ?? [];
+  if (!eserler.length && !sdk.length && !dis.length) return null;
   const kutu = el("details", { className: "kaynaklar" },
-    el("summary", { textContent: `Kaynaklar · ${[eserler.length && `${eserler.length} eser kaydı`, sdk.length && "SDK"].filter(Boolean).join(" + ")}` }));
+    el("summary", { textContent: `Kaynaklar · ${[eserler.length && `${eserler.length} eser kaydı`, sdk.length && "SDK", dis.length && `${dis.length} dış kaynak`].filter(Boolean).join(" + ")}` }));
   if (eserler.length) {
     kutu.append(el("p", { className: "kaynak-baslik", textContent: "Bilgi bankası" }), el("ul", { className: "kaynak-listesi" },
       ...eserler.map((e) => {
         const ac = el("button", { type: "button", className: "kaynak-eser", textContent: `${e.ad}${e.il ? ` (${e.il})` : ""}`, title: "Eser kaydını aç" });
         ac.addEventListener("click", () => eserDuzenlemeyeAc(e.id));
-        return el("li", {}, ac, e.kaynak ? el("small", { textContent: e.kaynak }) : null);
+        return el("li", {}, ac, e.kaynak ? el("small", { textContent: e.dogrulanmis === false ? `Kaynak doğrulanmamış: ${e.kaynakTuru ?? "Vikipedi"} · ${e.kaynak}` : `✓ ${e.kaynak}` }) : null);
       })));
   }
   if (sdk.length) kutu.append(el("p", { className: "kaynak-baslik", textContent: "SDK sözleşmesi (@lonca/sdk)" }), el("p", { className: "kaynak-sdk" }, ...sdk.map((a) => el("code", { textContent: a }))));
+  if (dis.length) {
+    kutu.append(el("p", { className: "kaynak-baslik", textContent: "Dış kaynak · doğrulanmamış" }), el("ul", { className: "kaynak-listesi" },
+      ...dis.map((d) => el("li", {}, el("a", { href: d.url, target: "_blank", rel: "noopener", className: "kaynak-eser", textContent: `${d.kaynak}: ${d.baslik}` }),
+        el("small", { textContent: `Kaynak doğrulanmamış: ${d.kaynak}` })))));
+  }
   return kutu;
+}
+
+// ---------- İzin kartları (yalnızca admin): dış kaynak kullanımı ve okunan maddenin nereye ekleneceği ----------
+// Karar sunucuda oturuma yazılır; kalfa izin verilmeden Vikipedi'ye ulaşamaz, bilgi bankasına ekleyemez (server/kalfa.js).
+// Oturumdaki izinlerin son durumu (sayfa yenilenince yanıtlanmış kartlar yeniden düğme göstermesin).
+let izinDurumlari = new Map();
+const KARAR_DUGMELERI = {
+  dis_kaynak: [["ver", "Vikipedi'den çek", "birincil"], ["reddet", "Hayır, bilgi bankasıyla devam", "ikincil"]],
+  kayit: [["bilgi-bankasi", "Bilgi bankasına ekle", "birincil"], ["modul", "Yalnızca bu modüle özel", "ikincil"], ["reddet", "Hiçbir yere ekleme", "ikincil"]],
+};
+const KARAR_ADI = { ver: "İzin verildi", reddet: "Reddedildi", "bilgi-bankasi": "Bilgi bankasına eklenecek", modul: "Yalnızca bu modüle özel" };
+function izinKarti(izin) {
+  const kart = el("div", { className: "izin-karti" },
+    el("p", { className: "izin-baslik", textContent: izin.tur === "dis_kaynak" ? `İzin isteği · dış kaynak: ${izin.konu}` : `Karar isteği · ${izin.konu}` }));
+  if (izin.kaynak_url) kart.append(el("p", { className: "izin-kaynak" }, "Kaynak doğrulanmamış: ",
+    el("a", { href: izin.kaynak_url, target: "_blank", rel: "noopener", textContent: `${izin.kaynak ?? "Vikipedi"}: ${izin.baslik ?? izin.konu}` })));
+  if (izin.tur === "kayit") kart.append(el("p", { className: "izin-not", textContent: "Bilgi bankasına eklenen kayıt herkesin modüllerinde kullanılır ve \"doğrulanmamış\" olarak işaretlenir; kaynak bağlantısı kayıtta kalır." }));
+  const dugmeler = el("div", { className: "dalis-dugmeler" });
+  const durum = izinDurumlari.get(izin.id);
+  if (durum && durum.durum !== "bekliyor") {
+    dugmeler.append(el("span", { className: "izin-sonuc", textContent: KARAR_ADI[durum.karar] ?? durum.durum }));
+  } else if (!yoneticiMi()) {
+    dugmeler.append(el("span", { className: "izin-sonuc", textContent: "Bu kararı admin verir." }));
+  } else {
+    for (const [karar, metin, sinif] of KARAR_DUGMELERI[izin.tur] ?? []) {
+      const b = el("button", { type: "button", className: sinif, textContent: metin });
+      b.addEventListener("click", async () => {
+        if ($("#gonder").disabled) return;
+        for (const x of dugmeler.querySelectorAll("button")) x.disabled = true;
+        const tamam = await gonder(metin, { izin: { id: izin.id, karar } });
+        if (tamam) dugmeler.replaceChildren(el("span", { className: "izin-sonuc", textContent: KARAR_ADI[karar] }));
+        else for (const x of dugmeler.querySelectorAll("button")) x.disabled = false;
+      });
+      dugmeler.append(b);
+    }
+  }
+  kart.append(dugmeler);
+  return kart;
+}
+
+// Usta: bilgi bankasında olmayan eser için admin'e öneri. Kalfa yalnızca kartı hazırlar; gönderen ustanın kendisidir.
+function eserIstegiKarti(ist) {
+  const kart = el("div", { className: "izin-karti" },
+    el("p", { className: "izin-baslik", textContent: `Bilgi bankasında yok: ${ist.ad}${ist.il ? ` (${ist.il})` : ""}` }),
+    el("p", { className: "izin-not", textContent: "Eseri sen ya da kalfa ekleyemez; istersen admin'e eklenmesi için öneri gönder. Admin inceler, uygun bulursa ekler." }));
+  const not = el("textarea", { className: "izin-girdi", rows: 2, maxLength: 600, placeholder: "Admin'e not (isteğe bağlı)", value: ist.not ?? "" });
+  const gonderB = el("button", { type: "button", className: "birincil", textContent: "Admin'e öneri gönder" });
+  const dugmeler = el("div", { className: "dalis-dugmeler" }, gonderB);
+  gonderB.addEventListener("click", async () => {
+    gonderB.disabled = true;
+    try {
+      const r = await yApi("/api/eser-oneriler", { method: "POST", govde: { tur: "istek", istek: { ad: ist.ad, il: ist.il, not: not.value.trim() } } });
+      not.remove();
+      dugmeler.replaceChildren(el("span", { className: "izin-sonuc", textContent: r.zatenVar ? "Bu eser zaten önerilmiş; admin'in listesinde bekliyor." : "Öneri admin'e gönderildi ✓" }));
+      if (yoneticiMi()) sayaclariGuncelle();
+    } catch (h) { gonderB.disabled = false; dugmeler.append(el("span", { className: "izin-sonuc hata", textContent: h.message })); }
+  });
+  kart.append(not, dugmeler);
+  return kart;
 }
 
 // ---------- Kalfa kipi: Modül ya da Dalış ----------
@@ -284,6 +350,9 @@ async function dalisOnizle() {
 function adimlarYap({ tur = "modul", aramalar = [], deneme = 1, model = null } = {}) {
   const adimlar = aramalar.map((a) => {
     if (a.okunan) return [`Bilgi bankasından okudu: ${a.ad ?? a.okunan}`];
+    if (a.dis != null) return [`${a.kaynak}'de aradı: ${a.dis} → ${a.bulunan} madde`];
+    if (a.disOkunan) return [`${a.kaynak} maddesini okudu: ${a.disOkunan}`];
+    if (a.eklenen) return [`Bilgi bankasına ekledi (doğrulanmamış): ${a.ad}`, "duzeltme"];
     const sorgu = Object.entries(a.sorgu ?? {}).map(([k, v]) => `${k} ${v}`).join(", ") || "tümü";
     return [`Bilgi bankasında aradı: ${sorgu} → ${a.bulunan} eser`];
   });
@@ -317,11 +386,11 @@ async function taslagiAkit(t) {
   document.dispatchEvent(new CustomEvent("studio:onizleme-hazir"));
 }
 
-async function gonder(metin) {
+async function gonder(metin, { izin = null } = {}) {
   metin = metin.trim();
-  if (!metin || $("#gonder").disabled) return;
-  if (kip === "dalis") return dalisGonder(metin);
-  mesajEkle("usta", metin);
+  if (!metin || $("#gonder").disabled) return false;
+  if (kip === "dalis" && !izin) return dalisGonder(metin);
+  const ustaLi = mesajEkle("usta", metin);
   $("#istek").value = "";
   $("#oneriler").hidden = true;
   $("#gonder").disabled = true;
@@ -331,22 +400,27 @@ async function gonder(metin) {
   try {
     // İstek oturuma yazılır; sayfa bu sırada yenilense de kalfanın yanıtı sunucuda oturuma kaydedilir.
     const oturum = await oturumGerekli();
-    const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value, dil: dilAl() } });
+    const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value, dil: dilAl(), ...(izin && { izin }) } });
     yaziyor.remove();
-    if (bu !== oturumSurumu) return;
+    if (izin) izinDurumlari.set(izin.id, { durum: izin.karar === "reddet" ? "reddedildi" : "verildi", karar: izin.karar });
+    if (bu !== oturumSurumu) return true;
+    // İzin kararında sohbete giren cümleyi sunucu kurar; ustanın balonunda o görünür.
+    if (s.istek) ustaLi.querySelector("p").textContent = s.istek;
     kalfaOnerileriniAyarla(s.oneriler ?? []);
     if (s.tur === "sohbet") {
-      mesajEkle("kalfa", s.metin, { adimlar: adimlarYap(s), kaynaklar: s.kaynaklar });
-      return;
+      mesajEkle("kalfa", s.metin, { adimlar: adimlarYap(s), kaynaklar: s.kaynaklar, izin: s.izin, eserIstegi: s.eserIstegi });
+      return true;
     }
     mesajEkle("kalfa", s.aciklama_ustaya, { adimlar: adimlarYap(s), kaynaklar: s.kaynaklar });
     await taslagiAkit({ ...s, ikon: s.ikon === "genel" ? "" : s.ikon });
+    return true;
   } catch (h) {
     yaziyor.remove();
-    if (bu !== oturumSurumu) return;
+    if (bu !== oturumSurumu) return false;
     onerileriGoster();
     const ayrinti = h.ayrintilar?.length ? `\n• ${h.ayrintilar.join("\n• ")}` : "";
     mesajEkle("kalfa", h instanceof TypeError ? `Sunucuya ulaşılamadı: ${h.message}. Sunucunun çalıştığını kontrol et.` : `${h.message}${ayrinti}`, { hata: true });
+    return false;
   } finally {
     if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
     $("#istek").focus();
@@ -874,9 +948,10 @@ async function oturumuAc(id) {
   taslakBekliyor = false;
   mesajlariTemizle();
   sahneDurum(null);
+  izinDurumlari = new Map((o.kalfaDurumu?.izinler ?? []).map((i) => [i.id, i]));
   for (const m of o.mesajlar) {
     if (m.dalis) dalisIzle(m.dalis, dalisKutusu(), { geriYukleme: true, bu });
-    else mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar });
+    else mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar, izin: m.ek?.izin, eserIstegi: m.ek?.eserIstegi });
   }
   kalfaOnerileriniAyarla(o.mesajlar.length ? sonOneriler(o.mesajlar) : null);
   editoruDoldur(o.taslak ?? {});
@@ -905,7 +980,8 @@ async function kalfayiBekle(o, bu) {
     if (bu !== oturumSurumu) return;
     yaziyor.remove();
     const yeni = son.mesajlar.slice(onceki);
-    for (const m of yeni) mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar });
+    izinDurumlari = new Map((son.kalfaDurumu?.izinler ?? []).map((i) => [i.id, i]));
+    for (const m of yeni) mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar, izin: m.ek?.izin, eserIstegi: m.ek?.eserIstegi });
     kalfaOnerileriniAyarla(sonOneriler(son.mesajlar));
     if (yeni.at(-1)?.uretim && son.taslak?.kod) await taslagiAkit(son.taslak);
   } catch (h) {
@@ -1661,19 +1737,21 @@ async function onerileriCiz() {
   catch (h) { $("#oneriler-listesi").replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
   if (!oneriler.length) { $("#oneriler-listesi").replaceChildren(el("li", { className: "aciklama", textContent: "Bekleyen öneri yok." })); return; }
   $("#oneriler-listesi").replaceChildren(...oneriler.map((o) => {
-    const baslik = o.tur === "yeni" ? `Yeni eser: ${o.veri?.ad}` : o.tur === "duzenle" ? `Düzenleme: ${o.eser?.ad}` : `Hata bildirimi: ${o.eser?.ad}`;
+    const baslik = o.tur === "istek" ? `Eklenmesi istenen eser: ${o.istek?.ad}${o.istek?.il ? ` (${o.istek.il})` : ""}`
+      : o.tur === "yeni" ? `Yeni eser: ${o.veri?.ad}` : o.tur === "duzenle" ? `Düzenleme: ${o.eser?.ad}` : `Hata bildirimi: ${o.eser?.ad}`;
     const govde = el("div", { className: "oneri-govde" });
     if (o.not) govde.append(el("p", { className: "oneri-not", textContent: `“${o.not}”` }));
     if (o.kaynak || o.oneren) govde.append(el("p", { className: "oneri-kaynak", textContent: [o.oneren && `Öneren: ${o.oneren}`, o.kaynak && `Kaynak: ${o.kaynak}`].filter(Boolean).join(" · ") }));
     if (o.tur === "duzenle" && o.veri) govde.append(el("ul", { className: "fark" }, ...Object.entries(o.veri).map(([k, v]) =>
       el("li", {}, el("b", { textContent: ALAN_ADI[k] ?? k }), el("del", { textContent: kisa(o.eser?.[k]) }), el("ins", { textContent: kisa(v) })))));
     if (o.tur === "yeni" && o.veri) govde.append(el("p", { className: "aciklama", textContent: `${TUR_ADI[o.veri.tur] ?? o.veri.tur} · ${o.veri.ilce ?? ""} · kaynak: ${o.veri.kaynak}` }));
-    const incele = el("button", { className: "birincil yalniz-admin", type: "button", textContent: o.tur === "not" ? "Eseri düzenle" : "İncele ve onayla" });
-    incele.addEventListener("click", () => formuAc(o.eser ?? null, { oneri: o.tur === "not" ? null : o, onerilenVeri: o.veri }));
-    const kapat = el("button", { className: "ikincil yalniz-admin", type: "button", textContent: o.tur === "not" ? "Çözüldü" : "Reddet" });
+    if (o.tur === "istek") govde.append(el("p", { className: "aciklama", textContent: "Usta kalfayla konuşurken istedi. Eklemek için eseri kaynağıyla elle ekle ya da Atölye'de kalfaya \"bu eseri ekle\" de (Vikipedi'den, izninle)." }));
+    const incele = el("button", { className: "birincil yalniz-admin", type: "button", textContent: o.tur === "istek" ? "Kalfayla ekle" : o.tur === "not" ? "Eseri düzenle" : "İncele ve onayla" });
+    incele.addEventListener("click", () => (o.tur === "istek" ? kalfaylaEkle(o) : formuAc(o.eser ?? null, { oneri: o.tur === "not" ? null : o, onerilenVeri: o.veri })));
+    const kapat = el("button", { className: "ikincil yalniz-admin", type: "button", textContent: o.tur === "not" || o.tur === "istek" ? "Çözüldü" : "Reddet" });
     kapat.addEventListener("click", async () => {
       kapat.disabled = true;
-      try { await yApi(`/api/eser-oneriler/${o.id}/karar`, { method: "POST", govde: { karar: o.tur === "not" ? "onayla" : "reddet" } }); onerileriCiz(); sayaclariGuncelle(); }
+      try { await yApi(`/api/eser-oneriler/${o.id}/karar`, { method: "POST", govde: { karar: o.tur === "not" || o.tur === "istek" ? "onayla" : "reddet" } }); onerileriCiz(); sayaclariGuncelle(); }
       catch (h) { alert(h.message); kapat.disabled = false; }
     });
     return el("li", { className: `oneri ${o.tur}` },
@@ -2016,3 +2094,15 @@ fetch("/api/ayarlar").then((y) => y.json()).then(async (a) => {
   sayaclariGuncelle();
   oturumlariBaslat();
 }).catch(() => {});
+
+// Ustanın eser isteğini admin Atölye'de yeni bir sohbette kalfaya açar: istek kutusu hazır gelir, admin gönderir.
+// Kalfa dış kaynak için izin kartı çıkarır; admin izin vermeden hiçbir şey eklenmez.
+async function kalfaylaEkle(o) {
+  if (!(await ayrilabilirMi())) return;
+  sayfaAc("atolye");
+  kipSec("modul");
+  await yeniSohbet();
+  const ad = `${o.istek?.ad ?? ""}${o.istek?.il ? ` (${o.istek.il})` : ""}`;
+  $("#istek").value = `${ad} bilgi bankamızda yok; bir usta eklenmesini istedi${o.not ? ` (“${o.not}”)` : ""}. Vikipedi'ye bakıp bilgi bankasına eklemek istiyorum.`;
+  $("#istek").focus();
+}

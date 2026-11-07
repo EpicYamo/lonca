@@ -15,6 +15,19 @@ const simdi = () => new Date().toISOString();
 const baslikYap = (metin) => { const t = String(metin).replace(/\s+/g, " ").trim(); return t.length > 80 ? `${t.slice(0, 79)}…` : t; };
 const hataVer = (mesaj, kod) => Object.assign(new Error(mesaj), { kod });
 
+// Admin'in izin kartındaki kararı sohbete bu cümleyle girer (istemcinin yazdığı metin değil): kalfa kararı her zaman aynı biçimde okur.
+const IZIN_KARARLARI = { dis_kaynak: ["ver", "reddet"], kayit: ["bilgi-bankasi", "modul", "reddet"] };
+function kararCumlesi(izin, karar) {
+  const ad = `“${izin.konu}”`;
+  if (izin.tur === "dis_kaynak") return karar === "ver"
+    ? `İzin veriyorum: ${ad} için Vikipedi'den bilgi çekebilirsin.`
+    : `İzin vermiyorum: ${ad} için dış kaynak kullanma; bilgi bankasındaki eserlerle devam et.`;
+  const madde = izin.baslik ? ` (Vikipedi: ${izin.baslik})` : "";
+  if (karar === "bilgi-bankasi") return `${ad}${madde} bilgi bankasına eklensin (kaynak: ${izin.kaynak_url}). Ekle ve modüle devam et.`;
+  if (karar === "modul") return `${ad}${madde} bilgi bankasına eklenmesin; bilgiler yalnızca bu modüle özel kalsın. Modüle devam et.`;
+  return `${ad}${madde} hiçbir yere eklenmesin; bu maddeyi kullanma.`;
+}
+
 export function atolyeKur(dizin) {
   const dosyalar = new Map();
   const kilitler = new Map();
@@ -125,17 +138,29 @@ export function atolyeKur(dizin) {
   }
 
   // İsteği oturuma yazar ve oturumu "bekleyen" yapar; kalfayı çağıran taraf bitince kalfaBitir'i çağırmalı.
-  async function kalfaBaslat(sahip, id, { istek, kod }) {
+  // izin: { id, karar } verilirse oturumdaki bekleyen izin karara bağlanır ve istek kararın cümlesi olur (yalnızca admin; uygulama.js denetler).
+  async function kalfaBaslat(sahip, id, { istek, kod, izin = null }) {
     return sirayla(sahip, (veri) => {
       const o = bul(veri, id);
       yarimKalaniKapat(sahip, o);
       if (o.bekleyen) throw hataVer("Kalfa bu sohbette hâlâ çalışıyor; yanıtını bekle", 409);
+      o.kalfaDurumu ??= { izinler: [], disKaynaklar: [] };
+      if (izin) {
+        const i = o.kalfaDurumu.izinler.find((x) => x.id === izin.id);
+        if (!i) throw hataVer("izin bulunamadı", 404);
+        if (i.durum !== "bekliyor") throw hataVer("Bu izin zaten yanıtlandı", 409);
+        if (!IZIN_KARARLARI[i.tur]?.includes(izin.karar)) throw hataVer(`karar: ${IZIN_KARARLARI[i.tur]?.join(" | ")}`, 400);
+        i.durum = izin.karar === "reddet" ? "reddedildi" : "verildi";
+        i.karar = izin.karar;
+        i.yanit = simdi();
+        istek = kararCumlesi(i, izin.karar);
+      }
       const sohbet = kalfaSohbeti(o, istek);
       mesajEkle(o, { rol: "usta", metin: istek });
       if (kod != null) o.taslak = { ...(o.taslak ?? {}), kod };
       o.bekleyen = { baslangic: simdi() };
       calisanlar.add(anahtar(sahip, id));
-      return { deger: { sohbet } };
+      return { deger: { sohbet, istek, kalfaDurumu: structuredClone(o.kalfaDurumu) } };
     });
   }
 
@@ -149,7 +174,12 @@ export function atolyeKur(dizin) {
           mesajEkle(o, { rol: "kalfa", metin: ayrintilar.length ? `${hata}\n• ${ayrintilar.join("\n• ")}` : hata, hata: true });
           return {};
         }
-        const ek = { aramalar: sonuc.aramalar ?? [], model: sonuc.model ?? null, kaynaklar: sonuc.kaynaklar ?? null, oneriler: sonuc.oneriler ?? [] };
+        if (sonuc.kalfaDurumu) o.kalfaDurumu = sonuc.kalfaDurumu;
+        const ek = {
+          aramalar: sonuc.aramalar ?? [], model: sonuc.model ?? null, kaynaklar: sonuc.kaynaklar ?? null, oneriler: sonuc.oneriler ?? [],
+          ...(sonuc.izin && { izin: sonuc.izin }), ...(sonuc.eserIstegi && { eserIstegi: sonuc.eserIstegi }),
+          ...(sonuc.disKaynaklar?.length && { disKaynaklar: sonuc.disKaynaklar }),
+        };
         // Sohbet yanıtı (kod yazılmadı): yalnızca mesaj eklenir, taslak olduğu gibi kalır.
         if (sonuc.tur === "sohbet") {
           mesajEkle(o, { rol: "kalfa", metin: sonuc.metin ?? "", ek: { ...ek, tur: "sohbet" } });

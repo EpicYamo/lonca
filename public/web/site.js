@@ -8,6 +8,7 @@ import { dilAl, dilDegisince } from "/ortak/dil.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { loncaLogo } from "/ortak/logo.js";
 import { TUR_ADLARI, eserAra } from "/ortak/arama.js";
+import { modulRozeti, eserRozeti } from "/ortak/dogrulama.js";
 import { el, foto, sahneGorseli, temaStili, kategoriAdi } from "/web/sahneler.js";
 
 const $ = (s) => document.querySelector(s);
@@ -135,7 +136,7 @@ function vitrinKur() {
     return el("article", { sinif: `sahne sahne-${m.id}`, stil: temaStili(m), "aria-roledescription": "slide", "aria-label": `${i + 1} / ${moduller.length}: ${m.ad}`, id: `sahne-${i}`, role: "tabpanel" },
       el("div", { sinif: "sahne-yazi" },
         el("p", { sinif: "sahne-ust" }, el("span", { metin: kategoriAdi(m.kategori) }), el("span", { sinif: "sahne-sira", translate: "no", metin: `${String(i + 1).padStart(2, "0")} / ${String(moduller.length).padStart(2, "0")}` })),
-        el("h2", { sinif: "sahne-ad", metin: m.ad }),
+        el("h2", { sinif: "sahne-ad" }, m.ad, modulRozeti(m)),
         el("p", { sinif: "sahne-aciklama", metin: m.aciklama }),
         el("ul", { sinif: "sahne-etiketler" }, el("li", { metin: "Giriş gerekmez" }), izinler),
         el("div", { sinif: "sahne-dugmeler" },
@@ -232,7 +233,7 @@ function modullerCiz() {
           kapak?.foto ? foto(kapak.foto, "", "16 / 10", "mk-foto") : null),
         el("div", { sinif: "mk-govde" },
           el("p", { sinif: "mk-tur", metin: kategoriAdi(m.kategori) }),
-          el("h3", { metin: m.ad }),
+          el("h3", {}, m.ad, modulRozeti(m)),
           el("p", { sinif: "mk-aciklama", metin: m.aciklama }),
           el("span", { sinif: "mk-ac" }, "Aç", el("span", { "aria-hidden": "true", metin: " →" })))));
   }));
@@ -468,6 +469,7 @@ function eserSayfasi(id) {
       galeri,
       el("aside", { sinif: "es-yan" },
         el("dl", { sinif: "es-kunye" }, satir("Tür", turAdi(e.tur)), satir("Yüzyıl", yuzyilYazi(e.yuzyil)), satir("İl", e.il), satir("İlçe", e.ilce), satir("Adres", e.adres), satir("Kaynak", e.kaynak)),
+        el("p", { sinif: "es-dogrulama" }, eserRozeti(e)),
         el("div", { sinif: "es-eylemler" },
           dalis && dalisModulu ? el("a", { sinif: "dugme", href: modulAdresi(dalisModulu.id) }, "Dalışını izle") : null,
           el("button", { type: "button", sinif: "dugme cizgili", onclick: async (ev) => {

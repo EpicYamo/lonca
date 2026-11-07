@@ -4,6 +4,7 @@ import { TUR_ADI } from "./ekranlar.js";
 import { leafletYukle, karoKatmani, bagTuruAdi, ikiParmakla } from "./harita.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { dilAl } from "/ortak/dil.js";
+import { eserRozeti } from "/ortak/dogrulama.js";
 
 const $ = (s) => document.querySelector(s);
 const yuzyilYazi = (y) => (y ? `${y}. yüzyıl` : null);
@@ -174,7 +175,7 @@ export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi
     // Arayüz İngilizceyse eserin İngilizce metni (varsa) öne gelir.
     dil = e.tarihce?.en && dilAl() === "en" ? "en" : "tr";
     metniCiz();
-    $("#ep-kaynak").textContent = `Kaynak: ${e.kaynak}`;
+    $("#ep-kaynak").replaceChildren(`Kaynak: ${e.kaynak} `, eserRozeti(e));
     if (hataYazisi) $("#ep-hata").textContent = hataYazisi;
     $("#ep-hata").onclick = () => { d.close(); katkiAc(e); };
 

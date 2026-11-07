@@ -7,6 +7,8 @@ import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { kalfaSaglayicisi, secimOku } from "./kalfa-ayarlari.js";
+import { ESER_TURLERI } from "./dogrulama.js";
+import { DIS_KAYNAK_ADI, vikipediAra, vikipediOku, adresAnahtari, koddakiDisBaglantilar, kaynaktaDayanakVar, yuzyilKaynaktaVar } from "./dis-kaynak.js";
 
 ts.validateLocaleAndSetLanguage("tr", ts.sys);
 
@@ -102,7 +104,13 @@ export function veridenOneriler(eserler, { dil = "tr", kod = false } = {}) {
     : [`${ad(e1)} çevresinde çocuklar için bir hazine avı`, `${e2.il} ${turAdi(e2)} gece temasıyla gezdiren haritalı bir rehber`, `${ad(fotolu[2] ?? e1)} hakkında bilgi verir misin?`];
 }
 
-export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env }) {
+// Yetki kipleri: usta yalnızca bilgi bankasıyla çalışır (olmayan eser için admin'e öneri gönderebilir); admin izin vererek
+// Vikipedi'den içerik çektirebilir, bilgi bankasına ekletebilir ya da içeriği yalnızca modüle özel tutabilir.
+// disFetch: Vikipedi istekleri (testler sahtesini verir); eserEkle: bilgi bankasına kayıt yazan geri çağırma (uygulama.js).
+export const IZIN_KARARLARI = { dis_kaynak: ["ver", "reddet"], kayit: ["bilgi-bankasi", "modul", "reddet"] };
+const MAKS_DIS_KAYNAK = 6;
+
+export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env, disFetch = (...a) => fetch(...a), eserEkle = null }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
   const ornek = (ad) => readFileSync(path.join(kok, "sdk", "ornekler", `${ad}.js`), "utf8");
   const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi");
@@ -182,6 +190,23 @@ ${ornekOyun}
 
 modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1–3 cümleyle anlat. İstediği bir şey SDK ile yapılamıyorsa bunu dürüstçe söyle ve yapabildiğin en yakın şeyi yap. Harita istenirse harita düğümünü (ya da ekran.harita) kullan.`;
 
+  const USTA_EK = `
+
+# Bilgi bankasında olmayan eser (usta)
+- Bu usta admin değil: bilgi bankasına eser ekleyemez, sen de ekleyemezsin ve dışarıdan bilgi getiremezsin. Usta bilgi bankasında olmayan bir eser isterse en yakın eserleri önermenin yanında, bu eserin bilgi bankasına eklenmesi için admin'e öneri gönderebileceğini söyle ve eser_istegi aracıyla öneri kartını hazırla (eserin adı, ili, ustanın kısa notu). Öneriyi usta karttaki düğmeyle kendisi gönderir; eseri admin inceler ve ekler. eser_istegi'nde eser hakkında tarih, kişi gibi bilgi YAZMA.`;
+
+  const ADMIN_EK = `
+
+# ADMİN KİPİ (bu kurallar yukarıdaki KAPSAM ve "bilgi bankasında OLMAYAN eser" kurallarının yerine geçer)
+Bu usta bir admin. Bilgi bankasında olmayan eserlerle de modül yapabilirsin; ama her adımda adminden izin alırsın ve UYDURMAZSIN.
+- Bilgi bankasında olmayan bir eser ya da konu istenirse yönlendirme yapma: izin_iste (tur: "dis_kaynak", konu: eserin adı) ile Vikipedi'den bilgi çekmek için izin iste. İzin verilmeden dis_kaynak_ara / dis_kaynak_oku çağıramazsın. Admin reddederse bilgi bankasındaki en yakın eserleri öner.
+- İzin verilince dis_kaynak_ara ile maddeyi bul, dis_kaynak_oku ile oku. Yalnızca okuduğun maddede AÇIKÇA geçen bilgiyi kullan; ezberinden ya da başka bir yerden hiçbir ad, tarih, kişi ekleme. Uygun madde yoksa bunu söyle.
+- Maddeyi okuduktan sonra içeriğin nereye gideceğini izin_iste (tur: "kayit", konu, kaynak_url: okuduğun maddenin adresi) ile sor: bilgi bankasına mı eklensin (herkes kullanır; kaynak bağlantısı kayıtta kalır) yoksa yalnızca bu modüle mi özel kalsın. Her eser için ayrı izin iste; bir izin yalnızca bir ekleme içindir.
+- Admin "bilgi bankasına ekle" derse bilgi_bankasina_ekle ile kaydı ekle: tarihçe maddedeki cümlelere sadık bir özet (maddede olmayan yıl yazma), yüzyıl yalnızca maddede açıkça geçiyorsa. Konum ve kaynak künyesini sunucu maddeden alır. Sonra modülde o eseri dönen kimlikle eserler.getir ile oku.
+- Admin "yalnızca bu modüle" derse maddedeki bilgiyi modülün koduna sabit olarak koy: const DIS_ICERIK = { ad, metin, kaynak: { ad: "Vikipedi", url: "<okuduğun maddenin adresi>" } }. Bu içeriği gösterdiğin her ekranın başında "Kaynak doğrulanmamış: Vikipedi" yaz ve bağlantıyı göster.
+- Bilgi bankasında "dogrulanmis: false" taşıyan kayıtlar da dış kaynaktan gelmiştir; ekranda kaynaklarını ("Kaynak doğrulanmamış: <kaynak>") göster. Vakıf Katılım envanterinden gelen kayıtlar doğrulanmış vakıf eseridir.
+- Yanıtlarında izin istemek için yanit_ver değil izin_iste kullan; admin kartta bir düğmeye basarak yanıt verir.`;
+
   const araclar = [
     {
       ad: "modul_yaz",
@@ -253,6 +278,67 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
     },
   ];
 
+  const ustaAraclari = [{
+    ad: "eser_istegi",
+    aciklama: "Bilgi bankasında olmayan bir eserin eklenmesi için ustanın admin'e göndereceği öneri kartını hazırlar (gönderen usta olur). Sohbet yanıtı olarak da kullanılır.",
+    sema: {
+      type: "object",
+      properties: {
+        metin: { type: "string", description: "Ustaya sade yanıt: eser bilgi bankasında yok, en yakın eserler şunlar, istersen admin'e eklenmesi için öneri gönderebilirsin" },
+        ad: { type: "string", description: "İstenen eserin adı (ustanın yazdığı gibi)" },
+        il: { type: "string", description: "Biliniyorsa ili" },
+        not: { type: "string", description: "Admin'e kısa not: usta neden istiyor, ne tür bir modül düşünüyor (tarihî bilgi yazma)" },
+        kaynaklar: { type: "array", items: { type: "string" } },
+        oneriler: { type: "array", items: { type: "string" } },
+      },
+      required: ["metin", "ad"],
+    },
+  }];
+  const adminAraclari = [
+    {
+      ad: "izin_iste",
+      aciklama: "Admin'den izin ister ve turu bitirir: dış kaynaktan (Vikipedi) bilgi çekmek için (tur dis_kaynak) ya da okunan maddenin bilgi bankasına mı yalnızca bu modüle mi ekleneceği için (tur kayit). Admin karttaki düğmeyle yanıtlar.",
+      sema: {
+        type: "object",
+        properties: {
+          tur: { type: "string", enum: ["dis_kaynak", "kayit"] },
+          konu: { type: "string", description: "Eserin ya da konunun adı" },
+          soru: { type: "string", description: "Admin'e sade soru (neden dış kaynak gerektiğini, ne ekleneceğini söyle)" },
+          kaynak_url: { type: "string", description: "tur kayit için: dis_kaynak_oku ile okuduğun maddenin adresi" },
+        },
+        required: ["tur", "konu", "soru"],
+      },
+    },
+    {
+      ad: "dis_kaynak_ara",
+      aciklama: "Vikipedi'de madde arar (yalnızca admin izin verdiyse). Başlık, kısa parça ve adres döndürür.",
+      sema: { type: "object", properties: { sorgu: { type: "string" }, dil: { type: "string", enum: ["tr", "en"] } }, required: ["sorgu"] },
+    },
+    {
+      ad: "dis_kaynak_oku",
+      aciklama: "Bir Vikipedi maddesinin düz metnini, adresini ve varsa konumunu döndürür (yalnızca admin izin verdiyse). Kullanacağın bilgi yalnızca buradan gelir.",
+      sema: { type: "object", properties: { baslik: { type: "string", description: "dis_kaynak_ara'dan gelen madde başlığı" }, dil: { type: "string", enum: ["tr", "en"] } }, required: ["baslik"] },
+    },
+    {
+      ad: "bilgi_bankasina_ekle",
+      aciklama: "Okunan Vikipedi maddesinden bilgi bankasına doğrulanmamış bir eser kaydı ekler (yalnızca admin bu madde için 'bilgi bankasına ekle' izni verdiyse). Eklenen eserin kimliğini döndürür.",
+      sema: {
+        type: "object",
+        properties: {
+          kaynak_url: { type: "string", description: "Okunan maddenin adresi" },
+          ad: { type: "string" }, ad_en: { type: "string" },
+          il: { type: "string" }, ilce: { type: "string" },
+          tur: { type: "string", enum: ESER_TURLERI },
+          yuzyil: { type: "integer", description: "Yalnızca maddede açıkça geçiyorsa (yapım yüzyılı)" },
+          adres: { type: "string" },
+          tarihce: { type: "string", description: "Maddedeki cümlelere sadık Türkçe tarihçe (en az 2 cümle)" },
+          tarihce_en: { type: "string" },
+        },
+        required: ["kaynak_url", "ad", "il", "tur", "tarihce"],
+      },
+    },
+  ];
+
   const kucuk = (s) => String(s ?? "").toLocaleLowerCase("tr");
   function eserAra(g = {}) {
     const limit = Math.min(Math.max(Number(g.limit) || 20, 1), 50);
@@ -276,7 +362,7 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
       toplam: bulunan.length,
       eserler: bulunan.slice(0, limit).map((e) => ({
         id: e.id, ad: e.ad, ad_en: e.ad_en ?? null, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil, adres: e.adres, konum: e.konum,
-        ingilizce: !!e.tarihce?.en, ...(parca(e) && { parca: parca(e) }),
+        ingilizce: !!e.tarihce?.en, ...(e.dogrulanmis === false && { dogrulanmis: false, kaynakTuru: e.kaynakTuru ?? DIS_KAYNAK_ADI }), ...(parca(e) && { parca: parca(e) }),
       })),
     };
   }
@@ -300,6 +386,7 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
     return {
       id: e.id, ad: e.ad, ad_en: e.ad_en ?? null, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil ?? null, adres: e.adres ?? null, konum: e.konum ?? null,
       tarihce: String(e.tarihce?.tr ?? "").slice(0, 4000), tarihce_en: e.tarihce?.en ? String(e.tarihce.en).slice(0, 4000) : null, kaynak: e.kaynak ?? null, fotografSayisi: e.fotograflar?.length ?? 0, iliskiler: baglar,
+      dogrulanmis: e.dogrulanmis !== false, ...(e.dogrulanmis === false && { kaynakTuru: e.kaynakTuru ?? DIS_KAYNAK_ADI, kaynakUrl: e.kaynakUrl ?? null }),
     };
   }
 
@@ -339,10 +426,11 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
     const anilan = Array.isArray(girdi?.kaynaklar) ? girdi.kaynaklar.filter((id) => typeof id === "string" && izler.gorulen.has(id)) : [];
     const kimlikler = [...new Set(anilan.length ? anilan : izler.okunan)].slice(0, 8);
     const eserKaynaklari = kimlikler.map((id) => eserler.find((e) => e.id === id)).filter(Boolean)
-      .map((e) => ({ id: e.id, ad: e.ad, il: e.il, kaynak: e.kaynak ?? null }));
+      .map((e) => ({ id: e.id, ad: e.ad, il: e.il, kaynak: e.kaynak ?? null, ...(e.dogrulanmis === false && { dogrulanmis: false, kaynakTuru: e.kaynakTuru ?? DIS_KAYNAK_ADI, kaynakUrl: e.kaynakUrl ?? null }) }));
     const sdk = [...new Set((Array.isArray(girdi?.sdk) ? girdi.sdk : []).filter((a) => typeof a === "string").map((a) => a.trim().replace(/\(\)$/, "")))]
       .filter(sdkAdiGecerli).slice(0, 10);
-    return { eserler: eserKaynaklari, sdk };
+    const dis = (izler.disKullanilan ?? []).map((d) => ({ kaynak: d.kaynak, baslik: d.baslik, url: d.url }));
+    return { eserler: eserKaynaklari, sdk, ...(dis.length && { dis }) };
   }
 
   //   baslat(konusma) → durum
@@ -380,7 +468,9 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
   }
 
   // secenek.dil: Studio arayüzünün dili ("tr" | "en"); ustanın yazdığı dil ve açık isteği her zaman önce gelir.
-  async function calistir(sohbet, mevcutKod, { model, sinyal, insa = false, dil = "tr" } = {}) {
+  // secenek.admin: istek admin'den (dış kaynak araçları açılır); secenek.izinDurumu: atölye oturumundaki izinler ve
+  // okunmuş dış kaynaklar ({ izinler: [], disKaynaklar: [] }). Dönüşteki kalfaDurumu oturuma geri yazılır.
+  async function calistir(sohbet, mevcutKod, { model, sinyal, insa = false, dil = "tr", admin = false, izinDurumu = null } = {}) {
     const sonMesaj = sohbet.at(-1)?.metin;
     const insaIzni = insa || insaIzniVar(sonMesaj);
     // Öneri dili: son mesaj İngilizceyse ya da konuşmada İngilizce istendiyse İngilizce.
@@ -393,7 +483,12 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
       return { ...s, oneriler: oneriler?.length ? oneriler : veridenOneriler(eserler, { dil: oneriDili, kod: !!mevcutKod }), model: "sahte" };
     }
     if (model) saglayici = { ...saglayici, model };
-    const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar, sinyal, zamanAsimiMs });
+    const durumK = {
+      izinler: (izinDurumu?.izinler ?? []).map((i) => ({ ...i })),
+      disKaynaklar: (izinDurumu?.disKaynaklar ?? []).map((d) => ({ ...d })),
+    };
+    const kipAraclari = admin ? [...araclar, ...adminAraclari] : [...araclar, ...ustaAraclari];
+    const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem: sistem + (admin ? ADMIN_EK : USTA_EK), araclar: kipAraclari, sinyal, zamanAsimiMs });
     const tamamla = async (sonuc) => (sonuc.oneriler.length ? sonuc : {
       ...sonuc, oneriler: await onerileriUret(sohbet, { yanit: sonuc.metin ?? sonuc.aciklama_ustaya, dil: oneriDili, kod: !!(mevcutKod || sonuc.kod), model, sinyal }),
     });
@@ -404,14 +499,40 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
       konusma.at(-1).metin += "\n\n(Ustanın dili İngilizce: yanıtını, aciklama_ustaya'yı, önerileri ve modülün bütün metinlerini İngilizce yaz; eserlerin İngilizce alanlarını kullan.)";
     } else if (dil === "en") konusma.at(-1).metin += "\n\n(Studio arayüzü İngilizce: usta Türkçe yazmadıkça İngilizce yanıtla.)";
     if (insa) konusma.at(-1).metin += "\n\n(Usta modülü şimdi yazmanı istiyor: modul_yaz ile teslim et.)";
+    if (admin && (durumK.izinler.length || durumK.disKaynaklar.length)) konusma.at(-1).metin += `\n\n${izinOzeti(durumK)}`;
 
     const durum = adaptor.baslat(konusma);
     let sonHatalar = [], deneme = 0;
     const aramalar = [];
-    const izler = { gorulen: new Set(), okunan: [] };
-    const sohbetYaniti = (girdi, metin) => ({
-      tur: "sohbet", metin, aramalar, kaynaklar: kaynaklariKur(girdi, izler), oneriler: onerileriTemizle(girdi?.oneriler), model: saglayici.model,
+    const izler = { gorulen: new Set(), okunan: [], disKullanilan: [] };
+    const durumuEkle = (sonuc) => (admin ? { ...sonuc, kalfaDurumu: durumK } : sonuc);
+    const sohbetYaniti = (girdi, metin, ek = {}) => durumuEkle({
+      tur: "sohbet", metin, aramalar, kaynaklar: kaynaklariKur(girdi, izler), oneriler: onerileriTemizle(girdi?.oneriler), model: saglayici.model, ...ek,
     });
+    const disIzniVar = () => durumK.izinler.some((i) => i.tur === "dis_kaynak" && i.durum === "verildi");
+    const okunanKaynak = (url) => durumK.disKaynaklar.find((d) => adresAnahtari(d.url) === adresAnahtari(url));
+    const kayitIzni = (url, karar) => durumK.izinler.find((i) => i.tur === "kayit" && i.durum === "verildi" && i.karar === karar && adresAnahtari(i.kaynak_url) === adresAnahtari(url));
+    // Koddaki dış kaynak bağlantıları: usta için hiç yok; admin için yalnızca okunmuş ve izin verilmiş maddeler.
+    // Yalnızca modüle özel izni verilen maddenin bağlantısı ve "Kaynak doğrulanmamış" uyarısı kodda bulunmalı.
+    function disKaynakDenetimi(kod) {
+      const hatalar = [];
+      const baglantilar = koddakiDisBaglantilar(kod);
+      if (!admin) {
+        if (baglantilar.length) hatalar.push("Dış kaynak (Vikipedi) içeriği yalnızca admin modüllerinde kullanılabilir; modül yalnızca bilgi bankasındaki eserlerle çalışmalı");
+        return hatalar;
+      }
+      for (const u of baglantilar) {
+        const d = okunanKaynak(u);
+        const izinli = d && durumK.izinler.some((i) => i.tur === "kayit" && ["verildi", "kullanildi"].includes(i.durum) && i.karar !== "reddet" && adresAnahtari(i.kaynak_url) === adresAnahtari(d.url));
+        if (!izinli) hatalar.push(`${u}: bu madde okunmadı ya da admin kullanımına izin vermedi`);
+      }
+      for (const i of durumK.izinler.filter((x) => x.tur === "kayit" && x.durum === "verildi" && x.karar === "modul")) {
+        if (!baglantilar.some((u) => adresAnahtari(u) === adresAnahtari(i.kaynak_url))) hatalar.push(`Modüle özel dış içerik (${i.baslik ?? i.konu}) kullanılıyor: kaynağın bağlantısını (${i.kaynak_url}) koda ve ekrana yaz`);
+        else if (!/Kaynak doğrulanmamış/i.test(kod)) hatalar.push("Dış kaynaklı içeriği gösterdiğin ekranın başına \"Kaynak doğrulanmamış: Vikipedi\" yaz");
+      }
+      return hatalar;
+    }
+    const disKullan = (d) => { if (d && !izler.disKullanilan.some((x) => x.url === d.url)) izler.disKullanilan.push(d); };
 
     for (let adim = 1; adim <= MAKS_ADIM && deneme < MAKS_DENEME; adim++) {
       const { cagrilar, metin, sonuclariBildir } = await adaptor.iste(durum);
@@ -443,6 +564,73 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
           const sonuc = sdkBilgisi(c.girdi);
           aramalar.push({ sdk: String(c.girdi?.konu ?? "").slice(0, 60), bulunan: sonuc.bulunan ?? 0 });
           sonuclar.push({ id: c.id, icerik: JSON.stringify(sonuc) });
+        } else if (c.ad === "eser_istegi" && !admin) {
+          const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim() : "";
+          const ad = String(c.girdi?.ad ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+          if (!m || ad.length < 2) { sonuclar.push({ id: c.id, hata: true, icerik: "\"metin\" ve \"ad\" gerekli" }); continue; }
+          const istek = { ad, il: String(c.girdi?.il ?? "").trim().slice(0, 40) || null, not: String(c.girdi?.not ?? "").trim().slice(0, 600) || null };
+          yanit = sohbetYaniti(c.girdi, m, { eserIstegi: istek });
+          sonuclar.push({ id: c.id, icerik: "Öneri kartı ustaya gösterildi." });
+        } else if (c.ad === "izin_iste" && admin) {
+          const tur = c.girdi?.tur, konu = String(c.girdi?.konu ?? "").trim().slice(0, 120), soru = String(c.girdi?.soru ?? "").trim().slice(0, 1500);
+          const hatalar = [];
+          if (!IZIN_KARARLARI[tur]) hatalar.push("tur: dis_kaynak | kayit");
+          if (konu.length < 2 || !soru) hatalar.push("konu ve soru gerekli");
+          const kaynak = tur === "kayit" ? okunanKaynak(c.girdi?.kaynak_url) : null;
+          if (tur === "kayit" && !kaynak) hatalar.push("kaynak_url: önce dis_kaynak_oku ile okuduğun maddenin adresini ver");
+          if (hatalar.length) { sonuclar.push({ id: c.id, hata: true, icerik: hatalar.join("; ") }); continue; }
+          const izin = { id: randomUUID().slice(0, 8), tur, konu, soru, durum: "bekliyor", tarih: new Date().toISOString(),
+            ...(kaynak && { kaynak_url: kaynak.url, kaynak: kaynak.kaynak, baslik: kaynak.baslik }) };
+          durumK.izinler.push(izin);
+          if (kaynak) disKullan(kaynak);
+          yanit = sohbetYaniti(c.girdi, soru, { izin: { id: izin.id, tur, konu, kaynak_url: izin.kaynak_url, baslik: izin.baslik, kaynak: izin.kaynak } });
+          sonuclar.push({ id: c.id, icerik: "İzin kartı admin'e gösterildi." });
+        } else if ((c.ad === "dis_kaynak_ara" || c.ad === "dis_kaynak_oku") && admin) {
+          if (!disIzniVar()) { sonuclar.push({ id: c.id, hata: true, icerik: "Admin dış kaynak için izin vermedi. Önce izin_iste (tur: dis_kaynak) ile izin iste." }); continue; }
+          try {
+            if (c.ad === "dis_kaynak_ara") {
+              const r = await vikipediAra(c.girdi, disFetch);
+              aramalar.push({ dis: String(c.girdi?.sorgu ?? "").slice(0, 60), bulunan: r.bulunan ?? 0, kaynak: DIS_KAYNAK_ADI });
+              sonuclar.push({ id: c.id, icerik: JSON.stringify(r) });
+            } else {
+              const r = await vikipediOku(c.girdi, disFetch);
+              if (!r) { sonuclar.push({ id: c.id, hata: true, icerik: "Bu başlıkta bir Vikipedi maddesi yok; dis_kaynak_ara ile doğru başlığı bul." }); continue; }
+              if (!okunanKaynak(r.url)) {
+                durumK.disKaynaklar.push(r);
+                while (durumK.disKaynaklar.length > MAKS_DIS_KAYNAK) durumK.disKaynaklar.shift();
+              }
+              aramalar.push({ disOkunan: r.baslik, url: r.url, kaynak: DIS_KAYNAK_ADI });
+              sonuclar.push({ id: c.id, icerik: JSON.stringify(r) });
+            }
+          } catch (h) {
+            sonuclar.push({ id: c.id, hata: true, icerik: h.message });
+          }
+        } else if (c.ad === "bilgi_bankasina_ekle" && admin) {
+          const g = c.girdi ?? {};
+          const kaynak = okunanKaynak(g.kaynak_url);
+          const izin = kaynak && kayitIzni(kaynak.url, "bilgi-bankasi");
+          if (!kaynak) { sonuclar.push({ id: c.id, hata: true, icerik: "kaynak_url okunan bir madde değil; önce dis_kaynak_oku" }); continue; }
+          if (!izin) { sonuclar.push({ id: c.id, hata: true, icerik: "Admin bu madde için bilgi bankasına ekleme izni vermedi. izin_iste (tur: kayit) ile sor." }); continue; }
+          if (!eserEkle) { sonuclar.push({ id: c.id, hata: true, icerik: "Bilgi bankasına ekleme bu sunucuda kapalı" }); continue; }
+          const dayanak = [
+            ...kaynaktaDayanakVar(g.tarihce, kaynak.metin),
+            ...kaynaktaDayanakVar(g.ad, `${kaynak.baslik} ${kaynak.metin}`, { esik: 0.5 }).map((h) => `ad: ${h}`),
+          ];
+          if (g.yuzyil != null && !yuzyilKaynaktaVar(g.yuzyil, kaynak.metin)) dayanak.push(`${g.yuzyil}. yüzyıl maddede açıkça geçmiyor; yuzyil alanını boş bırak`);
+          if (dayanak.length) { sonuclar.push({ id: c.id, hata: true, icerik: `Kayıt okunan maddeye dayanmıyor, düzelt:\n- ${dayanak.join("\n- ")}` }); continue; }
+          const r = await eserEkle({
+            ad: g.ad, ad_en: g.ad_en, il: g.il, ilce: g.ilce, tur: g.tur, yuzyil: g.yuzyil ?? null, adres: g.adres,
+            tarihce: { tr: g.tarihce, en: g.tarihce_en }, konum: kaynak.konum, fotograflar: [],
+            kaynak: `Vikipedi, "${kaynak.baslik}" maddesi (CC BY-SA 4.0)`, dogrulanmis: false, kaynakTuru: DIS_KAYNAK_ADI, kaynakUrl: kaynak.url,
+          }, { izin: izin.id });
+          if (r.hatalar?.length) { sonuclar.push({ id: c.id, hata: true, icerik: `Eser doğrulamadan geçmedi: ${r.hatalar.join("; ")}` }); continue; }
+          izin.durum = "kullanildi";
+          izin.eserId = r.eser.id;
+          izler.gorulen.add(r.eser.id);
+          if (!izler.okunan.includes(r.eser.id)) izler.okunan.push(r.eser.id);
+          disKullan(kaynak);
+          aramalar.push({ eklenen: r.eser.id, ad: r.eser.ad, kaynak: DIS_KAYNAK_ADI });
+          sonuclar.push({ id: c.id, icerik: JSON.stringify({ eklendi: true, id: r.eser.id, not: "Kayıt doğrulanmamış (kaynak: Vikipedi) olarak eklendi; modülde eserler.getir ile oku." }) });
         } else if (c.ad === "yanit_ver") {
           const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim() : "";
           if (m) { yanit = sohbetYaniti(c.girdi, m); sonuclar.push({ id: c.id, icerik: "Yanıt iletildi." }); }
@@ -454,6 +642,7 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
           }
           deneme++;
           sonHatalar = modulDenetle(c.girdi, sdkTipleri, bilgiBankasi());
+          if (typeof c.girdi?.kod === "string") sonHatalar.push(...disKaynakDenetimi(c.girdi.kod));
           if (!sonHatalar.length) teslim = c.girdi;
           sonuclar.push(sonHatalar.length
             ? { id: c.id, hata: true, icerik: `Modül doğrulamadan geçmedi, lütfen düzelt:\n- ${sonHatalar.join("\n- ")}` }
@@ -465,7 +654,10 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
       // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
       if (teslim) {
         const { kaynaklar, sdk, oneriler, ...modul } = teslim;
-        return tamamla({ ...modul, tur: "modul", deneme, aramalar, kaynaklar: kaynaklariKur({ kaynaklar, sdk }, izler), oneriler: onerileriTemizle(oneriler), model: saglayici.model });
+        for (const u of koddakiDisBaglantilar(modul.kod)) disKullan(okunanKaynak(u));
+        for (const i of durumK.izinler) if (i.tur === "kayit" && i.durum === "verildi" && i.karar === "modul") disKullan(okunanKaynak(i.kaynak_url));
+        const disKaynaklar = izler.disKullanilan.map((d) => ({ kaynak: d.kaynak, baslik: d.baslik, url: d.url }));
+        return tamamla(durumuEkle({ ...modul, tur: "modul", deneme, aramalar, kaynaklar: kaynaklariKur({ kaynaklar, sdk }, izler), oneriler: onerileriTemizle(oneriler), model: saglayici.model, disKaynaklar }));
       }
       if (yanit) return tamamla(yanit);
       sonuclariBildir(sonuclar);
@@ -485,6 +677,14 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
     get saglayici() { return saglayiciAl().tur; },
     get ustagpt() { const s = saglayiciAl(); return s.tur === "openai-uyumlu" && !!s.ustagpt; },
   };
+}
+
+// Admin'in verdiği izinlerin ve okunan maddelerin kalfaya giden özeti (model durumu her turda buradan bilir).
+function izinOzeti({ izinler, disKaynaklar }) {
+  const KARAR = { ver: "izin verildi", reddet: "reddedildi", "bilgi-bankasi": "bilgi bankasına eklensin", modul: "yalnızca bu modüle özel" };
+  const satirlar = izinler.slice(-8).map((i) => `- ${i.tur === "dis_kaynak" ? "Dış kaynak" : "Kayıt"} izni (${i.konu}${i.kaynak_url ? `, ${i.kaynak_url}` : ""}): ${i.durum === "bekliyor" ? "yanıt bekliyor" : i.durum === "kullanildi" ? `kullanıldı${i.eserId ? ` (bilgi bankasında: ${i.eserId})` : ""}` : KARAR[i.karar] ?? i.durum}`);
+  const okunan = disKaynaklar.map((d) => `- ${d.kaynak}: "${d.baslik}" ${d.url}`);
+  return `(İzin durumu — sunucu kaydı:\n${satirlar.join("\n") || "- yok"}\nOkunmuş dış kaynaklar:\n${okunan.join("\n") || "- yok"})`;
 }
 
 // ---------- Claude (Anthropic) ----------
