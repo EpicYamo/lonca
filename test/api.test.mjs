@@ -193,3 +193,44 @@ test("var olan modülün üzerine yazılınca önceki kodu yedeklenir", async ()
   assert.equal(yedekler.length, 1);
   assert.equal(await oku(path.join(s.veri, "moduller", "eski", yedekler[0]), "utf8"), kod);
 });
+
+test("kalfa kaynağı: kalfanın yazdığı kod 'kalfa', elle değiştirilen 'elle' olarak kaydedilir", async () => {
+  const kod = await ornekKod();
+  // Gerçek (OpenAI uyumlu) kalfa yolunu, sağlayıcıyı taklit eden bir fetch ile çalıştır.
+  const asilFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { content: "", tool_calls: [{
+    id: "c1", type: "function", function: { name: "modul_yaz", arguments: JSON.stringify({ id: "kalfa-avi", ad: "Kalfa Avı", aciklama: "Deneme", kod, aciklama_ustaya: "Hazır." }) },
+  }] } }] }), { headers: { "content-type": "application/json" } });
+  const k = await deneySunucusu({ KALFA_SAHTE: "0", KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "deneme-model" });
+  try {
+    const y = await k.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "bir oyun yap" }] } });
+    assert.equal(y.statusCode, 200);
+    assert.equal(y.json().model, "deneme-model");
+
+    let m = (await k.istek("POST", "/api/moduller", { govde: { id: "kalfa-avi", ad: "Kalfa Avı", kod } })).json();
+    assert.equal(m.kaynak.tur, "kalfa");
+    assert.equal(m.kaynak.model, "deneme-model");
+    assert.ok(m.kaynak.uretim);
+
+    m = (await k.istek("POST", "/api/moduller", { govde: { id: "elle-avi", ad: "Elle Avı", kod: `${kod}\n// elle eklendi\n` } })).json();
+    assert.equal(m.kaynak.tur, "elle");
+
+    // Yayına alınınca kaynak uygulamanın gördüğü listede de durur.
+    await k.istek("POST", "/api/moduller/kalfa-avi/durum", { govde: { durum: "onayli" }, yonetici: true });
+    const yayinda = (await k.istek("GET", "/api/moduller")).json();
+    assert.equal(yayinda.find((x) => x.id === "kalfa-avi").kaynak.tur, "kalfa");
+  } finally {
+    globalThis.fetch = asilFetch;
+    await k.app.close();
+  }
+});
+
+test("sahte kalfanın şablonu 'sahte' olarak işaretlenir", async () => {
+  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması" }] } });
+  const sonuc = y.json();
+  assert.equal(sonuc.model, "sahte");
+  const m = (await s.istek("POST", "/api/moduller", { govde: { id: "sahte-deneme", ad: "Sahte", kod: sonuc.kod } })).json();
+  assert.equal(m.kaynak.tur, "kalfa");
+  assert.equal(m.kaynak.sahte, true);
+  await s.istek("DELETE", "/api/moduller/sahte-deneme", { yonetici: true });
+});

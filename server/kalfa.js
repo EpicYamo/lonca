@@ -150,7 +150,7 @@ ${ornekOyun}
   }[saglayici.tur]?.({ saglayici, sistem, araclar });
 
   async function calistir(sohbet, mevcutKod) {
-    if (saglayici.tur === "sahte") return sahteYanit(sohbet, ornekOyun);
+    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun), model: "sahte" };
 
     const konusma = sohbet.map((m) => ({ ...m }));
     if (mevcutKod) konusma.at(-1).metin += `\n\n(Studio'daki güncel modül kodu:)\n\`\`\`js\n${mevcutKod}\n\`\`\``;
@@ -183,7 +183,8 @@ ${ornekOyun}
           sonuclar.push({ id: c.id, hata: true, icerik: `Bilinmeyen araç: ${c.ad}` });
         }
       }
-      if (teslim) return { ...teslim, deneme, aramalar };
+      // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
+      if (teslim) return { ...teslim, deneme, aramalar, model: saglayici.model };
       sonuclariBildir(sonuclar);
     }
     const hata = new Error("Kalfa geçerli bir modül üretemedi");
