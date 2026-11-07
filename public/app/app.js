@@ -74,9 +74,22 @@ let ayarAcan = null;
 function ayarlar(ac, dugme) {
   $("#ayarlar").hidden = !ac;
   document.querySelectorAll("[data-ayar]").forEach((d) => d.setAttribute("aria-expanded", String(ac)));
-  if (ac) { ayarAcan = dugme; document.querySelector(`input[name="yazi"]:checked`)?.focus(); } else ayarAcan?.focus();
+  if (ac) { ayarAcan = dugme; temaGostergeleriGuncelle(); document.querySelector(`input[name="yazi"]:checked`)?.focus(); } else ayarAcan?.focus();
 }
 document.querySelectorAll("[data-ayar]").forEach((d) => d.addEventListener("click", () => ayarlar(true, d)));
+
+// Koyu tema: üst bardaki ay/güneş düğmesi, Erişilebilirlik sayfasındaki anahtar ve profildeki anahtar
+// hepsi aynı duruma (document.documentElement.dataset.tema) bakar; biri değişince hepsi anında güncellenir.
+function temaGostergeleriGuncelle() {
+  const koyu = document.documentElement.dataset.tema === "koyu";
+  const kutu = $("#erisim-koyu-tema");
+  if (kutu) kutu.checked = koyu;
+  const satir = document.querySelector('#profil-icerik .pl-satir[role="switch"]');
+  if (satir) { satir.setAttribute("aria-checked", String(koyu)); satir.querySelector(".pl-anahtar")?.classList.toggle("acik", koyu); }
+}
+$("#erisim-koyu-tema")?.addEventListener("change", () => $("#tema-dugme").click());
+new MutationObserver(temaGostergeleriGuncelle).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tema"] });
+temaGostergeleriGuncelle();
 $("#ayar-kapat").addEventListener("click", () => ayarlar(false));
 $("#ayarlar").addEventListener("click", (e) => { if (e.target === e.currentTarget) ayarlar(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#ayarlar").hidden) ayarlar(false); });
@@ -1176,15 +1189,17 @@ function profilEkrani() {
         istatistik(String(gruplar.length), "modül"))),
     hesapBolumu(),
     el("h2", { className: "bolum-baslik", textContent: "Başarımlar" }),
-    gruplar.length ? el("div", { className: "profil-basarimlar" }, ...gruplar.map(({ modul, basarimlar }) =>
-      el("section", { className: "profil-modul" },
-        el("h3", { textContent: modul.ad }),
-        el("div", { className: "s-izgara", style: "--sutun:3" }, ...basarimlar.map((b) => {
-          const r = el("div", { className: `s-rozet${b.kazanildi ? " kazanildi" : ""}` });
-          r.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><g><rect x="26" y="26" width="68" height="68" rx="6"/><rect x="26" y="26" width="68" height="68" rx="6" transform="rotate(45 60 60)"/></g><circle cx="60" cy="60" r="26"/><path d="M60 43l5 10.4 11.4 1.7-8.2 8 2 11.3L60 69l-10.2 5.4 2-11.3-8.2-8 11.4-1.7z"/></svg>';
-          r.append(el("strong", { textContent: b.ad }), el("span", { textContent: b.kazanildi ? (b.aciklama || "Kazanıldı") : "Henüz kazanılmadı" }));
-          return r;
-        }))))) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." }),
+    gruplar.length ? el("div", { className: "pl-grup" }, ...gruplar.map(({ modul, basarimlar }) => {
+      const kazanilan = basarimlar.filter((b) => b.kazanildi).length;
+      const satir = el("button", { type: "button", className: "bl-satir" },
+        uygulamaIkonu(modul, "kucuk"),
+        el("span", { className: "pl-ad" },
+          el("strong", { textContent: modul.ad }),
+          el("small", { textContent: `${kazanilan}/${basarimlar.length} başarım` })),
+        el("span", { className: "pl-ok", ariaHidden: "true" }));
+      satir.addEventListener("click", () => basarimlariGoster(modul, basarimlar));
+      return satir;
+    })) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." }),
     el("section", { className: "profil-ayarlar" },
       el("h2", { className: "bolum-baslik", id: "profil-ayar-baslik", textContent: "Ayarlar" }),
       el("div", { className: "pl-grup" },
@@ -1196,6 +1211,19 @@ function profilEkrani() {
     izinBolumu(),
     el("p", { className: "kaynak-notu profil-kunye", textContent: "Lonca · Veriler: Vakıf Katılım, Bursa Vakıf Eserleri Envanteri. Fotoğraflar envanter kitaplarındandır." }),
   );
+}
+function basarimlariGoster(modul, basarimlar) {
+  katman.koy(
+    el("h2", { className: "bolum-baslik", textContent: modul.ad }),
+    el("div", { className: "s-izgara", style: "--sutun:3" }, ...basarimlar.map((b) => {
+      const r = el("div", { className: `s-rozet${b.kazanildi ? " kazanildi" : ""}` });
+      r.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><g><rect x="26" y="26" width="68" height="68" rx="6"/><rect x="26" y="26" width="68" height="68" rx="6" transform="rotate(45 60 60)"/></g><circle cx="60" cy="60" r="26"/><path d="M60 43l5 10.4 11.4 1.7-8.2 8 2 11.3L60 69l-10.2 5.4 2-11.3-8.2-8 11.4-1.7z"/></svg>';
+      r.append(
+        el("strong", { textContent: b.ad }),
+        el("span", { textContent: b.aciklama || "Bu başarımın açıklaması yok." }),
+        el("small", { className: "s-rozet-durum", textContent: b.kazanildi ? "Kazanıldı" : "Henüz kazanılmadı" }));
+      return r;
+    })));
 }
 function izinBolumu() {
   const satirlar = modulListesi.flatMap((m) => raf.istenenIzinler(m).map((iz) => {

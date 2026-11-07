@@ -276,14 +276,6 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
       </button>
     </div>
-    <div id="katman" class="katman" hidden>
-      <div class="katman-kutu" role="dialog" aria-modal="true" aria-label="Pencere">
-        <button id="katman-kapat" class="katman-kapat" aria-label="Pencereyi kapat">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-        </button>
-        <div id="katman-icerik" class="katman-icerik" aria-live="polite"></div>
-      </div>
-    </div>
     <div id="acilis" class="acilis" hidden aria-hidden="true">
       <div class="acilis-desen" id="acilis-desen"></div>
       <div class="acilis-orta">
@@ -291,6 +283,17 @@
         <p class="acilis-ad" id="acilis-ad"></p>
         <span class="acilis-yukleniyor"><i></i><i></i><i></i></span>
       </div>
+    </div>
+  </div>
+
+  <!-- Alttan açılan genel katman (ör. modül içindeki pencereler, profildeki başarım listesi); modülün açık
+       olup olmamasından bağımsız çalışsın diye #modul-ekrani'nin dışında, üst düzey bir öğedir. -->
+  <div id="katman" class="katman" hidden>
+    <div class="katman-kutu" role="dialog" aria-modal="true" aria-label="Pencere">
+      <button id="katman-kapat" class="katman-kapat" aria-label="Pencereyi kapat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
+      <div id="katman-icerik" class="katman-icerik" aria-live="polite"></div>
     </div>
   </div>
 
@@ -411,6 +414,11 @@
         <button class="erisim-sifirla" id="erisim-sifirla" type="button">Varsayılana dön</button>
       </div>
       <p class="erisim-ornek" id="erisim-ornek" aria-hidden="true">Ulucami, Bursa'nın en büyük camisidir. <span>Örnek metin</span></p>
+
+      <fieldset class="erisim-grup">
+        <legend>Görünüm</legend>
+        <label class="anahtar"><input type="checkbox" id="erisim-koyu-tema"><span>Koyu tema <small>Göz yormayan karanlık görünüm</small></span></label>
+      </fieldset>
 
       <fieldset class="erisim-grup">
         <legend>Okuma</legend>
