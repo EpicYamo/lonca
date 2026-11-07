@@ -846,18 +846,20 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   // Kalfa. "oturum" verilirse sohbet sunucudaki oturumdan kurulur ve yanıt (istemci beklemeyi bıraksa da) oturuma yazılır;
   // verilmezse eski biçim: sohbet istekle gelir, hiçbir şey saklanmaz.
+  // Boş sohbetteki örnek fikirler: her açılışta bilgi bankasındaki eserlerden yeniden kurulur (yapay zekâ çağrısı yok).
+  app.get("/api/kalfa/oneriler", { preHandler: ustaGerekli }, async (req) => ({ oneriler: kalfa.baslangicOnerileri(req.query.dil === "en" ? "en" : "tr") }));
   app.post("/api/kalfa", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
     if (req.body?.oturum != null) {
-      const { oturum, istek, kod } = req.body;
+      const { oturum, istek, kod, dil } = req.body;
       if (!atolyeKimligiGecerli(oturum)) return rep.code(400).send({ hata: "geçersiz oturum kimliği" });
-      const hatalar = atolyeIstekDogrula({ istek, kod });
+      const hatalar = atolyeIstekDogrula({ istek, kod, dil });
       if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
       const sahip = await atolyeSahibi(req);
       let sohbet;
       try { ({ sohbet } = await atolye.kalfaBaslat(sahip, oturum, { istek: istek.trim(), kod: kod ?? null })); }
       catch (h) { return atolyeHatasi(rep, h); }
       try {
-        const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+        const sonuc = await kalfa.calistir(sohbet, kod || undefined, { dil: dil ?? "tr" });
         if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
         await atolye.kalfaBitir(sahip, oturum, { sonuc });
         return sonuc;
@@ -867,14 +869,15 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
         return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });
       }
     }
-    const { sohbet, kod } = req.body ?? {};
+    const { sohbet, kod, dil } = req.body ?? {};
+    if (dil != null && dil !== "tr" && dil !== "en") return rep.code(400).send({ hata: "dil: tr | en" });
     const gecerli = Array.isArray(sohbet) && sohbet.length > 0 && sohbet.length <= 30 &&
       sohbet.every((m) => (m?.rol === "usta" || m?.rol === "kalfa") && typeof m.metin === "string" && m.metin.length <= 4000) &&
       sohbet.at(-1).rol === "usta";
     if (!gecerli) return rep.code(400).send({ hata: "sohbet: en fazla 30 mesaj, son mesaj ustadan" });
     if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
     try {
-      const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+      const sonuc = await kalfa.calistir(sohbet, kod || undefined, { dil: dil ?? "tr" });
       if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
       return sonuc;
     } catch (h) {
