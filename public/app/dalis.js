@@ -140,7 +140,19 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   const rozet = el("span", { className: "s-dalis-rozet" });
   const durakYazisi = el("span", { className: "s-dalis-durak" });
   const cubuk = el("div", { className: "s-dalis-cubuk", ariaHidden: "true" }, el("span", {}));
-  const ipucu = el("div", { className: "s-dalis-ipucu", ariaHidden: "true", textContent: "Kaydır" });
+  const ipucu = el("div", { className: "s-dalis-ipucu", ariaHidden: "true", textContent: "Kaydır ya da Devam'a dokun" });
+  // Her durakta dalış bekler; okuyan kaydırarak ya da "Devam" ile bir sonraki durağa geçer. Son durakta "Bitir".
+  const devam = el("button", { type: "button", className: "s-dalis-devam" },
+    el("span", { className: "s-dalis-devam-ad", textContent: "Devam" }));
+  devam.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  devam.addEventListener("click", () => {
+    if (animasyon) return;
+    const sonraki = sonrakiDurma(1);
+    if (sonraki != null) return git(sonraki);
+    // Son durak: dalıştan çık, sayfanın devamına kay.
+    const p = pencere();
+    kap().scrollTo({ top: hedefUst(toplam) + p.height, behavior: hareketAzalt() ? "auto" : "smooth" });
+  });
   const noktalar = el("nav", { className: "s-dalis-noktalar", ariaLabel: "Duraklar" },
     ...kareler.map((k, i) => {
       const d = el("button", { className: "s-dalis-nokta", ariaLabel: `${i + 1}. durak${k.baslik ? `: ${k.baslik}` : ""}` });
@@ -150,7 +162,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   // Geniş ekranda görüntünün iki yanını dolduran bulanık arka plan (o anki karenin kendisi).
   const fon = el("div", { className: "s-dalis-fon", ariaHidden: "true" });
   const sahne = el("div", { className: "s-dalis-sahne" }, fon, tuval, svg, cubuk,
-    el("div", { className: "s-dalis-ustler" }, rozet, durakYazisi), kart, ipucu, noktalar);
+    el("div", { className: "s-dalis-ustler" }, rozet, durakYazisi), kart, ipucu, devam, noktalar);
   iz.append(sahne);
   kutu.append(iz);
 
@@ -409,6 +421,18 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     cubuk.firstChild.style.transform = `scaleX(${s / toplam})`;
   }
 
+  // Devam düğmesi durakta (kamera dururken) belirir; son durakta "Bitir" olur.
+  function devamGuncelle(s) {
+    const durakta = !animasyon && durmalar.some((x) => Math.abs(x - s) < 0.03);
+    if (devam.classList.contains("hazir") !== durakta) devam.classList.toggle("hazir", durakta);
+    const son = !animasyon && sonrakiDurma(1) == null;
+    if (devam.dataset.son !== String(son)) {
+      devam.dataset.son = String(son);
+      devam.firstChild.textContent = son ? "Bitir" : "Devam";
+      devam.setAttribute("aria-label", son ? "Dalışı bitir" : "Sonraki durağa geç");
+    }
+  }
+
   function dongu() {
     if (!calisiyor) return;
     if (iz.isConnected) {
@@ -425,6 +449,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
         kartGuncelle(a, simdiki, sonuc);
         genelGuncelle(simdiki, sonuc);
       }
+      devamGuncelle(simdiki);
     }
     requestAnimationFrame(dongu);
   }

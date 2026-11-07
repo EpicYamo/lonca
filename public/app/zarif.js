@@ -21,6 +21,8 @@ function baglan({ kutu, kapat }) {
 
   el.addEventListener("touchstart", (o) => {
     if (!darEkran.matches || o.touches.length !== 1) return;
+    // Android kabuğunda eser sayfası tam ekrandır: aşağı çekince kapanmaz (geri oku ve geri tuşu kapatır).
+    if (kutu === "#eser-penceresi" && document.documentElement.classList.contains("kabuk")) return;
     // Form alanında ya da yatay şeritte başlayan dokunuş sürükleme sayılmaz.
     if (o.target.closest("input, textarea, select, .ep-fotolar, .ep-ilgili, .ep-harita, [type=range]")) return;
     if (el.scrollTop > 0) return;
