@@ -1,0 +1,19 @@
+# Üretilen ya da dışarıdan gelen dosyalar
+node_modules/
+package-lock.json
+public/vendor-yerel/
+mobil/www/
+android/
+dist/
+data/
+
+# Mevcut kaynak kod henüz Prettier'dan geçirilmedi. Açık dallar birleşince toplu biçimlendirme
+# ayrı bir commit'le yapılacak; o zamana kadar CI yalnızca aşağıdaki listede olmayan dosyaları denetler.
+public/
+server/
+sdk/
+test/
+araclar/
+mobil/
+.claude/
+*.md

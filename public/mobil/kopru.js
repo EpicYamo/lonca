@@ -1,6 +1,7 @@
 // Lonca Android köprüsü. Web'de hiçbir şey yapmaz; Capacitor içinde açıldığında uygulamayı "gerçek uygulama" yapar:
 //
-//  - Aynı Wi-Fi'deki Lonca sunucusunu bulur (son adres → APK'ya gömülü bilgisayar IP'leri → emülatör → /24 ağ taraması).
+//  - Lonca sunucusunu bulur: APK'ya gömülü genel adres (internet, Nginx arkası alan adı) → son adres →
+//    derleyen bilgisayarın yerel IP'leri → emülatör → aynı Wi-Fi'de /24 ağ taraması.
 //    Bulunca bütün /api istekleri canlı sunucuya gider (Studio'da canlıya alınan modüller ve dalışlar hemen görünür),
 //    pakette olmayan medya da native tarafta sunucudan getirilir. Bulamazsa paketteki anlık görüntüyle çevrimdışı çalışır.
 //  - Android geri tuşu: açık pencere → modülün kendi geri düğmesi → modülü kapat → profil → uygulamayı arka plana al.
@@ -31,8 +32,9 @@
     if (!/^https?:\/\//i.test(s)) s = `http://${s}`;
     try {
       const u = new URL(s);
-      if (!u.port && u.protocol === "http:") u.port = String(PORT);
-      return `${u.protocol}//${u.host}`;
+      // Çıplak IP/ad yazıldıysa (http, port yok) Lonca portu eklenir; https alan adları (Nginx arkası) olduğu gibi kalır.
+      if (!u.port && u.protocol === "http:" && !/^https?:\/\//i.test(String(girdi).trim())) u.port = String(PORT);
+      return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, "")}`;
     } catch { return null; }
   }
   // Anahtar yalnızca bulunan Lonca sunucusuna gönderilir (tarama sırasında ağdaki başka cihazlara değil).
@@ -79,6 +81,10 @@
     if (!kalan) return coz(null);
     for (const s of sozler) s.then((a) => { if (a) coz(a); else if (--kalan === 0) coz(null); });
   });
+  // Bağlanma sırası: 1) APK'ya gömülü genel sunucu (internetteki alan adı, ör. https://lonca.example.com)
+  // 2) son bağlanılan adres 3) derleyen bilgisayarın yerel IP'leri ve emülatör 4) /24 ağ taraması 5) paketteki veri.
+  const GENEL = normalAdres(YAP.genel);
+  const gorunen = (a) => String(a).replace(/^http:\/\//, "");
   function adaylar() {
     const l = [oku(SAKLI), ...(YAP.sunucular ?? []), `http://10.0.2.2:${PORT}`].map(normalAdres).filter(Boolean);
     return [...new Set(l)];
@@ -113,13 +119,14 @@
     durumYayinla();
   }
   async function hizliAra() {
-    const a = await ilkBulan(adaylar().map((x) => yokla(x)));
+    let a = GENEL ? await yokla(GENEL, 4000) : null;
+    a ??= await ilkBulan(adaylar().filter((x) => x !== GENEL).map((x) => yokla(x)));
     baglan(a);
     return a;
   }
-  // İlk açılışta API, hızlı aramanın bitmesini en fazla ~1,7 sn bekler; sonra çevrimdışı açılır, tarama arkada sürer.
+  // İlk açılışta API, hızlı aramanın bitmesini en fazla ~1,7 sn (genel sunucu varsa ~4,5 sn) bekler; sonra çevrimdışı açılır, tarama arkada sürer.
   const hazir = hizliAra();
-  const ilkBekleme = Promise.race([hazir, new Promise((c) => setTimeout(c, 1700))]);
+  const ilkBekleme = Promise.race([hazir, new Promise((c) => setTimeout(c, GENEL ? 4500 : 1700))]);
   function arkadaTara({ yenile = true } = {}) {
     if (durum.tarama || durum.canli) return durum.tarama;
     const iptal = { iptal: false };
@@ -129,7 +136,7 @@
       if (a && !durum.canli) { baglan(a); canliOldu(yenile); }
       else {
         durumYayinla();
-        if (!a && durum.anahtarGerekli) bildir(`${new URL(durum.anahtarGerekli).host} bulundu; bağlanmak için eşleştirme kodu gir (Erişilebilirlik → Bağlantı).`);
+        if (!a && durum.anahtarGerekli) bildir(`${gorunen(durum.anahtarGerekli)} bulundu; bağlanmak için eşleştirme kodu gir (Erişilebilirlik → Bağlantı).`);
       }
       return a;
     });
@@ -139,7 +146,7 @@
 
   const modulAcik = () => $("#modul-ekrani") && !$("#modul-ekrani").hidden;
   function canliOldu(yenile) {
-    bildir(`Lonca sunucusuna bağlandı · ${new URL(durum.canli).host}`);
+    bildir(`Lonca sunucusuna bağlandı · ${gorunen(durum.canli)}`);
     if (yenile && !modulAcik()) setTimeout(() => location.reload(), 900);
   }
   function koptu() {
@@ -295,15 +302,15 @@
     const metin = f.querySelector(".baglanti-metin"), girdi = f.querySelector(".baglanti-girdi");
     const ciz = async () => {
       f.dataset.durum = durum.canli ? "canli" : durum.araniyor ? "araniyor" : "cevrimdisi";
-      if (durum.canli) metin.textContent = `Canlı: ${new URL(durum.canli).host}`;
+      if (durum.canli) metin.textContent = `Canlı: ${gorunen(durum.canli)}`;
       else if (durum.araniyor) metin.textContent = "Ağda Lonca sunucusu aranıyor…";
-      else if (durum.anahtarGerekli) metin.textContent = `${new URL(durum.anahtarGerekli).host} bulundu, eşleştirme kodu gerekli`;
+      else if (durum.anahtarGerekli) metin.textContent = `${gorunen(durum.anahtarGerekli)} bulundu, eşleştirme kodu gerekli`;
       else {
         let tarih = "";
         try { tarih = new Date(await (await yerelApi()).anlikTarihi()).toLocaleDateString("tr-TR", { day: "numeric", month: "long" }); } catch {}
         metin.textContent = `Çevrimdışı: paketteki veriler${tarih ? ` (${tarih})` : ""}`;
       }
-      if (document.activeElement !== girdi) girdi.value = durum.canli ? new URL(durum.canli).host : (oku(SAKLI) ? new URL(oku(SAKLI)).host : "");
+      if (document.activeElement !== girdi) girdi.value = gorunen(durum.canli ?? oku(SAKLI) ?? GENEL ?? "");
     };
     durum.dinleyiciler.add(ciz);
     ciz();
@@ -327,7 +334,7 @@
         catch (h) { bildir(`Eşleştirme olmadı: ${h.message}`); return ciz(); }
       } else if (k) { yaz(SAKLI_ANAHTAR, k); alan.value = ""; }
       if (await yokla(a, 3000)) { baglan(a); canliOldu(true); }
-      else { bildir(durum.anahtarGerekli === a ? "Sunucu bulundu ama anahtar gerekiyor ya da geçersiz. Sunucuda eşleştirme kodu üret." : `${new URL(a).host} adresinde Lonca sunucusu yok.`); ciz(); }
+      else { bildir(durum.anahtarGerekli === a ? "Sunucu bulundu ama anahtar gerekiyor ya da geçersiz. Sunucuda eşleştirme kodu üret." : `${gorunen(a)} adresinde Lonca sunucusu yok.`); ciz(); }
     });
   }
 
