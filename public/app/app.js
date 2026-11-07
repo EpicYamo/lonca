@@ -181,7 +181,7 @@ function yontemlerOlustur(modul) {
     let uygulamaModu = false;
     const hedefKoy = (...d) => (uygulamaModu ? katman.koy(...d) : sahneyeKoy(...d));
     const ekranlar = ekranYontemleri({
-      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => katkiAc(e),
+      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => duzeltmeIste(e),
       rozetKaydet: ({ ad }) => {
         const t = profil.basarimKazan(modul.id, `rozet-${ad}`, ad);
         if (t) profil.puanEkle(25);
@@ -241,7 +241,7 @@ function yontemlerOlustur(modul) {
       },
       "sahne.bildir": async (m) => bildir(m),
       "sahne.efekt": async (ad) => sahneApi.efekt(ad),
-      "ekran.duzeltme": async (eser) => (eser?.id ? katkiAc(eser) : { gonderildi: false }),
+      "ekran.duzeltme": async (eser) => (eser?.id ? duzeltmeIste(eser) : { gonderildi: false }),
       "profil.bilgi": async () => profil.profilBilgi(),
       "profil.puanEkle": async (n, neden) => {
         const r = profil.puanEkle(n);
@@ -351,7 +351,8 @@ async function eserPenceresi(id) {
   $("#ep-ad").textContent = e.ad;
   $("#ep-tarihce").replaceChildren(...String(e.tarihce?.tr ?? "").split(/\n+/).filter(Boolean).map((p) => el("p", { textContent: p })));
   $("#ep-kaynak").textContent = `Kaynak: ${e.kaynak}`;
-  $("#ep-hata").onclick = () => { d.close(); katkiAc(e); };
+  $("#ep-hata").textContent = ONIZLEME ? "Bu eserde eksik var, düzenle" : "Bir hata mı gördün? Bildir";
+  $("#ep-hata").onclick = () => { d.close(); duzeltmeIste(e); };
   d.showModal();
   d.scrollTop = 0;
   seslendir(`${e.ad}. ${$("#ep-ust").textContent}`);
@@ -661,6 +662,12 @@ $("#katki-formu").elements.foto.addEventListener("change", (e) => {
   e.target.value = "";
   katkiFotolariniCiz();
 });
+// Studio önizlemesinde vatandaş formu yerine eser, Studio'nun içerik formunda düzenlemeye açılır.
+function duzeltmeIste(eser) {
+  if (!ONIZLEME || !eser?.id) return katkiAc(eser);
+  parent.postMessage({ tur: "eser-duzenle", id: eser.id }, location.origin);
+  return Promise.resolve({ gonderildi: false });
+}
 function katkiAc(eser = null) {
   katkiEser = eser;
   const f = $("#katki-formu");

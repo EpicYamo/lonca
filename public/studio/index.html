@@ -261,8 +261,18 @@
               <input id="foto-sec" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
             </label>
           </div>
+          <fieldset id="oneri-kutusu" class="oneri-kutusu" hidden disabled>
+            <legend>Onaya gönder</legend>
+            <p class="aciklama">Değişikliğin hemen yayına girmez; editör kaynağı kontrol edip onaylar. Eklediğin bilginin kaynağını yaz.</p>
+            <div class="form-izgara">
+              <label class="genis">Eklenen bilginin kaynağı <input name="oneri_kaynak" required minlength="3" maxlength="240" placeholder="Ör. Bursa Vakıf Eserleri, Cilt 2, s. 114 · cami kitabesi"></label>
+              <label>Adın (isteğe bağlı) <input name="oneri_oneren" maxlength="80" autocomplete="name"></label>
+              <label class="genis">Editöre not (isteğe bağlı) <textarea name="oneri_not" rows="2" maxlength="1500"></textarea></label>
+            </div>
+          </fieldset>
           <div class="eylemler form-eylemler">
             <button class="birincil" type="submit">Kaydet ve yayınla</button>
+            <button class="ikincil" type="button" id="eser-onaya" hidden>Onaya gönder</button>
             <button class="ikincil" type="button" id="eser-vazgec">Vazgeç</button>
             <button class="tehlike" type="button" id="eser-sil">Sil</button>
             <div id="eser-durum" class="durum" role="status"></div>
