@@ -259,7 +259,7 @@ test("kalfa kaynağı: kalfanın yazdığı kod 'kalfa', elle değiştirilen 'el
 });
 
 test("sahte kalfanın şablonu 'sahte' olarak işaretlenir", async () => {
-  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması" }] }, usta: true });
+  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması yap" }] }, usta: true });
   const sonuc = y.json();
   assert.equal(sonuc.model, "sahte");
   const m = (await s.istek("POST", "/api/moduller", { govde: { id: "sahte-deneme", ad: "Sahte", kod: sonuc.kod }, usta: true })).json();

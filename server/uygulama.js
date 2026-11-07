@@ -54,7 +54,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const iliskiler = Array.isArray(iliskiVerisi.iliskiler) ? iliskiVerisi.iliskiler : [];
   const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
 
-  const kalfa = kalfaHazirla({ kok, eserler, ortam });
+  const kalfa = kalfaHazirla({ kok, eserler, iliskiler, ortam });
   // Kalfa modellerinin sağlık taraması (çalışma verisi; Studio'daki "Modelleri test et").
   const modelTaramasi = modelTaramasiKur({ kalfa, dosya: jsonDosya(path.join(veri, "kalfa-model-durumu.json"), { sonuclar: {} }) });
   const DALIS_DIZINI = path.join(veri, "dalislar");
@@ -681,8 +681,30 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   // Dalış kalfası: bir eser için geziyi baştan sona hazırlar (dakikalar sürer; Studio ilerlemeyi yoklar).
   app.get("/api/dalis-kalfasi", async () => ({ hazir: dalisKalfasi.hazir(), etkin: dalisKalfasi.etkin()?.id ?? null }));
-  app.post("/api/dalis-kalfasi", { preHandler: [editorGerekli, kalfaSiniri] }, async (req, rep) => {
+  // Dalış önerileri: Studio'daki öneri düğmeleri her mesajdan sonra buradan yenilenir. Yalnızca bilgi bankasındaki
+  // eser adlarıyla kurulur (fotoğrafı ve konumu olan, dalışı henüz olmayan eserler önce); ?haric= az önce istenenleri atlar.
+  app.get("/api/dalis-kalfasi/oneriler", { preHandler: ustaGerekli }, async (req) => {
+    const haric = new Set(String(req.query.haric ?? "").split(",").filter(kimlikGecerli).slice(0, 20));
+    const dalisli = new Set((await dalislariOku()).filter((d) => d.durum !== "kaldirildi").map((d) => d.eser));
+    const adaylar = eserler.filter((e) => e.konum && e.fotograflar?.length && !haric.has(e.id));
+    const karistir = (dizi) => dizi.map((e) => [Math.random(), e]).sort((a, b) => a[0] - b[0]).map(([, e]) => e);
+    const sirali = [...karistir(adaylar.filter((e) => !dalisli.has(e.id))), ...karistir(adaylar.filter((e) => dalisli.has(e.id)))];
+    const secilen = [], turler = new Set();
+    for (const e of sirali) { if (secilen.length < 3 && !turler.has(e.tur)) { secilen.push(e); turler.add(e.tur); } }
+    for (const e of sirali) { if (secilen.length < 3 && !secilen.includes(e)) secilen.push(e); }
+    const kaliplar = [
+      (e) => `${e.ad} için uydudan içine inen bir dalış`,
+      (e) => `${e.ad} için tarihçesini öne çıkaran kısa bir dalış`,
+      (e) => `${e.ad} için ayrıntılarını gezdiren bir dalış`,
+    ];
+    return { oneriler: secilen.map((e, i) => ({ eser: e.id, metin: kaliplar[i % kaliplar.length](e) })) };
+  });
+  // Usta da dalış hazırlatabilir; dalış "bekliyor" olarak kaydedilir, yayın admin onayıyla olur. Usta mevcut bir dalışın
+  // (yayındaki ya da onay bekleyen) üzerine yazamaz.
+  app.post("/api/dalis-kalfasi", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
     const { istek, eser, uzerineYaz, oturum } = req.body ?? {};
+    const admin = await editorMi(req);
+    if (uzerineYaz && !admin) return rep.code(403).send({ hata: "Mevcut bir dalışın üzerine yalnızca admin yazabilir" });
     if (eser != null && !kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz eser kimliği" });
     if (istek != null && (typeof istek !== "string" || istek.length > 1000)) return rep.code(400).send({ hata: "istek en fazla 1000 harf" });
     if (!eser && !String(istek ?? "").trim()) return rep.code(400).send({ hata: "Kalfaya ne istediğini yaz" });
@@ -692,7 +714,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       try { await atolye.getir(sahip, oturum); } catch (h) { return rep.code(h.kod ?? 500).send({ hata: h.message }); }
     }
     try {
-      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz });
+      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz, korunanlar: admin ? ["onayli"] : ["onayli", "bekliyor"] });
       // Studio sayfası yenilense de dalışın ilerlemesi sohbetten yeniden izlenebilsin.
       if (oturum != null) await atolye.dalisEkle(sahip, oturum, { istek: istek || eser, is: is.id }).catch((h) => req.log.warn(h, "dalış oturuma yazılamadı"));
       return { is: is.id };
@@ -817,7 +839,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       catch (h) { return atolyeHatasi(rep, h); }
       try {
         const sonuc = await kalfa.calistir(sohbet, kod || undefined);
-        kalfaUretiminiKaydet(sonuc);
+        if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
         await atolye.kalfaBitir(sahip, oturum, { sonuc });
         return sonuc;
       } catch (h) {
@@ -834,7 +856,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
     try {
       const sonuc = await kalfa.calistir(sohbet, kod || undefined);
-      kalfaUretiminiKaydet(sonuc);
+      if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
       return sonuc;
     } catch (h) {
       req.log.error(h);

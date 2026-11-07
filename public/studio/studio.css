@@ -339,6 +339,9 @@ body.surukleniyor iframe { pointer-events: none; }
   -webkit-mask: var(--m-atolye) center / contain no-repeat; mask: var(--m-atolye) center / contain no-repeat;
 }
 @media (hover: hover) { .oneriler button:hover { border-color: var(--vurgu-cizgi); background: var(--vurgu-zemin); } }
+.oneriler.kompakt { display: flex; flex-wrap: wrap; }
+.oneriler.kompakt button { flex: 0 1 auto; width: auto; min-height: 34px; padding: .32rem .65rem; border-radius: 99px; font-size: .8rem; align-items: center; }
+.oneriler.kompakt button::before { margin-top: 0; width: 12px; height: 12px; }
 .sohbet-formu {
   display: grid; gap: 4px; padding: 8px 8px 8px 12px; border-radius: var(--r-l);
   border: 1px solid var(--cizgi-guclu); background: var(--girdi); transition: border-color var(--sure-k), box-shadow var(--sure-k);
@@ -353,6 +356,19 @@ body.surukleniyor iframe { pointer-events: none; }
 .kip-not { flex: 1; min-width: 0; font-size: .76rem; color: var(--sonuk); line-height: 1.35; }
 .gonder-d { width: var(--dokunma); padding: 0; border-radius: 10px; }
 .gonder-d .ik { width: 18px; height: 18px; stroke-width: 2.2; }
+
+/* Kalfa yanıtının kaynakları (studio.js kaynakKutusu) */
+.kaynaklar { margin-top: .6rem; border: 1px solid var(--cizgi); border-radius: var(--r-s); background: var(--zemin-2); font-size: .8rem; }
+.kaynaklar summary { cursor: pointer; padding: .35rem .6rem; color: var(--soluk); font: 500 .76rem var(--yazi-kod); }
+.kaynaklar[open] summary { border-bottom: 1px solid var(--cizgi); }
+.kaynak-baslik { margin: .5rem .6rem .2rem !important; font-weight: 600; color: var(--metin); }
+.kaynak-listesi { margin: 0; padding: 0 .6rem .4rem; list-style: none; display: grid; gap: .35rem; }
+.kaynak-listesi li { display: grid; gap: .05rem; }
+.kaynak-listesi small { color: var(--sonuk); line-height: 1.35; overflow-wrap: anywhere; }
+.kaynak-eser { justify-self: start; padding: 0; border: 0; background: none; color: var(--vurgu); font: inherit; font-weight: 500; text-align: left; cursor: pointer; }
+@media (hover: hover) { .kaynak-eser:hover { text-decoration: underline; } }
+.kaynak-sdk { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 .6rem .5rem !important; }
+.kaynak-sdk code { padding: .1rem .4rem; border-radius: var(--r-s); background: var(--panel-3); font: .74rem var(--yazi-kod); }
 
 /* Dalış ilerlemesi (studio.js üretir) */
 .dalis-ilerleme { margin-top: .6rem; display: grid; gap: .45rem; }

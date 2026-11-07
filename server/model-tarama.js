@@ -28,7 +28,8 @@ export async function modelDene(kalfa, model, { fikir = TARAMA_FIKRI, zamanAsimi
   const iptal = new AbortController();
   const sayac = setTimeout(() => iptal.abort(Object.assign(new Error("model zaman aşımı"), { modelZamanAsimi: zamanAsimiMs })), zamanAsimiMs);
   try {
-    const y = await kalfa.calistir([{ rol: "usta", metin: fikir }], undefined, { model, sinyal: iptal.signal });
+    const y = await kalfa.calistir([{ rol: "usta", metin: fikir }], undefined, { model, sinyal: iptal.signal, insa: true });
+    if (!y.kod) return { durum: "hata", sure: Date.now() - baslangic, hata: "modül yazmadı (yalnızca sohbet yanıtı verdi)", tarih: simdi().toISOString() };
     return { durum: "calisiyor", sure: Date.now() - baslangic, deneme: y.deneme ?? null, satir: String(y.kod ?? "").split("\n").length, tarih: simdi().toISOString() };
   } catch (h) {
     return { durum: "hata", sure: Date.now() - baslangic, hata: hataOzeti(h), tarih: simdi().toISOString() };
