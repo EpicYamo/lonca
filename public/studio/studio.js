@@ -438,8 +438,10 @@ function atolyeKilidiGuncelle() {
   $("#pane-kalfa").classList.toggle("kilitli", !acik);
   $("#atolye-kilit").hidden = acik;
 }
+// Jeton, aynı sitedeki uygulamayla ortak (lonca.studio.hesap): uygulamada çıkış ya da başka hesapla giriş jetonu
+// değiştirir. Bellekteki hesap her zaman jetondan yeniden okunur; jeton yoksa hesap da yoktur.
 async function hesabiYukle() {
-  if (!jetonOku()) return;
+  if (!jetonOku()) { hesap = null; return; }
   try {
     const y = await fetch("/api/hesap/ben", { headers: hesapBasligi() });
     if (y.status === 401) { jetonYaz(""); hesap = null; }
@@ -585,11 +587,20 @@ async function kapiyiAc() {
   sayfayiYenile();
   oturumlariBaslat();
 }
+// Başka bir sekmede (uygulama ya da Studio) jeton değişince oturumu eşitle; düştüyse giriş kapısı açılır.
+window.addEventListener("storage", async (olay) => {
+  if (olay.key !== JETON_ANAHTARI && olay.key !== null) return;
+  if (!hesapGerekli) return;
+  await hesabiYukle();
+  yetkiGuncelle();
+  if (oturumVar()) sayfayiYenile();
+  else kapiyiAc();
+});
 // 401 alan istekler için. Oturum düştüyse (jeton süresi doldu, hesap silindi) giriş kapısı açılır;
 // oturum sürüyorsa 401 yetki yokluğudur (ör. usta bir admin işlemi denedi): yeniden giriş sorulmaz.
 async function oturumIste() {
   if (!hesapGerekli) { const sonuc = await girisIste(); yetkiGuncelle(); return sonuc; }
-  if (hesap) await hesabiYukle();
+  await hesabiYukle();
   yetkiGuncelle();
   if (oturumVar()) return false;
   await kapiyiAc();
