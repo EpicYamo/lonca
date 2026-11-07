@@ -490,7 +490,10 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.get("/api/moduller", async (req, rep) => {
     if (req.query.durum === "hepsi") {
       if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Bu liste için Studio'ya giriş yapmalısın" });
-      return modulDosyasi.oku();
+      // Onay kuyruğu dahil bütün liste yalnızca admin'e; usta yalnızca kendi modüllerini görür.
+      if (await editorMi(req)) return modulDosyasi.oku();
+      const sahip = (await yetkiliHesap(req))?.id;
+      return (await modulDosyasi.oku()).filter((m) => m.sahip && m.sahip === sahip);
     }
     const liste = await yayindakiler();
     const etiket = `"${modulSurumu(liste)}"`;
@@ -510,7 +513,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const { id } = req.params;
     const m = (await modulDosyasi.oku()).find((x) => x.id === id);
     if (!m || !kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
-    if (m.durum !== "onayli" && !(await ustaMi(req))) return rep.code(403).send({ hata: "modül yayında değil" });
+    // Yayında olmayan modülün kodunu admin ya da modülün sahibi olan usta okur.
+    if (m.durum !== "onayli" && !(await editorMi(req)) && !(m.sahip && m.sahip === (await yetkiliHesap(req))?.id))
+      return rep.code(403).send({ hata: "modül yayında değil" });
     const kod = await readFile(path.join(MODUL_DIZINI, `${id}.js`), "utf8");
     return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
   });
