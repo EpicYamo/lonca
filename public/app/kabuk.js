@@ -51,9 +51,10 @@ function acilisKapat() {
 function icerikGir(yon) {
   if (hareketAz()) return;
   const kap = sekme === "profil" ? $("#profil-ekrani") : $("#ana-ekran");
-  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.classList.remove("sayfa-gir", "ileri", "geri");
+  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.classList.remove("sayfa-gir", "yon-ileri", "yon-geri");
   void kap.offsetWidth; // animasyonu baştan başlat
-  kap.classList.add("sayfa-gir", yon);
+  // Yön sınıfı önekli: düz "geri" app.css'teki geri düğmesi kuralına (44px kutu) takılıp sayfayı geçiş boyunca bozuyordu.
+  kap.classList.add("sayfa-gir", `yon-${yon}`);
   const ad = $("#marka-ad");
   ad.classList.remove("baslik-gir");
   void ad.offsetWidth;
@@ -429,7 +430,7 @@ function kur() {
   ustEylemleriKur();
   cubukBoylariniIzle();
   kesfetKur();
-  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.addEventListener("animationend", (o) => { if (o.target === k) k.classList.remove("sayfa-gir", "ileri", "geri"); });
+  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.addEventListener("animationend", (o) => { if (o.target === k) k.classList.remove("sayfa-gir", "yon-ileri", "yon-geri"); });
   eserSayfasiKur();
   dalgaKur();
   // Haritadaki eser kartı alttan sayfa: aşağı çekince kapanır.
