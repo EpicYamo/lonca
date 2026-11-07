@@ -1,4 +1,4 @@
-// Paylaşım bağlantısıyla modül açma.
+// Paylaşım bağlantısı ya da davet koduyla modül açma.
 //  - Web: https://<alan>/m/<anahtar> sunucuda /app/?modul=<anahtar> adresine yönlenir; burada modül açılır.
 //  - Android: aynı bağlantı (App Links ya da lonca://m/<anahtar>) uygulamayı açar; mobil/kopru.js anahtarı
 //    window.loncaPaylasim'e yazar ve "lonca-paylasim" olayını yayar.
@@ -57,22 +57,74 @@ function uygulamadaAcSeridi(anahtar) {
  * Paylaşılan modülü açar. `ac(modul)` uygulamanın modül açıcısıdır; modül nesnesi `kodYolu` taşır.
  * `hata(mesaj)` bağlantı geçersizse kullanıcıya söyler.
  */
+// Paylaşılan modülün özetini getirir; bulunamazsa sunucunun mesajıyla hata fırlatır.
+async function modulGetir(anahtar) {
+  const y = await fetch(`/api/paylasim/${encodeURIComponent(anahtar)}`, { cache: "no-store" });
+  const govde = await y.json().catch(() => ({}));
+  if (!y.ok) throw new Error(govde.hata ?? "Bu bağlantı açılamadı.");
+  return { ...govde, paylasim: anahtar, kodYolu: `/api/paylasim/${encodeURIComponent(anahtar)}/kod` };
+}
+
+// "Modüllerim" başlığının yanındaki "Davet kodu" düğmesi: bireysel (özel) modülü kısa kodla açar.
+function davetAlaniKur(ac) {
+  const ust = document.querySelector("#modullerim-bolum .bolum-ust");
+  if (!ust || document.getElementById("davet-dugme")) return;
+  const dugme = document.createElement("button");
+  dugme.type = "button";
+  dugme.id = "davet-dugme";
+  dugme.className = "metin-dugme";
+  dugme.textContent = "Davet kodu";
+  dugme.setAttribute("aria-haspopup", "dialog");
+  dugme.style.marginLeft = "auto"; // başlık solda, "Davet kodu" ve "Düzenle" sağda yan yana
+  ust.querySelector("h2")?.after(dugme);
+
+  const pencere = document.createElement("dialog");
+  pencere.className = "izin-penceresi";
+  pencere.setAttribute("aria-labelledby", "davet-baslik");
+  pencere.innerHTML = `<form class="izin-kutu" novalidate>
+      <h2 id="davet-baslik">Davet koduyla aç</h2>
+      <p class="tanisma-alt" id="davet-alt">Bir usta seninle bireysel modülünü paylaştıysa sana verdiği kodu yaz.</p>
+      <input id="davet-girdi" class="tanisma-girdi" placeholder="ABCD-EFGH" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-describedby="davet-alt davet-hata">
+      <p class="izin-not" id="davet-hata" role="alert"></p>
+      <div class="tanisma-dugmeler">
+        <button type="button" class="dugme ikincil" value="vazgec">Vazgeç</button>
+        <button type="submit" class="dugme">Aç</button>
+      </div>
+    </form>`;
+  document.body.append(pencere);
+  const girdi = pencere.querySelector("#davet-girdi"), hataYeri = pencere.querySelector("#davet-hata");
+  const ac_ = pencere.querySelector('button[type="submit"]');
+  dugme.addEventListener("click", () => { girdi.value = ""; hataYeri.textContent = ""; pencere.showModal(); girdi.focus(); });
+  pencere.querySelector('[value="vazgec"]').addEventListener("click", () => pencere.close());
+  pencere.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const kod = girdi.value.trim().toUpperCase().replace(/[\s-]/g, "");
+    if (!/^[A-Z0-9]{8}$/.test(kod)) { hataYeri.textContent = "Kod 8 harf ve rakamdan oluşur (örneğin ABCD-EFGH)."; return; }
+    ac_.disabled = true;
+    try {
+      const m = await modulGetir(`${kod.slice(0, 4)}-${kod.slice(4)}`);
+      pencere.close();
+      ac(m);
+    } catch (h) {
+      hataYeri.textContent = h.message === "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." ? "Bu kodla bir modül bulunamadı." : h.message;
+    } finally { ac_.disabled = false; }
+  });
+}
+
 export function paylasimiDinle({ ac, hata }) {
   let son = null;
   async function yukle(anahtar) {
     if (!anahtar || anahtar === son) return;
     son = anahtar;
     try {
-      const y = await fetch(`/api/paylasim/${encodeURIComponent(anahtar)}`, { cache: "no-store" });
-      const govde = await y.json().catch(() => ({}));
-      if (!y.ok) throw new Error(govde.hata ?? "Bu bağlantı açılamadı.");
-      ac({ ...govde, paylasim: anahtar, kodYolu: `/api/paylasim/${encodeURIComponent(anahtar)}/kod` });
+      ac(await modulGetir(anahtar));
       if (!new URLSearchParams(location.search).has("uygulamasiz")) uygulamadaAcSeridi(anahtar);
     } catch (h) {
       son = null;
       hata(h.message);
     }
   }
+  davetAlaniKur(ac);
   window.addEventListener("lonca-paylasim", (e) => yukle(paylasimAnahtari(`/m/${e.detail}`)));
   yukle(window.loncaPaylasim ? paylasimAnahtari(`/m/${window.loncaPaylasim}`) : paylasimAnahtari(location.href));
 }

@@ -93,7 +93,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 - **Studio** (`public/studio/`): Atölye (kalfa | kod | önizleme), Modüller, İçerik, Dalışlar.
 - **Veri** (`data/`): `eserler.json` (eser kayıtları), `eser-iliskileri.json` (kaynaklı tarihsel bağlar), `moduller/` (`index.json` + modül JS), `dalislar/` (dalış tanımları). Medya `public/medya/`.
 - **Durumlar:** modül ve dalış `bekliyor` → `onayli`; ayrıca `kaldirildi`, `arsiv`, `reddedildi`. Usta modülü özel kaydederse `ozel`: onay kuyruğuna girmez, uygulamada listelenmez, yalnızca paylaşım bağlantısıyla açılır.
-- **Paylaşım:** `/m/<anahtar>` → `/app/?modul=<anahtar>` (`public/app/paylasim.js`); anahtar özel modülde `paylasim` alanı, yayındaki modülde kimlik. API: `GET /api/paylasim/:anahtar` (+`/kod`). Android'de App Links + `lonca://m/<anahtar>` (`public/mobil/kopru.js`).
+- **Paylaşım:** `/m/<anahtar>` → `/app/?modul=<anahtar>` (`public/app/paylasim.js`); anahtar özel modülde `paylasim` alanı, yayındaki modülde kimlik. Özel modül ayrıca kısa `davetKodu` (`ABCD-EFGH`) taşır; uygulamada "Modüllerim → Davet kodu" ile açılır. API: `GET /api/paylasim/:anahtar` (+`/kod`). Android'de App Links + `lonca://m/<anahtar>` (`public/mobil/kopru.js`).
 - **Mobil:** Capacitor (`capacitor.config.json`, `webDir: mobil/www`), `public/mobil/` köprü ve yerel API.
 
 Ayrıntılı anlatım için `README.md`.

@@ -202,16 +202,24 @@ test("özel modül onay kuyruğuna girmez, yalnızca paylaşım bağlantısıyla
   const kodYaniti = await s.istek("GET", `/api/paylasim/${ozel.paylasim}/kod`);
   assert.equal(kodYaniti.statusCode, 200);
   assert.equal(kodYaniti.body, kod);
+  // Kısa davet koduyla da açılır (küçük harf ve tiresiz yazılsa bile); başkasının koduyla değil.
+  assert.match(ozel.davetKodu, /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+  const yazilan = ozel.davetKodu.toLowerCase().replace("-", "");
+  assert.equal((await s.istek("GET", `/api/paylasim/${yazilan}`)).json().id, "paylasim-ozel");
+  assert.equal((await s.istek("GET", `/api/paylasim/${ozel.davetKodu}/kod`)).body, kod);
   const yonlen = await s.istek("GET", `/m/${ozel.paylasim}`);
   assert.equal(yonlen.statusCode, 302);
   assert.equal(yonlen.headers.location, `/app/?modul=${ozel.paylasim}`);
 
   // Yeniden kaydedince anahtar değişmez; herkese açığa çevrilince onay bekler ve özel bağlantı kapanır.
-  assert.equal((await gonder({ id: "paylasim-ozel", gorunurluk: "ozel" })).json().paylasim, ozel.paylasim);
+  const yeniden = (await gonder({ id: "paylasim-ozel", gorunurluk: "ozel" })).json();
+  assert.equal(yeniden.paylasim, ozel.paylasim);
+  assert.equal(yeniden.davetKodu, ozel.davetKodu);
   const acik = (await gonder({ id: "paylasim-ozel", gorunurluk: "herkes" })).json();
   assert.equal(acik.durum, "bekliyor");
   assert.equal((await s.istek("GET", `/api/paylasim/${ozel.paylasim}`)).statusCode, 404);
   assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).statusCode, 404);
+  assert.equal((await s.istek("GET", `/api/paylasim/${ozel.davetKodu}`)).statusCode, 404);
 
   // Onaylanan herkese açık modül kimliğiyle paylaşılır.
   assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { usta: true })).statusCode, 401);

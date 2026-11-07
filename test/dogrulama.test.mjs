@@ -51,3 +51,11 @@ test("uzman düzenleme önerisi kaynak ve en az bir değişiklik ister", () => {
   assert.deepEqual(r, { hatalar: [], kaynak: "Envanter, Cilt 1, s. 37", oneren: "Dr. Ayşe" });
   assert.deepEqual(oneriEkiDogrula("not", {}).hatalar, []);
 });
+
+test("davet kodu karıştırılan harf içermez, yazım farklarını tolere eder", async () => {
+  const { davetKoduUret, davetKoduCoz } = await import("../server/dogrulama.js");
+  for (let i = 0; i < 200; i++) assert.match(davetKoduUret(), /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+  assert.equal(davetKoduCoz(" abcd efgh "), "ABCD-EFGH");
+  assert.equal(davetKoduCoz("ABCD-EFG0"), null);
+  assert.equal(davetKoduCoz("hanlar-rehberi"), null);
+});
