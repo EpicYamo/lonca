@@ -121,6 +121,7 @@ export const EN = {
   "E-postan doğrulanmadı: gelen kutundaki bağlantıyı aç. Doğrulanınca aynı e-postayla \"Google ile devam et\" bu hesaba girer.": "Your email is not verified: open the link in your inbox. Once verified, \"Continue with Google\" with the same email signs into this account.",
   "E-posta kaydedildi; doğrulama bağlantısını gönderdik.": "Email saved; we sent a verification link.",
   "Koyu tema": "Dark theme",
+  "Göz yormayan karanlık görünüm": "An easier-on-the-eyes dark look",
   "Açık tema": "Light theme",
   "Koyu temaya geç": "Switch to dark theme",
   "Açık temaya geç": "Switch to light theme",

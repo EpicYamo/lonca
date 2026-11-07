@@ -162,6 +162,15 @@ works for local testing, `yok` builds an offline-only app). There is no network
 scanning. The app sends the API key in `x-lonca-anahtar`, falls back to the bundled
 offline snapshot when the server cannot be reached and retries once a minute.
 
+Build and run on a USB-connected phone (enable USB debugging under Developer
+options first, then accept the "Trust this computer?" prompt):
+
+```bash
+./apk.sh                                      # debug build → dist/lonca.apk
+adb install -r dist/lonca.apk                 # or: ./apk.sh --kur
+adb shell monkey -p com.kozmos.lonca -c android.intent.category.LAUNCHER 1  # launch it
+```
+
 ## Commands
 
 | Command | What it does |

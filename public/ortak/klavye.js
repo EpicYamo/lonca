@@ -7,8 +7,12 @@
 // Chrome/Android tarafında viewport meta'sındaki interactive-widget=resizes-content düzeni zaten küçültür;
 // bu modül iOS Safari gibi küçültmeyen tarayıcılarda aynı sonucu verir ve iki durumda da alanı görünür tutar.
 (() => {
-  const vv = window.visualViewport;
   const kok = document.documentElement;
+  // Uygulamanın Android kabuğunda (gerçek Capacitor ya da ?kabuk ile simüle edilmiş) klavyeyi zaten
+  // kabuk.js + kopru.js yönetir (gerçek klavye olaylarına göre); bu modül onunla aynı anda çalışırsa
+  // odaklanan alan iki farklı hesaba göre art arda kaydırılıp pop-up'lar yukarı zıplar.
+  if (kok.classList.contains("kabuk")) return;
+  const vv = window.visualViewport;
   const hareketAz = () => kok.classList.contains("hareket-az") || matchMedia("(prefers-reduced-motion: reduce)").matches;
   const YAZILIR = 'input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=button]):not([type=submit]):not([type=reset]):not([type=file]):not([type=color]), textarea, select, [contenteditable=""], [contenteditable="true"]';
 

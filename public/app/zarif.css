@@ -382,7 +382,6 @@ dialog.galeri { overflow: hidden; }
 .pk-sayi + .pk-sayi { border-left: .5px solid var(--cizgi); }
 .pk-sayi strong { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
 .pk-sayi span { color: var(--soluk); font-size: .78rem; }
-.profil-modul h3 { font-family: inherit; font-weight: 600; font-size: 1rem; }
 
 /* Hesap kartı */
 .hesap-kart { display: grid; gap: .7rem; padding: 1.25rem; border-radius: var(--yaricap-buyuk); background: var(--yuzey); box-shadow: var(--golge-kart); text-align: left; }

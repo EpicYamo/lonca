@@ -227,6 +227,14 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-rozet.kazanildi rect { fill: var(--altin); } .s-rozet.kazanildi circle { fill: var(--kobalt-koyu); } .s-rozet.kazanildi path { fill: var(--altin-acik); }
 .s-rozet strong { font-size: .9rem; line-height: 1.2; } .s-rozet span { color: var(--soluk); font-size: .76rem; line-height: 1.3; }
 .s-rozet:not(.kazanildi) strong { color: var(--soluk); }
+.s-rozet-durum { font-size: .68rem; font-weight: 600; letter-spacing: .02em; color: var(--soluk); }
+.s-rozet.kazanildi .s-rozet-durum { color: var(--altin); }
+.s-rozet.kazanildi { animation: s-rozet-gel .45s var(--egri) both; }
+.s-rozet.kazanildi path { transform-origin: 60px 60px; animation: s-rozet-isilti 2.6s ease-in-out .45s infinite; }
+@keyframes s-rozet-gel { from { opacity: 0; transform: scale(.82); } to { opacity: 1; transform: scale(1); } }
+@keyframes s-rozet-isilti { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .6; transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .s-rozet.kazanildi, .s-rozet.kazanildi path { animation: none; } }
+:root.hareket-az .s-rozet.kazanildi, :root.hareket-az .s-rozet.kazanildi path { animation: none; }
 
 .katman { position: fixed; inset: 0; z-index: 30; display: grid; align-items: end; background: rgba(10, 18, 40, .45); animation: soluk-gir .25s ease both; }
 .katman-kutu { max-height: 92vh; overflow: hidden; display: flex; flex-direction: column; border-radius: 26px 26px 0 0; background: var(--zemin); max-width: 720px; width: 100%; margin: 0 auto; animation: katman-cik .38s cubic-bezier(.2, .9, .3, 1) both; }
@@ -284,8 +292,13 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .profil-alt { margin: 0; color: var(--soluk); font-size: .9rem; }
 .profil-kart .dugme { width: auto; padding-inline: 1.4rem; }
 .profil-istatistik { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; }
-.profil-basarimlar { display: flex; flex-direction: column; gap: 1.2rem; }
-.profil-modul h3 { font-family: var(--yazi-baslik); font-weight: 400; font-size: 1.1rem; margin: 0 0 .6rem .2rem; }
+
+.bl-satir {
+  position: relative; display: flex; align-items: center; gap: .85rem; width: 100%; min-height: 48px; padding: .55rem 1rem;
+  border: 0; background: none; color: var(--metin); font: inherit; font-size: 1rem; text-align: left; cursor: pointer;
+}
+.bl-satir:active { background: var(--dolgu); }
+.bl-satir + .bl-satir::before { content: ""; position: absolute; top: 0; left: calc(1rem + 44px + .85rem); right: 0; border-top: .5px solid var(--cizgi); }
 
 .tanisma-alt { margin: 0 0 .8rem; color: var(--soluk); }
 .tanisma-girdi { width: 100%; min-height: 54px; padding: 0 1rem; border-radius: 14px; border: 2px solid var(--cizgi); background: var(--yuzey); color: var(--metin); font: inherit; font-size: 1.1rem; }
