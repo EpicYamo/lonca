@@ -324,8 +324,18 @@
 
     // Alt gezinmede dokunuşa hafif titreşim; klavye açıkken alt çubuk gizlenir (Android'de klavyenin üstüne binmesin).
     document.addEventListener("click", (e) => { if (e.target.closest?.("#alt-gezinme button, .pl-anahtar, .pl-satir[role=switch]")) titret("secim"); });
-    sessiz(P.Keyboard?.addListener("keyboardWillShow", () => kok.classList.add("klavye-acik")));
-    sessiz(P.Keyboard?.addListener("keyboardWillHide", () => kok.classList.remove("klavye-acik")));
+    // Klavye: yazılan alan klavyenin altında kalmasın. WebView klavyeyle küçüldüyse (adjustResize) ek pay gerekmez;
+    // küçülmediyse (tam ekran / kenardan kenara) klavyenin kapladığı yükseklik --klavye olarak CSS'e verilir
+    // (alttan sayfalar ve sayfa sonu bu kadar yukarı çıkar, kabuk.css). Ardından odaktaki alan görünür yere kaydırılır.
+    let klavyeOncesi = innerHeight;
+    sessiz(P.Keyboard?.addListener("keyboardWillShow", () => { klavyeOncesi = innerHeight; kok.classList.add("klavye-acik"); }));
+    sessiz(P.Keyboard?.addListener("keyboardDidShow", (b) => {
+      const kuculme = Math.max(0, klavyeOncesi - innerHeight);
+      const kalan = Math.max(0, Math.round(Number(b?.keyboardHeight) || 0) - kuculme);
+      kok.style.setProperty("--klavye", `${kalan}px`);
+      window.loncaKabuk?.odagiGoster?.();
+    }));
+    sessiz(P.Keyboard?.addListener("keyboardWillHide", () => { kok.classList.remove("klavye-acik"); kok.style.setProperty("--klavye", "0px"); }));
 
     // Dalış ve başarımlar: DOM'u izleyerek (uygulama koduna dokunmadan) native tepki ver.
     let durakGozcu = null, bekliyor = false;

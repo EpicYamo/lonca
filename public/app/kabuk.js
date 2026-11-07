@@ -331,6 +331,38 @@ function dalgaKur() {
   }, { passive: true });
 }
 
+// ---------- Klavye: odaktaki alan görünür kalsın ----------
+// Android'de kopru.js klavye açılınca odagiGoster'i çağırır ve --klavye'yi ayarlar. Tarayıcıda (?kabuk) klavye
+// yalnızca görsel alanı küçültür: --klavye görsel alandan hesaplanır. Alan sayfada da, alttan sayfanın içinde de
+// (kaydırılabilir her ata ile) ortaya kaydırılır.
+const yaziAlani = (e) => e instanceof HTMLElement && (e.matches("input:not([type=checkbox], [type=radio], [type=range], [type=button], [type=submit], [type=file]), textarea, select") || e.isContentEditable);
+let klavyePayi = 0;
+function odagiGoster() {
+  const e = document.activeElement;
+  if (!yaziAlani(e)) return;
+  requestAnimationFrame(() => e.scrollIntoView({ block: "center", inline: "nearest", behavior: hareketAz() ? "auto" : "smooth" }));
+}
+function klavyeKur() {
+  // Klavye açıkken başka bir alana geçince de (ör. formda bir sonraki alan) görünür yere gel.
+  document.addEventListener("focusin", (o) => {
+    if (!yaziAlani(o.target)) return;
+    setTimeout(() => { if (document.activeElement === o.target && (kok.classList.contains("klavye-acik") || klavyePayi > 0)) odagiGoster(); }, 120);
+  });
+  const vv = window.visualViewport;
+  if (!vv || kok.classList.contains("lonca-native")) return;
+  const olc = () => {
+    const pay = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+    const acik = pay > 120; // adres çubuğu oynamaları klavye sayılmaz
+    const yeni = acik ? pay : 0;
+    if (yeni === klavyePayi) return;
+    klavyePayi = yeni;
+    kok.style.setProperty("--klavye", `${yeni}px`);
+    kok.classList.toggle("klavye-acik", acik);
+    if (acik) odagiGoster();
+  };
+  vv.addEventListener("resize", olc);
+  vv.addEventListener("scroll", olc);
+}
 // Android geri tuşu (kopru.js çağırır). Sıra: tanıtım → alttan sayfa → arama → harita kartı/liste → önceki sekme.
 // İşi yaptıysa true döner; false ise uygulama arka plana alınır.
 function geri() {
@@ -359,6 +391,7 @@ function kur() {
   ustEylemleriKur();
   eserSayfasiKur();
   dalgaKur();
+  klavyeKur();
 
   $("#alt-gezinme").addEventListener("click", (e) => {
     const b = e.target.closest("[data-sekme]");
@@ -444,7 +477,7 @@ function kur() {
     if (davetKapat() || (kok.classList.contains("arama-sayfasi") && !$("#arama").value && aramaKapat())) e.preventDefault();
   });
 
-  window.loncaKabuk = { geri, sekmeyeGec, aramaAc, davetAc, get sekme() { return sekme; } };
+  window.loncaKabuk = { geri, sekmeyeGec, aramaAc, davetAc, odagiGoster, get sekme() { return sekme; } };
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", kur, { once: true }); else kur();

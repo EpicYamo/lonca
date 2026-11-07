@@ -147,7 +147,7 @@
 .kabuk .uygulama-listesi > li.bos { grid-column: 1 / -1; padding: 1rem; }
 /* Klavye açıkken (Android, kopru.js) alt çubuk gizlenir. */
 .klavye-acik .alt-gezinme { display: none !important; }
-.klavye-acik body { padding-bottom: 0 !important; }
+.klavye-acik body { padding-bottom: var(--klavye, 0px) !important; }
 
 /* ---------- Keşfet sekmesi: harita üst ve alt çubuk arasını doldurur ---------- */
 .kabuk .ana-ekran[data-sekme="kesif"] .meydan { padding-bottom: 0; }
@@ -445,3 +445,19 @@
 /* Profil: alt sekme olduğu için kendi çubuğu yapışkan, Android başlığı solda. */
 .kabuk .profil-ekrani .ust-serit { position: sticky; top: 0; z-index: 30; }
 .tn-serit:focus-visible { outline: 2px solid var(--vurgu); outline-offset: -4px; }
+
+/* ---------- Klavye: yazılan alan klavyenin altında kalmaz ----------
+   --klavye: klavyenin WebView'i örttüğü yükseklik (kopru.js; tarayıcıda kabuk.js görsel alandan hesaplar).
+   Alttan sayfalar klavyenin üstüne çıkar, sayfaların sonuna o kadar kaydırma payı eklenir. */
+.kabuk .ayarlar { padding-bottom: var(--klavye, 0px); transition: padding-bottom .2s ease-out; }
+.kabuk .ayarlar-kutu { max-height: calc(100dvh - 2.5rem - env(safe-area-inset-top) - var(--klavye, 0px)); scroll-padding-block: 1.5rem; }
+.kabuk #davet-karti { bottom: var(--klavye, 0px); }
+.kabuk.klavye-acik :is(.ayarlar-kutu, #davet-karti) { padding-bottom: 1.1rem; }
+:root.kabuk.arama-sayfasi .arama-alani[role="search"] { padding-bottom: calc(1rem + env(safe-area-inset-bottom) + var(--klavye, 0px)); }
+.kabuk .karsilama { padding-bottom: var(--klavye, 0px); }
+.kabuk .modul-ekrani { scroll-padding-top: calc(72px + env(safe-area-inset-top)); }
+:root.kabuk { scroll-padding-top: calc(72px + env(safe-area-inset-top)); }
+:root.hareket-az .kabuk .ayarlar { transition: none; }
+/* Eser öner formunda İl/İlçe yan yana sığsın (girdiler kutudan taşmasın). */
+.kabuk .katki-ikili { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.kabuk .katki-ikili input { width: 100%; min-width: 0; }
