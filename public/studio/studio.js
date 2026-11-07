@@ -339,7 +339,19 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
   };
   try {
     const s = await yApi("/api/moduller", { method: "POST", govde });
-    durumYaz("iyi", `“${s.ad}” onaya gönderildi. Modüller sekmesinden yayınlayınca uygulamada görünür.`);
+    durumYaz("iyi", `“${s.ad}” onaya gönderildi. Yayınlayınca uygulamada hemen görünür.`);
+    const yayinla = el("button", { type: "button", className: "birincil kucuk-d", textContent: "Şimdi yayınla" });
+    const listeyeGit = el("button", { type: "button", className: "ikincil kucuk-d", textContent: "Modüllerde gör" });
+    yayinla.addEventListener("click", async () => {
+      yayinla.disabled = true;
+      try {
+        await yApi(`/api/moduller/${encodeURIComponent(s.id)}/durum`, { method: "POST", govde: { durum: "onayli" } });
+        durumYaz("iyi", `“${s.ad}” yayında; uygulamayı açan herkes görür.`);
+        sayaclariGuncelle(); durumCubugu();
+      } catch (h) { yayinla.disabled = false; durumYaz("kotu", h.message, h.ayrintilar); }
+    });
+    listeyeGit.addEventListener("click", () => sayfaAc("moduller"));
+    $("#durum").append(el("div", { className: "durum-eylem" }, yayinla, listeyeGit));
     sayaclariGuncelle();
   } catch (h) { durumYaz("kotu", h.message, h.ayrintilar); }
 });
