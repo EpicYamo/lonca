@@ -129,6 +129,19 @@
         <ul class="modul-izgara" id="modul-izgara">
           <li class="iskelet-kart"></li><li class="iskelet-kart"></li><li class="iskelet-kart"></li><li class="iskelet-kart"></li>
         </ul>
+        <!-- Ustanın bireysel (özel) modülü listede yoktur; paylaştığı davet koduyla açılır. -->
+        <div class="davet" id="davet" aria-labelledby="davet-baslik" role="region">
+          <div class="davet-yazi">
+            <h3 id="davet-baslik">Davet kodun mu var?</h3>
+            <p id="davet-aciklama">Bir usta seninle özel modülünü paylaştıysa sana verdiği kodu yaz, modül hemen açılsın.</p>
+          </div>
+          <form class="davet-form" id="davet-form" novalidate>
+            <label class="gizli" for="davet-kodu">Davet kodu</label>
+            <input id="davet-kodu" name="kod" placeholder="ABCD-EFGH" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-describedby="davet-aciklama davet-hata">
+            <button type="submit" class="dugme">Modülü aç <span class="ok" aria-hidden="true">→</span></button>
+            <p class="davet-hata" id="davet-hata" role="alert"></p>
+          </form>
+        </div>
       </section>
 
       <!-- 4. Eserler -->

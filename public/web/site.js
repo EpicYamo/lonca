@@ -238,6 +238,42 @@ function modullerCiz() {
   }));
 }
 
+// ---------- Davet kodu: ustanın özel modülünü açar ----------
+// Kod sunucuda doğrulanır (GET /api/paylasim/:kod); bulunursa modül oynatıcısı aynı kodla açılır.
+function davetKur() {
+  const form = $("#davet-form"), girdi = $("#davet-kodu"), hata = $("#davet-hata"), kutu = $("#davet");
+  if (!form) return;
+  const dugme = form.querySelector("button");
+  const hataGoster = (metin) => {
+    hata.textContent = metin;
+    kutu.classList.remove("sarsil");
+    void kutu.offsetWidth; // animasyonu yeniden başlat
+    kutu.classList.add("sarsil");
+    girdi.focus();
+  };
+  // Yazarken ABCD-EFGH biçimine getir; küçük harf, boşluk ve tire serbest.
+  girdi.addEventListener("input", () => {
+    const k = girdi.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    girdi.value = k.length > 4 ? `${k.slice(0, 4)}-${k.slice(4)}` : k;
+    hata.textContent = "";
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const k = girdi.value.replace(/-/g, "");
+    if (k.length !== 8) return hataGoster("Davet kodu 8 harf ve rakamdan oluşur (örneğin ABCD-EFGH).");
+    const kod = `${k.slice(0, 4)}-${k.slice(4)}`;
+    dugme.disabled = true;
+    try {
+      const y = await fetch(`/api/paylasim/${encodeURIComponent(kod)}`, { cache: "no-store" });
+      if (y.ok) { location.href = modulAdresi(kod); return; }
+      hataGoster(y.status === 404 ? "Bu kodla bir modül bulunamadı. Kodu ustaya bir daha sor." : ((await y.json().catch(() => ({}))).hata ?? "Kod şu an denetlenemedi; biraz sonra tekrar dene."));
+    } catch {
+      hataGoster("Sunucuya ulaşılamadı; bağlantını denetleyip tekrar dene.");
+    } finally { dugme.disabled = false; }
+  });
+}
+davetKur();
+
 // ---------- 4. Eserler: süzgeçli duvar ----------
 const suzgec = { tur: "", il: "", ilce: "", yuzyil: "" };
 const SAYFA = 24;
