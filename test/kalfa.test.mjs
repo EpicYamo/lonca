@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { kalfaHazirla, insaIstegiMi } from "../server/kalfa.js";
+import { kalfaHazirla, insaIstegiMi, insaIzniVar } from "../server/kalfa.js";
 import { deneySunucusu, KOK } from "./yardimci.mjs";
 
 const { eserler } = JSON.parse(await readFile(path.join(KOK, "data", "eserler.json"), "utf8"));
@@ -52,7 +52,12 @@ test("açık bir yapım isteği yoksa kalfa sohbet eder, kod yazmaz", async () =
 
 test("yapım isteği sezgisi: yapı/yazı gibi adlar istek sayılmaz", () => {
   for (const m of ["bunu yap", "Modülü oluştur", "inşa et", "kodla şunu", "renkleri değiştir", "bir başarım ekle", "evet", "tamam", "yazar mısın", "yapabilir misin"]) assert.ok(insaIstegiMi(m), m);
-  for (const m of ["Bu yapı ne zaman inşaat edildi?", "kitabedeki yazı ne diyor", "hanlarda hazine avı", "Ulucami'nin banisi kim?", "SDK'da harita var mı"]) assert.ok(!insaIstegiMi(m), m);
+  for (const m of ["Bu yapı ne zaman inşaat edildi?", "kitabedeki yazı ne diyor", "hanlarda hazine avı", "Ulucami'nin banisi kim?", "SDK'da harita var mı", "Vakfın kurucusu kim?"]) assert.ok(!insaIstegiMi(m), m);
+});
+
+test("kod yazma yalnızca 'yap' kelimesine bağlı değil: düz soruda reddedilir, istek her biçimde kabul edilir", () => {
+  for (const m of ["şunu da ekleyelim", "Haritası da olsun", "başlayalım", "hazırla bakalım", "renkler mavi olsun", "Harika, devam", "bir puan tablosu koy", "Bunu bana kodlar mısın?", "Bursa hanlarıyla bir oyun istiyorum"]) assert.ok(insaIzniVar(m), m);
+  for (const m of ["Koza Han'ı kim yaptırdı?", "SDK'da harita var mı", "Bu modül nasıl çalışıyor?", "Hangi eserler var"]) assert.ok(!insaIzniVar(m), m);
 });
 
 test("kalfa bilgi bankasından yanıtlar; kaynaklar yalnızca araçların döndürdüğü eserlerden kurulur", async () => {
@@ -85,7 +90,7 @@ test("kalfa bilgi bankasından yanıtlar; kaynaklar yalnızca araçların dönd�
     // eser_bilgisi tarihçeyi ve kaynağı verdi; izinsiz modul_yaz reddedildi.
     const araclar = istekler[1].messages.filter((m) => m.role === "tool");
     assert.match(araclar.find((m) => m.tool_call_id === "2").content, /Vakıf Katılım/);
-    assert.match(istekler[2].messages.find((m) => m.tool_call_id === "3").content, /açıkça istemedi/);
+    assert.match(istekler[2].messages.find((m) => m.tool_call_id === "3").content, /yazmanı istemedi/);
   } finally { globalThis.fetch = asilFetch; }
 });
 

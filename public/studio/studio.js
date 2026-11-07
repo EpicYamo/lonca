@@ -113,7 +113,7 @@ function kaynakKutusu(k) {
 // kaynakları toplar, geziyi planlar, kareleri üretir ve dalışı onay bekleyen olarak kaydeder.
 let kip = "modul";
 const KIP = {
-  modul: { not: "Soru sor, fikrini konuş; “yap” deyince mini uygulamaya çevirir", ipucu: "Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" },
+  modul: { not: "Soru sor, fikrini konuş; yazmasını isteyince mini uygulamaya çevirir", ipucu: "Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" },
   dalis: { not: "İsteğini uydudan eserin içine inen bir geziye çevirir (birkaç dakika sürer)", ipucu: "Hangi eser, neler anlatılsın? Örn. \"Ulu Cami'nin minberini ve şadırvanını anlatan bir dalış\"" },
 };
 function kipSec(yeni) {

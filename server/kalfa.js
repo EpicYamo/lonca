@@ -17,16 +17,29 @@ const MAKS_SATIR = 2000;
 // Studio'yu dakikalarca bekletmesin diye; 5xx'te yapılan yeniden denemelerin her biri ayrı sayılır.
 const ISTEK_ZAMAN_ASIMI_SN = 150;
 
-// Ustanın son mesajı modülü yazdırmak/değiştirmek için açık bir istek mi? Kalfa varsayılan olarak sohbet eder;
-// modul_yaz yalnızca bu doğruysa kabul edilir (istem de aynısını söyler; bu, modelin aceleciliğine karşı ikinci kat).
+// Kod yazma kararını model ustanın niyetinden verir (yalnızca "yap" kelimesine bağlı değil). Sunucu yalnızca açıkça
+// bir SORU olan ve içinde hiçbir yapım isteği geçmeyen mesajda modul_yaz'ı reddeder: "Koza Han'ı kim yaptırdı?" gibi.
+// insaIstegiMi kaba bir sezgidir (sahte kalfa ve bu denetim için); kelime listesi bilerek geniştir.
 const INSA_KOKLERI = ["yap", "oluştur", "inşa", "kodla", "hazırla", "üret", "geliştir", "güncelle", "değiştir", "düzelt", "ekle",
-  "kaldır", "çıkar", "sil", "dönüştür", "çevir", "uygula", "başla", "devam", "evet", "tamam", "olur", "hadi", "haydi", "yaz",
-  "build", "make", "create"];
+  "kaldır", "çıkar", "sil", "dönüştür", "çevir", "uygula", "başla", "devam", "evet", "tamam", "olur", "olsun", "hadi", "haydi", "yaz",
+  "kur", "koy", "getir", "göster", "build", "make", "create"];
+const SORU_EKLERI = new Set("mı mi mu mü mısın misin musun müsün mıdır midir mudur müdür mıyız miyiz muyuz müyüz mıydı miydi muydu müydü".split(" "));
+const SORU_SOZCUKLERI = new Set("ne neden niçin niye nasıl kim kimin kime hangi hangisi nerede nereye nereden kaç neler nedir".split(" "));
+export function soruMu(metin) {
+  const t = String(metin ?? "").trim();
+  if (t.endsWith("?")) return true;
+  return t.toLocaleLowerCase("tr").split(/[^\p{L}]+/u).some((k) => SORU_EKLERI.has(k) || SORU_SOZCUKLERI.has(k));
+}
+// Sunucunun modul_yaz'a izin verip vermediği: soru değilse model karar verir; soruysa içinde bir yapım isteği geçmeli.
+export const insaIzniVar = (metin) => !soruMu(metin) || insaIstegiMi(metin);
 export function insaIstegiMi(metin) {
   const kelimeler = String(metin ?? "").toLocaleLowerCase("tr").split(/[^\p{L}]+/u).filter(Boolean);
   return kelimeler.some((k) => {
     if (k.startsWith("yapı") && !k.startsWith("yapıl") && !k.startsWith("yapıver")) return false; // yapı, yapıt (bina)
     if (k.startsWith("yazı") || k.startsWith("inşaat")) return false; // yazı, yazıt, inşaat
+    if (/^(yap|yaz|kur)(tı|tır|dı|mış|an|ıldı|ılmış|ılan|ılır)/.test(k)) return false; // tarih anlatımı: yaptırdı, yapılmış, yazan
+    if (k.startsWith("kur") && !/^kur(alım|ar|sana|ulsun|un|)$/.test(k)) return false; // kurucu, kuruluş, kurşun
+    if (k.startsWith("göster") && !/^göster(elim|ir|sin|sene|)$/.test(k)) return false; // gösterilmiş
     return INSA_KOKLERI.some((kok) => k.startsWith(kok));
   });
 }
@@ -53,7 +66,7 @@ function onerileriTemizle(liste) {
 
 // Model öneri vermediyse (ör. araç çağırmadan düz metinle yanıtladıysa) düğmeler boş kalmasın.
 const YEDEK_ONERILER = {
-  sohbet: ["Tamam, bu fikri yap", "Hangi eserler var?", "SDK hangi ekranları sunuyor?"],
+  sohbet: ["Tamam, bu modülü hazırla", "Hangi eserler var?", "SDK hangi ekranları sunuyor?"],
   duzenle: ["Değişiklikleri yap", "Bu modül nasıl çalışıyor?", "Bir başarım ekle"],
   modul: ["Bir başarım ekle", "Renkleri değiştir", "Bu modül nasıl çalışıyor?"],
 };
@@ -74,7 +87,8 @@ export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env
 
 # Konuşma ve inşa
 - Varsayılan iş SOHBETTİR: soruları yanıtla, fikri birlikte geliştir, gerekirse bir iki netleştirici soru sor, modülün nasıl olacağını kısaca öner. Bunu yanit_ver aracıyla yap.
-- modul_yaz'ı YALNIZCA usta açıkça istediğinde çağır: "yap", "oluştur", "inşa et", "yaz", "kodla", "hazırla" dediğinde, mevcut modülde bir şeyi "değiştir / ekle / düzelt / kaldır" dediğinde ya da senin önerine "evet / tamam" dediğinde. Usta yalnızca bir fikir anlatıyorsa kod YAZMA: fikri konuş, planı 2–4 maddede anlat ve "Hazırsan “yap” yaz, modülü yazayım." de.
+- modul_yaz'ı usta modülün yazılmasını, kurulmasını ya da değiştirilmesini İSTEDİĞİNDE çağır. Bunu tek bir kelimeye bakarak değil, ustanın niyetinden anla; istek her biçimde gelebilir: "yap", "oluştur", "inşa et", "hazırla", "başlayalım", "şunu ekleyelim", "renkler mavi olsun", "haritası da olsun", "bunu kodla", "yazar mısın", senin önerine "evet / olur / tamam / devam" demesi… Mevcut bir modülde istenen her değişiklik de bir yapım isteğidir.
+- Usta bir SORU soruyorsa (bir eser, SDK ya da modül nasıl çalışır), bir fikri tartışıyorsa ya da düşüncesini anlatıyorsa kod YAZMA: yanıtla, fikri konuş, planı 2–4 maddede anlat ve hazır olduğunda yazmanı istemesini söyle. Emin değilsen sor.
 - Eserlerle ilgili soruları BİLGİ BANKASINDAN yanıtla: önce eser_ara ile eseri bul, sonra eser_bilgisi ile kaydını (tarihçe, yüzyıl, kaynak, kaynaklı tarihsel bağlar) oku. Yalnızca bu araçların döndürdüğü bilgiyi söyle; bilgi bankasında yoksa "bilgi bankasında bu bilgi yok" de, tahmin yürütme. Genel kavramları (kubbe, revak, kitabe nedir) kendi cümlelerinle açıklayabilirsin; bunun genel bilgi olduğunu belirt.
 - SDK ve modül yapımıyla ilgili soruları aşağıdaki sözleşmeden yanıtla; sözleşmede olmayan bir özellik uydurma, yapılamıyorsa dürüstçe söyle.
 - Her yanıtta (yanit_ver ya da modul_yaz) "kaynaklar" alanına yanıtında bilgisini kullandığın eserlerin id'lerini, "sdk" alanına dayandığın SDK parçalarını yaz ("eserler.liste", "ekran.uc", düğüm tipi için yalnızca adı: "kapak"). "oneriler" alanına ustanın tek dokunuşla gönderebileceği 2–3 kısa soru ya da istek yaz: sohbetin şimdiki hâline uysun, ustanın ağzından yazılsın, en çok 80 harf; biri genelde modülü yaptırmak ya da geliştirmek olsun.
@@ -251,9 +265,10 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
   // secenek.insa: usta açıkça istemiş sayılır (model taraması doğrudan modül yazdırır).
   // Dönüş: modül yazıldıysa { tur: "modul", kod, … }; sohbet yanıtıysa { tur: "sohbet", metin, … }. İkisinde de kaynaklar ve oneriler.
   async function calistir(sohbet, mevcutKod, { model, sinyal, insa = false } = {}) {
-    const insaIzni = insa || insaIstegiMi(sohbet.at(-1)?.metin);
+    const sonMesaj = sohbet.at(-1)?.metin;
+    const insaIzni = insa || insaIzniVar(sonMesaj);
     let saglayici = saglayiciAl();
-    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun, { insaIzni }), model: "sahte" };
+    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun, { insaIzni: insa || insaIstegiMi(sonMesaj) }), model: "sahte" };
     if (model) saglayici = { ...saglayici, model };
     const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar, sinyal, zamanAsimiMs });
 
@@ -301,7 +316,7 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
           else sonuclar.push({ id: c.id, hata: true, icerik: "\"metin\" alanı boş" });
         } else if (c.ad === "modul_yaz") {
           if (!insaIzni) {
-            sonuclar.push({ id: c.id, hata: true, icerik: "Usta henüz modülü yazmanı açıkça istemedi. Kod yazma: yanit_ver ile fikri konuş, planını kısaca anlat ve hazırsa “yap” yazmasını söyle." });
+            sonuclar.push({ id: c.id, hata: true, icerik: "Usta bir soru sordu, modülü yazmanı istemedi. Kod yazma: yanit_ver ile sorusunu yanıtla; istersen planını kısaca anlat ve hazır olduğunda yazmanı istemesini söyle." });
             continue;
           }
           deneme++;
@@ -554,7 +569,7 @@ function sahteYanit(sohbet, ornekOyun, { insaIzni = true } = {}) {
     const fikir = ham.length > 60 ? `${ham.slice(0, 59)}…` : ham;
     return {
       tur: "sohbet",
-      metin: "(Sahte kalfa: yapay zekâ bağlı değil.) Fikrini konuşabiliriz: hangi eserler, kimin için, oyun mu rehber mi olsun? Hazır olduğunda “yap” yaz, modülü yazayım.",
+      metin: "(Sahte kalfa: yapay zekâ bağlı değil.) Fikrini konuşabiliriz: hangi eserler, kimin için, oyun mu rehber mi olsun? Hazır olduğunda yazmamı iste (“yap”, “hazırla”, “başlayalım”…), modülü yazayım.",
       aramalar: [],
       kaynaklar: { eserler: [], sdk: [] },
       oneriler: onerileriTemizle([`${fikir} yap`, "Hangi eserler var?", "Oyun mu rehber mi olsun?"]),

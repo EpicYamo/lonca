@@ -277,8 +277,9 @@ and absent fields. The same filters are available over HTTP through
    the server.
 2. The journeyman knows the SDK contract, the rules and the two example apps. By
    default it converses (`yanit_ver`): it answers questions and discusses the
-   idea, and only writes code (`modul_yaz`) when the usta explicitly asks
-   ("yap", "oluştur", "değiştir"…). It looks things up in the knowledge base with
+   idea, and writes code (`modul_yaz`) when the usta asks for it in any wording
+   ("yap", "hazırla", "başlayalım", "şunu da ekleyelim", "evet"…): the model reads
+   the intent, the server only refuses code for a plain question. It looks things up in the knowledge base with
    `eser_ara` and `eser_bilgisi` (full record, history, source, relations). Every
    reply carries the sources it drew from (work records with their citation, SDK
    parts) and 2–3 suggested follow-ups shown as buttons in Studio.
