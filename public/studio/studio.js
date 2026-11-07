@@ -253,12 +253,15 @@ window.addEventListener("message", (e) => {
   if (e.data?.tur === "onizleme-hazir" && bekleyen) {
     $("#cerceve").contentWindow.postMessage({ tur: "onizle", ...bekleyen }, location.origin);
   }
+  if (e.data?.tur === "eser-duzenle" && typeof e.data.id === "string") eserDuzenlemeyeAc(e.data.id);
 });
 $("#onizle").addEventListener("click", onizle);
 
 const SIFRE_ANAHTARI = "lonca.yonetici";
 const sifreOku = () => { try { return sessionStorage.getItem(SIFRE_ANAHTARI) ?? ""; } catch { return ""; } };
 let yonetimSifreli = false;
+// Şifre tanımlı değilse (geliştirme modu) herkes yöneticidir; değilse girilmiş şifre gerekir.
+const yoneticiMi = () => !yonetimSifreli || !!sifreOku();
 
 async function yApi(yol, { method = "GET", govde, yeniden = true, basliklar = {} } = {}) {
   const y = await fetch(yol, {
@@ -557,7 +560,10 @@ $("#eser-ara").addEventListener("input", eserListesiniCiz);
 let formIlkHali = "";
 const formAnahtari = () => { const v = formVerisi(); delete v.fotograflar; return JSON.stringify(v); };
 const formKirli = () => !$("#eser-formu").hidden && formAnahtari() !== formIlkHali;
-const fotoAnindaMi = () => !!seciliEser && !formOneri;
+// Yönetici olmayan uzman (ya da "Onaya gönder" diyen yönetici) değişikliği öneri olarak yollar; yayın editör onayıyla olur.
+const onayaGiderMi = () => !formOneri && !yoneticiMi();
+const fotoAnindaMi = () => !!seciliEser && !formOneri && yoneticiMi();
+let formIlkVeri = {};
 
 function kirliIsaretiniGuncelle() {
   const k = formKirli();
@@ -591,17 +597,65 @@ async function formuAc(eser, { oneri = null, onerilenVeri = null, sorma = false 
   fotolariCiz();
   const eksik = { ad: !v.ad, tur: !v.tur, il: !v.il, ilce: !v.ilce, yuzyil: !Number.isInteger(v.yuzyil), lat: !v.konum, lng: !v.konum, adres: !v.adres, tarihce_tr: !v.tarihce?.tr };
   for (const [ad, yok] of Object.entries(eksik)) f.elements[ad]?.closest("label")?.classList.toggle("eksik-alan", !!eser && yok);
-  $("#eser-sil").hidden = !eser || !!oneri;
-  $("#eser-gecmisi-ac").hidden = !eser || !!oneri;
+  $("#eser-sil").hidden = !eser || !!oneri || !yoneticiMi();
+  $("#eser-gecmisi-ac").hidden = !eser || !!oneri || !yoneticiMi();
+  $("#eser-onaya").hidden = !!oneri || onayaGiderMi();
+  oneriKutusunuAc(onayaGiderMi());
+  f.elements.oneri_kaynak.value = ""; f.elements.oneri_not.value = "";
   $("#foto-ipucu").textContent = fotoAnindaMi() ? "değişiklikler hemen kaydedilir · ilk fotoğraf kapaktır" : "ilk fotoğraf kapak olur · kaydedince yayına girer";
-  f.querySelector("[type=submit]").textContent = oneri ? "Onayla ve yayınla" : "Kaydet ve yayınla";
-  durumYaz("", "", [], "#eser-durum");
+  f.querySelector("[type=submit]").textContent = oneri ? "Onayla ve yayınla" : onayaGiderMi() ? "Onaya gönder" : "Kaydet ve yayınla";
+  const kimden = [oneri?.oneren && `Öneren: ${oneri.oneren}`, oneri?.kaynak && `eklenen bilginin kaynağı: ${oneri.kaynak}`].filter(Boolean).join(" · ");
+  durumYaz("", kimden, [], "#eser-durum");
   f.hidden = false; $("#eser-bos").hidden = true;
   formIlkHali = formAnahtari();
+  formIlkVeri = formVerisi();
   kirliIsaretiniGuncelle();
   eserListesiniCiz();
   f.elements.ad.focus({ preventScroll: true });
 }
+function oneriKutusunuAc(acik) {
+  const k = $("#oneri-kutusu");
+  k.hidden = !acik; k.disabled = !acik;
+}
+// Atölye önizlemesindeki "Bu eserde eksik var, düzenle" bağlantısı eseri İçerik sayfasında açar.
+async function eserDuzenlemeyeAc(id) {
+  if (!(await ayrilabilirMi())) return;
+  sayfaAc("icerik");
+  let eser = tumEserler.find((x) => x.id === id);
+  if (!eser) { try { const y = await fetch(`/api/eserler/${encodeURIComponent(id)}`); if (y.ok) eser = await y.json(); } catch {} }
+  if (!eser?.id) return durumYaz("kotu", "Önizlemedeki eser bulunamadı.");
+  await formuAc(eser, { sorma: true });
+  durumYaz("", onayaGiderMi() ? "Eksik bilgiyi ekle, kaynağını yaz ve onaya gönder." : "Eksik bilgiyi ekle; yayınlamadan önce bir uzman görüşü istersen “Onaya gönder”i kullan.", [], "#eser-durum");
+}
+async function onayaGonder() {
+  const f = $("#eser-formu");
+  if ($("#oneri-kutusu").hidden) {
+    oneriKutusunuAc(true);
+    f.elements.oneri_kaynak.focus();
+    durumYaz("", "Eklediğin bilginin kaynağını yaz, sonra yeniden “Onaya gönder”e bas.", [], "#eser-durum");
+    return false;
+  }
+  if (!f.reportValidity()) return false;
+  const veri = formVerisi();
+  const ek = { kaynak: f.elements.oneri_kaynak.value.trim(), oneren: f.elements.oneri_oneren.value.trim(), not: f.elements.oneri_not.value.trim() };
+  let govde;
+  if (seciliEser) {
+    const fark = Object.fromEntries(Object.entries(veri).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(formIlkVeri[k])));
+    if (!Object.keys(fark).length) { durumYaz("kotu", "Değişiklik yok: önce eksik bilgiyi forma ekle.", [], "#eser-durum"); return false; }
+    govde = { tur: "duzenle", eserId: seciliEser.id, veri: fark, ...ek };
+  } else govde = { tur: "yeni", veri, ...ek };
+  try {
+    await yApi("/api/eser-oneriler", { method: "POST", govde, yeniden: false });
+    formIlkHali = formAnahtari(); formIlkVeri = veri;
+    kirliIsaretiniGuncelle();
+    f.elements.oneri_not.value = "";
+    if (!onayaGiderMi()) oneriKutusunuAc(false);
+    durumYaz("iyi", "Önerin editör onayına gönderildi. Onaylanınca uygulamada yayına girer.", [], "#eser-durum");
+    if (yoneticiMi()) { onerileriCiz(); sayaclariGuncelle(); }
+    return true;
+  } catch (h) { durumYaz("kotu", h.message, h.ayrintilar, "#eser-durum"); return false; }
+}
+$("#eser-onaya").addEventListener("click", onayaGonder);
 $("#yeni-eser").addEventListener("click", () => formuAc(null));
 $("#eser-vazgec").addEventListener("click", async () => {
   if (!(await ayrilabilirMi())) return;
@@ -696,6 +750,7 @@ function formVerisi() {
 }
 async function formuKaydet() {
   const f = $("#eser-formu");
+  if (onayaGiderMi()) return onayaGonder();
   if (!f.reportValidity()) return false;
   const veri = formVerisi();
   try {
@@ -818,13 +873,14 @@ const kisa = (x) => { const s = typeof x === "object" && x ? (x.tr ?? (x.lat != 
 
 async function onerileriCiz() {
   let oneriler;
-  try { oneriler = await yApi("/api/eser-oneriler"); }
+  try { oneriler = await yApi("/api/eser-oneriler", { yeniden: yoneticiMi() }); }
   catch (h) { $("#oneriler-listesi").replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
   if (!oneriler.length) { $("#oneriler-listesi").replaceChildren(el("li", { className: "aciklama", textContent: "Bekleyen öneri yok." })); return; }
   $("#oneriler-listesi").replaceChildren(...oneriler.map((o) => {
     const baslik = o.tur === "yeni" ? `Yeni eser: ${o.veri?.ad}` : o.tur === "duzenle" ? `Düzenleme: ${o.eser?.ad}` : `Hata bildirimi: ${o.eser?.ad}`;
     const govde = el("div", { className: "oneri-govde" });
     if (o.not) govde.append(el("p", { className: "oneri-not", textContent: `“${o.not}”` }));
+    if (o.kaynak || o.oneren) govde.append(el("p", { className: "oneri-kaynak", textContent: [o.oneren && `Öneren: ${o.oneren}`, o.kaynak && `Kaynak: ${o.kaynak}`].filter(Boolean).join(" · ") }));
     if (o.tur === "duzenle" && o.veri) govde.append(el("ul", { className: "fark" }, ...Object.entries(o.veri).map(([k, v]) =>
       el("li", {}, el("b", { textContent: ALAN_ADI[k] ?? k }), el("del", { textContent: kisa(o.eser?.[k]) }), el("ins", { textContent: kisa(v) })))));
     if (o.tur === "yeni" && o.veri) govde.append(el("p", { className: "aciklama", textContent: `${TUR_ADI[o.veri.tur] ?? o.veri.tur} · ${o.veri.ilce ?? ""} · kaynak: ${o.veri.kaynak}` }));
@@ -862,11 +918,193 @@ async function durumCubugu() {
 setInterval(() => { $("#dc-saat").textContent = new Date().toLocaleString("tr-TR", { weekday: "short", hour: "2-digit", minute: "2-digit" }); }, 1000);
 durumCubugu();
 
-fetch("/api/kalfa").then((y) => y.json()).then((k) => {
-  $("#dc-kalfa").innerHTML = `kalfa: <b>${k.sahte ? "sahte mod" : k.model}</b>`;
-  $("#model").classList.add(k.sahte ? "sahte" : "canli");
-  $("#model-ad").textContent = k.sahte ? "Kalfa: sahte mod (yapay zekâ bağlı değil)" : `Kalfa: ${k.model}`;
-}).catch(() => { $("#model-ad").textContent = "Kalfa: sunucuya ulaşılamadı"; });
+function kalfaDurumu() {
+  return fetch("/api/kalfa").then((y) => y.json()).then((k) => {
+    const dc = $("#dc-kalfa");
+    dc.textContent = "kalfa: ";
+    dc.append(el("b", { textContent: k.sahte ? "sahte mod" : k.model }));
+    $("#model").classList.toggle("sahte", !!k.sahte);
+    $("#model").classList.toggle("canli", !k.sahte);
+    $("#model-ad").textContent = k.sahte ? "Kalfa: sahte mod (yapay zekâ bağlı değil)" : `Kalfa: ${k.model}`;
+  }).catch(() => { $("#model-ad").textContent = "Kalfa: sunucuya ulaşılamadı"; });
+}
+kalfaDurumu();
+
+// ---------- Kalfa modelleri (UstaGPT) ----------
+// Liste ve kayıt sunucudan geçer (/api/kalfa/modeller, /api/kalfa/ayarlar); UstaGPT anahtarı tarayıcıya gelmez.
+const MODEL_ALANLARI = {
+  kalfaModeli: { tur: "metin", coklu: false, ipucu: "Modül kalfasının fikri koda çevirirken kullandığı dil modeli. Araç çağırabilen (tool calling) bir model seç." },
+  dalisMetinModelleri: { tur: "metin", coklu: true, ipucu: "Dalış planı ve fotoğraf tanıma için. Sırayla denenir: ilki yanıt vermezse ikincisine geçilir (en çok 5)." },
+  dalisGorselModelleri: { tur: "gorsel", coklu: true, ipucu: "Dalış karelerini üreten görsel modeller. Sırayla denenir (en çok 5). \"sohbet:\" önekliler sohbet üzerinden görsel üretir." },
+};
+const modelDurumu = { modeller: [], secili: null, taslak: {}, alan: "kalfaModeli", yukleniyor: false };
+
+function fiyatYazisi(f) {
+  if (!f) return "";
+  if (f.per_request != null) return `${f.per_request} / istek`;
+  if (f.input != null) return `${f.input} / ${f.output ?? "?"}`;
+  return "";
+}
+const baglamYazisi = (n) => (!n ? "" : n >= 1e6 ? `${Math.round(n / 1e5) / 10}M` : `${Math.round(n / 1000)}K`);
+
+function modelTaslagi(secili) {
+  return {
+    kalfaModeli: secili.kalfaModeli ?? null,
+    dalisMetinModelleri: [...(secili.dalisMetinModelleri ?? [])],
+    dalisGorselModelleri: [...(secili.dalisGorselModelleri ?? [])],
+  };
+}
+
+async function modelleriYukle({ yenile = false } = {}) {
+  modelDurumu.yukleniyor = true;
+  const durum = $("#model-durum");
+  durum.className = "durum"; durum.textContent = "Model listesi alınıyor…";
+  $("#model-listesi").replaceChildren();
+  try {
+    const v = await yApi(`/api/kalfa/modeller${yenile ? "?yenile=1" : ""}`);
+    modelDurumu.modeller = v.modeller;
+    modelDurumu.secili = v.secili;
+    modelDurumu.taslak = modelTaslagi(v.secili);
+    const sahipler = [...new Set(v.modeller.map((m) => m.sahip).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
+    const sec = $("#model-sahip"), onceki = sec.value;
+    sec.replaceChildren(el("option", { value: "", textContent: "Tüm sağlayıcılar" }), ...sahipler.map((x) => el("option", { value: x, textContent: x })));
+    sec.value = sahipler.includes(onceki) ? onceki : "";
+    const metin = v.modeller.filter((m) => m.tur === "metin").length;
+    $("#model-bilgi").textContent = `UstaGPT: ${metin} metin, ${v.modeller.length - metin} görsel model · liste ${new Date(v.guncelleme).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} itibarıyla`;
+    durum.textContent = "";
+  } catch (h) {
+    modelDurumu.modeller = [];
+    durum.className = "durum kotu"; durum.textContent = h.message;
+  } finally {
+    modelDurumu.yukleniyor = false;
+    modelCiz();
+  }
+}
+
+function modelCiz() {
+  const { alan, taslak, modeller, secili } = modelDurumu;
+  const tanim = MODEL_ALANLARI[alan];
+  for (const b of document.querySelectorAll(".model-sekmeler button")) {
+    const bu = b.dataset.alan === alan;
+    b.classList.toggle("secili", bu); b.setAttribute("aria-selected", String(bu));
+  }
+  let ipucu = tanim.ipucu;
+  if (alan === "kalfaModeli" && secili?.kalfa) {
+    if (secili.kalfa.saglayici === "sahte") ipucu += " Not: kalfa şu an sahte modda (KALFA_SAHTE); seçim kaydedilir ama sahte mod kapanınca geçerli olur.";
+    else if (!secili.kalfa.ustagpt) ipucu += " Not: modül kalfası şu an UstaGPT'ye bağlı değil (.env'deki KALFA_API_URL başka bir uç nokta); bu seçim uygulanmaz.";
+  }
+  if (alan !== "kalfaModeli" && secili?.dalis && !secili.dalis.ustagpt) ipucu += " Not: dalış kalfası şu an UstaGPT'ye bağlı değil (DALIS_API_URL); bu seçim uygulanmaz.";
+  $("#model-ipucu").textContent = ipucu;
+
+  const secimler = tanim.coklu ? taslak[alan] ?? [] : taslak[alan] ? [taslak[alan]] : [];
+  const kutu = $("#model-secili");
+  kutu.replaceChildren(...secimler.map((deger, i) => {
+    const kaldir = el("button", { type: "button", className: "cip-d", textContent: "×", title: "Çıkar" });
+    kaldir.setAttribute("aria-label", `${deger} modelini çıkar`);
+    kaldir.addEventListener("click", () => modelSec(deger, false));
+    const cip = el("li", { className: "model-cip" }, tanim.coklu ? el("span", { className: "cip-sira", textContent: String(i + 1) }) : null, el("span", { className: "mono", textContent: deger }));
+    if (tanim.coklu && i > 0) {
+      const one = el("button", { type: "button", className: "cip-d", textContent: "↑", title: "Öne al" });
+      one.setAttribute("aria-label", `${deger} modelini öne al`);
+      one.addEventListener("click", () => { const l = taslak[alan]; [l[i - 1], l[i]] = [l[i], l[i - 1]]; modelCiz(); });
+      cip.append(one);
+    }
+    if (tanim.coklu) cip.append(kaldir);
+    return cip;
+  }));
+  kutu.hidden = !secimler.length;
+
+  const ara = $("#model-ara").value.trim().toLocaleLowerCase("tr"), sahip = $("#model-sahip").value;
+  const uygun = modeller.filter((m) => m.tur === tanim.tur && (!sahip || m.sahip === sahip) && (!ara || m.deger.toLowerCase().includes(ara) || (m.sahip ?? "").includes(ara)));
+  const liste = $("#model-listesi");
+  if (!modeller.length) { liste.replaceChildren(); return; }
+  if (!uygun.length) { liste.replaceChildren(el("li", { className: "aciklama model-bos", textContent: "Aramaya uyan model yok." })); return; }
+  const etkin = new Set(tanim.coklu ? secili?.[alan] ?? [] : [secili?.[alan]]);
+  liste.replaceChildren(...uygun.map((m) => {
+    const secilmis = secimler.includes(m.deger);
+    const girdi = el("input", { type: tanim.coklu ? "checkbox" : "radio", name: "model-sec", value: m.deger, checked: secilmis });
+    girdi.addEventListener("change", () => modelSec(m.deger, girdi.checked));
+    const ek = [m.sahip, m.baglam ? `${baglamYazisi(m.baglam)} bağlam` : "", fiyatYazisi(m.fiyat)].filter(Boolean).join(" · ");
+    const satir = el("label", { className: "model-satir" }, girdi,
+      el("span", { className: "model-ad mono", textContent: m.deger }),
+      etkin.has(m.deger) ? el("span", { className: "model-etkin", textContent: "şu an etkin" }) : null,
+      el("span", { className: "model-ek", textContent: ek, title: "Sağlayıcı · bağlam penceresi · UstaGPT fiyatı (giriş / çıkış)" }));
+    return el("li", { className: secilmis ? "secili" : "" }, satir);
+  }));
+}
+
+function modelSec(deger, ekle) {
+  const { alan, taslak } = modelDurumu;
+  const tanim = MODEL_ALANLARI[alan];
+  const durum = $("#model-durum");
+  durum.className = "durum"; durum.textContent = "";
+  if (!tanim.coklu) taslak[alan] = ekle ? deger : taslak[alan] === deger ? null : taslak[alan];
+  else {
+    const l = taslak[alan];
+    if (ekle && !l.includes(deger)) {
+      if (l.length >= 5) { durum.className = "durum kotu"; durum.textContent = "En çok 5 model seçilebilir."; modelCiz(); return; }
+      l.push(deger);
+    } else if (!ekle) taslak[alan] = l.filter((x) => x !== deger);
+  }
+  modelCiz();
+}
+
+async function modelKaydet(govde, mesaj) {
+  const durum = $("#model-durum"), d = $("#model-kaydet");
+  d.disabled = true;
+  try {
+    const { secili } = await yApi("/api/kalfa/ayarlar", { method: "PUT", govde });
+    modelDurumu.secili = secili;
+    modelDurumu.taslak = modelTaslagi(secili);
+    durum.className = "durum iyi"; durum.textContent = mesaj;
+    kalfaDurumu();
+  } catch (h) {
+    durum.className = "durum kotu"; durum.textContent = h.message;
+  } finally {
+    d.disabled = false;
+    modelCiz();
+  }
+}
+
+$("#model-kaydet").addEventListener("click", () => {
+  const { taslak, alan } = modelDurumu;
+  const tanim = MODEL_ALANLARI[alan];
+  if (tanim.coklu ? !taslak[alan].length : !taslak[alan]) {
+    const durum = $("#model-durum"); durum.className = "durum kotu"; durum.textContent = "Önce en az bir model seç.";
+    return;
+  }
+  // Yalnızca değişen alanlar gönderilir; öbür sekmelerdeki kaydedilmemiş seçimler de birlikte kaydedilir.
+  const govde = {};
+  for (const [k, t] of Object.entries(MODEL_ALANLARI)) {
+    const yeni = taslak[k], eski = modelDurumu.secili?.[k];
+    if (JSON.stringify(yeni) !== JSON.stringify(eski) && (t.coklu ? yeni.length : yeni)) govde[k] = yeni;
+  }
+  if (!Object.keys(govde).length) { const durum = $("#model-durum"); durum.className = "durum iyi"; durum.textContent = "Seçim zaten bu."; return; }
+  modelKaydet(govde, "Kaydedildi. Kalfa bir sonraki istekte bu modelleri kullanır.");
+});
+$("#model-sifirla").addEventListener("click", () => {
+  modelKaydet({ [modelDurumu.alan]: null }, "Bu sekmenin seçimi silindi; .env ya da varsayılan geçerli.");
+});
+$("#model-yenile").addEventListener("click", () => modelleriYukle({ yenile: true }));
+$("#model-ara").addEventListener("input", modelCiz);
+$("#model-sahip").addEventListener("change", modelCiz);
+document.querySelector(".model-sekmeler").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-alan]");
+  if (!b) return;
+  modelDurumu.alan = b.dataset.alan;
+  $("#model-ara").value = "";
+  $("#model-durum").textContent = "";
+  modelCiz();
+});
+function modelPenceresiniAc(alan) {
+  if (alan) modelDurumu.alan = alan;
+  $("#model-durum").textContent = "";
+  $("#kalfa-ayarlari").showModal();
+  modelCiz();
+  modelleriYukle();
+}
+$("#model").addEventListener("click", () => modelPenceresiniAc("kalfaModeli"));
+$("#kalfa-ayar-d").addEventListener("click", () => modelPenceresiniAc(kip === "dalis" ? "dalisMetinModelleri" : "kalfaModeli"));
 
 editoruGuncelle();
 fetch("/api/ayarlar").then((y) => y.json()).then((a) => {

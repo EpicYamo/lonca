@@ -8,7 +8,7 @@ Dalışlar "Vakıf Dalışları" modülünde (`data/moduller/vakif-dalislari.js`
 | Koza Hanı | elle | onaylı |
 | Şehzade Mustafa Türbesi | elle | onaylı |
 | Yeşil Türbe | dalış kalfası (Studio) | bekliyor |
-| Emir Sultan Külliyesi | görselleri üretiliyor (başka bir iş akışı) | — |
+| Emir Sultan Külliyesi | dalış kalfası (Studio), elle denetlendi | onaylı |
 
 Elle yapılanlar kalitenin ölçüsüdür: yeni dalışları onlara bakarak yaz.
 

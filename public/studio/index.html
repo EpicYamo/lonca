@@ -30,6 +30,7 @@
     <symbol id="i-dosya" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/></symbol>
     <symbol id="i-gunes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
     <symbol id="i-ay" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="i-ayar" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
     <symbol id="i-foto" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/></symbol>
   </svg>
 
@@ -42,7 +43,7 @@
     </div>
     <p class="baglam" aria-live="polite"><span class="baglam-ayrac" aria-hidden="true">/</span><span id="baglam-ad">Atölye</span></p>
     <span class="bosluk-esnek"></span>
-    <p id="model" class="rozet" title="Kalfanın kullandığı yapay zekâ modeli"><span class="nokta" aria-hidden="true"></span><span id="model-ad">Kalfa bağlanıyor…</span></p>
+    <button id="model" class="rozet model-d" type="button" title="Kalfanın kullandığı yapay zekâ modeli; değiştirmek için tıkla"><span class="nokta" aria-hidden="true"></span><span id="model-ad">Kalfa bağlanıyor…</span></button>
     <button id="tema-d" class="ikon-d" type="button" aria-label="Koyu temaya geç" title="Tema">
       <svg class="ik tema-ay" aria-hidden="true"><use href="#i-ay"/></svg><svg class="ik tema-gunes" aria-hidden="true"><use href="#i-gunes"/></svg>
     </button>
@@ -83,6 +84,9 @@
           <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
           <button type="button" role="radio" aria-checked="false" data-kip="dalis">Dalış</button>
         </div>
+        <button id="kalfa-ayar-d" type="button" class="ikon-d" aria-label="Kalfa modelleri" title="Kalfa modelleri">
+          <svg class="ik" aria-hidden="true"><use href="#i-ayar"/></svg>
+        </button>
       </div>
       <ol id="mesajlar" class="mesajlar" aria-live="polite">
         <li class="mesaj kalfa">
@@ -261,8 +265,18 @@
               <input id="foto-sec" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
             </label>
           </div>
+          <fieldset id="oneri-kutusu" class="oneri-kutusu" hidden disabled>
+            <legend>Onaya gönder</legend>
+            <p class="aciklama">Değişikliğin hemen yayına girmez; editör kaynağı kontrol edip onaylar. Eklediğin bilginin kaynağını yaz.</p>
+            <div class="form-izgara">
+              <label class="genis">Eklenen bilginin kaynağı <input name="oneri_kaynak" required minlength="3" maxlength="240" placeholder="Ör. Bursa Vakıf Eserleri, Cilt 2, s. 114 · cami kitabesi"></label>
+              <label>Adın (isteğe bağlı) <input name="oneri_oneren" maxlength="80" autocomplete="name"></label>
+              <label class="genis">Editöre not (isteğe bağlı) <textarea name="oneri_not" rows="2" maxlength="1500"></textarea></label>
+            </div>
+          </fieldset>
           <div class="eylemler form-eylemler">
             <button class="birincil" type="submit">Kaydet ve yayınla</button>
+            <button class="ikincil" type="button" id="eser-onaya" hidden>Onaya gönder</button>
             <button class="ikincil" type="button" id="eser-vazgec">Vazgeç</button>
             <button class="tehlike" type="button" id="eser-sil">Sil</button>
             <div id="eser-durum" class="durum" role="status"></div>
@@ -294,6 +308,37 @@
     </form>
   </dialog>
   <div id="bildirimler" class="bildirimler" aria-live="polite"></div>
+
+  <dialog id="kalfa-ayarlari" class="giris model-pencere" aria-labelledby="model-pencere-h">
+    <form method="dialog" id="model-formu">
+      <div class="model-ust">
+        <h2 class="pencere-h" id="model-pencere-h"><svg class="ik" aria-hidden="true"><use href="#i-ayar"/></svg>Kalfa modelleri</h2>
+        <button id="model-yenile" type="button" class="ikon-d" aria-label="Model listesini UstaGPT'den yenile" title="Listeyi yenile">
+          <svg class="ik" aria-hidden="true"><use href="#i-yenile"/></svg>
+        </button>
+      </div>
+      <p class="aciklama">Modeller UstaGPT'den gelir. Kaydedince kalfalar bir sonraki istekte bunları kullanır; sunucuyu yeniden başlatmak gerekmez.</p>
+      <div class="model-sekmeler" role="tablist" aria-label="Hangi kalfanın modeli?">
+        <button type="button" role="tab" data-alan="kalfaModeli" aria-selected="true" class="secili">Modül kalfası</button>
+        <button type="button" role="tab" data-alan="dalisMetinModelleri" aria-selected="false">Dalış · metin</button>
+        <button type="button" role="tab" data-alan="dalisGorselModelleri" aria-selected="false">Dalış · görsel</button>
+      </div>
+      <p class="aciklama model-ipucu" id="model-ipucu"></p>
+      <ol class="model-secili" id="model-secili" aria-label="Seçili modeller (deneme sırası)"></ol>
+      <div class="model-suzgec">
+        <input id="model-ara" class="arama" type="search" placeholder="Model ara… (ör. gpt, gemini, claude)" aria-label="Model ara" autocomplete="off" spellcheck="false">
+        <select id="model-sahip" aria-label="Sağlayıcıya göre süz"><option value="">Tüm sağlayıcılar</option></select>
+      </div>
+      <ul class="model-listesi" id="model-listesi" role="listbox" aria-label="Modeller"></ul>
+      <p class="aciklama kucuk-yazi" id="model-bilgi"></p>
+      <p id="model-durum" class="durum" role="status"></p>
+      <div class="eylemler">
+        <button class="birincil" type="button" id="model-kaydet">Kaydet</button>
+        <button class="ikincil" value="kapat" formnovalidate>Kapat</button>
+        <button class="metin-d" type="button" id="model-sifirla" title="Bu sekmedeki seçimi sil; .env ya da varsayılan geçerli olur">.env'e dön</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="giris" class="giris">
     <form method="dialog" id="giris-formu">

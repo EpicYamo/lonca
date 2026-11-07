@@ -1,0 +1,94 @@
+# build dalına her push (çoğunlukla main → build birleştirmesi) tam CI'dan geçer,
+# ardından APK derlenir ve GitHub Release olarak yayımlanır (etiket: apk-1.0.<commit sayısı>).
+#
+# Gerekli sırlar (Settings → Secrets and variables → Actions); hiçbiri depoya yazılmaz:
+#   ANDROID_KEYSTORE_BASE64    imza anahtarı (lonca.keystore) base64 olarak; alias "lonca"
+#   ANDROID_KEYSTORE_SIFRE     anahtar deposu ve anahtar şifresi (apk.sh ikisini aynı kabul eder)
+#   LONCA_API_ANAHTARI         isteğe bağlı; sunucu anahtar istiyorsa APK'ya gömülür
+# İsteğe bağlı değişken (Variables): LONCA_SUNUCU, APK'nın önce deneyeceği sunucu adresi.
+# İmza sırları yoksa hata ayıklama (debug) APK'sı yayımlanır ve sürüm notunda belirtilir.
+name: APK sürümü
+
+on:
+  push:
+    branches: [build]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-surumu-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+  yayin:
+    name: APK derle ve yayımla
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - run: npm ci --no-audit --no-fund
+
+      - name: APK derle
+        id: apk
+        env:
+          ANAHTAR_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANAHTAR_SIFRE: ${{ secrets.ANDROID_KEYSTORE_SIFRE }}
+          LONCA_API_ANAHTARI: ${{ secrets.LONCA_API_ANAHTARI }}
+          LONCA_SUNUCU: ${{ vars.LONCA_SUNUCU }}
+        run: |
+          if [[ -n "$ANAHTAR_B64" && -n "$ANAHTAR_SIFRE" ]]; then
+            # apk.sh --release, mobil/anahtar/ altındaki anahtarı kullanır (yoksa yenisini üretirdi).
+            mkdir -p mobil/anahtar
+            umask 077
+            printf '%s' "$ANAHTAR_B64" | base64 -d > mobil/anahtar/lonca.keystore
+            printf '%s' "$ANAHTAR_SIFRE" > mobil/anahtar/sifre.txt
+            ./apk.sh --release
+            echo "yol=dist/lonca-release.apk" >> "$GITHUB_OUTPUT"
+            echo "tur=imzalı sürüm" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_SIFRE tanımlı değil; debug APK yayımlanıyor."
+            ./apk.sh
+            echo "yol=dist/lonca.apk" >> "$GITHUB_OUTPUT"
+            echo "tur=debug (imza sırları tanımlı değil)" >> "$GITHUB_OUTPUT"
+          fi
+          rm -rf mobil/anahtar
+          echo "kod=$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: GitHub Release oluştur
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APK: ${{ steps.apk.outputs.yol }}
+          TUR: ${{ steps.apk.outputs.tur }}
+          KOD: ${{ steps.apk.outputs.kod }}
+        run: |
+          ETIKET="apk-1.0.$KOD"
+          DOSYA="lonca-1.0.$KOD.apk"
+          cp "$APK" "$DOSYA"
+          sha256sum "$DOSYA" > "$DOSYA.sha256"
+          NOT="Lonca Android 1.0.$KOD ($TUR), commit ${GITHUB_SHA::7}, build dalından otomatik."
+          if gh release view "$ETIKET" >/dev/null 2>&1; then
+            gh release upload "$ETIKET" "$DOSYA" "$DOSYA.sha256" --clobber
+          else
+            gh release create "$ETIKET" "$DOSYA" "$DOSYA.sha256" --target "$GITHUB_SHA" \
+              --title "Lonca Android 1.0.$KOD" --notes "$NOT" --generate-notes
+          fi

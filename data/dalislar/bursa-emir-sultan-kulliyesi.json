@@ -1,0 +1,394 @@
+{
+ "eser": "bursa-emir-sultan-kulliyesi",
+ "ozet": "Bursa'ya hâkim bir tepedeki Emir Sultan Külliyesi'ne uydudan inip avlusunu, türbesini ve şadırvanını gezin.",
+ "hedef": {
+  "lat": 40.18111,
+  "lng": 29.08111
+ },
+ "durum": "onayli",
+ "kaynak": "kalfa",
+ "vikipedi": {
+  "baslik": "Emir Sultan Camii",
+  "url": "https://tr.wikipedia.org/wiki/Emir_Sultan_Camii"
+ },
+ "istek": "Emir Sultan Külliyesi'ne uydudan inip avlusunu ve türbesini gezdir",
+ "model": {
+  "plan": "gemini-3.5-flash",
+  "gorsel": "sohbet:gemini-3.1-flash-image"
+ },
+ "olusturma": "2026-11-07T08:22:56.528Z",
+ "guncelleme": "2026-11-07T08:53:22.619Z",
+ "kareler": [
+  {
+   "g": "u6",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    6,
+    0
+   ],
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ]
+  },
+  {
+   "g": "u9",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    9,
+    0
+   ],
+   "p": [
+    0.4375,
+    0.4375,
+    0.125
+   ]
+  },
+  {
+   "g": "u12",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    12,
+    0
+   ],
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ]
+  },
+  {
+   "g": "u14",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    14,
+    0
+   ],
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ]
+  },
+  {
+   "g": "u16",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    16,
+    0
+   ],
+   "p": [
+    0.375,
+    0.375,
+    0.25
+   ]
+  },
+  {
+   "g": "u18",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    18,
+    0
+   ],
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ]
+  },
+  {
+   "g": "d1",
+   "t": "netlestirilmis",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": "Bursa Üzerinde Yükselen Külliye",
+   "k": [
+    {
+     "u": "Tepedeki Miras",
+     "b": "Bursa'ya Hâkim Bir Konum",
+     "m": "Şehre hâkim bir tepe üzerine kurulan Emir Sultan Külliyesi; cami, türbe, imaret ve hamam gibi yapılardan oluşan geniş bir külliyedir.",
+     "k": "E"
+    },
+    {
+     "u": "Bani",
+     "b": "Hundi Fatma Hatun",
+     "m": "Cami, Yıldırım Bayezid'in kızı Hundi Fatma Hatun tarafından kocası Emir Sultan adına, muhtemelen Çelebi Sultan Mehmed'in hükümdarlığı sırasında yaptırıldı.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "d2",
+   "t": "netlestirilmis",
+   "p": [
+    0.3,
+    0.35,
+    0.4
+   ],
+   "b": "Kuşbakışı Külliye Avlusu",
+   "k": [
+    {
+     "u": "Vakıf Gelirleri",
+     "b": "Geniş Bir Coğrafyadan Gelir",
+     "m": "Vakfın gelirleri Bursa merkezi ve çevresinin yanı sıra Edremit-Havran bölgesindeki köy, bağ, bahçe, han ve değirmenlerden sağlanmıştır.",
+     "k": "E"
+    },
+    {
+     "u": "Vakfiye İmzaları",
+     "b": "28 Tasdik İmzası",
+     "m": "1453 yılından önce kurulduğu kabul edilen vakfın belgesinde, sayfa ek yerlerine denk gelen toplam 28 tasdik imzası yer almaktadır.",
+     "k": "E"
+    }
+   ]
+  },
+  {
+   "g": "g1",
+   "t": "canlandirma",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": "Külliye Kapısına Yaklaşırken",
+   "k": [
+    {
+     "u": "Külliyenin Birimleri",
+     "b": "Sosyal ve Dinî Merkez",
+     "m": "Külliye bünyesinde cami, zaviye, imaret, türbe, hamam, mektep, muvakkithane, çeşme ve kütüphane gibi pek çok birim barınır.",
+     "k": "E"
+    },
+    {
+     "u": "Onarımlar",
+     "b": "Depremden sonra yeniden",
+     "m": "İlk yapıldığında tek kubbeli olan camiye 1507'de avlu ve revak eklendi. 1795 depreminde tamamen yıkılan cami, 1804'te III. Selim tarafından aynı plan üzerine yeniden yaptırıldı.",
+     "k": "V"
+    }
+   ]
+  },
+  {
+   "g": "m",
+   "t": "canlandirma",
+   "p": [
+    0.113,
+    0,
+    0.65
+   ],
+   "b": "Külliye Avlusu",
+   "k": [
+    {
+     "u": "Vakfın Kurucuları",
+     "b": "Hundi Hatun ve Baniler",
+     "m": "Vakfiyede Emîr Sultan, eşi Hundi Hatun ve Fâtih Sultan Mehmed’in vakıflarına ek olarak yedi farklı kişinin daha ilaveleri kayıtlıdır.",
+     "k": "E"
+    },
+    {
+     "u": "Külliye Kavramı",
+     "b": "Bütüncül Yaşam Alanı",
+     "m": "Külliye, bir cami etrafında şekillenen eğitim, sağlık ve hayır kurumlarının oluşturduğu mimari yapı topluluğudur.",
+     "k": "G"
+    },
+    {
+     "u": "Avlu",
+     "b": "Ahşap revaklı geniş avlu",
+     "m": "Dikdörtgen avlu, ahşap kolonlar üzerinde ahşap revaklarla çevrilidir. Ortasında şadırvan, güneyinde cami, kuzeyinde türbe ve ahşap odalar yer alır.",
+     "k": "V"
+    },
+    {
+     "u": "Gezi",
+     "b": "Buradan 2 yere gideceğiz",
+     "m": "Emir Sultan Türbesi, Avlu Şadırvanı; her birinden sonra buraya döneceğiz.",
+     "k": ""
+    }
+   ]
+  },
+  {
+   "g": "k1",
+   "t": "canlandirma",
+   "c": [
+    0.113,
+    0,
+    0.65
+   ],
+   "b": "Emir Sultan Türbesi",
+   "k": [
+    {
+     "u": "Manevi Hafıza",
+     "b": "Halkın Hafızasında Bir Eser",
+     "m": "Emir Sultan Külliyesi, şehrin sosyal, ekonomik, kültürel ve dinî-tasavvufi tarihinde derin izler bırakmış müstesna bir mekândır.",
+     "k": "E",
+     "n": [
+      0.51,
+      0.603
+     ]
+    },
+    {
+     "u": "Konum",
+     "b": "Avlunun kuzeyinde",
+     "m": "Türbe, revaklı avlunun kuzey yanında, ahşap odalarla birlikte yer alır; cami ise avlunun güneyindedir.",
+     "k": "V"
+    },
+    {
+     "u": "Türbe Mimarisi",
+     "b": "Anıt Mezar Geleneği",
+     "m": "Türbeler, önemli kişilerin anısını yaşatmak amacıyla inşa edilen, genellikle kubbeli veya piramidal örtülü anıt mezarlardır.",
+     "k": "G"
+    }
+   ]
+  },
+  {
+   "g": "m",
+   "t": "canlandirma",
+   "p": [
+    0.34,
+    0.124,
+    0.65
+   ],
+   "b": "Şimdi: Avlu Şadırvanı"
+  },
+  {
+   "g": "k2",
+   "t": "canlandirma",
+   "c": [
+    0.34,
+    0.124,
+    0.65
+   ],
+   "b": "Avlu Şadırvanı",
+   "k": [
+    {
+     "u": "Avlunun Ortası",
+     "b": "Revaklar arasında şadırvan",
+     "m": "Emir Sultan Camii'nin ahşap revaklarla çevrili geniş avlusunun ortasında şadırvan yer alır.",
+     "k": "V",
+     "n": [
+      0.5,
+      0.5
+     ]
+    },
+    {
+     "u": "Şadırvan Nedir?",
+     "b": "Abdest ve Serinlik Mekânı",
+     "m": "Şadırvanlar, cami avlularında abdest almak ve çevresine serinlik katmak amacıyla inşa edilen havuzlu ve fıskiyeli su yapılarıdır.",
+     "k": "G"
+    }
+   ]
+  },
+  {
+   "g": "m",
+   "t": "canlandirma",
+   "p": [
+    0.3,
+    0.3,
+    0.4
+   ],
+   "b": ""
+  },
+  {
+   "g": "u18",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    18,
+    1
+   ],
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "b": "Gökyüzüne"
+  },
+  {
+   "g": "u16",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    16,
+    1
+   ],
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "b": ""
+  },
+  {
+   "g": "u14",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    14,
+    1
+   ],
+   "c": [
+    0.375,
+    0.375,
+    0.25
+   ],
+   "b": ""
+  },
+  {
+   "g": "u12",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    12,
+    1
+   ],
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "b": ""
+  },
+  {
+   "g": "u9",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    9,
+    1
+   ],
+   "c": [
+    0.4375,
+    0.4375,
+    0.125
+   ],
+   "b": ""
+  },
+  {
+   "g": "u6",
+   "t": "uydu",
+   "u": [
+    40.18111,
+    29.08111,
+    6,
+    1
+   ],
+   "b": ""
+  }
+ ]
+}
