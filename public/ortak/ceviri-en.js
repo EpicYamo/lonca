@@ -1071,4 +1071,6 @@ export const EN = {
   "Eserler yükleniyor…": "Loading sites…",
   "\"{0}\" için modül bulunamadı. Eserler bölümüne bak.": "No module found for \"{0}\". Try the Sites tab.",
   "Eserler yüklenemedi: {0}. Bağlantını kontrol et.": "Could not load sites: {0}. Check your connection.",
+  "Haritayı iki parmakla kaydır": "Use two fingers to move the map",
+  "Harita yükleniyor…": "Loading map…",
 };

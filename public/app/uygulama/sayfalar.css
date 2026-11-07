@@ -112,3 +112,23 @@
   .kabuk :is(.kabuk-perde, .eser-penceresi[open], .galeri[open], .arama-alani, .ekran-gecis) { animation: none !important; }
   .kabuk :is(#davet-karti, .ayarlar) { transition: none; }
 }
+
+/* ---------- Giriş, kayıt ve tanışma: tam sayfa (karşılama ekranı da tam sayfa; aradaki geçişte düzen değişmez) ----------
+   İçerik telefonda kenardan kenara, geniş ekranda 460px'lik sütunda ortalanır. Aşağı çekince kapanmaz (zarif.js);
+   "Vazgeç" ve Android geri tuşu kapatır. */
+.kabuk :is(#hesap-penceresi, #tanisma) {
+  align-items: stretch; padding: 0 0 var(--klavye, 0px); background: var(--yuzey);
+  -webkit-backdrop-filter: none; backdrop-filter: none; animation: tam-sayfa-gel .34s var(--egri-gir) both;
+}
+.kabuk :is(#hesap-penceresi, #tanisma) > .ayarlar-kutu {
+  align-content: center; width: 100%; max-width: none; height: calc(100dvh - var(--klavye, 0px)); max-height: none; margin: 0;
+  padding: calc(env(safe-area-inset-top) + 2rem) max(1.4rem, calc((100% - 460px) / 2)) calc(1.5rem + env(safe-area-inset-bottom));
+  border-radius: 0; box-shadow: none; overflow-y: auto; overscroll-behavior: contain; animation: none;
+}
+.kabuk :is(#hesap-penceresi, #tanisma) > .ayarlar-kutu::before { display: none; }
+.kabuk #hesap-penceresi .hesap-logo, .kabuk #hesap-penceresi .hesap-logo svg { width: 64px; height: 64px; }
+.kabuk #hesap-penceresi h2, .kabuk #tanisma h2 { font-size: 2rem; line-height: 1.1; }
+.kabuk :is(#hesap-penceresi, #tanisma) :is(.dugme, .hesap-gonder) { min-height: 52px; border-radius: 99px; }
+@keyframes tam-sayfa-gel { from { opacity: 0; transform: translateY(24px); } }
+:root.hareket-az.kabuk :is(#hesap-penceresi, #tanisma) { animation: none; }
+@media (prefers-reduced-motion: reduce) { .kabuk :is(#hesap-penceresi, #tanisma) { animation: none; } }

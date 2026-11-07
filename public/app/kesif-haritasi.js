@@ -73,7 +73,7 @@ async function maplibreSurucusu(kap, { onBosTik }) {
     harita.setStyle(koyu ? STIL.koyu : STIL.acik);
   }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tema", "class"] });
   await new Promise((coz, reddet) => {
-    const zaman = setTimeout(() => reddet(new Error("3B harita zamanında açılamadı")), 15000);
+    const zaman = setTimeout(() => reddet(new Error("3B harita zamanında açılamadı")), 8000);
     harita.once("load", () => { clearTimeout(zaman); coz(); });
     // Tek bir karonun gelmemesi haritayı düşürmez; yalnızca stilin kendisi yüklenemezse düz haritaya geçilir.
     const hata = (o) => { if (!o.sourceId && !o.tile && !harita.isStyleLoaded()) { clearTimeout(zaman); harita.off("error", hata); reddet(o.error ?? new Error("3B harita açılamadı")); } };
@@ -247,6 +247,9 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
     eserler = tum.filter((e) => Number.isFinite(Number(e?.konum?.lat)) && Number.isFinite(Number(e?.konum?.lng)));
     dalislar = new Set(d.map((x) => x.eser));
     const secenek = { onBosTik: () => { if (!kart.hidden) kartKapat(); } };
+    // Harita gelene kadar boş alan değil, yükleniyor yazısı görünür.
+    const yukleniyor = el("p", { className: "kh-yukleniyor", textContent: "Harita yükleniyor…" });
+    kap.parentElement.append(yukleniyor);
     if (webglVar()) {
       try { surucu = await maplibreSurucusu(kap, secenek); } catch (h) {
         console.warn("3B harita açılamadı, düz haritaya geçiliyor:", h.message);
@@ -256,6 +259,7 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
     }
     surucu ??= await leafletSurucusu(kap, secenek);
     kap.dataset.surucu = surucu.tur;
+    yukleniyor.remove();
     for (const e of eserler) isaretOlustur(e);
     ilSeciciKur();
     // Eserlerin çoğu Bursa'nın tarihî merkezinde: ilk görünüm orası; başka bir il seçilince oraya sığdırılır.
@@ -263,7 +267,7 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
     if (merkez.length > 5) surucu.merkezeGit(); else surucu.sigdir(eserler);
     $("#harita-sayi").textContent = `${eserler.length} eser haritada`;
   }
-  const hazirla = () => (kuruldu ??= kur().catch((h) => { kuruldu = null; kap.replaceChildren(el("p", { className: "bos", textContent: `Harita açılamadı: ${h.message}` })); }));
+  const hazirla = () => (kuruldu ??= kur().catch((h) => { kuruldu = null; document.querySelector(".kh-yukleniyor")?.remove(); kap.replaceChildren(el("p", { className: "bos", textContent: `Harita açılamadı: ${h.message}` })); }));
 
   // Yakınımdaki eserler: konum yalnızca burada sorulur; en yakın 8 eser görünecek biçimde yakınlaşır.
   $("#kh-yakin").addEventListener("click", async () => {
