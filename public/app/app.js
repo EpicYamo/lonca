@@ -208,7 +208,9 @@ function yontemlerOlustur(modul) {
 
     return {
       "eserler.yakindaki": async (s = {}) => {
+        // Konum, modül açılırken değil yalnızca yakındaki eserler istendiği an sorulur (ilk seferde neden gerektiği anlatılır).
         // Kullanıcı bu modüle konum izni vermediyse cihaz konumu hiç sorulmaz; örnek konum kullanılır.
+        if (!ONIZLEME && raf.istenenIzinler(modul).includes("konum")) await izinSor(modul, ["konum"]);
         const izinli = ONIZLEME || !raf.istenenIzinler(modul).includes("konum") || raf.izinDurumu(modul.id, "konum") !== false;
         const k = izinli ? await konumAl() : { ...DEMO_KONUM, ornek: true };
         const q = new URLSearchParams({ lat: k.lat, lng: k.lng, limit: Math.min(Number(s.limit) || 10, 50) });
@@ -512,13 +514,13 @@ $("#modullerim-duzenle").addEventListener("click", () => { rafDuzenleme = !rafDu
 
 // ---------- İzin sorma ----------
 const KONUM_IKONU = '<svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="currentColor"/></svg>';
-function izinSor(m) {
-  const sorulacak = raf.sorulmamisIzinler(m);
+function izinSor(m, yalnizca = null) {
+  const sorulacak = raf.sorulmamisIzinler(m).filter((iz) => !yalnizca || yalnizca.includes(iz));
   if (ONIZLEME || !sorulacak.length) return Promise.resolve();
   const d = $("#izin-penceresi");
   $("#izin-ikon").innerHTML = KONUM_IKONU;
   $("#izin-baslik").textContent = `${m.ad} izin istiyor`;
-  $("#izin-alt").textContent = "Uygulama açılmadan önce, ne için istediğini bilmeni istiyoruz.";
+  $("#izin-alt").textContent = "Cihazın sana izni sormadan önce, ne için istendiğini bilmeni istiyoruz.";
   $("#izin-listesi").replaceChildren(...sorulacak.map((iz) => {
     const b = raf.IZIN_BILGISI[iz];
     return el("li", {}, el("strong", { textContent: b.ad }), el("span", { textContent: b.neden }), el("small", { textContent: b.reddedilince }));
@@ -587,7 +589,6 @@ function acilisBitir() {
 
 let calisan = null; // { modul, iptal, sahneApi }
 async function moduluAc(m, karo) {
-  await izinSor(m);
   if (!ONIZLEME) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
   depo.yaz("lonca.son-modul", { id: m.id, zaman: Date.now() });
   calisan?.iptal.abort();
