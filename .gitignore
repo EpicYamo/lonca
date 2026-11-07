@@ -22,6 +22,9 @@ data/kalfa-model-durumu.json
 
 # Eşleşen cihazların anahtar özetleri (her makinede ayrı)
 data/cihazlar.json
+# Hesaplar (şifre özetleri) ve oturum imza anahtarı (her makinede ayrı, asla depoya girmez)
+data/kullanicilar.json
+data/.oturum-anahtari
 
 # Android uygulaması (./apk.sh ile üretilir)
 mobil/www/

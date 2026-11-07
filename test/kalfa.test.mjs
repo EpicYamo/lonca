@@ -40,12 +40,19 @@ test("sahte kalfa her istek türü için geçerli bir modül üretir", async () 
   }
 });
 
+test("giriş yapmamış biri kalfayla konuşamaz", async () => {
+  const s = await deneySunucusu();
+  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "bir oyun" }] } });
+  assert.equal(y.statusCode, 401);
+  await s.app.close();
+});
+
 test("kalfa uç noktası hız sınırına uyar", async () => {
   const s = await deneySunucusu({ KALFA_SINIR: "2" });
   const govde = { sohbet: [{ rol: "usta", metin: "bir oyun" }] };
-  assert.equal((await s.istek("POST", "/api/kalfa", { govde })).statusCode, 200);
-  assert.equal((await s.istek("POST", "/api/kalfa", { govde })).statusCode, 200);
-  assert.equal((await s.istek("POST", "/api/kalfa", { govde })).statusCode, 429);
+  assert.equal((await s.istek("POST", "/api/kalfa", { govde, usta: true })).statusCode, 200);
+  assert.equal((await s.istek("POST", "/api/kalfa", { govde, usta: true })).statusCode, 200);
+  assert.equal((await s.istek("POST", "/api/kalfa", { govde, usta: true })).statusCode, 429);
   await s.app.close();
 });
 

@@ -139,7 +139,7 @@ ${ornekOyun}
   // secenek.model: yalnızca bu istek için başka bir model (model taraması kullanır); secenek.sinyal: iptal.
   async function calistir(sohbet, mevcutKod, { model, sinyal } = {}) {
     let saglayici = saglayiciAl();
-    if (saglayici.tur === "sahte") return sahteYanit(sohbet, ornekOyun);
+    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun), model: "sahte" };
     if (model) saglayici = { ...saglayici, model };
     const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar, sinyal, zamanAsimiMs });
 
@@ -174,6 +174,7 @@ ${ornekOyun}
           sonuclar.push({ id: c.id, hata: true, icerik: `Bilinmeyen araç: ${c.ad}` });
         }
       }
+      // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
       if (teslim) return { ...teslim, deneme, aramalar, model: saglayici.model };
       sonuclariBildir(sonuclar);
     }

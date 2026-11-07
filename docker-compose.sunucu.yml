@@ -1,5 +1,5 @@
 # İnternetteki sunucu için: Lonca'nın önüne HTTPS'li Nginx + Let's Encrypt koyar.
-#   .env: LONCA_ALAN_ADI=lonca.example.com  LONCA_EPOSTA=sen@example.com  LONCA_API_ANAHTARI=...
+#   .env: LONCA_EPOSTA=sen@example.com  LONCA_API_ANAHTARI=...  (LONCA_ALAN_ADI boşsa kozmos.42.fr)
 #   docker compose -f docker-compose.yml -f docker-compose.sunucu.yml up -d --build
 #   ./docker/sertifika-al.sh          # ilk sertifika (bir kez); yenileme kendiliğinden olur
 # Lonca'nın 3000 portu dışarı açılmaz; ona yalnızca Nginx (80/443) ulaşır.
@@ -16,7 +16,7 @@ services:
     depends_on:
       - lonca
     environment:
-      LONCA_ALAN_ADI: ${LONCA_ALAN_ADI:?.env içinde LONCA_ALAN_ADI tanımlı olmalı}
+      LONCA_ALAN_ADI: ${LONCA_ALAN_ADI:-kozmos.42.fr}
       LONCA_YOL_ONEKI: ${LONCA_YOL_ONEKI:-}
     ports:
       - "${LONCA_HTTP_PORT:-80}:80"

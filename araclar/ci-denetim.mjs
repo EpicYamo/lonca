@@ -21,7 +21,7 @@ const oku = async (yol) => {
 
 // ---------- Depoda izlenen dosyalar ----------
 const izlenen = execFileSync("git", ["ls-files", "-z"], { cwd: KOK, encoding: "utf8" }).split("\0").filter(Boolean);
-const YASAK = [/(^|\/)\.env$/, /(^|\/)\.env\.(?!example$)[^/]+$/, /\.(keystore|jks|p12|pem|key)$/, /^mobil\/anahtar\//, /(^|\/)local\.properties$/, /^data\/cihazlar\.json$/];
+const YASAK = [/(^|\/)\.env$/, /(^|\/)\.env\.(?!example$)[^/]+$/, /\.(keystore|jks|p12|pem|key)$/, /^mobil\/anahtar\//, /(^|\/)local\.properties$/, /^data\/cihazlar\.json$/, /^data\/kullanicilar\.json$/, /^data\/\.oturum-anahtari$/];
 for (const d of izlenen) if (YASAK.some((r) => r.test(d))) hata(`${d}: gizli/yerel dosya depoya girmemeli`);
 
 // Tüm izlenen JSON dosyaları ayrıştırılabilmeli.

@@ -175,3 +175,21 @@ export function kalfaAyarDogrula(veri, modeller = null) {
   if (!hatalar.length && !Object.keys(ayar).length) hatalar.push(`en az bir alan gerekli: ${KALFA_AYAR_ALANLARI.join(", ")}`);
   return { hatalar, ayar };
 }
+
+// ---------- Hesaplar ----------
+export const ROLLER = ["vatandas", "usta", "editor"];
+export const PROFIL_RENKLERI = ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"];
+const KULLANICI_ADI = /^[a-z0-9_.-]{3,32}$/;
+export const kullaniciAdiDuzelt = (k) => String(k ?? "").toLocaleLowerCase("tr").trim();
+export const kullaniciAdiGecerli = (k) => typeof k === "string" && KULLANICI_ADI.test(kullaniciAdiDuzelt(k));
+
+/** Kayıt ve giriş gövdesi. Şifrenin üst sınırı scrypt'e dev girdi verilmesini önler. */
+export function hesapGirdisiDogrula(veri, { kayit = false } = {}) {
+  const hatalar = [];
+  if (!veri || typeof veri !== "object" || Array.isArray(veri)) return ["gövde bir nesne olmalı"];
+  if (!kullaniciAdiGecerli(veri.kimlik)) hatalar.push("Kullanıcı adı 3-32 karakter olmalı: küçük harf, rakam ya da . _ -");
+  if (typeof veri.sifre !== "string" || veri.sifre.length > 200) hatalar.push("Şifre en çok 200 karakter olabilir");
+  else if (kayit && veri.sifre.length < 8) hatalar.push("Şifre en az 8 karakter olmalı");
+  if (kayit && veri.rol != null && !ROLLER.includes(veri.rol)) hatalar.push(`rol: ${ROLLER.join(" | ")}`);
+  return hatalar;
+}

@@ -31,6 +31,8 @@
     <symbol id="i-gunes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
     <symbol id="i-ay" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
     <symbol id="i-ayar" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-kisi" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-kilit" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
     <symbol id="i-foto" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/></symbol>
   </svg>
 
@@ -46,6 +48,9 @@
     <button id="model" class="rozet model-d" type="button" title="Kalfanın kullandığı yapay zekâ modeli; değiştirmek için tıkla"><span class="nokta" aria-hidden="true"></span><span id="model-ad">Kalfa bağlanıyor…</span></button>
     <button id="tema-d" class="ikon-d" type="button" aria-label="Koyu temaya geç" title="Tema">
       <svg class="ik tema-ay" aria-hidden="true"><use href="#i-ay"/></svg><svg class="ik tema-gunes" aria-hidden="true"><use href="#i-gunes"/></svg>
+    </button>
+    <button id="hesap-d" class="rozet yonetici hesap-d" type="button" hidden>
+      <svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-ad">Giriş yap</span>
     </button>
     <button id="yonetici" class="rozet yonetici" type="button" title="Yönetici girişi">Yönetici</button>
   </header>
@@ -93,6 +98,15 @@
           <p>Hoş geldin usta. Vakıf eserleriyle ilgili bir fikir anlat; modülünü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
         </li>
       </ol>
+      <div class="kilit-karti" id="atolye-kilit" hidden>
+        <span class="kilit-ikon" aria-hidden="true"><svg class="ik"><use href="#i-kilit"/></svg></span>
+        <h3>Kalfayla çalışmak için giriş yap</h3>
+        <p class="aciklama">Modül yazdırmak ve onaya göndermek usta ya da editör hesabı ister. Taslakların hesabına bağlanır; yayın yine editör onayıyla olur.</p>
+        <div class="eylemler">
+          <button type="button" class="birincil" id="kilit-giris">Giriş yap</button>
+          <button type="button" class="ikincil" id="kilit-kayit">Hesap oluştur</button>
+        </div>
+      </div>
       <div class="besteci">
         <div id="oneriler" class="oneriler" aria-label="Örnek fikirler">
           <button type="button">Çocuklar için hanlarda hazine avı</button>
@@ -339,6 +353,38 @@
         <button class="ikincil" value="kapat" formnovalidate>Kapat</button>
         <button class="metin-d" type="button" id="model-sifirla" title="Bu sekmedeki seçimi sil; .env ya da varsayılan geçerli olur">.env'e dön</button>
       </div>
+    </form>
+  </dialog>
+
+  <dialog id="hesap-pencere" class="giris hesap-pencere" aria-labelledby="hesap-baslik">
+    <form method="dialog" id="hesap-formu">
+      <h2 class="pencere-h" id="hesap-baslik"><svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-baslik-metin">Giriş yap</span></h2>
+      <div class="kip hesap-kip" role="radiogroup" aria-label="Giriş ya da kayıt">
+        <button type="button" role="radio" aria-checked="true" data-hesap-kip="giris" class="secili">Giriş yap</button>
+        <button type="button" role="radio" aria-checked="false" data-hesap-kip="kayit">Hesap oluştur</button>
+      </div>
+      <label>Kullanıcı adı <input id="hesap-kimlik" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required pattern="[a-z0-9_.\-]{3,32}" title="3-32 karakter: küçük harf, rakam ya da . _ -" placeholder="su.gungor"></label>
+      <label>Şifre <input id="hesap-sifre" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter"></label>
+      <fieldset class="hesap-kayit" id="hesap-kayit-alanlari" hidden>
+        <legend>Rol</legend>
+        <label class="rol-secenek"><input type="radio" name="rol" value="usta" checked><span><b>Usta</b><small>Kalfayla modül yazar, onaya gönderir.</small></span></label>
+        <label class="rol-secenek"><input type="radio" name="rol" value="editor"><span><b>Editör</b><small>Onaylar ve yayınlar. Davet anahtarı ister.</small></span></label>
+        <label id="hesap-davet-etiketi" hidden>Editör davet anahtarı <input id="hesap-davet" type="password" autocomplete="off" maxlength="200"></label>
+      </fieldset>
+      <p id="hesap-hata" class="durum kotu" role="alert"></p>
+      <div class="eylemler">
+        <button class="birincil" value="gonder" id="hesap-gonder">Giriş yap</button>
+        <button class="ikincil" value="iptal" formnovalidate>Vazgeç</button>
+        <button class="metin-d" type="button" id="hesap-yonetici">Yönetici şifresiyle gir</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="hesap-kart" class="giris" aria-labelledby="hesap-kart-h">
+    <form method="dialog">
+      <h2 class="pencere-h" id="hesap-kart-h"><svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-kart-ad"></span></h2>
+      <p class="aciklama" id="hesap-kart-rol"></p>
+      <div class="eylemler"><button class="tehlike" value="cikis">Çıkış yap</button><button class="ikincil" value="kapat">Kapat</button></div>
     </form>
   </dialog>
 
