@@ -244,7 +244,7 @@ function susleKur() {
   alt.innerHTML = `<div class="wa-cini" aria-hidden="true"></div>
     <div class="wa-ic">
       <div class="wa-marka"><span class="wa-logo" aria-hidden="true"></span><div><strong>Lonca</strong>
-        <p>Bursa'nın vakıf eserlerini rehberler, oyunlar, haritalar ve dalışlarla keşfet. İçerik kaynaklı; her ad ve tarih envanterde geçer.</p></div></div>
+        <p>Bursa, Konya ve Hatay'ın vakıf eserlerini rehberler, oyunlar, haritalar ve dalışlarla keşfet. İçerik kaynaklı; her ad ve tarih envanterde geçer.</p></div></div>
       <nav class="wa-baglantilar" aria-label="Alt bilgi">
         <div><h2>Keşfet</h2><a href="/">Ana sayfa</a><a href="/#/kesif">Harita</a><a href="/#/moduller">Modüller</a></div>
         <div><h2>Katkı</h2><a href="/#/profil">Profilim</a><a href="/studio/" target="_blank" rel="noopener">Lonca Studio</a><button type="button" class="wa-oner">Eser öner</button></div>

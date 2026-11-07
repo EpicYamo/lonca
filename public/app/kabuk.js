@@ -252,7 +252,7 @@ function eserSayfasiKur() {
 
 // ---------- Kaydırmalı tanıtım (yalnızca ilk açılışta, karşılamadan önce) ----------
 const TANITIM = [
-  { baslik: "Bursa'nın vakıf eserleri, cebinde", metin: "Camiler, hanlar, türbeler ve çeşmeler: envanter kaydı, fotoğrafları ve tarihçesiyle." },
+  { baslik: "Vakıf eserleri, cebinde", metin: "Camiler, hanlar, türbeler ve çeşmeler: envanter kaydı, fotoğrafları ve tarihçesiyle." },
   { baslik: "Haritada keşfet", metin: "Yakınındaki eserleri bul, haritada gez, bir eserden ilişkili eserlere geç." },
   { baslik: "Rehberler, oyunlar ve dalışlar", metin: "Modülleri aç, eserlerin içine dal; puan ve başarım topla, ilerlemen seninle kalsın." },
 ];

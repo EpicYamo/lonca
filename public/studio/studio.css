@@ -605,6 +605,7 @@ a.dugme-bag { text-decoration: none; }
   background: var(--girdi) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238394a6' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='M16 16l4.5 4.5'/%3E%3C/svg%3E") no-repeat .7rem 50% / 16px;
 }
 .arama:focus { outline: none; border-color: var(--vurgu); box-shadow: 0 0 0 3px var(--odak); }
+select.arama { background-image: none; padding-left: .8rem; }   /* il süzgeci: arama simgesi yok */
 
 .tamlik { display: grid; gap: 12px; padding: 14px; border-radius: var(--r-m); background: var(--zemin-2); border: 1px solid var(--cizgi); }
 .tamlik:empty { display: none; }

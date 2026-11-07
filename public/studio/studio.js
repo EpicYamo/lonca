@@ -1392,12 +1392,24 @@ const ALAN_VAR = {
   ad: (e) => !!e.ad, tur: (e) => !!e.tur, il: (e) => !!e.il, ilce: (e) => !!e.ilce, yuzyil: (e) => Number.isInteger(e.yuzyil),
   konum: (e) => Number.isFinite(e.konum?.lat), adres: (e) => !!e.adres?.trim?.(), tarihce: (e) => !!e.tarihce?.tr,
 };
+// İl süzgeci eldeki eserlerden dolar (Bursa, Konya, Hatay…); seçim yeniden çizimde korunur.
+function ilSecimiCiz() {
+  const sec = $("#eser-il"), secili = sec.value;
+  const sayilar = new Map();
+  for (const e of tumEserler) if (e.il) sayilar.set(e.il, (sayilar.get(e.il) ?? 0) + 1);
+  const iller = [...sayilar.keys()].sort((a, b) => a.localeCompare(b, "tr"));
+  sec.replaceChildren(el("option", { value: "", textContent: "Tüm iller" }),
+    ...iller.map((il) => el("option", { value: il, textContent: `${il} (${sayilar.get(il)})` })));
+  sec.value = iller.includes(secili) ? secili : "";
+}
 function eserListesiniCiz() {
+  ilSecimiCiz();
   const kelime = $("#eser-ara").value.trim().toLocaleLowerCase("tr");
-  const liste = tumEserler.filter((e) => !kelime || e.ad.toLocaleLowerCase("tr").includes(kelime));
+  const il = $("#eser-il").value;
+  const liste = tumEserler.filter((e) => (!il || e.il === il) && (!kelime || e.ad.toLocaleLowerCase("tr").includes(kelime)));
   const sonuc = $("#suz-sonuc");
   if (sonuc) sonuc.textContent = `${liste.length} eser listeleniyor`;
-  $("#eser-listesi").replaceChildren(...liste.slice(0, 400).map((e) => {
+  $("#eser-listesi").replaceChildren(...liste.slice(0, 1000).map((e) => {
     const eksik = Object.entries(ALAN_VAR).filter(([, f]) => !f(e)).map(([a]) => ALAN_ADLARI[a]);
     const noktalar = el("span", { className: "noktalar", role: "img", ariaLabel: eksik.length ? `Eksik: ${eksik.join(", ")}` : "Bilgisi tam" },
       ...Object.values(ALAN_VAR).map((f) => el("i", { className: f(e) ? "var" : "" })));
@@ -1405,13 +1417,14 @@ function eserListesiniCiz() {
     const b = el("button", { type: "button", className: `eser-satir${seciliEser?.id === e.id ? " secili" : ""}` },
       e.fotograflar?.[0] ? el("img", { src: e.fotograflar[0], alt: "", loading: "lazy" }) : el("span", { className: "foto-yok", textContent: "—" }),
       el("span", {}, el("strong", { textContent: e.ad }),
-        el("small", { textContent: [TUR_ADI[e.tur], e.yuzyil ? `${e.yuzyil}. yy` : null, `${e.fotograflar?.length ?? 0} foto`].filter(Boolean).join(" · ") }),
+        el("small", { textContent: [TUR_ADI[e.tur], [e.ilce, e.il].filter(Boolean).join(", ") || null, e.yuzyil ? `${e.yuzyil}. yy` : null, `${e.fotograflar?.length ?? 0} foto`].filter(Boolean).join(" · ") }),
         noktalar));
     b.addEventListener("click", () => formuAc(e));
     return el("li", {}, b);
   }));
 }
 $("#eser-ara").addEventListener("input", eserListesiniCiz);
+$("#eser-il").addEventListener("change", eserListesiniCiz);
 
 let formIlkHali = "";
 const formAnahtari = () => { const v = formVerisi(); delete v.fotograflar; return JSON.stringify(v); };
