@@ -77,6 +77,23 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
 
+  erisilebilirlik:
+    name: Erişilebilirlik (axe, WCAG 2.2 AA)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: npm run test:erisim
+        env:
+          ERISIM_AYRINTI: "1"
+        run: npm run test:erisim
+
   bagimlilik:
     name: Bağımlılık denetimi
     runs-on: ubuntu-latest

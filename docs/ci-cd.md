@@ -26,6 +26,7 @@ feat/… duzelt/… docs/…  ──PR──▶  dev  ──PR (beta)──▶  
 | Test (Node 20.19, 22) | `npm test`: API, yetki, doğrulama, kalfa denetimi |
 | Lint, biçim ve tutarlılık | `npm run lint` (ESLint), `npm run format:check` (Prettier), `npm run denetle` (veri ve modül sözleşmesi, depoya girmemesi gereken dosyalar), `node --check`, `bash -n apk.sh` |
 | Uçtan uca | `npm run test:e2e`, Playwright Chromium ile |
+| Erişilebilirlik | `npm run test:erisim`: axe-core (WCAG 2.2 AA), klavye yolu, büyük yazı, Playwright Chromium ile |
 | Bağımlılık denetimi | `npm audit --omit=dev --audit-level=high` engeller; tüm bağımlılıklar için `npm audit` yalnızca uyarır |
 | Sır taraması | gitleaks, tüm git geçmişi üzerinde |
 | Docker | İmaj derlenir, konteyner açılır: `/api/merhaba`, imajın HEALTHCHECK komutu, `/api/eserler`, statik yollar; ardından `LONCA_API_ANAHTARI` ile 401/200 denetimi |
