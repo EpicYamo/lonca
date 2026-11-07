@@ -3,6 +3,7 @@ import { ikon } from "/ortak/ikonlar.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { konfeti, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
 import { dalisKur, dalisKareleri } from "./dalis.js";
+import { eserKisaRozeti } from "/ortak/dogrulama.js";
 
 const MAKS_DUGUM = 900, MAKS_DERINLIK = 24;
 const metin = (x) => (x == null ? "" : String(x));
@@ -90,11 +91,11 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
         d.dataset.odak = `eser:${n.id ?? ""}:${metin(e.id)}`;
         if (boyut === "satir") {
           d.append(gorsel(e, "s-eser-kucuk-gorsel"), el("span", { className: "s-eser-metin" },
-            el("strong", { textContent: metin(e.ad) }), el("span", { textContent: [turAdi(e.tur), e.yuzyil ? `${e.yuzyil}. yüzyıl` : ""].filter(Boolean).join(" · ") })));
+            el("strong", {}, metin(e.ad), eserKisaRozeti(e)), el("span", { textContent: [turAdi(e.tur), e.yuzyil ? `${e.yuzyil}. yüzyıl` : ""].filter(Boolean).join(" · ") })));
         } else {
           d.append(gorsel(e, "s-eser-gorsel"), el("span", { className: "s-eser-govde" },
             boyut === "buyuk" ? cipler(e) : null,
-            el("strong", { className: "s-eser-ad", textContent: metin(e.ad) }),
+            el("strong", { className: "s-eser-ad" }, metin(e.ad), eserKisaRozeti(e)),
             boyut === "buyuk" ? yerBilgisi(e) : el("span", { className: "s-eser-tur", textContent: turAdi(e.tur) })));
         }
         dokun(d, n.id ?? "eser", { eser: e });

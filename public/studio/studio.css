@@ -1071,3 +1071,13 @@ body { height: min(100dvh, var(--gorunur-yukseklik, 100dvh)); }
   .klavye-gorunur body { grid-template-rows: var(--ust-h) minmax(0, 1fr) 0; }
   .klavye-gorunur .sekmeler { display: none; }
 }
+
+/* Kalfa izin kartları (admin) ve ustanın eser isteği kartı */
+.izin-karti { margin-top: .6rem; padding: .6rem .7rem; border: 1px solid var(--cizgi); border-left: 3px solid var(--vurgu); border-radius: var(--r-s); background: var(--zemin-2); font-size: .84rem; display: grid; gap: .35rem; }
+.izin-karti p { margin: 0; }
+.izin-baslik { font-weight: 600; color: var(--metin); }
+.izin-kaynak, .izin-not { color: var(--soluk); line-height: 1.4; overflow-wrap: anywhere; }
+.izin-kaynak a { color: var(--vurgu); }
+.izin-girdi { width: 100%; box-sizing: border-box; font: inherit; padding: .4rem .5rem; border: 1px solid var(--cizgi); border-radius: var(--r-s); background: var(--zemin); color: var(--metin); resize: vertical; }
+.izin-sonuc { font-weight: 500; color: var(--soluk); }
+.izin-sonuc.hata { color: var(--hata, #b42318); }

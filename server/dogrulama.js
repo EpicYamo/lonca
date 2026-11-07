@@ -61,6 +61,18 @@ export function eserDogrula(veri, { kismi = false } = {}) {
     }
   }
   if (var_("sergi")) eser.sergi = kirp(veri.sergi, 200) || null;
+  // Doğrulama: Vakıf Katılım envanteri dışındaki (ör. Vikipedi) kayıtlar "dogrulanmis: false" ve kaynak bağlantısı taşır.
+  // Alan yoksa kayıt doğrulanmış sayılır (eski kayıtlar). Doğrulanmamış kayıtta kaynak bağlantısı zorunludur.
+  if (Object.hasOwn(veri, "dogrulanmis")) {
+    if (typeof veri.dogrulanmis !== "boolean") hatalar.push("dogrulanmis: true | false");
+    else eser.dogrulanmis = veri.dogrulanmis;
+  }
+  if (Object.hasOwn(veri, "kaynakTuru")) eser.kaynakTuru = kirp(veri.kaynakTuru, 40) || null;
+  if (Object.hasOwn(veri, "kaynakUrl")) {
+    eser.kaynakUrl = kirp(veri.kaynakUrl, 400) || null;
+    if (eser.kaynakUrl && !/^https:\/\/[^\s"'<>]+$/i.test(eser.kaynakUrl)) hatalar.push("kaynakUrl: https ile başlayan bir bağlantı olmalı");
+  }
+  if (eser.dogrulanmis === false && !kismi && !eser.kaynakUrl) hatalar.push("doğrulanmamış kayıtta kaynak bağlantısı (kaynakUrl) zorunlu");
   return { hatalar, eser };
 }
 
@@ -275,4 +287,23 @@ export function davetKoduUret(rastgele = rastgeleSayi) {
 export function davetKoduCoz(girdi) {
   const k = String(girdi ?? "").toUpperCase().replace(/[\s-]/g, "");
   return k.length === 8 && [...k].every((c) => DAVET_ABECESI.includes(c)) ? `${k.slice(0, 4)}-${k.slice(4)}` : null;
+}
+
+// Ustanın kalfa sohbetinden admin'e gönderdiği eser isteği: yalnızca ad, il ve not (tarihî bilgi değil).
+export function eserIstegiDogrula(veri) {
+  const hatalar = [];
+  if (!veri || typeof veri !== "object" || Array.isArray(veri)) return { hatalar: ["istek: { ad, il?, not? } olmalı"], istek: null };
+  const istek = { ad: kirp(veri.ad, 120), il: kirp(veri.il, 40) || null, not: kirp(veri.not, 600) || null };
+  if (istek.ad.length < 2) hatalar.push("istenen eserin adı en az 2 karakter olmalı");
+  return { hatalar, istek: hatalar.length ? null : istek };
+}
+
+// Admin'in kalfa izin kartındaki yanıtı: { id, karar }.
+export function izinKarariDogrula(izin) {
+  if (izin == null) return [];
+  if (typeof izin !== "object" || Array.isArray(izin)) return ["izin: { id, karar } olmalı"];
+  const hatalar = [];
+  if (typeof izin.id !== "string" || !/^[a-f0-9-]{4,40}$/.test(izin.id)) hatalar.push("izin.id geçersiz");
+  if (!["ver", "reddet", "bilgi-bankasi", "modul"].includes(izin.karar)) hatalar.push("izin.karar: ver | reddet | bilgi-bankasi | modul");
+  return hatalar;
 }

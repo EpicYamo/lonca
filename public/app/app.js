@@ -8,6 +8,7 @@ import { gecis, ciz, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
 import { loncaLogo } from "/ortak/logo.js";
 import { modulSurumu } from "/ortak/arama.js";
 import * as raf from "./modullerim.js";
+import { modulRozeti } from "/ortak/dogrulama.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
 import { kesifHaritasiKur } from "./kesif-haritasi.js";
 import { googleIleBaslat, googleDonusuOku, uygulamaDonusunuDinle, googleKodTakas } from "/ortak/google-giris.js";
@@ -464,7 +465,7 @@ function oneCikanlariCiz(kapaklar) {
       arka,
       el("span", { className: "oc-govde" },
         el("span", { className: "oc-etiket", textContent: raf.yeniMi(m.id) ? `Yeni · ${KATEGORI_ADI[kategoriBul(m)]}` : KATEGORI_ADI[kategoriBul(m)] }),
-        el("span", { className: "oc-ad", textContent: m.ad }),
+        el("span", { className: "oc-ad" }, m.ad, modulRozeti(m)),
         el("span", { className: "oc-aciklama", textContent: m.aciklama }),
         el("span", { className: "oc-alt" }, uygulamaIkonu(m, "kucuk"),
           el("span", { className: "oc-alt-metin", ariaHidden: "true" }, el("strong", { textContent: m.ad }), el("span", { textContent: kapak?.eser ? `Kapak: ${kapak.eser}` : "Lonca uygulaması" })),
@@ -512,7 +513,7 @@ function uygulamalariCiz({ animasyonsuz = false } = {}) {
       kapak,
       uygulamaIkonu(m),
       el("span", { className: "us-metin" },
-        el("span", { className: "us-ad" }, m.ad, yeni ? el("span", { className: "yeni-rozet", textContent: "Yeni" }) : null),
+        el("span", { className: "us-ad" }, m.ad, modulRozeti(m), yeni ? el("span", { className: "yeni-rozet", textContent: "Yeni" }) : null),
         el("span", { className: "us-kategori" }, KATEGORI_ADI[kategoriBul(m)],
           izinler.length ? el("span", { className: "us-izin", textContent: ` · ${izinler.join(", ")} ister` }) : null),
         el("span", { className: "us-aciklama", textContent: m.aciklama }),

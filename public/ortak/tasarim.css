@@ -44,3 +44,9 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Doğrulama işareti (public/ortak/dogrulama.js): doğrulanmış vakıf eseri ✓, dış kaynaklı içerikte kaynak etiketi */
+.dogrulama-tik { display: inline-flex; align-items: center; justify-content: center; inline-size: 1.15em; block-size: 1.15em; margin-inline-start: .35em; border-radius: 50%; background: #1f7a4d; color: #fff; font-size: .72em; font-weight: 700; line-height: 1; vertical-align: .12em; flex: none; }
+.dogrulama-tik.metinli { inline-size: auto; block-size: auto; padding: .15em .55em; border-radius: 999px; font-size: .78em; vertical-align: baseline; }
+/* Etiket büyük başlıklarda da küçük ve düz yazıyla kalır; dar kartta kırılır, kartı taşırmaz. */
+.dogrulama-yok { display: inline-block; max-inline-size: 100%; margin-inline-start: .6em; padding: .1em .55em; border: 1px solid currentColor; border-radius: 999px; font-family: var(--sans, var(--yazi-govde, system-ui, sans-serif)); font-size: min(.72em, .78rem); font-weight: 500; letter-spacing: normal; line-height: 1.35; opacity: .8; vertical-align: .15em; white-space: normal; overflow-wrap: anywhere; }
