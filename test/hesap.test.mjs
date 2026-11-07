@@ -100,15 +100,20 @@ test("rolü düşürülen hesap eski jetonuyla yetkisini hemen kaybeder", async 
   assert.equal((await s.istek("GET", "/api/moduller?durum=hepsi", { basliklar: yetki(editor.jeton) })).statusCode, 401);
 });
 
-test("admin (editör) her şeyi düzenler; usta Studio listelerini yalnızca görür; vatandaş göremez", async () => {
+test("admin (editör) her şeyi düzenler; usta yalnızca kendi modüllerini görür; admin bölümleri ustaya 403; vatandaş göremez", async () => {
   const editor = await rolluAc("api-editor", "editor");
   const usta = await kaydol({ kimlik: "api-usta", sifre: "sifresifre" });
   const vatandas = await rolluAc("api-vatandas", "vatandas");
-  const okuma = ["/api/moduller?durum=hepsi", "/api/eser-oneriler", "/api/eser-gecmisi", "/api/dalislar-yonetim"];
-  for (const yol of okuma) {
+  const yol = "/api/moduller?durum=hepsi";
+  assert.equal((await s.istek("GET", yol)).statusCode, 401, `girişsiz ${yol}`);
+  assert.equal((await s.istek("GET", yol, { basliklar: yetki(vatandas.jeton) })).statusCode, 401, `vatandaş ${yol}`);
+  assert.equal((await s.istek("GET", yol, { basliklar: yetki(usta.jeton) })).statusCode, 200, `usta ${yol}`);
+  assert.equal((await s.istek("GET", yol, { basliklar: yetki(editor.jeton) })).statusCode, 200, `editör ${yol}`);
+  // Onay kuyruğu (eser önerileri, hata bildirimleri, eser istekleri), değişiklik geçmişi ve dalış yönetimi yalnızca admin'e.
+  for (const yol of ["/api/eser-oneriler", "/api/eser-oneriler?durum=hepsi", "/api/eser-gecmisi", "/api/dalislar-yonetim"]) {
     assert.equal((await s.istek("GET", yol)).statusCode, 401, `girişsiz ${yol}`);
     assert.equal((await s.istek("GET", yol, { basliklar: yetki(vatandas.jeton) })).statusCode, 401, `vatandaş ${yol}`);
-    assert.equal((await s.istek("GET", yol, { basliklar: yetki(usta.jeton) })).statusCode, 200, `usta ${yol}`);
+    assert.equal((await s.istek("GET", yol, { basliklar: yetki(usta.jeton) })).statusCode, 403, `usta ${yol}`);
     assert.equal((await s.istek("GET", yol, { basliklar: yetki(editor.jeton) })).statusCode, 200, `editör ${yol}`);
   }
   const eserId = (await s.istek("GET", "/api/eserler")).json()[0].id;
@@ -123,7 +128,7 @@ test("admin (editör) her şeyi düzenler; usta Studio listelerini yalnızca gö
     ["GET", "/api/kalfa/modeller"],
   ];
   for (const [yontem, yol, govde] of yazma) {
-    assert.equal((await s.istek(yontem, yol, { govde, basliklar: yetki(usta.jeton) })).statusCode, 401, `usta ${yontem} ${yol}`);
+    assert.equal((await s.istek(yontem, yol, { govde, basliklar: yetki(usta.jeton) })).statusCode, 403, `usta ${yontem} ${yol}`);
   }
   // Dalış: usta da hazırlatabilir (yayın yine admin onayıyla); mevcut dalışın üzerine yazamaz; vatandaş hiç kullanamaz.
   assert.equal((await s.istek("POST", "/api/dalis-kalfasi", { govde: {}, basliklar: yetki(vatandas.jeton) })).statusCode, 401);
@@ -262,7 +267,7 @@ test("özel modül onay kuyruğuna girmez, yalnızca paylaşım bağlantısıyla
   assert.equal((await s.istek("GET", `/api/paylasim/${ozel.davetKodu}`)).statusCode, 404);
 
   // Onaylanan herkese açık modül kimliğiyle paylaşılır.
-  assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { usta: true })).statusCode, 401);
+  assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { usta: true })).statusCode, 403);
   const editor = await rolluAc("paylasim-editor", "editor");
   assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { basliklar: yetki(editor.jeton) })).statusCode, 200);
   assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).json().durum, "onayli");
