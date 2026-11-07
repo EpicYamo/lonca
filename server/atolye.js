@@ -171,13 +171,14 @@ export function atolyeKur(dizin) {
     });
   }
 
-  async function kalfaBitir(sahip, id, { sonuc, hata, ayrintilar = [] }) {
+  async function kalfaBitir(sahip, id, { sonuc, hata, ayrintilar = [], kalfaDurumu = null }) {
     try {
       return await sirayla(sahip, (veri) => {
         const o = veri.oturumlar.find((x) => x.id === id);
         if (!o) return { yaz: false };
         o.bekleyen = null;
         if (hata) {
+          if (kalfaDurumu) o.kalfaDurumu = kalfaDurumu;
           mesajEkle(o, { rol: "kalfa", metin: ayrintilar.length ? `${hata}\n• ${ayrintilar.join("\n• ")}` : hata, hata: true });
           return {};
         }

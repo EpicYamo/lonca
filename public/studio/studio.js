@@ -424,6 +424,9 @@ async function gonder(metin, { izin = null } = {}) {
   } catch (h) {
     yaziyor.remove();
     if (bu !== oturumSurumu) return false;
+    // Bağlantı koptu ama kalfa sunucuda sürüyor olabilir (Cloudflare ~100 sn'de vazgeçer): sonuç oturuma yazılır, oradan beklenir.
+    if (oturumId && baglantiKoptu(h) && (await sonucuOturumdanBekle(metin, izin, ustaLi, bu))) return true;
+    if (bu !== oturumSurumu) return false;
     onerileriGoster();
     const ayrinti = h.ayrintilar?.length ? `\n• ${h.ayrintilar.join("\n• ")}` : "";
     mesajEkle("kalfa", h instanceof TypeError ? `Sunucuya ulaşılamadı: ${h.message}. Sunucunun çalıştığını kontrol et.` : `${h.message}${ayrinti}`, { hata: true });
@@ -495,7 +498,8 @@ async function yApi(yol, { method = "GET", govde, yeniden = true, basliklar = {}
   });
   if (y.status === 401 && yeniden && await oturumIste()) return yApi(yol, { method, govde, basliklar, yeniden: false });
   const veri = y.headers.get("content-type")?.includes("json") ? await y.json() : await y.text();
-  if (!y.ok) throw Object.assign(new Error(veri?.hata ?? `İstek başarısız (${y.status})`), { ayrintilar: veri?.ayrintilar ?? [] });
+  // durum ve jsonsuz: sunucumuzun kendi hatası her zaman { hata } taşır; JSON'suz 502/504/524 aradaki vekilden (Cloudflare) gelir.
+  if (!y.ok) throw Object.assign(new Error(veri?.hata ?? `İstek başarısız (${y.status})`), { ayrintilar: veri?.ayrintilar ?? [], durum: y.status, jsonsuz: typeof veri !== "object" || veri === null });
   return veri;
 }
 
@@ -531,6 +535,7 @@ function yetkiGuncelle() {
   gelistirmeRozeti();
   hesapRozetiGuncelle();
   atolyeKilidiGuncelle();
+  karsilamayiGuncelle();
 }
 const acikSayfa = () => document.querySelector(".sekme-d.secili")?.dataset.sayfa ?? "atolye";
 const sayfayiYenile = () => sayfaAc(acikSayfa());
@@ -860,6 +865,15 @@ $("#kilit-kayit").addEventListener("click", () => hesapPenceresiAc({ kip: "kayit
 // geri gelir; kalfa isteği sürerken sayfa yenilenirse sunucu yanıtı oturuma yazar, Studio bekleyip sonucu gösterir.
 const OTURUM_ANAHTARI = "lonca.studio.oturum";
 const KARSILAMA = $("#mesajlar .mesaj p").textContent;
+$("#mesajlar .mesaj p").dataset.karsilama = "";
+// Admin kalfası bilgi bankasının dışına da (izinle Vikipedi) çıkabilir; karşılama bunu söyler.
+const KARSILAMA_ADMIN = "Hoş geldin. Bilgi bankasındaki vakıf eserleriyle ya da izin verirsen Vikipedi'den toplayacağım eserlerle (ör. “İzmir'deki vakıf eserleri”) modül yapabiliriz. Sorularını yanıtlarım; hazır olduğunda yazmamı iste, modülü yazayım, denetleyeyim, telefonda çalıştırayım.";
+const karsilama = () => (yoneticiMi() ? KARSILAMA_ADMIN : KARSILAMA);
+// Boş sohbetteki karşılama yetkiye göre (giriş/çıkışta yetkiGuncelle çağırır).
+function karsilamayiGuncelle() {
+  const p = $("#mesajlar .mesaj.kalfa:only-child p[data-karsilama]");
+  if (p) p.textContent = karsilama();
+}
 let oturumId = null;
 let oturumSurumu = 0; // oturum değişince eski yoklamalar ve yanıtlar ekrana yazılmasın
 const sonOturumYaz = (id) => { try { localStorage.setItem(OTURUM_ANAHTARI, id); } catch {} };
@@ -908,7 +922,9 @@ window.addEventListener("pagehide", () => taslakKaydet({ sayfaKapaniyor: true })
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") taslakKaydet(); });
 
 function mesajlariTemizle() {
-  $("#mesajlar").replaceChildren(el("li", { className: "mesaj kalfa" }, el("p", { textContent: KARSILAMA })));
+  const p = el("p", { textContent: karsilama() });
+  p.dataset.karsilama = "";
+  $("#mesajlar").replaceChildren(el("li", { className: "mesaj kalfa" }, p));
 }
 function editoruDoldur(t = {}) {
   $("#kod").value = t.kod ?? ""; $("#ad").value = t.ad ?? ""; $("#id").value = t.id ?? ""; $("#aciklama").value = t.aciklama ?? "";
@@ -940,33 +956,57 @@ async function oturumuAc(id) {
   if (o.bekleyen) kalfayiBekle(o, bu);
 }
 
+// Ağ hatası ya da aradaki vekilin JSON'suz zaman aşımı/geçit yanıtı: istek sunucuya ulaşmış ve sürüyor olabilir.
+const KOPUK_DURUMLAR = new Set([502, 503, 504, 520, 522, 524]);
+const baglantiKoptu = (h) => h instanceof TypeError || (KOPUK_DURUMLAR.has(h.durum) && h.jsonsuz);
+
+// gonder() bağlantı koptuğunda: istek oturuma yazıldıysa (kalfa sürüyor ya da bitti) sonucu oturumdan bekler.
+// Dönüş: true → sonuç ya da durum hatası gösterildi; false → istek sunucuya hiç ulaşmamış, çağıran asıl hatayı gösterir.
+async function sonucuOturumdanBekle(metin, izin, ustaLi, bu) {
+  let o;
+  try { o = await yApi(`/api/atolye/oturumlar/${encodeURIComponent(oturumId)}`, { yeniden: false }); } catch { return false; }
+  if (bu !== oturumSurumu) return true;
+  // İsteğimiz oturuma yazılmış mı: izin kararında izin artık "bekliyor" değildir, düz istekte son usta mesajı budur.
+  const kayitli = (x) => (izin
+    ? (x.kalfaDurumu?.izinler ?? []).some((i) => i.id === izin.id && i.durum !== "bekliyor")
+    : x.mesajlar.findLast((m) => m.rol === "usta")?.metin === metin);
+  if (!o.bekleyen && !kayitli(o)) return false;
+  const tamam = await kalfayiBekle(o, bu, { yaziyorMetni: "Kalfa uzun bir iş yapıyor; sunucuda sürüyor, sonucu bekliyorum…", kayitli });
+  const istek = o.mesajlar.findLast((m) => m.rol === "usta")?.metin;
+  if (tamam && istek && bu === oturumSurumu) ustaLi.querySelector("p").textContent = istek;
+  return tamam;
+}
+
 // Oturumdaki son kalfa yanıtının önerileri (eski kayıtlarda yoktur: boş liste).
 const sonOneriler = (mesajlar) => [...mesajlar].reverse().find((m) => m.rol === "kalfa" && !m.dalis)?.ek?.oneriler ?? [];
 
-// Sayfa kalfa çalışırken yenilendi: istek sunucuda sürüyor; bitince yanıt ve kod oturumdan alınır.
-async function kalfayiBekle(o, bu) {
-  const yaziyor = yaziyorEkle("Kalfa hâlâ çalışıyor: sayfa yenilendi ama isteğin sunucuda sürüyor");
-  const onceki = o.mesajlar.length;
+// Kalfa sunucuda çalışırken sayfa yenilendi ya da bağlantı koptu: bitince yanıt ve kod oturumdan alınır.
+// Gösterilenler oturumdaki son usta mesajından (bu istek) sonraki mesajlardır. kayitli: istek oturuma yazılmamışsa false döner.
+async function kalfayiBekle(o, bu, { yaziyorMetni = "Kalfa hâlâ çalışıyor: sayfa yenilendi ama isteğin sunucuda sürüyor", kayitli = () => true } = {}) {
+  const yaziyor = yaziyorEkle(yaziyorMetni);
   $("#gonder").disabled = true;
   sahneDurum("Kalfa düşünüyor…");
   try {
     let son = o;
-    do {
+    while (son.bekleyen) {
       await bekle(3000);
-      if (bu !== oturumSurumu) return;
+      if (bu !== oturumSurumu) return true;
       son = await yApi(`/api/atolye/oturumlar/${o.id}`, { yeniden: false });
-    } while (son.bekleyen);
-    if (bu !== oturumSurumu) return;
+    }
+    if (bu !== oturumSurumu) return true;
     yaziyor.remove();
-    const yeni = son.mesajlar.slice(onceki);
+    if (!kayitli(son)) return false;
+    const yeni = son.mesajlar.slice(son.mesajlar.findLastIndex((m) => m.rol === "usta") + 1);
     izinDurumlari = new Map((son.kalfaDurumu?.izinler ?? []).map((i) => [i.id, i]));
     for (const m of yeni) mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar, izin: m.ek?.izin, eserIstegi: m.ek?.eserIstegi });
     kalfaOnerileriniAyarla(sonOneriler(son.mesajlar));
     if (yeni.at(-1)?.uretim && son.taslak?.kod) await taslagiAkit(son.taslak);
+    return true;
   } catch (h) {
-    if (bu !== oturumSurumu) return;
+    if (bu !== oturumSurumu) return true;
     yaziyor.remove();
     mesajEkle("kalfa", `Kalfanın durumu alınamadı: ${h.message}`, { hata: true });
+    return true;
   } finally {
     if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
   }

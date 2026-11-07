@@ -181,8 +181,15 @@ export function adresAnahtari(url) {
 }
 
 // Koddaki Vikipedi bağlantıları (modülün dış kaynağı).
+// Madde adlarında parantez olabilir ("İsa_Bey_Hamamı_(Selçuk)"): kapanış parantezi yalnızca adreste açılmışsa adrese dahildir
+// (metindeki "(… url)" gibi dış parantez adrese katılmaz).
 export function koddakiDisBaglantilar(kod) {
-  return [...new Set([...String(kod ?? "").matchAll(/https?:\/\/[a-z-]{2,12}(?:\.m)?\.wikipedia\.org\/wiki\/[^\s"'`)<>\]]+/gi)].map((m) => m[0]))];
+  const kirp = (u) => {
+    let x = u.replace(/[.,;:!?]+$/, "");
+    while (x.endsWith(")") && (x.match(/\(|%28/gi) ?? []).length < (x.match(/\)|%29/gi) ?? []).length) x = x.slice(0, -1);
+    return x;
+  };
+  return [...new Set([...String(kod ?? "").matchAll(/https?:\/\/[a-z-]{2,12}(?:\.m)?\.wikipedia\.org\/wiki\/[^\s"'`<>\]]+/gi)].map((m) => kirp(m[0])))];
 }
 
 const kelimeler = (s) => String(s ?? "").toLocaleLowerCase("tr").normalize("NFC").split(/[^\p{L}\p{N}]+/u).filter((k) => k.length >= 4);

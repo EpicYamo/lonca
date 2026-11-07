@@ -960,6 +960,8 @@ export const EN = {
   "Bir model taraması zaten sürüyor": "A model scan is already running",
 
   // Kalfa sohbeti, kaynaklar ve modül paylaşımı
+  "Hoş geldin. Bilgi bankasındaki vakıf eserleriyle ya da izin verirsen Vikipedi'den toplayacağım eserlerle (ör. “İzmir'deki vakıf eserleri”) modül yapabiliriz. Sorularını yanıtlarım; hazır olduğunda yazmamı iste, modülü yazayım, denetleyeyim, telefonda çalıştırayım.": "Welcome. We can build modules with the foundation works in the knowledge base or, if you allow it, with works I gather from Wikipedia (e.g. “foundation works in İzmir”). I answer your questions; when you're ready, ask me to write it and I'll write the module, check it and run it on the phone.",
+  "Kalfa uzun bir iş yapıyor; sunucuda sürüyor, sonucu bekliyorum…": "The assistant is doing a long job; it is still running on the server, waiting for the result…",
   "Hoş geldin usta. Vakıf eserlerini ya da yapmak istediğin modülü konuşalım: sorularını bilgi bankasından ve SDK'dan yanıtlarım. Hazır olduğunda yazmamı iste (“yap”, “hazırla”, “başlayalım”, “şunu da ekle”…); modülü yazayım, denetleyeyim, telefonda çalıştırayım.": "Welcome, master. Let's talk about foundation heritage or the module you want to build: I answer your questions from the knowledge base and the SDK. When you're ready, ask me to write it (“build it”, “prepare it”, “let's start”, “also add this”…); I'll write the module, check it and run it on the phone.",
   "Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)": "Ask or describe your idea… (Enter sends, Shift+Enter for a new line)",
   "Soru sor, fikrini konuş; yazmasını isteyince mini uygulamaya çevirir": "Ask questions, talk through your idea; when you ask it to write, it turns it into a mini app",
