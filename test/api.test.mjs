@@ -296,8 +296,8 @@ test("genel arama: ad, il, ilçe ve tür; Türkçe harfler gevşek eşleşir", a
   const ulu = (await s.istek("GET", "/api/ara?q=ulucami")).json();
   assert.equal(ulu[0].id, "bursa-ulucami");
   assert.ok(!("tarihce" in ulu[0]), "arama yalnızca özet döner");
-  const izmir = (await s.istek("GET", "/api/ara?q=izmir")).json();
-  assert.ok(izmir.length > 0 && izmir.every((e) => e.il === "İzmir"));
+  const iznik = (await s.istek("GET", "/api/ara?q=iznik")).json();
+  assert.ok(iznik.length > 0 && iznik.every((e) => e.ilce === "İznik" || e.ad.includes("znik")));
   const cesme = (await s.istek("GET", "/api/ara?q=cesme%20osmangazi&limit=50")).json();
   assert.ok(cesme.some((e) => e.tur === "cesme"));
   assert.ok(cesme.every((e) => e.ilce === "Osmangazi" && (e.tur === "cesme" || /çeşme/i.test(e.ad))));
@@ -306,7 +306,7 @@ test("genel arama: ad, il, ilçe ve tür; Türkçe harfler gevşek eşleşir", a
 
 test("vitrin il listesini, dalış özeti kareleri olmadan döner", async () => {
   const v = (await s.istek("GET", "/api/vitrin")).json();
-  assert.ok(v.iller.includes("Bursa") && v.iller.includes("Konya"));
+  assert.deepEqual(v.iller, ["Bursa"], "yalnızca Vakıf Katılım envanterindeki iller");
   await mkdir(path.join(s.veri, "dalislar"), { recursive: true });
   await copyFile(path.join(KOK, "data", "dalislar", "bursa-ulucami.json"), path.join(s.veri, "dalislar", "bursa-ulucami.json"));
   const ozet = (await s.istek("GET", "/api/dalislar?ozet=1")).json();

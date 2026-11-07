@@ -6,7 +6,7 @@ Doğrulama kuralları `server/dogrulama.js → eserDogrula` içindedir; Studio, 
 
 | Alan | Kural | Nereden |
 | --- | --- | --- |
-| `id` | `<il>-<ad>` küçük harf, Türkçe harfsiz, tireli (`kimlikUret`). Örn. `bursa-yesil-turbe`, `edirne-selimiye-camii`. Bir kez verildikten sonra değişmez (dalış, ilişki ve modüller buna bağlı). | — |
+| `id` | `<il>-<ad>` küçük harf, Türkçe harfsiz, tireli (`kimlikUret`). Örn. `bursa-yesil-turbe`, `bursa-koza-hani`. Bir kez verildikten sonra değişmez (dalış, ilişki ve modüller buna bağlı). | — |
 | `ad` | Kitaptaki başlık. Parantezli diğer adlar başlıkta kalabilir: "Aynalı (Hoca Tabib-Hoca Tayyip-Çapraz) Camii". | E |
 | `ad_en` | Kitabın İngilizce başlığı; yoksa `null`. Uydurma çeviri yapma. | E |
 | `tur` | `cami, mescit, medrese, han, hamam, cesme, turbe, kulliye, imaret, kopru, tekke, hazire, carsi, kutuphane, sivil, diger`. "Cami ve Haziresi" → `cami`. Bedesten → `carsi` ya da `diger` (listede bedesten yok). | E |
@@ -17,15 +17,14 @@ Doğrulama kuralları `server/dogrulama.js → eserDogrula` içindedir; Studio, 
 | `tarihce.tr` | Kitap metni (kısaltılmış). Kendi cümleni katma; kısaltırken anlamı değiştirme. PDF bozukluklarını (`!`→ş, `%`→Ş/İ) düzelt. En az 20 harf. | E / V |
 | `tarihce.en` | Kitabın İngilizce sütunu; yoksa `null`. | E |
 | `fotograflar` | En çok 12; yerel `/medya/...` (jpg/png/webp) ya da `https://`. İlki kapak. | E / Commons |
-| `kaynak` | **Zorunlu.** `Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt N, s. X` ya da `Vikipedi, <Madde> (CC BY-SA 4.0) — <URL>`. | — |
+| `kaynak` | **Zorunlu.** `Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt N, s. X`. Envanterde olmayan bir eser kayda girmez; Vikipedi yalnızca var olan bir kaydın konumunu ya da dalış kartını destekleyebilir. | — |
 | `sergi` | Müze/sergi notu; çoğunlukla `null`. | — |
 
 ### Kayıt yazarken
 - Kitap sırasını koru: konum, adlar, bani, tarih, kitabe, mimari, vakfiye, onarımlar, bugünkü durum. Kısaltırken önce mimari ayrıntıyı kısalt; **bani, tarih, vakıf ve bugünkü durum** cümlelerini atma.
 - Kitabe metni alıntılanıyorsa hem asıl metni hem günümüz Türkçesini ("Mealen: …") birlikte tut; birini tek başına bırakma.
 - Hicrî/miladî tarihleri kitaptaki biçimde yaz: `H. 981 / M. 1573`.
-- Bursa dışı (Vikipedi) kayıtlarda madde metninin sonuna kendi özet cümleni ekleme; Edirne Selimiye kaydında böyle eklenmiş, tekrar eden bir cümle var (bkz. `dogrulama-bulgulari.md`).
-- Yeni şehir: `araclar/sehir-ekle.mjs` deseni. Modüller şehirden bağımsızdır (`eserler.liste({ il })`).
+- **Yalnızca Vakıf Katılım envanterindeki eserler.** Vikipedi'den ya da başka bir kaynaktan yeni eser eklenmez (Kasım 2026'da Vikipedi'den eklenmiş 22 kayıt bu yüzden kaldırıldı). Yeni şehir ancak Vakıf Katılım'ın o şehrin envanteri (örn. Konya, Hatay) içe aktarılarak eklenir.
 - Değişiklikten sonra `npm test`.
 
 ## Tarihsel ilişkiler (`data/eser-iliskileri.json → iliskiler[]`)
