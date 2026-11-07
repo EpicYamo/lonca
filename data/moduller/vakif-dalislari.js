@@ -11,10 +11,10 @@ import { sahne, eserler, ekran, dalislar } from "@lonca/sdk";
 //
 // Dalışlar sunucudan gelir (dalislar.liste()): elle hazırlananlar (araclar/dalis-modul.mjs) ve Studio'da dalış
 // kalfasının hazırlayıp editörün onayladıkları. Yeni bir dalış onaylanınca burada kendiliğinden görünür.
-// Kaynaklar: E = Vakıf Katılım envanteri (eser kaydı), V = Türkçe Vikipedi (CC BY-SA), G = genel bilgi.
+// Kaynaklar: E = Vakıf Katılım envanteri (eser kaydı), B = kaynaklı tarihsel bağ, V = Türkçe Vikipedi (CC BY-SA), G = genel bilgi.
 // Künye, uydu işaretlerinin adları ve son kaynak satırı çalışma anında eser kayıtlarından çekilir.
 
-const KAYNAK = { E: "Vakıf envanteri", V: "Vikipedi (CC BY-SA)", G: "Genel bilgi" };
+const KAYNAK = { E: "Vakıf envanteri", B: "Kaynaklı tarihsel bağ", V: "Vikipedi (CC BY-SA)", G: "Genel bilgi" };
 const UYDU_KAYNAK = "Uydu: Esri World Imagery · konum: Vikipedi";
 const KARE_EN = 1024, KARE_BOY = 1536; // dalis-uret.mjs kare boyutu (uydu konum hesabı için)
 
@@ -78,13 +78,19 @@ async function dalisKur(tanim, kayitlar, bursaSayisi) {
   const iliskiler = (await eserler.iliskiler(tanim.eser).catch(() => [])).filter((i) => i.diger);
   const N = tanim.kareler.length;
   const ilkGercek = tanim.kareler.findIndex((k) => !k.u);
+  const kartlar = tanim.kareler.flatMap((k) => k.k ?? []);
+  const vikipediVar = kartlar.some((x) => x.k === "V");
+  const anlatilanBaglar = new Set(kartlar.filter((x) => x.k === "B").flatMap((x) => iliskiler.filter((il) => String(x.m ?? "").includes(il.diger.ad) || x.b === il.diger.ad).map((il) => il.diger.ad)));
   const kareler = tanim.kareler.map((k, i) => {
     let bakislar = k.u ? uyduBakislari(k.u, tanim, eser, kayitlar, bursaSayisi)
-      : (k.k ?? []).map((x) => ({ nokta: x.n, alan: x.a, ust: x.u, baslik: x.b, metin: x.m, kaynak: KAYNAK[x.k] ?? x.k }));
-    if (i === ilkGercek) bakislar.unshift({ ust: "Künye", baslik: eser.ad, metin: kunyeMetni(eser), kaynak: KAYNAK.E });
+      // Kartın künyesi (ky: envanter cilt/sayfa ya da bağın kaynağı) varsa o gösterilir.
+      : (k.k ?? []).map((x) => ({ nokta: x.n, alan: x.a, ust: x.u, baslik: x.b, metin: x.m, kaynak: x.ky ?? KAYNAK[x.k] ?? x.k }));
+    if (i === ilkGercek) bakislar.unshift({ ust: "Künye", baslik: eser.ad, metin: kunyeMetni(eser), kaynak: eser.kaynak ?? KAYNAK.E });
     if (i === N - 1) {
-      for (const il of iliskiler.slice(0, 2)) bakislar.push({ ust: "Tarihsel bağ", baslik: il.diger.ad, metin: il.baslik || il.aciklama, kaynak: il.kaynak || KAYNAK.E });
-      bakislar.push({ ust: "Kaynaklar", metin: `${eser.kaynak ?? "Vakıf Katılım"}; Türkçe Vikipedi (CC BY-SA); uydu görüntüsü Esri World Imagery (Esri, Maxar, Earthstar Geographics).` });
+      // Gezide kart olarak anlatılmamış bağlar, açıklamalarıyla.
+      for (const il of iliskiler.filter((il) => !anlatilanBaglar.has(il.diger.ad)).slice(0, 2))
+        bakislar.push({ ust: "Tarihsel bağ", baslik: il.diger.ad, metin: il.aciklama || il.baslik, kaynak: il.kaynak || KAYNAK.E });
+      bakislar.push({ ust: "Kaynaklar", metin: `${eser.kaynak ?? "Vakıf Katılım"}; ${vikipediVar ? "Türkçe Vikipedi (CC BY-SA); " : ""}uydu görüntüsü Esri World Imagery (Esri, Maxar, Earthstar Geographics).` });
     }
     bakislar = bakislar.slice(0, 6);
     return {

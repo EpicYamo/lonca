@@ -8,12 +8,18 @@
 // Her kare bir duraktır: önce başlık; sonra "bakışlar". Bir bakışta kamera karenin bir bölgesine (alan) kayar,
 // isteğe bağlı bir noktaya (nokta) ok ve atan bir halka çıkar, yanında bilgi kartı belirir; kaydırmaya devam
 // edilince kart silinir ve sıradaki bakışa geçilir. Hareketi azalt açıksa canvas kurulmaz; her şey alt alta gösterilir.
+//
+// Kaydırma adım adımdır: dalışın içindeyken bir tekerlek hareketi, kaydırma (dokunma) ya da ok/sayfa tuşu kamerayı
+// yalnızca BİR sonraki durma noktasına (kartın tam okunur olduğu an) götürür; hızlı kaydırmak metinleri art arda
+// geçirmez. Dalışın başında yukarı, sonunda aşağı kaydırınca sayfa normal kaymaya döner.
 import { hareketAzalt } from "/ortak/animasyon.js";
 
 const GORSEL_YOLU = /^\/medya\/[a-z0-9\-_/]+\.(?:jpe?g|png|webp)$/i;
 const BIRIM_VH = 80;                              // bir "birim" kaydırma mesafesi (ekran yüksekliğinin yüzdesi)
 const GIRIS = 0.6, HAREKET = 0.5, OKU = 0.85, DONUS = 0.4, GECIS = 1.35, SON = 0.4; // aşama uzunlukları (birim)
 const MAKS_KARE = 40, MAKS_BAKIS = 6;
+const YENI_HAREKET_MS = 180;                     // tekerlek olayları arasında bu kadar boşluk yoksa aynı hareket sayılır
+const ADIM_MS = [650, 1500], BIRIM_MS = 420;     // bir adımın süresi: mesafeyle uzar, sınırlar içinde kalır
 const TAM = [0, 0, 1];
 
 export const ETIKETLER = {
@@ -84,8 +90,25 @@ function zamanCizelgesi(kareler) {
       ekle({ tur: "dis", kare: i, uzunluk: GECIS });
     } else ekle({ tur: "ic", kare: i, A: su, uzunluk: GECIS });
   });
-  return { asamalar, duraklar, toplam: s };
+  // Durma noktaları: başlangıç, her kartın tam göründüğü an (okuma aşamasının ortası) ve son.
+  const durmalar = [0];
+  for (const a of asamalar) {
+    const orta = (a.bas + a.son) / 2;
+    if (a.tur === "oku" && a.bakis && orta - durmalar.at(-1) > 0.15) durmalar.push(orta);
+  }
+  if (s - durmalar.at(-1) > 0.15) durmalar.push(s); else durmalar[durmalar.length - 1] = s;
+  return { asamalar, duraklar, durmalar, toplam: s };
 }
+
+// Dalışı kaydıran öğe: kaydırılabilir en yakın ata ya da belge.
+function kaydiriciBul(el) {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const o = getComputedStyle(p).overflowY;
+    if ((o === "auto" || o === "scroll") && p.scrollHeight > p.clientHeight + 1) return p;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+const yumusakGecis = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 // İki kamera dikdörtgeni arasında "uçuş": boyut logaritmik, konum hedefe yaklaşma oranıyla.
 function ara(A, B, e) {
@@ -98,7 +121,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   if (hareketAzalt()) return duzKur(kutu, { kareler, etiket, el });
 
   const N = kareler.length;
-  const { asamalar, duraklar, toplam } = zamanCizelgesi(kareler);
+  const { asamalar, duraklar, durmalar, toplam } = zamanCizelgesi(kareler);
   const NS = "http://www.w3.org/2000/svg";
   const iz = el("div", { className: "s-dalis-iz" });
   iz.style.height = `calc(${toplam * BIRIM_VH}vh + 100dvh)`;
@@ -120,7 +143,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   const noktalar = el("nav", { className: "s-dalis-noktalar", ariaLabel: "Duraklar" },
     ...kareler.map((k, i) => {
       const d = el("button", { className: "s-dalis-nokta", ariaLabel: `${i + 1}. durak${k.baslik ? `: ${k.baslik}` : ""}` });
-      d.addEventListener("click", () => git(duraklar[i] + 0.3));
+      d.addEventListener("click", () => git(durmalar.find((x) => x >= duraklar[i]) ?? duraklar[i]));
       return d;
     }));
   const sahne = el("div", { className: "s-dalis-sahne" }, tuval, svg, cubuk,
@@ -152,16 +175,108 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     cizilecek = true;
   }
 
+  // Kaydırıcı ve onun görünen alanı (belge ise pencere).
+  let kaydirici = null;
+  const kap = () => { if (!kaydirici?.isConnected) kaydirici = kaydiriciBul(iz); return kaydirici; };
+  const belgeMi = () => kap() === document.scrollingElement || kaydirici === document.documentElement;
+  const pencere = () => (belgeMi() ? { top: 0, height: innerHeight } : kaydirici.getBoundingClientRect());
+
   function konum() {
-    const r = iz.getBoundingClientRect();
-    const yol = r.height - innerHeight;
-    return yol > 0 ? kenet(-r.top / yol) * toplam : 0;
+    const r = iz.getBoundingClientRect(), p = pencere();
+    const yol = r.height - p.height;
+    return yol > 0 ? kenet((p.top - r.top) / yol) * toplam : 0;
+  }
+  // s konumunun kaydırıcıdaki scrollTop karşılığı.
+  function hedefUst(s) {
+    const r = iz.getBoundingClientRect(), p = pencere();
+    return kap().scrollTop + (r.top - p.top) + ((r.height - p.height) * s) / toplam;
+  }
+  // Dalış ekranı kaplıyor mu (yapışkan sahne görünür)?
+  function icinde() {
+    const r = iz.getBoundingClientRect(), p = pencere();
+    return r.top <= p.top + 2 && r.bottom >= p.top + p.height - 2;
   }
 
+  // Adım animasyonu: kaydırıcıyı yumuşak eğriyle hedefe götürür; sürerken yeni girdi yok sayılır.
+  let animasyon = null, sonTekerlek = 0, bekleyenYerlesme = 0;
   function git(s) {
-    const r = iz.getBoundingClientRect();
-    scrollTo({ top: scrollY + r.top + ((r.height - innerHeight) * s) / toplam, behavior: "smooth" });
+    cancelAnimationFrame(animasyon?.kare ?? 0);
+    const bas = kap().scrollTop, son = hedefUst(s);
+    const sure = kenet(ADIM_MS[0] + Math.abs(s - konum()) * BIRIM_MS, ...ADIM_MS);
+    const t0 = performance.now();
+    animasyon = { s };
+    const adim = (t) => {
+      const u = kenet((t - t0) / sure);
+      kaydirici.scrollTop = bas + (son - bas) * yumusakGecis(u);
+      if (u < 1 && calisiyor) animasyon.kare = requestAnimationFrame(adim);
+      else animasyon = null;
+    };
+    animasyon.kare = requestAnimationFrame(adim);
   }
+  // Yöndeki bir sonraki durma noktası; yoksa null (dalıştan çıkılıyor).
+  function sonrakiDurma(yon) {
+    const s = animasyon ? animasyon.s : konum();
+    return yon > 0 ? durmalar.find((x) => x > s + 0.02) ?? null : [...durmalar].reverse().find((x) => x < s - 0.02) ?? null;
+  }
+  function adimAt(yon, olay) {
+    if (!icinde()) return false;
+    if (animasyon) { olay?.preventDefault(); return true; }
+    const hedefS = sonrakiDurma(yon);
+    if (hedefS == null) return false;
+    olay?.preventDefault();
+    git(hedefS);
+    return true;
+  }
+
+  function tekerlek(e) {
+    if (e.ctrlKey || !icinde()) return;
+    const simdi = performance.now(), yeni = simdi - sonTekerlek > YENI_HAREKET_MS;
+    sonTekerlek = simdi;
+    const yon = Math.sign(e.deltaY);
+    if (!yon) return;
+    // Aynı hareketin (dokunmatik yüzey ataleti, hızlı çevrilen tekerlek) devamı: yeni adım yok, sayfa da kaymaz.
+    if (animasyon || !yeni || Math.abs(e.deltaY) < 3) { if (animasyon || sonrakiDurma(yon) != null) e.preventDefault(); return; }
+    adimAt(yon, e);
+  }
+  let dokunY = null, dokunmaAdimi = false;
+  function dokunBasla(e) { dokunY = e.touches[0]?.clientY ?? null; dokunmaAdimi = false; }
+  function dokunHareket(e) {
+    if (dokunY == null || !icinde()) return;
+    const dy = dokunY - (e.touches[0]?.clientY ?? dokunY);
+    if (animasyon) { e.preventDefault(); return; }
+    if (Math.abs(dy) < 6) return;
+    if (sonrakiDurma(Math.sign(dy)) == null) return; // dalıştan çıkış: sayfa doğal kaysın
+    e.preventDefault();
+    if (!dokunmaAdimi && Math.abs(dy) > 28) { dokunmaAdimi = true; adimAt(Math.sign(dy)); }
+  }
+  function dokunBitti() { dokunY = null; }
+  function tus(e) {
+    if (e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented) return;
+    if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable], button, a")) return;
+    const yon = { ArrowDown: 1, PageDown: 1, ArrowUp: -1, PageUp: -1, " ": e.shiftKey ? -1 : 1 }[e.key];
+    if (yon) adimAt(yon, e);
+  }
+  // Kaydırma çubuğu ya da ataletle iki durak arasında kalınırsa en yakın durma noktasına yerleş.
+  function kaydirildi() {
+    if (animasyon) return;
+    clearTimeout(bekleyenYerlesme);
+    bekleyenYerlesme = setTimeout(() => {
+      if (animasyon || dokunY != null || !icinde()) return;
+      const s = konum();
+      const yakin = durmalar.reduce((a, b) => (Math.abs(b - s) < Math.abs(a - s) ? b : a));
+      if (Math.abs(yakin - s) > 0.02) git(yakin);
+    }, 220);
+  }
+  const dinleyiciler = [
+    [window, "wheel", tekerlek, { passive: false }],
+    [window, "touchstart", dokunBasla, { passive: true }],
+    [window, "touchmove", dokunHareket, { passive: false }],
+    [window, "touchend", dokunBitti, { passive: true }],
+    [window, "touchcancel", dokunBitti, { passive: true }],
+    [window, "keydown", tus, {}],
+    [window, "scroll", kaydirildi, { passive: true, capture: true }],
+  ];
+  for (const [h, ad, f, s] of dinleyiciler) h.addEventListener(ad, f, s);
 
   // Görüntünün normalleştirilmiş bölgesini (x, y, g) tuvale "cover" olarak yerleştiren dönüşüm.
   function donusum(resim, [x, y, g]) {
@@ -284,7 +399,9 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     if (iz.isConnected) {
       hedef = konum();
       const fark = hedef - simdiki;
-      if (Math.abs(fark) > 0.0008) { simdiki += fark * 0.14; cizilecek = true; }
+      // Adım animasyonu zaten yumuşak: kamera onu doğrudan izler; serbest kaydırmada hafif gecikmeyle yumuşatılır.
+      if (animasyon && fark) { simdiki = hedef; cizilecek = true; }
+      else if (Math.abs(fark) > 0.0008) { simdiki += fark * 0.14; cizilecek = true; }
       else if (simdiki !== hedef) { simdiki = hedef; cizilecek = true; }
       if (cizilecek) {
         cizilecek = false;
@@ -303,7 +420,10 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   simdiki = hedef = konum();
   requestAnimationFrame(dongu);
 
-  return Promise.resolve({ guncelle() {}, yokEt() { calisiyor = false; gozlem.disconnect(); } });
+  return Promise.resolve({ guncelle() {}, yokEt() {
+    calisiyor = false; gozlem.disconnect(); clearTimeout(bekleyenYerlesme); cancelAnimationFrame(animasyon?.kare ?? 0);
+    for (const [h, ad, f, s] of dinleyiciler) h.removeEventListener(ad, f, s);
+  } });
 }
 
 function duzKur(kutu, { kareler, etiket, el }) {
