@@ -123,7 +123,10 @@ async function klavyeDenetle(sayfa, yer, adimSayisi = 40) {
       const d = document.activeElement;
       if (!d || d === document.body) return null;
       const s = getComputedStyle(d), r = d.getBoundingClientRect();
-      const cerceve = (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) || (s.boxShadow && s.boxShadow !== "none");
+      const halka = (st) => (st.outlineStyle !== "none" && parseFloat(st.outlineWidth) > 0) || (st.boxShadow && st.boxShadow !== "none");
+      // Arama kutusu gibi girdinin çerçevesi kutunun kendisinde (:focus-within) çizilebilir; yalnızca doğrudan sarmalayıcıya bakılır.
+      const sarmalayici = d.parentElement;
+      const cerceve = halka(s) || (!!sarmalayici?.matches(":focus-within") && halka(getComputedStyle(sarmalayici)));
       const ad = (d.getAttribute("aria-label") || d.innerText || d.value || d.title || "").trim().replace(/\s+/g, " ").slice(0, 40);
       const etiket = `${d.tagName.toLowerCase()}${d.id ? "#" + d.id : ""}${typeof d.className === "string" && d.className ? "." + d.className.trim().split(/\s+/)[0] : ""}`;
       const ekranda = r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth && r.width > 0;
@@ -165,6 +168,13 @@ async function sesGorselDenetle(sayfa, yer) {
 
 async function moduluAc(sayfa, ad) {
   await sayfa.locator("#moduller .karo", { hasText: ad }).first().click();
+  // İzin isteyen modülde önce izin penceresi açılır: onu da tara, sonra izin ver.
+  const izin = await sayfa.waitForSelector("#izin-penceresi[open], #modul-ekrani:not([hidden])");
+  if (await izin.evaluate((d) => d.id === "izin-penceresi")) {
+    await bekle(400);
+    await axeTara(sayfa, `${ad} › izin penceresi`, "#izin-penceresi");
+    await sayfa.click('#izin-penceresi button[value="evet"]');
+  }
   await sayfa.waitForSelector("#modul-ekrani:not([hidden])");
   await sayfa.waitForFunction(() => document.querySelector("#sahne").childElementCount > 0 && document.querySelector("#acilis").hidden, null, { timeout: 15000 });
   await bekle(600);
