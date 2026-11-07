@@ -1043,6 +1043,7 @@ export const EN = {
   "{0} sonuç": "{0} results",
   "Siteye dön": "Back to the site",
   "Tüm iller": "All provinces",
+  "İl seç": "Choose province",
   "Önce il seç": "Choose a province first",
   "{0}: tüm ilçeler": "{0}: all districts",
   "Eser, il, ilçe ya da tür ara": "Search by site, province, district or type",

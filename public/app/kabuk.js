@@ -42,11 +42,20 @@ function acilisKapat() {
   setTimeout(() => a.classList.add("bitti"), hareketAz() ? 0 : 420);
 }
 
-// Geçiş: app.js'in görünüm geçişleri (gecis) bu bayrak varken "solup belirme" (fade-through) olarak çalışır.
-function gecisBayragi(yon) {
-  kok.dataset.sekmeGecis = yon;
-  clearTimeout(gecisBayragi.z);
-  gecisBayragi.z = setTimeout(() => { delete kok.dataset.sekmeGecis; }, 600);
+// Sayfa geçişi: üst çubuk ve alt gezinme sabit kalır, yalnızca içerik kısa bir solup kayma ile gelir.
+// Görünüm geçişi (startViewTransition) kullanılmaz: bütün sayfanın anlık görüntüsünü aldığı için sabit çubuklar da
+// titriyor, art arda dokunuşlarda geçiş atlanıp sayfa yarım kalıyordu. Burada yalnızca CSS animasyonu var; bir
+// sonraki dokunuş önceki animasyonu keser, içerik hiçbir zaman görünmez kalmaz.
+function icerikGir(yon) {
+  if (hareketAz()) return;
+  const kap = sekme === "profil" ? $("#profil-ekrani") : $("#ana-ekran");
+  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.classList.remove("sayfa-gir", "ileri", "geri");
+  void kap.offsetWidth; // animasyonu baştan başlat
+  kap.classList.add("sayfa-gir", yon);
+  const ad = $("#marka-ad");
+  ad.classList.remove("baslik-gir");
+  void ad.offsetWidth;
+  ad.classList.add("baslik-gir");
 }
 
 function ciz() {
@@ -92,20 +101,16 @@ function sekmeyeGec(hedef, { geriDonus = false } = {}) {
     gecmis.push(sekme);
     if (gecmis.length > 12) gecmis.shift();
   }
-  kilit = true;
-  const yon = SEKMELER.indexOf(hedef) >= SEKMELER.indexOf(sekme) ? "ileri" : "geri";
-  gecisBayragi(yon);
-  const onceki = sekme;
+  const yon = geriDonus || SEKMELER.indexOf(hedef) < SEKMELER.indexOf(sekme) ? "geri" : "ileri";
   sekme = hedef;
-  const hedefKonum = konum[hedef] ?? 0;
-  if (hedef === "profil") { ciz(); $("#profil-cip").click(); konumaDon(0); return; }
-  if (profilAcik) { ciz(); $("#profil-geri").click(); konumaDon(hedefKonum); return; }
-  // Ana sayfa · Keşfet · Modüller: aynı ekranın sayfaları; görünüm geçişiyle değiştir.
-  const degistir = () => { ciz(); scrollTo(0, hedefKonum); };
-  if (!hareketAz() && document.startViewTransition && onceki !== hedef) {
-    const g = document.startViewTransition(degistir);
-    g.finished.finally(() => { delete kok.dataset.sekmeGecis; konumaDon(hedefKonum); });
-  } else { degistir(); konumaDon(hedefKonum); }
+  titret();
+  const uyg = window.loncaUygulama;
+  // Profil ile diğer sayfalar arasında veri yeniden yüklenmez (app.js'in hafif geçişleri).
+  if (hedef === "profil") { if (uyg) uyg.profilGoster(); else $("#profil-cip").click(); }
+  else if (profilAcik) { if (uyg) uyg.anaGoster(); else $("#profil-geri").click(); }
+  ciz();
+  icerikGir(yon);
+  konumaDon(hedef === "profil" ? 0 : konum[hedef] ?? 0);
 }
 
 // ---------- Tam ekran arama (Material arama görünümü) ----------
@@ -166,25 +171,31 @@ function davetKapat() {
   if (sekme === "moduller") d?.focus({ preventScroll: true });
   return true;
 }
-// Sayfayı aşağı çekince kapanır (tutamaçtan ya da başlıktan); kapatma ayrıca perdeye dokunarak ve geri tuşuyla.
-function surukleKur(kart) {
+// Alttan sayfayı aşağı çekince kapanır (tutamaçtan ya da üst kısımdan); kapatma ayrıca perdeye dokunarak ve geri
+// tuşuyla. İçi kaydırılabilen sayfada yalnızca en üstteyken çekmek kapatır.
+function surukleKur(kart, kapat) {
   let bas = null, son = 0;
   kart.addEventListener("touchstart", (o) => {
-    if (o.target.closest("input, button")) return;
+    if (o.target.closest("input, select, textarea, button, a") || kart.scrollTop > 0) return;
     bas = o.touches[0].clientY; son = bas;
   }, { passive: true });
   kart.addEventListener("touchmove", (o) => {
     if (bas === null) return;
     son = o.touches[0].clientY;
-    kart.style.transition = "none";
-    kart.style.transform = `translateY(${Math.max(0, son - bas)}px)`;
+    const fark = Math.max(0, son - bas);
+    if (!fark) return;
+    kart.classList.add("suruklen");
+    kart.style.transform = `translateY(${fark}px)`;
   }, { passive: true });
   const birak = () => {
     if (bas === null) return;
     const fark = son - bas;
     bas = null;
-    kart.style.transition = "";
-    if (fark > 90) davetKapat(); else kart.style.transform = "";
+    kart.classList.remove("suruklen");
+    if (fark > 90) { kart.style.transform = ""; kapat(); return; }
+    kart.classList.add("donuyor");
+    kart.style.transform = "";
+    setTimeout(() => kart.classList.remove("donuyor"), 260);
   };
   kart.addEventListener("touchend", birak);
   kart.addEventListener("touchcancel", birak);
@@ -227,6 +238,14 @@ function eserSayfasiKur() {
   if (!x) return;
   x.innerHTML = SVG.geri;
   x.setAttribute("aria-label", "Geri");
+  // Alttan gelen sayfa kapanırken de aşağı iner (Android sayfa kapanışı); hareketi azaltta hemen kapanır.
+  x.addEventListener("click", (o) => {
+    const d = $("#eser-penceresi");
+    if (!d?.open || hareketAz() || !d.animate) return;
+    o.stopImmediatePropagation();
+    const a = d.animate([{ transform: "none" }, { transform: "translateY(100%)" }], { duration: 240, easing: "cubic-bezier(.3, 0, .8, .15)" });
+    a.finished.then(() => d.close(), () => d.close());
+  }, { capture: true });
 }
 
 // ---------- Kaydırmalı tanıtım (yalnızca ilk açılışta, karşılamadan önce) ----------
@@ -363,7 +382,7 @@ function klavyeKur() {
   vv.addEventListener("resize", olc);
   vv.addEventListener("scroll", olc);
 }
-// Android geri tuşu (kopru.js çağırır). Sıra: tanıtım → alttan sayfa → arama → harita kartı/liste → önceki sekme.
+// Android geri tuşu (kopru.js çağırır). Sıra: tanıtım → alttan sayfa → arama → harita kartı/liste → Ana sayfa.
 // İşi yaptıysa true döner; false ise uygulama arka plana alınır.
 function geri() {
   if (!$("#modul-ekrani").hidden) return false;
@@ -373,13 +392,23 @@ function geri() {
   if (aramaKapat()) return true;
   if ($("#kh-kart") && !$("#kh-kart").hidden) { $("#kh-kapat").click(); return true; }
   if ($("#kh-liste") && !$("#kh-liste").hidden) { $("#kh-liste-dugme")?.click(); return true; }
-  while (gecmis.length) {
-    const onceki = gecmis.pop();
-    if (onceki !== sekme) { sekmeyeGec(onceki, { geriDonus: true }); return true; }
-  }
-  if (sekme !== "ana") { sekmeyeGec("ana", { geriDonus: true }); return true; }
+  // Alt gezinmeli Android uygulamalarındaki gibi: diğer sekmelerden geri Ana sayfaya, Ana sayfadan uygulama dışına.
+  if (sekme !== "ana") { gecmis.length = 0; sekmeyeGec("ana", { geriDonus: true }); return true; }
   if (scrollY > 200) { scrollTo({ top: 0, behavior: hareketAz() ? "auto" : "smooth" }); return true; }
   return false;
+}
+
+// Sabit çubukların gerçek yüksekliği (Android'de sistem yazı boyutu büyütülünce çubuklar da büyür): içerik
+// payları ve Keşfet haritasının boyu bu değişkenlerden hesaplanır, böylece hiçbir şey çubuğun altında kalmaz.
+function cubukBoylariniIzle() {
+  const yaz = () => {
+    const ust = $("#ust-bar"), alt = $("#alt-gezinme");
+    if (ust?.offsetHeight) kok.style.setProperty("--ust-h", `${ust.offsetHeight}px`);
+    if (alt?.offsetHeight) kok.style.setProperty("--alt-h", `${alt.offsetHeight}px`);
+  };
+  yaz();
+  if ("ResizeObserver" in window) { const g = new ResizeObserver(yaz); for (const s of ["#ust-bar", "#alt-gezinme"]) if ($(s)) g.observe($(s)); }
+  addEventListener("resize", yaz);
 }
 
 function kur() {
@@ -389,8 +418,12 @@ function kur() {
 
   perdeyiKur();
   ustEylemleriKur();
+  cubukBoylariniIzle();
+  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.addEventListener("animationend", (o) => { if (o.target === k) k.classList.remove("sayfa-gir", "ileri", "geri"); });
   eserSayfasiKur();
   dalgaKur();
+  // Haritadaki eser kartı alttan sayfa: aşağı çekince kapanır.
+  if ($("#kh-kart")) surukleKur($("#kh-kart"), () => $("#kh-kapat")?.click());
   klavyeKur();
 
   $("#alt-gezinme").addEventListener("click", (e) => {
@@ -408,7 +441,7 @@ function kur() {
     tutamac.className = "kabuk-tutamac";
     tutamac.setAttribute("aria-hidden", "true");
     kart.prepend(tutamac);
-    surukleKur(kart);
+    surukleKur(kart, davetKapat);
     document.body.append(kart);
     return true;
   };

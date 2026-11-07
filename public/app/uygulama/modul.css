@@ -1,0 +1,49 @@
+/* Android uygulaması (html.kabuk) · modül ekranları: bütün modüller aynı SDK düğümlerini kullandığı için
+   (sahne.js) görünüm burada tek yerden yenilenir; modüllerin içeriği ve kendi temaları (zemin, renk, yazı) aynı kalır.
+   Kapsül düğmeler, yumuşak köşeli kartlar, ince ayraçlar, temaya uyan bölümlü denetim, parmakla gezilen haritalar. */
+
+/* ---------- Düğmeler: kapsül, basınca hafif küçülür (düzen kaymaz) ---------- */
+.kabuk .modul-ekrani .s-dugme { min-height: 52px; border-radius: 99px; transition: transform .14s var(--egri), background-color .2s ease-out; }
+.kabuk .modul-ekrani .s-dugme:active { transform: scale(.97); }
+.kabuk .modul-ekrani .s-dugme.ikincil { border-width: 1.5px; border-color: color-mix(in srgb, var(--metin) 16%, transparent); background: color-mix(in srgb, var(--yuzey) 70%, transparent); }
+.kabuk .modul-ekrani .s-ikon-dugme { width: 48px; height: 48px; border-radius: 50%; border-color: color-mix(in srgb, var(--metin) 12%, transparent); }
+.kabuk .modul-ekrani .s-ikon-dugme:active { transform: scale(.94); }
+
+/* ---------- Kartlar, eser kartları, listeler: çerçeve yerine ince ayraç ve yumuşak gölge ---------- */
+.kabuk .modul-ekrani :is(.s-kart, .s-eser, .s-istatistik) { border-radius: 22px; border-color: color-mix(in srgb, var(--metin) 9%, transparent); }
+.kabuk .modul-ekrani:not([data-zemin="koyu"], [data-zemin="gece"]) :is(.s-kart, .s-eser, .s-istatistik, .s-liste-ogesi) { box-shadow: 0 1px 2px rgba(22, 21, 15, .05), 0 10px 26px -16px rgba(22, 21, 15, .22); }
+.kabuk .modul-ekrani .s-eser { transition: transform .16s var(--egri); }
+.kabuk .modul-ekrani :is(.s-eser, .s-kart.s-tik, .s-liste-ogesi):active { transform: scale(.985); }
+.kabuk .modul-ekrani .s-liste-ogesi { min-height: 60px; border-radius: 18px; border-color: color-mix(in srgb, var(--metin) 9%, transparent); }
+.kabuk .modul-ekrani .s-gorsel { border-radius: 20px; }
+.kabuk .modul-ekrani .s-eser-kucuk-gorsel { border-radius: 14px; }
+
+/* ---------- Bölümlü denetim ve ilerleme: modülün zeminine uyar (koyu modülde açık mavi şerit kalmaz) ---------- */
+.kabuk .modul-ekrani .s-secenekler { border-radius: 99px; background: color-mix(in srgb, var(--metin) 8%, transparent); scrollbar-width: none; }
+.kabuk .modul-ekrani .s-secenekler::-webkit-scrollbar { display: none; }
+.kabuk .modul-ekrani .s-secenek { min-height: 44px; border-radius: 99px; }
+.kabuk .modul-ekrani .s-secenek.secili { background: var(--yuzey); box-shadow: 0 2px 10px rgba(0, 0, 0, .14); }
+.kabuk .modul-ekrani .s-ilerleme { background: color-mix(in srgb, var(--metin) 10%, transparent); }
+.kabuk .modul-ekrani .s-girdi { min-height: 52px; border-radius: 16px; border-width: 1.5px; }
+
+/* ---------- Modülün alt sekmeleri: uygulamanın alt gezinmesiyle aynı dil ---------- */
+.kabuk .sekme-cubugu {
+  padding: .3rem .5rem calc(.3rem + env(safe-area-inset-bottom)); border-top: .5px solid color-mix(in srgb, var(--metin) 12%, transparent);
+  background: color-mix(in srgb, var(--zemin) 88%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+}
+.kabuk .sekme { min-height: 60px; font-size: .74rem; font-weight: 600; }
+.kabuk .sekme .s-ikon { width: 60px; height: 32px; }
+.kabuk .sekme.secili { font-weight: 800; }
+
+/* ---------- Haritalar: parmakla gezilir; +/- düğmeleri yerine iki parmakla yakınlaştırma ---------- */
+.kabuk .modul-ekrani .s-harita { height: 56vh; border: 0; border-radius: 24px; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .45); touch-action: none; }
+.kabuk .modul-ekrani .leaflet-control-zoom { display: none; }
+.kabuk .modul-ekrani .leaflet-control-attribution { max-width: 70%; font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 8px 0 0 0; }
+
+/* ---------- Taşma yok: modülün uzun adları, geniş görselleri ve tabloları ekrana sığar ---------- */
+.kabuk .modul-ekrani :is(.s-sutun, .s-kart, .s-eser, .s-liste-ogesi, .s-liste-metin) { min-width: 0; }
+.kabuk .modul-ekrani :is(img, video, canvas, table, .s-graf) { max-width: 100%; }
+.kabuk .modul-ekrani :is(h1, h2, h3, .s-eser-ad, .s-liste-metin strong) { overflow-wrap: anywhere; }
+
+:root.hareket-az.kabuk .modul-ekrani :is(.s-dugme, .s-eser, .s-ikon-dugme) { transition: none; }
+:root.kontrast.kabuk .modul-ekrani :is(.s-kart, .s-eser, .s-liste-ogesi, .s-istatistik) { box-shadow: none; border: 1px solid #fff; }

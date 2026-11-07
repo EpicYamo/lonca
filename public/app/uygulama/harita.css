@@ -1,0 +1,62 @@
+/* Android uygulaması (html.kabuk) · Keşfet: harita iki sabit çubuğun arasını tam doldurur, sayfa kaymaz.
+   Bir esere dokununca alttan eser kartı (bottom sheet) açılır: tutamaç, büyük fotoğraf, kısa not ve eylemler;
+   aşağı çekince, haritaya dokununca ya da geri tuşuyla kapanır (kabuk.js). Altlık: CARTO Voyager / Dark Matter. */
+
+.kabuk .ana-ekran[data-sekme="kesif"] .meydan { padding-bottom: 0; }
+.kabuk .ana-ekran[data-sekme="kesif"] .meydan-duzen { display: block; max-width: none; padding: 0; }
+.kabuk .ana-ekran[data-sekme="kesif"] .meydan-ana { display: block; }
+.kabuk .harita-bolum .bolum-ust { display: none; }
+:root.kabuk[data-sekme="kesif"] body { padding-bottom: var(--alt); overflow: hidden; }
+:root.kabuk[data-sekme="kesif"] .ana-ekran { min-height: 0; }
+.kabuk .harita-bolum .kh-kap { height: calc(100dvh - var(--ust) - var(--alt)); border-radius: 0; box-shadow: none; background: var(--zemin-2); }
+.kabuk .kh-harita { background: var(--zemin-2); }
+.kabuk .kh-kap .leaflet-control-zoom { display: none; }
+.kabuk .kh-kap .leaflet-control-attribution { margin: 0 .4rem calc(.4rem) 0; border-radius: 8px; background: var(--malzeme); color: var(--soluk); }
+.kabuk .kh-kap .leaflet-control-attribution a { color: var(--vurgu); }
+
+/* Üstte yüzen araç çubuğu: il seçimi, liste, yakınımdakiler; sığmazsa yana kayar (sayfa değil, yalnızca çubuk). */
+.kabuk .kh-araclar {
+  top: .75rem; left: 0; right: 0; justify-content: flex-start; gap: .5rem; overflow-x: auto; scrollbar-width: none;
+  padding: 0 .75rem 6px; overscroll-behavior-x: contain;
+}
+.kabuk .kh-araclar::-webkit-scrollbar { display: none; }
+.kabuk .kh-arac {
+  min-height: 42px; padding: 0 .95rem; background: var(--malzeme); color: var(--metin); box-shadow: 0 4px 16px -4px rgba(0, 0, 0, .22);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6); backdrop-filter: blur(16px) saturate(1.6);
+}
+.kabuk .kh-arac:active { transform: scale(.96); }
+.kabuk .kh-il { padding-right: .4rem; }
+.kabuk .kh-liste { top: 4rem; left: .75rem; right: .75rem; width: auto; max-height: calc(100% - 5rem); border-radius: 20px; }
+
+/* İşaretler: beyaz halkalı renkli noktalar; seçilen büyür ve yumuşak bir hale alır. */
+.kabuk .kh-isaret { width: 18px; height: 18px; border-width: 3px; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+.kabuk .kh-isaret-kap.secili .kh-isaret { transform: scale(1.5); box-shadow: 0 0 0 6px color-mix(in srgb, var(--renk) 30%, transparent), 0 2px 8px rgba(0, 0, 0, .4); }
+
+/* Alttan açılan eser kartı */
+.kabuk .kh-kart {
+  left: 0; right: 0; bottom: 0; max-width: 640px; max-height: 78%; overflow-y: auto; overscroll-behavior: contain;
+  padding: 1.6rem 1.1rem 1.1rem; border-radius: 28px 28px 0 0; background: var(--yuzey); box-shadow: 0 -12px 40px -12px rgba(0, 0, 0, .35);
+  animation: kh-sayfa-gel .4s var(--egri-gir) both;
+}
+@keyframes kh-sayfa-gel { from { transform: translateY(100%); } }
+.kabuk .kh-kart::before {
+  content: ""; position: absolute; top: 8px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 99px; background: var(--cizgi-guclu);
+}
+.kabuk .kh-kart.suruklen { transition: none; animation: none; }
+.kabuk .kh-kart.donuyor { transition: transform .25s var(--egri-gir); }
+.kabuk .kh-kapat {
+  top: 2.05rem; right: 1.55rem; z-index: 2; display: grid; place-items: center; width: 40px; height: 40px; padding: 0;
+  background: rgba(0, 0, 0, .45); color: #fff; font-size: 1.3rem; line-height: 1; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.kabuk .kh-kart:has(.kh-foto.bos) .kh-kapat { top: .9rem; right: .9rem; background: var(--dolgu); color: var(--metin); }
+.kabuk .kh-ust { flex-direction: column; align-items: stretch; gap: .9rem; padding-right: 0; }
+.kabuk .kh-foto { width: 100%; height: auto; aspect-ratio: 16 / 9; max-height: 200px; border-radius: 18px; }
+.kabuk .kh-foto:not(.bos) + .kh-baslik { padding-right: 0; }
+.kabuk .kh-foto.bos + .kh-baslik { padding-right: 3rem; }
+.kabuk .kh-tur { color: var(--vurgu); font-size: .78rem; font-weight: 700; letter-spacing: .04em; }
+.kabuk .kh-baslik h3 { margin-top: .2rem; font-size: 1.55rem; line-height: 1.12; }
+.kabuk .kh-not { font-size: .94rem; line-height: 1.5; }
+.kabuk .kh-eylemler { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: .55rem; margin-top: 1rem; }
+.kabuk .kh-eylemler .dugme { width: 100%; min-height: 48px; border-radius: 99px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+:root.hareket-az.kabuk .kh-kart, :root.hareket-az.kabuk .kh-kart.donuyor { animation: none; transition: none; }
+@media (prefers-reduced-motion: reduce) { .kabuk .kh-kart, .kabuk .kh-kart.donuyor { animation: none; transition: none; } }

@@ -4,7 +4,6 @@
 
 /* Üst çubuk artık #ana-ekran'ın dışında: modül açıkken (ve uygulamada profil açıkken) gizlenir. */
 body:has(#modul-ekrani:not([hidden])) #ust-bar { display: none; }
-.kabuk body:has(#profil-ekrani:not([hidden])) #ust-bar { display: none; }
 .web-gezinme { display: none; }
 
 :root.web-sekmeli:not(.kabuk) {

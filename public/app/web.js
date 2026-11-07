@@ -51,7 +51,9 @@ function kur() {
     const degistir = () => { ciz(); scrollTo(0, 0); };
     if (!hareketAz() && document.startViewTransition) {
       kok.dataset.webGecis = "1";
-      document.startViewTransition(degistir).finished.finally(() => delete kok.dataset.webGecis);
+      const g = document.startViewTransition(degistir);
+      g.ready.catch(() => {});
+      g.finished.catch(() => {}).finally(() => delete kok.dataset.webGecis);
     } else degistir();
     // Ekran okuyucu ve klavye için odak yeni sayfanın başlığına.
     requestAnimationFrame(() => anaEkran.querySelector(`[data-sekme~="${hedef}"] h2`)?.focus?.({ preventScroll: true }));

@@ -23,7 +23,7 @@ Süs değil açıklık. Emin değilsen iOS'un varsayılanını seç; gereksiz g�
 
 ## Yazı
 
-- Kabukta sistem yazı tipi (`--yazi-sistem`: SF Pro, Android'de Roboto). Serif yalnızca modüllerde.
+- Web sitesinde sistem yazı tipi (`--yazi-sistem`). Android uygulamasında (`html.kabuk`, `public/app/uygulama/`) görsel dil web sitesiyle aynı aileden: gövde Figtree, sayfa ve kart başlıkları Young Serif (400), sıcak kâğıt zemin (#f6f4ef), koyu yeşil vurgu; okunaklı yazı tercihi her zaman üstün.
 - Ölçek: büyük başlık 1.36rem/700, kart başlığı 1–1.3rem/600–700, gövde 1rem, ikincil .86rem `--soluk`, etiket .72–.82rem/600.
 - Başlıkta `text-wrap: balance`, paragrafta `pretty`, sayılarda `tabular-nums`. BÜYÜK HARF etiketi az kullan.
 
@@ -39,6 +39,12 @@ Süs değil açıklık. Emin değilsen iOS'un varsayılanını seç; gereksiz g�
 - Uygulama simgesi köşesi `--yaricap-ikon` (%22.5). Kart köşesi 16px, büyük kart/sayfa 22px, alttan sayfa 14px.
 - Pencereler: telefonda alttan açılan sayfa (tutamaçlı, aşağı çekince kapanır), 760px üstünde ortada. Geri alınamaz iş için onay penceresi. İzin isteği iOS uyarısı gibi ortada.
 - Gezinme çubuğu yarı saydam (`--malzeme` + blur) ve altında .5px çizgi. Profil gibi alt ekranlarda başlık ortada, geri oku solda `--vurgu` renginde.
+
+## Android uygulaması (html.kabuk)
+
+- Üst çubuk ve alt gezinme `position: fixed`; hiçbir sayfa geçişinde kaymaz, kaybolmaz (yalnızca modül, arama ve klavye açıkken gizlenir). İçerik payları `--ust` / `--alt` değişkenlerinden (kabuk.js çubukların gerçek yüksekliğini yazar).
+- Sayfa yana kaymaz: `overflow-x: clip`; yana kayan yalnızca şerit bileşenleridir (öne çıkanlar, envanter, çipler). Yeni öğede `min-width: 0` ve `max-width: 100%` unutulmaz.
+- Sekme geçişi yerinde solup yükselme (görünüm geçişi değil); seçimler alttan açılan sayfa (tutamaçlı, aşağı çekince kapanır: `surukleKur`). Geri tuşu: açık sayfa → arama → harita kartı → Ana sayfa → uygulama dışı.
 
 ## Hareket
 

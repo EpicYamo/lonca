@@ -2,7 +2,7 @@ import { baglaninca } from "/ortak/animasyon.js";
 import { ayarlariGetir } from "/ortak/ayarlar.js";
 
 let googleOturumu = null;
-export async function karoKatmani(L) {
+export async function karoKatmani(L, { tema = "otomatik" } = {}) {
   const { harita } = await ayarlariGetir();
   if (harita?.saglayici === "google" && harita.anahtar) {
     try {
@@ -19,12 +19,30 @@ export async function karoKatmani(L) {
       googleOturumu = null;
     }
   }
-  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları',
-  });
-  osm._koyu = true;
-  return osm;
+  // Altlık: açık temada Esri World Topo (yumuşak renkler, sokak ve yapı adları), koyu temada (ve yüksek kontrastta)
+  // Esri Dark Gray + ad katmanı. Anahtar gerekmez. Tema değişince katmanlar yerinde değişir, harita yeniden kurulmaz.
+  const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services";
+  const kunye = 'Altlık © <a href="https://www.esri.com">Esri</a>, HERE, Garmin, © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> katkıcıları';
+  const katmanlar = (koyu) => koyu
+    ? [L.tileLayer(`${ESRI}/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 20, maxNativeZoom: 16, attribution: kunye }),
+      L.tileLayer(`${ESRI}/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 20, maxNativeZoom: 16 })]
+    : [L.tileLayer(`${ESRI}/World_Topo_Map/MapServer/tile/{z}/{y}/{x}`, { maxZoom: 20, maxNativeZoom: 18, attribution: kunye })];
+  const koyuMu = () => tema === "koyu" || (tema === "otomatik" && koyuTemaMi());
+  let simdiKoyu = koyuMu();
+  const grup = L.layerGroup(katmanlar(simdiKoyu));
+  if (tema === "otomatik") {
+    const izle = new MutationObserver(() => {
+      if (koyuMu() === simdiKoyu) return;
+      simdiKoyu = koyuMu();
+      grup.clearLayers();
+      for (const k of katmanlar(simdiKoyu)) grup.addLayer(k);
+    });
+    izle.observe(document.documentElement, { attributes: true, attributeFilter: ["data-tema", "class"] });
+    grup.on("remove", () => izle.disconnect());
+  }
+  return grup;
 }
+export const koyuTemaMi = () => document.documentElement.dataset.tema === "koyu" || document.documentElement.classList.contains("kontrast");
 
 let leafletYukleniyor = null;
 export function leafletYukle() {
@@ -62,8 +80,9 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
   await baglaninca(kutu);
   kutu.style.position = "relative";
   const harita = L.map(kutu, { zoomControl: true, attributionControl: true, scrollWheelZoom: false, zoomAnimation: false });
-  const karo = await karoKatmani(L);
-  if (karo._koyu) kutu.classList.add("harita-koyu-tema");
+  // Modül haritaları gece atlası görünümünde: her temada koyu altlık.
+  const karo = await karoKatmani(L, { tema: "koyu" });
+  kutu.style.background = "#0e0e0e";
   karo.addTo(harita);
   const BAG_PANE = "baglanti-pane";
   harita.createPane(BAG_PANE);
