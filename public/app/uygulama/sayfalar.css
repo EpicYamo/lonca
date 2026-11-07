@@ -39,13 +39,17 @@
 
 /* ---------- Eser sayfası: alttan gelen tam ekran sayfa; sol üstte kapatma ---------- */
 .kabuk .eser-penceresi { width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; inset: 0; border-radius: 0; box-shadow: none; overflow-x: hidden; }
-.kabuk .eser-penceresi[open] { animation: alttan-gel .42s var(--egri-gir) both; }
+/* Dolgu yalnızca başlangıçta (backwards): animasyon bitince sayfada transform kalmaz. Kalırsa sayfa "position: fixed"
+   öğelerin kabı olur; geri düğmesi ekrana sabit durmaz, içerikle birlikte kayıp gider. */
+.kabuk .eser-penceresi[open] { animation: alttan-gel .42s var(--egri-gir) backwards; }
 .kabuk .eser-penceresi::before { display: none; }
 .kabuk .eser-penceresi::backdrop { background: var(--perde); }
 .kabuk .ep-govde { min-width: 0; }
 .kabuk .ep-govde > h2 { font-size: 2rem; line-height: 1.1; }
+/* Leaflet katmanları (z-index 400+) sayfa kaydırılınca geri düğmesinin üstüne çıkmasın. */
+.kabuk .ep-harita { isolation: isolate; }
 .kabuk .ep-x {
-  position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: auto; z-index: 5; display: grid; place-items: center;
+  position: fixed; top: calc(env(safe-area-inset-top) + 10px); left: 10px; right: auto; z-index: 10; display: grid; place-items: center;
   width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; overflow: hidden;
   background: rgba(0, 0, 0, .45); color: #fff; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
@@ -53,7 +57,7 @@
 .kabuk .ep-eylemler { position: sticky; bottom: 0; z-index: 4; flex-wrap: nowrap; gap: .5rem; margin-top: 1rem; padding-block: .75rem calc(.75rem + env(safe-area-inset-bottom)); background: var(--yuzey); box-shadow: 0 -.5px 0 var(--cizgi); }
 .kabuk .ep-eylemler .dugme { flex: 1 1 0; min-width: 0; min-height: 48px; padding-inline: .6rem; border-radius: 99px; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kabuk #ep-kapat { display: none; }
-.kabuk .galeri[open] { animation: alttan-gel .42s var(--egri-gir) both; }
+.kabuk .galeri[open] { animation: alttan-gel .42s var(--egri-gir) backwards; }
 @keyframes alttan-gel { from { transform: translateY(100%); } }
 
 /* ---------- Tam ekran arama ---------- */
@@ -99,7 +103,9 @@
 .mc-baslik { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.25rem; }
 .kabuk .modul-ekrani { overflow-x: clip; scroll-padding-top: calc(72px + env(safe-area-inset-top)); }
 .kabuk .modul-ekrani #sahne { min-width: 0; max-width: 100%; }
-.kabuk .modul-ekrani .s-ust { top: calc(56px + env(safe-area-inset-top)); }
+/* Modülün kendi üst çubuğu (ust_cubuk) uygulama çubuğunun hemen altına yapışır. Web'deki kapsül uygulamada gizli olduğu
+   için sağda ona ayrılan 7.6rem pay da kalkar: başlık sığar, sağdaki simgeler kenara yaslanır. */
+.kabuk .modul-ekrani:not(:has(.s-dalis-sahne)) .s-ust-cubuk { top: calc(56px + env(safe-area-inset-top)); min-height: 56px; padding: .4rem .5rem .4rem .35rem; }
 .kabuk .modul-ekrani:has(.s-dalis-sahne) .modul-cubugu { display: none; }
 .kabuk .modul-ekrani:has(.s-dalis-sahne) .kapsul { display: flex; }
 /* Modül ekranları değişirken içerik yerinde solup yükselir (sahne.css: .s-giris); görünüm geçişi kapalı, yana kayma yok. */

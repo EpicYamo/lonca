@@ -23,7 +23,9 @@
 .kabuk .vitrin-baslik { font-size: clamp(1.95rem, 8.6vw, 2.6rem); line-height: 1.05; color: #fff; }
 .kabuk .vitrin-baslik em { font-style: normal; color: var(--altin); }
 .kabuk .vitrin-alt { display: none; }
-.kabuk .vitrin-sayilar { flex-wrap: wrap; row-gap: .2rem; }
+.kabuk .vitrin-sayilar { flex-wrap: wrap; gap: .2rem 1rem; }
+/* Sayılar alt satıra kayınca satır başında yalnız kalan "·" ayırıcısı olmasın: ayırıcı yerine boşluk. */
+.kabuk .vitrin-sayilar li + li::before { content: none; }
 .kabuk .kolaj-atif { max-width: calc(100% - 1.5rem); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Arama kutusu: dokununca tam ekran arama açılır */
@@ -70,9 +72,10 @@
 .kabuk .modullerim-bos { margin: 0; padding: 1rem 1.1rem; border-radius: 20px; background: var(--yuzey); box-shadow: var(--golge-kart); color: var(--soluk); }
 .kabuk .modullerim-rafi { overflow-x: auto; scrollbar-width: none; }
 .kabuk .modullerim-rafi::-webkit-scrollbar { display: none; }
-.kabuk .kategori-cipleri { display: flex; flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; margin-bottom: 1rem; }
+.kabuk .kategori-cipleri { display: flex; flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; margin-bottom: 1rem; gap: 4px; padding: 4px; border-radius: 99px; }
 .kabuk .kategori-cipleri::-webkit-scrollbar { display: none; }
-.kabuk .kategori-cip { flex: none; }
+/* Bölümlü denetim: az kategoride ray boydan boya dolar (Modüller | Eserler ile aynı), çok kategoride yana kayar. */
+.kabuk .kategori-cip { flex: 1 0 auto; min-height: 40px; border-radius: 99px; white-space: nowrap; }
 
 /* Modül kartları: web sitesindeki gibi modülün renginde, kapak fotoğraflı zengin kartlar */
 .kabuk .uygulama-listesi { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin: 0; padding: 0; list-style: none; overflow: visible; border-radius: 0; background: none; box-shadow: none; }
@@ -184,13 +187,14 @@
 .kesfet-sayac { margin: .2rem 0 0; color: var(--soluk); font-size: .85rem; font-variant-numeric: tabular-nums; }
 .kesfet-duvar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
 @media (min-width: 600px) { .kesfet-duvar { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.kesfet-duvar > li { min-width: 0; animation: kart-gir .4s var(--egri-gir) both; animation-delay: calc(min(var(--i, 0), 8) * 35ms); }
+.kesfet-duvar > li { display: flex; min-width: 0; animation: kart-gir .4s var(--egri-gir) both; animation-delay: calc(min(var(--i, 0), 8) * 35ms); }
 @keyframes kart-gir { from { opacity: 0; transform: translateY(14px) scale(.98); } }
-.kesfet-kart { display: grid; width: 100%; padding: 0; border: 0; border-radius: 20px; overflow: hidden; background: var(--yuzey); color: var(--metin); text-align: left; box-shadow: var(--golge-kart); cursor: pointer; transition: transform .16s var(--egri); }
+/* Yan yana kartlar aynı boyda: metni kısa olan kartın altı ötekiyle hizalı biter. */
+.kesfet-kart { display: grid; grid-template-rows: auto 1fr; align-content: start; width: 100%; padding: 0; border: 0; border-radius: 20px; overflow: hidden; background: var(--yuzey); color: var(--metin); text-align: left; box-shadow: var(--golge-kart); cursor: pointer; transition: transform .16s var(--egri); }
 .kesfet-kart:active { transform: scale(.97); }
 .kesfet-foto { display: block; aspect-ratio: 4 / 5; background: var(--yuzey-2) center / cover no-repeat; }
 .kesfet-foto.bos { aspect-ratio: 4 / 3; background-image: linear-gradient(135deg, var(--vurgu-zemin), var(--yuzey-2)); }
-.kesfet-kart-metin { display: grid; gap: .2rem; padding: .7rem .8rem .85rem; min-width: 0; }
+.kesfet-kart-metin { display: grid; align-content: start; gap: .2rem; padding: .7rem .8rem .85rem; min-width: 0; }
 .kesfet-kart-tur { color: var(--vurgu); font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .kesfet-kart strong { font-family: var(--serif); font-weight: 400; font-size: 1.05rem; line-height: 1.2; overflow-wrap: anywhere; }
 :root.okunakli .kesfet-kart strong { font-family: inherit; font-weight: 700; }

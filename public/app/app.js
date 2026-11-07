@@ -391,7 +391,8 @@ function kolajDongusu(liste) {
 
 const eserSayfasi = eserSayfasiKur({
   el, api, seslendir, bildir, katkiAc: (e) => duzeltmeIste(e),
-  hataYazisi: ONIZLEME ? "Bu eserde eksik var, düzenle" : "Bir hata mı gördün? Bildir",
+  // Uygulamada iki düğme yan yana sığsın diye kısa etiket; web sitesinde uzun hâli kalır.
+  hataYazisi: ONIZLEME ? "Bu eserde eksik var, düzenle" : document.documentElement.classList.contains("kabuk") ? "Hata bildir" : "Bir hata mı gördün? Bildir",
   dalisModulu: () => modulListesi.find((m) => /dalis/.test(m.id)) ?? null,
   modulAc: (m) => moduluAc(m),
 });
