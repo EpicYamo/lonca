@@ -58,3 +58,25 @@ test("tarayıcı girişi çerezle çalışır", async () => {
   const d = await istek("POST", "/giris", { govde: `anahtar=${ANA}&devam=%2F%2Fkotu.example`, basliklar: form });
   assert.equal(d.headers.location, "/app/", "dış adrese yönlendirmez");
 });
+
+test("hız sınırı vekil arkasında LONCA_IP_BASLIGI'ndaki gerçek istemci IP'sini sayar", async () => {
+  const { hizSiniri, istemciIp } = await import("../server/guvenlik.js");
+  const onceki = process.env.LONCA_IP_BASLIGI;
+  const sahteYanit = () => ({ kod: 200, header() { return this; }, code(k) { this.kod = k; return this; }, send() { return this; } });
+  const istek = (ip) => ({ ip: "172.18.0.5", headers: { "cf-connecting-ip": ip, "x-forwarded-for": "1.1.1.1" } });
+  try {
+    delete process.env.LONCA_IP_BASLIGI;
+    assert.equal(istemciIp(istek("203.0.113.7")), "172.18.0.5", "başlık ayarlı değilken req.ip kullanılır");
+    process.env.LONCA_IP_BASLIGI = "CF-Connecting-IP";
+    assert.equal(istemciIp(istek("203.0.113.7")), "203.0.113.7");
+    assert.equal(istemciIp({ ip: "172.18.0.5", headers: {} }), "172.18.0.5", "başlık yoksa req.ip'ye düşer");
+    const sinir = hizSiniri({ adet: 1, pencereMs: 60_000 });
+    const a = sahteYanit(), b = sahteYanit(), c = sahteYanit();
+    await sinir(istek("203.0.113.7"), a);
+    await sinir(istek("198.51.100.9"), b);
+    await sinir(istek("203.0.113.7"), c);
+    assert.deepEqual([a.kod, b.kod, c.kod], [200, 200, 429], "aynı vekil IP'sinden gelen farklı istemciler ayrı sayılır");
+  } finally {
+    if (onceki === undefined) delete process.env.LONCA_IP_BASLIGI; else process.env.LONCA_IP_BASLIGI = onceki;
+  }
+});

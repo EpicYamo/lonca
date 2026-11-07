@@ -81,15 +81,48 @@ docker compose up -d --build                           # listens on 0.0.0.0:3000
 docker compose exec lonca node araclar/eslestir.mjs    # 6-digit pairing code for a phone
 ```
 
-**Connecting the Android app on the same Wi-Fi:** the app finds the server by
-probing `GET /api/merhaba` (always open, returns `{ lonca, anahtarGerekli }`), so
-the key is never sent to every address on the network. It then either sends the
-main key in `x-lonca-anahtar`, or exchanges a pairing code for its own device key
+**Connecting the Android app:** the app checks its fixed server with
+`GET /api/merhaba` (always open, returns `{ lonca, anahtarGerekli }`). It then
+either sends the main key in `x-lonca-anahtar`, or exchanges a pairing code for its own device key
 with `POST /api/eslestir { kod, ad }` → `{ anahtar }`. Codes are single-use and
 expire after five minutes. List or revoke devices with
 `node araclar/eslestir.mjs --liste` / `--sil <id>`. In a browser, `/app/` and
 `/studio/` redirect to `/giris` once; the key is exchanged for a revocable
 HttpOnly cookie (`/cikis` logs out).
+
+### Internet deployment behind Cloudflare (recommended)
+
+`docker-compose.cloudflare.yml` runs a Cloudflare Tunnel (`cloudflared`) next to
+Lonca. No port is published on the server and no certificate is needed:
+Cloudflare terminates HTTPS and the tunnel connects outwards.
+
+1. Cloudflare dashboard → Zero Trust → Networks → Tunnels → create a Cloudflared
+   tunnel and copy its token. Add a public hostname: `kozmos.itaskira.com` → `HTTP`,
+   `lonca:3000`.
+2. In `.env`: `CLOUDFLARE_TUNNEL_TOKEN`, a strong `LONCA_API_ANAHTARI`,
+   `YONETICI_SIFRE` and the UstaGPT key.
+3. Start:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --build
+curl https://kozmos.itaskira.com/api/merhaba
+```
+
+**Updating from GitHub:** the server keeps a clone of the repository, read through
+a read-only deploy key (`~/.ssh/config` host alias `github-lonca` →
+`git clone github-lonca:EpicYamo/lonca.git /opt/lonca`). Then:
+
+```bash
+cd /opt/lonca && ./docker/guncelle.sh      # LONCA_DAL=main for another branch; default dev
+```
+
+It fast-forwards the branch, rebuilds and waits for `/api/merhaba`. If Studio
+edits on the server changed tracked files in `data/` or `public/medya/`, it stops
+and lists them instead of overwriting.
+
+The overlay sets `LONCA_IP_BASLIGI=cf-connecting-ip` so rate limits count the
+real visitor instead of the tunnel. Cloudflare waits at most 100 s for response
+headers (free plan); a single request that takes longer gets a 524.
 
 ### Internet deployment (Nginx + HTTPS)
 
@@ -101,7 +134,7 @@ container, whose port 3000 is no longer published.
 1. Point the domain's DNS `A` record (and `AAAA` if any) at the server's public IP.
    Open ports 80 and 443.
 2. In `.env`: `LONCA_EPOSTA=…` and a strong `LONCA_API_ANAHTARI`. The domain
-   defaults to the project's `kozmos.42.fr`; set `LONCA_ALAN_ADI` to use another. Optional
+   defaults to the project's `kozmos.itaskira.com`; set `LONCA_ALAN_ADI` to use another. Optional
    `LONCA_YOL_ONEKI=/lonca` serves under
    `https://domain/lonca/` (the API works there; browser redirects of
    `/app`/`/studio` assume the root).
@@ -116,10 +149,11 @@ docker compose -f docker-compose.yml -f docker-compose.sunucu.yml up -d --build
 Until the certificate exists Nginx serves a temporary self-signed one, so it
 can start and answer the HTTP-01 challenge. Needs Docker Compose 2.24+.
 
-The Android app does not need the IP: the APK is built with the server's HTTPS
-origin (the DNS name; `./apk.sh` defaults `LONCA_SUNUCU_URL` to
-`https://kozmos.42.fr`, `LONCA_SUNUCU_URL=yok` leaves it out), sends the API key in `x-lonca-anahtar`, and falls back
-to the bundled offline snapshot when the server cannot be reached.
+The Android app connects to exactly one server, fixed at build time: `./apk.sh`
+embeds `LONCA_SUNUCU_URL` (default `https://kozmos.itaskira.com`; a full `http://IP:3000`
+works for local testing, `yok` builds an offline-only app). There is no network
+scanning. The app sends the API key in `x-lonca-anahtar`, falls back to the bundled
+offline snapshot when the server cannot be reached and retries once a minute.
 
 ## Commands
 
