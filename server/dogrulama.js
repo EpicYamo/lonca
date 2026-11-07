@@ -97,3 +97,43 @@ export function tamlikSuzgeci({ tam, eksik, gerekli, olmayan } = {}) {
     return g.every((a) => alanVar(e, a)) && o.every((a) => !alanVar(e, a));
   };
 }
+
+// ---------- Kalfa model seçimi ----------
+export const KALFA_AYAR_ALANLARI = ["kalfaModeli", "dalisGorselModelleri", "dalisMetinModelleri"];
+const MODEL_ADI = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/;
+
+/**
+ * PUT /api/kalfa/ayarlar gövdesi. Her alan isteğe bağlıdır; null alanı siler (.env / varsayılan geçerli olur).
+ * modeller verilirse her seçim o listede ve doğru türde olmalı (metin / görsel).
+ * @returns {{ hatalar: string[], ayar: object }} ayar: yalnızca gönderilen alanlar
+ */
+export function kalfaAyarDogrula(veri, modeller = null) {
+  const hatalar = [], ayar = {};
+  if (!veri || typeof veri !== "object" || Array.isArray(veri)) return { hatalar: ["ayar verisi bir nesne olmalı"], ayar };
+  const bilinmeyen = Object.keys(veri).filter((k) => !KALFA_AYAR_ALANLARI.includes(k));
+  if (bilinmeyen.length) hatalar.push(`bilinmeyen alan: ${bilinmeyen.slice(0, 3).join(", ")}`);
+  const kume = (tur) => new Set((modeller ?? []).filter((m) => m.tur === tur).map((m) => m.deger));
+  const metinler = kume("metin"), gorseller = kume("gorsel");
+  const listedeMi = (ad, kumesi, turAdi) => {
+    if (modeller && !kumesi.has(ad)) hatalar.push(`${ad}: UstaGPT listesinde böyle bir ${turAdi} modeli yok`);
+  };
+
+  if (Object.hasOwn(veri, "kalfaModeli")) {
+    const m = veri.kalfaModeli;
+    if (m === null) ayar.kalfaModeli = null;
+    else if (!metinMi(m) || !MODEL_ADI.test(m)) hatalar.push("kalfaModeli geçerli bir model adı olmalı");
+    else { listedeMi(m, metinler, "metin"); ayar.kalfaModeli = m; }
+  }
+  for (const [alan, kumesi, turAdi] of [["dalisGorselModelleri", gorseller, "görsel"], ["dalisMetinModelleri", metinler, "metin"]]) {
+    if (!Object.hasOwn(veri, alan)) continue;
+    const l = veri[alan];
+    if (l === null) { ayar[alan] = null; continue; }
+    if (!Array.isArray(l) || l.length < 1 || l.length > 5) { hatalar.push(`${alan} 1–5 modelden oluşan bir liste olmalı`); continue; }
+    if (!l.every((m) => metinMi(m) && MODEL_ADI.test(m))) { hatalar.push(`${alan} yalnızca geçerli model adları içermeli`); continue; }
+    if (new Set(l).size !== l.length) { hatalar.push(`${alan} aynı modeli iki kez içeremez`); continue; }
+    for (const m of l) listedeMi(m, kumesi, turAdi);
+    ayar[alan] = [...l];
+  }
+  if (!hatalar.length && !Object.keys(ayar).length) hatalar.push(`en az bir alan gerekli: ${KALFA_AYAR_ALANLARI.join(", ")}`);
+  return { hatalar, ayar };
+}

@@ -169,7 +169,7 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
   const hazir = () => { const a = dalisAyarlari(ortam); return !!(a.api && a.anahtar); };
 
   function baslat({ istek = "", eserId = null, uzerineYaz = false }) {
-    if (!hazir()) throw Object.assign(new Error("Dalış kalfası için .env'de DALIS_API_URL ve DALIS_API_ANAHTARI gerekli"), { kod: 503 });
+    if (!hazir()) throw Object.assign(new Error("Dalış kalfası için .env'de USTAGPT_BASE_URL ve USTAGPT_API_KEY (ya da DALIS_API_URL ve DALIS_API_ANAHTARI) gerekli"), { kod: 503 });
     const eksik = eksikAraclar();
     if (eksik.length) throw Object.assign(new Error(`Dalış kalfası için bu bilgisayarda şu araçlar eksik: ${eksik.join("; ")}. Kurup sunucuyu yeniden başlat.`), { kod: 503 });
     if (etkin) throw Object.assign(new Error("Kalfa şu an başka bir dalış hazırlıyor; bitince tekrar dene"), { kod: 409 });

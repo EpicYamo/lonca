@@ -25,7 +25,7 @@ Kullanıcı Türkçe yazar; yanıtlar Türkçe olsun.
   - `public/studio/`: Studio. Yerleşim mantığı `duzen.js`'de, iş mantığı `studio.js`'de. Varsayılan açık tema + koyu tema anahtarı (`lonca.studio.tema`).
   - `public/app/`: vatandaş uygulaması. `public/ortak/` (özellikle `tasarim.css`) iki tarafça paylaşılır; değiştirmeden önce etkisini iki tarafta da kontrol et.
   - `server/`: API ve kalfalar. `data/`: içerik (JSON). `mobil/` + `android/`: Capacitor paketi.
-- **Çalışırken oluşan veriler commit'lenmez:** `data/eser-oneriler.json`, `data/yuklenen/`, `data/eser-gecmisi.json`, `data/gecmis/`, `data/moduller/eski/` (gitignore'da). Büyük kaynaklar (`kitaplar/`, `veri-kaynak/`) depoda değil.
+- **Çalışırken oluşan veriler commit'lenmez:** `data/eser-oneriler.json`, `data/yuklenen/`, `data/eser-gecmisi.json`, `data/gecmis/`, `data/moduller/eski/`, `data/kalfa-ayarlari.json` (gitignore'da). Büyük kaynaklar (`kitaplar/`, `veri-kaynak/`) depoda değil.
 - **Telif:** Bursa metin ve fotoğrafları © Vakıf Katılım (depo bu yüzden özel). Vikipedi/Commons içeriği CC BY-SA; kaynak bağlantısı kayıtta kalır.
 
 ## Komutlar
@@ -58,7 +58,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | --- | --- |
 | `PORT` | Sunucu portu (varsayılan 3000) |
 | `KALFA_SAGLAYICI` | `openai-uyumlu` · `anthropic` · `sahte` |
-| `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | Modül kalfası uç noktası (Gemini, OpenCode Go, Ollama…) |
+| `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | İsteğe bağlı: modül kalfasını UstaGPT dışında bir uç noktaya yönlendirir (OpenCode Go, Ollama…) |
 | `ANTHROPIC_API_KEY` | `KALFA_SAGLAYICI=anthropic` için |
 | `KALFA_SAHTE=1` | Kalfayı hazır şablonla çalıştır (çevrimdışı) |
 | `KALFA_SINIR` | IP başına 10 dakikadaki kalfa isteği sınırı |
@@ -66,10 +66,10 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `GOOGLE_HARITA_ANAHTARI` | Google harita + gerçek 3B; boşsa OpenStreetMap, 3B kapalı |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |
-| `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Ortak yedek: `DALIS_*` boşsa dalış kalfası, `KALFA_*` boşsa modül kalfası bunu kullanır |
+| `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Birincil sağlayıcı (UstaGPT, OpenAI uyumlu): `KALFA_API_URL` / `DALIS_API_URL` boşsa iki kalfa da bunu kullanır. Modeller Studio'da seçilir (`data/kalfa-ayarlari.json`, `.env` modellerini geçersiz kılar) |
 | `LONCA_API_ANAHTARI` | `mobil/hazirla.mjs`'nin mobil pakete koyduğu API anahtarı |
 
-`KALFA_*` yalnızca modül kalfası, `DALIS_*` yalnızca dalış kalfası içindir.
+`KALFA_*` yalnızca modül kalfası, `DALIS_*` yalnızca dalış kalfası içindir. Sağlayıcı/model çözümü tek yerde: `server/kalfa-ayarlari.js` (uç noktalar: `GET /api/kalfa/modeller`, `PUT /api/kalfa/ayarlar`, yönetici korumalı).
 
 ## Mimari
 

@@ -52,7 +52,8 @@ Everything works without any configuration:
 
 | Setting (`.env`) | What it does |
 | --- | --- |
-| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | The AI journeyman: free Gemini, OpenCode Go, Claude, or offline Ollama |
+| `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Primary AI provider (UstaGPT, OpenAI-compatible) for both the module journeyman and the dive journeyman. Models are picked in Studio (Atölye → model badge or the sliders button); the choice is stored in `data/kalfa-ayarlari.json` and overrides `.env` without a restart |
+| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | Optional: point the module journeyman at another endpoint (OpenCode Go, Claude, offline Ollama) |
 | `KALFA_SAHTE=1` | Offline fallback: the journeyman returns a prepared template |
 | `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
 | `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
@@ -101,7 +102,7 @@ HttpOnly cookie (`/cikis` logs out).
 
 ```
                        ┌─────────────── Lonca Studio (/studio) ───────────────┐
- master: "a timed game │ chat → POST /api/kalfa → AI (Gemini/Claude)          │
+ master: "a timed game │ chat → POST /api/kalfa → AI (UstaGPT/Claude)         │
  about Bursa hans"     │   ↳ eser_ara tool: looks at real data                  │
                        │   ↳ modul_yaz → rules + TypeScript type check          │
                        │       (on failure: back to the model, max 3 tries)     │

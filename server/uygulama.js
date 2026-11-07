@@ -5,11 +5,12 @@ import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { kalfaHazirla } from "./kalfa.js";
+import { AYAR_DOSYASI, etkinSecim, modelKatalogu } from "./kalfa-ayarlari.js";
 import { dalisKalfasiKur } from "./dalis-kalfasi.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri } from "./guvenlik.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar } from "./dogrulama.js";
+import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula } from "./dogrulama.js";
 
 const MAKS_KOD = 150_000; 
 const MAKS_FOTO = 6 * 1024 * 1024;
@@ -38,6 +39,10 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const gecmisDosyasi = jsonDosya(path.join(veri, "eser-gecmisi.json"), []);
   const ANLIK_DIZINI = path.join(veri, "gecmis");
 
+  // Studio'da seçilen kalfa modelleri (çalışma verisi); kalfalar ayarı her istekte buradan okur.
+  const kalfaAyarDosyasi = jsonDosya(path.join(veri, "kalfa-ayarlari.json"), {});
+  ortam = { ...ortam, [AYAR_DOSYASI]: kalfaAyarDosyasi.yol };
+  const modelKatalogum = modelKatalogu({ ortam });
   const eserVerisi = await eserDosyasi.oku();
   const eserler = eserVerisi.eserler;
   const iliskiVerisi = await iliskiDosyasi.oku();
@@ -526,6 +531,31 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   });
 
   app.get("/api/kalfa", async () => ({ model: kalfa.model, sahte: kalfa.sahte }));
+
+  // Kalfa modelleri: UstaGPT'nin model listesi (sunucu çağırır, anahtar tarayıcıya gitmez) ve şu anki seçim.
+  const secimGoster = () => etkinSecim(ortam);
+  app.get("/api/kalfa/modeller", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    try {
+      const { modeller, zaman } = await modelKatalogum.liste({ yenile: req.query?.yenile === "1" });
+      return { modeller, guncelleme: new Date(zaman).toISOString(), secili: secimGoster() };
+    } catch (h) {
+      return rep.code(h.kod ?? 502).send({ hata: h.message, secili: secimGoster() });
+    }
+  });
+  app.put("/api/kalfa/ayarlar", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const bicim = kalfaAyarDogrula(req.body);
+    if (bicim.hatalar.length) return rep.code(400).send({ hata: bicim.hatalar[0], ayrintilar: bicim.hatalar });
+    let modeller;
+    try { ({ modeller } = await modelKatalogum.liste()); }
+    catch (h) { return rep.code(h.kod ?? 502).send({ hata: h.message }); }
+    const { hatalar, ayar } = kalfaAyarDogrula(req.body, modeller);
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const kayitli = { ...(await kalfaAyarDosyasi.oku()) };
+    for (const [k, v] of Object.entries(ayar)) { if (v === null) delete kayitli[k]; else kayitli[k] = v; }
+    await kalfaAyarDosyasi.yaz(kayitli);
+    req.log.info({ ayar }, "kalfa model seçimi güncellendi");
+    return { secili: secimGoster() };
+  });
   app.post("/api/kalfa", { preHandler: kalfaSiniri }, async (req, rep) => {
     const { sohbet, kod } = req.body ?? {};
     const gecerli = Array.isArray(sohbet) && sohbet.length > 0 && sohbet.length <= 30 &&
