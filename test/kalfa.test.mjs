@@ -34,7 +34,7 @@ test("uygulama olmayan (sahne.ayarla çağırmayan) modül reddedilir", () => {
 });
 
 test("sahte kalfa her istek türü için geçerli bir modül üretir", async () => {
-  for (const istek of ["bursa haritası", "hanlar için bir oyun", "bir şey yap"]) {
+  for (const istek of ["bursa haritası", "hanlar için bir oyun", "Çocuklar için hanlarda hazine avı", "bir şey yap"]) {
     const r = await kalfa.calistir([{ rol: "usta", metin: istek }]);
     assert.deepEqual(kalfa.dogrula(r.kod), [], istek);
   }

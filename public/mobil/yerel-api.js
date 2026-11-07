@@ -1,6 +1,7 @@
 // Çevrimdışı API: Android paketindeki veri anlık görüntüsünden (mobil/anlik/veri.json) sunucunun okuma uçlarını
 // birebir taklit eder. Yalnızca uygulama Lonca sunucusuna ulaşamadığında kullanılır.
 import { tamlikSuzgeci } from "/mobil/dogrulama.js";
+import { eserAra, modulSurumu } from "/ortak/arama.js";
 
 let veri = null;
 const yukle = () => (veri ??= fetch("/mobil/anlik/veri.json").then((y) => y.json()));
@@ -46,6 +47,7 @@ function vitrin({ eserler, moduller }) {
     gununEseri: gununEseri && { ...ozetEser(gununEseri), ozet: ilginc(gununEseri.tarihce.tr), fotoSayisi: gununEseri.fotograflar.length },
     secki: secki.map(ozetEser),
     kapaklar,
+    iller: [...new Set(eserler.map((e) => e.il).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr")),
   };
 }
 
@@ -71,6 +73,11 @@ export async function yanitla(url) {
       .map((e) => ({ ...e, mesafe_m: mesafe({ lat, lng }, e.konum) }))
       .sort((a, b) => a.mesafe_m - b.mesafe_m).slice(0, limit));
   }
+  if (yol === "/api/ara") {
+    const sorgu = String(q.q ?? "").trim();
+    if (sorgu.length > 80) return json({ hata: "arama en fazla 80 harf" }, 400);
+    return json(sorgu ? eserAra(eserler, sorgu, { limit: q.limit }) : []);
+  }
   if ((m = yol.match(/^\/api\/eserler\/([^/]+)$/))) {
     const e = eserler.find((x) => x.id === decodeURIComponent(m[1]));
     return e ? json(e) : json({ hata: "eser bulunamadı" }, 404);
@@ -82,12 +89,13 @@ export async function yanitla(url) {
   }
   if (yol === "/api/vitrin") return json(vitrin(v));
   if (yol === "/api/moduller") return json(v.moduller);
+  if (yol === "/api/moduller/surum") return json({ surum: modulSurumu(v.moduller), sayi: v.moduller.length });
   if ((m = yol.match(/^\/api\/moduller\/([a-z0-9-]{1,64})\/kod$/))) {
     if (!v.moduller.some((x) => x.id === m[1])) return json({ hata: "modül bulunamadı" }, 404);
     const y = await fetch(`/mobil/anlik/moduller/${m[1]}.js`);
     return new Response(await y.text(), { status: 200, headers: { "content-type": "text/javascript; charset=utf-8" } });
   }
-  if (yol === "/api/dalislar") return json(v.dalislar);
+  if (yol === "/api/dalislar") return json(q.ozet === "1" ? v.dalislar.map((d) => ({ eser: d.eser, ozet: d.ozet ?? null, durum: d.durum })) : v.dalislar);
   return json({ hata: "Bu bölüm çevrimdışıyken kullanılamıyor. Lonca sunucusuna bağlanınca açılır." }, 503);
 }
 

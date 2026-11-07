@@ -47,9 +47,13 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       }
       case "kaydirma": return el("div", { className: "s-kaydirma" }, ...cocuklar());
       case "kart": {
+        const ic = cocuklar();
+        // İçinde düğme varsa kart düğme olamaz (iç içe denetim ekran okuyucuyu şaşırtır); dokunuş yine kartın boş yerinden gelir.
+        const icDenetim = ic.some((c) => c.matches?.("button, a, input, select, textarea, [tabindex]") || c.querySelector?.("button, a, input, select, textarea, [tabindex]"));
         const tik = n.id != null;
-        const d = el(tik ? "button" : "div", { className: `s-kart${tik ? " s-tik" : ""} renk-${RENKLER.includes(n.renk) ? n.renk : "yok"}` }, ...cocuklar());
-        if (tik) { d.dataset.odak = `kart:${n.id}`; dokun(d, n.id); }
+        const d = el(tik && !icDenetim ? "button" : "div", { className: `s-kart${tik ? " s-tik" : ""} renk-${RENKLER.includes(n.renk) ? n.renk : "yok"}` }, ...ic);
+        if (tik && !icDenetim) { d.dataset.odak = `kart:${n.id}`; dokun(d, n.id); }
+        else if (tik) d.addEventListener("click", (e) => { if (!e.target.closest("button, a, input, select, textarea, [tabindex]")) gonder({ tur: "dokun", id: metin(n.id) }); });
         return d;
       }
       case "afis": {
@@ -199,9 +203,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
           cizgiGrubu.append(cizgi);
 
           const g = document.createElementNS(NS, "g");
-          g.setAttribute("tabindex", "0");
-          g.setAttribute("role", "button");
-          g.setAttribute("aria-label", `${metin(il.eser.ad)}. ${bagTuruAdi(il.tur)}${il.baslik ? `: ${metin(il.baslik)}` : ""}`);
+          // Çizim yalnızca fare/dokunma içindir; klavye ve ekran okuyucu aynı bağları alttaki listeden seçer.
           g.style.cursor = "pointer";
           const baslik = document.createElementNS(NS, "title");
           baslik.textContent = `${metin(il.eser.ad)} — ${metin(il.baslik || bagTuruAdi(il.tur))}`;
@@ -222,7 +224,6 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
           g.append(baslik, daire, yazi);
           const sec = () => gonder({ tur: "dokun", id: `graf:${metin(n.id)}`, eser: il.eser });
           g.addEventListener("click", sec);
-          g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sec(); } });
           dugumGrubu.append(g);
         });
         kap.append(svg);
@@ -281,7 +282,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       case "fotograflar": {
         const fotolar = (n.eser?.fotograflar ?? []).filter((f) => typeof f === "string").slice(0, 8);
         if (!fotolar.length) return gorsel(n.eser ?? {}, "s-gorsel");
-        const serit = el("div", { className: "s-fotograflar", role: "group", ariaLabel: `${metin(n.eser?.ad)} fotoğrafları` },
+        const serit = el("div", { className: "s-fotograflar", role: "group", tabIndex: 0, ariaLabel: `${metin(n.eser?.ad)} fotoğrafları, yana kaydır` },
           ...fotolar.map((f, i) => el("img", { src: f, alt: `${metin(n.eser?.ad)}, fotoğraf ${i + 1}/${fotolar.length}`, loading: "lazy", decoding: "async" })));
         return el("figure", { className: "s-foto-kap" }, serit,
           el("figcaption", { textContent: `Fotoğraf: ${metin(n.eser?.kaynak).split(",").slice(0, 2).join(",") || "Vakıf Katılım"}` }));
@@ -404,6 +405,10 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       if (!ayniGorunum && !ilkCizimdi && !hareketAzalt()) kap.firstElementChild?.classList.add(yon === "geri" ? "s-kay-geri" : "s-kay-ileri");
       for (const [a, k] of sureler) if (!k.kullanildi) sureler.delete(a);
       if (odakAnahtari && ayniGorunum) kap.querySelector(`[data-odak="${CSS.escape(odakAnahtari)}"]`)?.focus({ preventScroll: true });
+      // Yeni görünümde odak kaybolduysa (silinen düğme ya da gizlenen ana ekran) sahneye taşınır; klavye kaldığı yerden sürer.
+      const etkin = document.activeElement;
+      if (!ayniGorunum && (!etkin || etkin === document.body || !etkin.isConnected || etkin.checkVisibility?.() === false)) kap.focus({ preventScroll: true });
+      return { yeni: !ayniGorunum };
     },
     sekmeSec(id) { seciliSekme = id; sekmeleriCiz(); },
     efekt(ad) {

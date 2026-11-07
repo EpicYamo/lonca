@@ -1,10 +1,12 @@
-//
+// Modül kalfası. Sağlayıcı ve model seçimi server/kalfa-ayarlari.js'de:
+//   openai-uyumlu → UstaGPT (birincil; USTAGPT_*) ya da KALFA_API_URL'deki başka bir uç nokta
 //   anthropic     → Claude (ANTHROPIC_API_KEY)
 import Anthropic from "@anthropic-ai/sdk";
 import ts from "typescript";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { kalfaSaglayicisi, secimOku } from "./kalfa-ayarlari.js";
 
 ts.validateLocaleAndSetLanguage("tr", ts.sys);
 
@@ -12,34 +14,15 @@ const MAKS_DENEME = 3;
 const MAKS_ADIM = 8;     
 const MAKS_SATIR = 2000;
 
-function saglayiciSec(ortam = process.env) {
-  if (ortam.KALFA_SAHTE === "1") return { tur: "sahte" };
-  // KALFA_* tanımlı değilse dalış kalfasıyla aynı UstaGPT (OpenAI uyumlu) uç noktası kullanılır;
-  // böylece yalnızca USTAGPT_* dolu bir .env'de modül kalfası sessizce sahte kipe düşmez.
-  const e = { ...ortam };
-  if (!e.KALFA_SAGLAYICI && !e.ANTHROPIC_API_KEY && !e.KALFA_API_URL && e.USTAGPT_BASE_URL && e.USTAGPT_API_KEY) {
-    Object.assign(e, { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: e.USTAGPT_BASE_URL, KALFA_API_ANAHTARI: e.USTAGPT_API_KEY, KALFA_MODEL: e.KALFA_MODEL || "gemini-3.8-flash" });
-  }
-  const secilen = e.KALFA_SAGLAYICI || (e.ANTHROPIC_API_KEY ? "anthropic" : e.KALFA_API_URL ? "openai-uyumlu" : "sahte");
-  if (secilen === "anthropic") {
-    if (!e.ANTHROPIC_API_KEY) throw new Error("KALFA_SAGLAYICI=anthropic için ANTHROPIC_API_KEY gerekli");
-    return { tur: "anthropic", model: e.KALFA_MODEL || "claude-sonnet-5-5" };
-  }
-  if (secilen === "openai-uyumlu") {
-    if (!e.KALFA_API_URL || !e.KALFA_MODEL) throw new Error("openai-uyumlu için KALFA_API_URL ve KALFA_MODEL gerekli");
-    return { tur: "openai-uyumlu", url: e.KALFA_API_URL.replace(/\/+$/, ""), anahtar: e.KALFA_API_ANAHTARI || "", model: e.KALFA_MODEL };
-  }
-  if (secilen === "sahte") return { tur: "sahte" };
-  throw new Error(`Bilinmeyen KALFA_SAGLAYICI: ${secilen}`);
-}
-
 export function kalfaHazirla({ kok, eserler, ortam = process.env }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
   const ornek = (ad) => readFileSync(path.join(kok, "sdk", "ornekler", `${ad}.js`), "utf8");
   const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi");
   const iller = [...new Set(eserler.map((e) => e.il))];
   const turler = [...new Set(eserler.map((e) => e.tur))];
-  const saglayici = saglayiciSec(ortam);
+  // Sağlayıcı ve model her istekte yeniden çözülür (Studio'daki model seçimi yeniden başlatmadan geçerli olsun).
+  const saglayiciAl = () => kalfaSaglayicisi(ortam, secimOku(ortam));
+  saglayiciAl(); // yanlış yapılandırma sunucu açılırken fark edilsin
 
   const sistem = `Sen Lonca platformunun "kalfa"sısın. Usta (kullanıcı) bir fikir anlatır; sen o fikri vakıf eserleri hakkında küçük bir Lonca modülüne dönüştürürsün. Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
 
@@ -144,13 +127,15 @@ ${ornekOyun}
 
   //   baslat(konusma) → durum
   //   iste(durum) → { cagrilar: [{id, ad, girdi}], sonuclariBildir([{id, icerik, hata}]) }
-  const adaptor = {
+  const adaptorler = {
     anthropic: anthropicAdaptoru,
     "openai-uyumlu": openaiUyumluAdaptor,
-  }[saglayici.tur]?.({ saglayici, sistem, araclar });
+  };
 
   async function calistir(sohbet, mevcutKod) {
+    const saglayici = saglayiciAl();
     if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun), model: "sahte" };
+    const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar });
 
     const konusma = sohbet.map((m) => ({ ...m }));
     if (mevcutKod) konusma.at(-1).metin += `\n\n(Studio'daki güncel modül kodu:)\n\`\`\`js\n${mevcutKod}\n\`\`\``;
@@ -192,8 +177,13 @@ ${ornekOyun}
     throw hata;
   }
 
-  const etiket = saglayici.tur === "sahte" ? "sahte" : `${saglayici.model}`;
-  return { calistir, dogrula: (kod) => dogrula(kod, sdkTipleri), sahte: saglayici.tur === "sahte", model: etiket, saglayici: saglayici.tur };
+  return {
+    calistir,
+    dogrula: (kod) => dogrula(kod, sdkTipleri),
+    get sahte() { return saglayiciAl().tur === "sahte"; },
+    get model() { const s = saglayiciAl(); return s.tur === "sahte" ? "sahte" : s.model; },
+    get saglayici() { return saglayiciAl().tur; },
+  };
 }
 
 // ---------- Claude (Anthropic) ----------

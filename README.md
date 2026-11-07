@@ -35,7 +35,7 @@ SDK, so a generated app cannot invent history.
 
 ## Setup
 
-Requires Node.js 20.12 or newer.
+Requires Node.js 20.19 or newer.
 
 ```bash
 npm install
@@ -52,7 +52,8 @@ Everything works without any configuration:
 
 | Setting (`.env`) | What it does |
 | --- | --- |
-| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | The AI journeyman: free Gemini, OpenCode Go, Claude, or offline Ollama |
+| `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Primary AI provider (UstaGPT, OpenAI-compatible) for both the module journeyman and the dive journeyman. Models are picked in Studio (Atölye → model badge or the sliders button); the choice is stored in `data/kalfa-ayarlari.json` and overrides `.env` without a restart |
+| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | Optional: point the module journeyman at another endpoint (OpenCode Go, Claude, offline Ollama) |
 | `KALFA_SAHTE=1` | Offline fallback: the journeyman returns a prepared template |
 | `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
 | `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
@@ -87,6 +88,34 @@ expire after five minutes. List or revoke devices with
 `/studio/` redirect to `/giris` once; the key is exchanged for a revocable
 HttpOnly cookie (`/cikis` logs out).
 
+### Internet deployment (Nginx + HTTPS)
+
+On a server with a domain, `docker-compose.sunucu.yml` puts Nginx in front of
+Lonca: it terminates HTTPS with a Let's Encrypt certificate, redirects HTTP to
+HTTPS and proxies `/api`, `/medya`, `/sdk`, `/app` and `/studio` to the Lonca
+container, whose port 3000 is no longer published.
+
+1. Point the domain's DNS `A` record (and `AAAA` if any) at the server's public IP.
+   Open ports 80 and 443.
+2. In `.env`: `LONCA_ALAN_ADI=lonca.example.com`, `LONCA_EPOSTA=…`, and a strong
+   `LONCA_API_ANAHTARI`. Optional `LONCA_YOL_ONEKI=/lonca` serves under
+   `https://domain/lonca/` (the API works there; browser redirects of
+   `/app`/`/studio` assume the root).
+3. Start, then get the first certificate (once; renewal is automatic, Nginx
+   reloads by itself):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.sunucu.yml up -d --build
+./docker/sertifika-al.sh            # SERTIFIKA_DENEME=1 for a Let's Encrypt staging run
+```
+
+Until the certificate exists Nginx serves a temporary self-signed one, so it
+can start and answer the HTTP-01 challenge. Needs Docker Compose 2.24+.
+
+The Android app does not need the IP: the APK is built with the server's HTTPS
+origin (the DNS name), sends the API key in `x-lonca-anahtar`, and falls back
+to the bundled offline snapshot when the server cannot be reached.
+
 ## Commands
 
 | Command | What it does |
@@ -96,12 +125,15 @@ HttpOnly cookie (`/cikis` logs out).
 | `npm run test:e2e` | End-to-end scenario in a real browser (run `npx playwright install chromium` first) |
 | `npm run konum` | Finds work coordinates through Google Places / OpenStreetMap (`-- --dene` only prints) |
 | `npm run vendor` | Re-bundles the real 3D library for the browser |
+| `npm run lint` · `npm run format:check` · `npm run denetle` | ESLint, Prettier and data/module consistency checks (all run in CI) |
+
+Branch flow (`dev` → `main` → `build`), CI jobs and APK releases are described in [docs/ci-cd.md](docs/ci-cd.md).
 
 ## Architecture
 
 ```
                        ┌─────────────── Lonca Studio (/studio) ───────────────┐
- master: "a timed game │ chat → POST /api/kalfa → AI (Gemini/Claude)          │
+ master: "a timed game │ chat → POST /api/kalfa → AI (UstaGPT/Claude)         │
  about Bursa hans"     │   ↳ eser_ara tool: looks at real data                  │
                        │   ↳ modul_yaz → rules + TypeScript type check          │
                        │       (on failure: back to the model, max 3 tries)     │
