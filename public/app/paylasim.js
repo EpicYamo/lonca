@@ -68,7 +68,7 @@ async function modulGetir(anahtar) {
 // Modüller bölümünün başındaki "Davet koduyla eriş" kartı: bireysel (özel) modülü kısa kodla açar.
 // Android kabuğunda yalnızca Modüller sekmesinde görünür (data-sekme="moduller").
 const DAVET_STILI = `
-.davet-karti{display:grid;gap:.75rem;margin:0 0 1.6rem;padding:1.1rem 1.1rem 1rem;border-radius:var(--yaricap-buyuk,22px);background:var(--yuzey);box-shadow:var(--golge-kart,none)}
+.davet-karti{display:grid;gap:.75rem;margin:0 0 .4rem;padding:1.1rem 1.1rem 1rem;border-radius:var(--yaricap-buyuk,22px);background:var(--yuzey);box-shadow:var(--golge-kart,none)}
 .davet-ust{display:flex;align-items:center;gap:.8rem}
 .davet-simge{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:var(--dolgu);color:var(--vurgu)}
 .davet-simge svg{width:24px;height:24px}
@@ -104,7 +104,7 @@ function davetAlaniKur(ac) {
   kart.dataset.sekme = "moduller";
   kart.setAttribute("aria-labelledby", "davet-baslik");
   kart.innerHTML = `<div class="davet-ust">
-      <span class="davet-simge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7a4 4 0 1 1-3.87 5H8v3H5v-3H3"/><circle cx="15" cy="11" r="1"/></svg></span>
+      <span class="davet-simge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 20 3m-4 4 3 3m-6-0 2 2"/></svg></span>
       <div><h2 id="davet-baslik">Davet koduyla eriş</h2>
       <p id="davet-alt">Bir usta seninle bireysel modülünü paylaştıysa kodunu yaz.</p></div>
     </div>
