@@ -706,9 +706,10 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
 }
 .model-cip:not(:has(.cip-d)) { padding-right: .75rem; }
 .cip-sira { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--vurgu); color: var(--vurgu-metin); font: 700 .66rem var(--yazi-kod); }
-.cip-d { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--soluk); font-size: .9rem; line-height: 1; }
-@media (hover: hover) { .cip-d:hover { background: var(--panel-3); color: var(--metin); } }
-@media (pointer: coarse) { .cip-d { width: 32px; height: 32px; } }
+/* Model çipinin içindeki küçük yuvarlak düğmeler; genel .cip-d (süzgeç çipleri) bozulmasın diye kapsamlı. */
+.model-cip .cip-d { display: inline-grid; place-items: center; width: 24px; height: 24px; min-height: 0; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--soluk); font-size: .9rem; line-height: 1; }
+@media (hover: hover) { .model-cip .cip-d:hover { background: var(--panel-3); color: var(--metin); } }
+@media (pointer: coarse) { .model-cip .cip-d { width: 32px; height: 32px; min-height: 0; } }
 .model-suzgec { display: flex; gap: 8px; }
 .model-suzgec .arama { flex: 1; min-width: 0; }
 .model-suzgec select {
