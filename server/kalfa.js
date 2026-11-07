@@ -36,7 +36,7 @@ function saglayiciSec(ortam = process.env) {
 export function kalfaHazirla({ kok, eserler, ortam = process.env }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
   const ornek = (ad) => readFileSync(path.join(kok, "sdk", "ornekler", `${ad}.js`), "utf8");
-  const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi");
+  const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi"), ornekHazine = ornek("hazine-avi");
   const iller = [...new Set(eserler.map((e) => e.il))];
   const turler = [...new Set(eserler.map((e) => e.tur))];
   const saglayici = saglayiciSec(ortam);
@@ -150,7 +150,7 @@ ${ornekOyun}
   }[saglayici.tur]?.({ saglayici, sistem, araclar });
 
   async function calistir(sohbet, mevcutKod) {
-    if (saglayici.tur === "sahte") return sahteYanit(sohbet, ornekOyun);
+    if (saglayici.tur === "sahte") return sahteYanit(sohbet, ornekOyun, ornekHazine);
 
     const konusma = sohbet.map((m) => ({ ...m }));
     if (mevcutKod) konusma.at(-1).metin += `\n\n(Studio'daki güncel modül kodu:)\n\`\`\`js\n${mevcutKod}\n\`\`\``;
@@ -386,8 +386,23 @@ function tipDenetimi(kod, sdkTipleri) {
     });
 }
 
-function sahteYanit(sohbet, ornekOyun) {
+function sahteYanit(sohbet, ornekOyun, ornekHazine) {
   const istek = (sohbet.at(-1)?.metin ?? "").toLocaleLowerCase("tr");
+  // "Hazine avı" fikri için hazır, çocuklara uygun şablon (sdk/ornekler/hazine-avi.js)
+  if (istek.includes("hazine")) {
+    return {
+      id: "han-hazine-avi",
+      ad: "Hanlarda Hazine Avı",
+      aciklama: "Çocuklar için süreli hazine avı: fotoğraftaki Bursa hanını bul, altınları sandığına doldur.",
+      kod: ornekHazine,
+      aciklama_ustaya: "(Sahte kalfa: yapay zekâ bağlı değil, hazır bir şablon döndü.) Çocuklar için süreli bir hazine avı hazırladım: her turda bir hanın gerçek fotoğrafı çıkıyor, doğru hanı bulan sandığına altın atıyor. İpucu düğmesi kayıttaki yüzyıl ve ilçeyi gösteriyor; sonunda rozetler ve hazine sandığı var.",
+      renk: "altin",
+      ikon: "han",
+      kategori: "oyun",
+      deneme: 1,
+      aramalar: [],
+    };
+  }
   if (istek.includes("harita")) {
     const il = ["bursa", "izmir", "manisa"].find((x) => istek.includes(x));
     const ilAdi = { bursa: "Bursa", izmir: "İzmir", manisa: "Manisa" }[il] ?? null;
