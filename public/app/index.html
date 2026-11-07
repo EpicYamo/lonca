@@ -59,7 +59,7 @@
         <label class="arama-kutu">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <span class="gizli">Ara</span>
-          <input id="arama" type="search" autocomplete="off" enterkeyhint="search" maxlength="80" placeholder="Eser, ilçe, il ya da tür ara" aria-controls="arama-sonuc" aria-describedby="arama-durum">
+          <input id="arama" type="search" aria-label="Eser, ilçe, il ya da tür ara" autocomplete="off" enterkeyhint="search" maxlength="80" placeholder="Eser, ilçe, il ya da tür ara" aria-controls="arama-sonuc" aria-describedby="arama-durum">
           <button type="button" class="arama-temizle" id="arama-temizle" aria-label="Aramayı temizle" hidden>×</button>
         </label>
         <p class="arama-durum" id="arama-durum" role="status"></p>
@@ -157,7 +157,7 @@
       <div id="ep-tarihce" class="ep-tarihce"></div>
       <section class="ep-bolum" id="ep-konum" aria-labelledby="ep-konum-baslik" hidden>
         <h3 id="ep-konum-baslik">Konum</h3>
-        <div class="ep-harita" id="ep-harita" role="img" aria-label="Eserin konumu haritada"></div>
+        <div class="ep-harita" id="ep-harita" role="group" aria-label="Eserin konumu haritada"></div>
         <p class="ep-konum-notu" id="ep-konum-notu" hidden><strong>Yaklaşık konum.</strong> Kaynakta tam adres yok; işaret mahalleyi gösterir, eserin yeri birkaç yüz metre farklı olabilir.</p>
         <p class="ep-adres" id="ep-adres"></p>
         <a class="ep-yol" id="ep-yol" target="_blank" rel="noopener" hidden>Haritada aç ↗</a>
