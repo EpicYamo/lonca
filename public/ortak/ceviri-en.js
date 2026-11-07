@@ -1042,4 +1042,6 @@ export const EN = {
   "Diğer {0} eserleri": "Other {0} sites",
   "{0} sonuç": "{0} results",
   "Siteye dön": "Back to the site",
+  "Tüm iller": "All provinces",
+  "İl seç": "Choose province",
 };

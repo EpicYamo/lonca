@@ -106,6 +106,9 @@ export default async function basla() {
   const tum = await eserler.liste();
   const yerli = tum.filter((e) => e.konum && Number.isFinite(Number(e.konum.lat)) && Number.isFinite(Number(e.konum.lng)));
   const sehirler = sehirleriKur(yerli);
+  // Veride hangi iller varsa İlçeler sayfasındaki seçici onları listeler; yeni il eklenince kendiliğinden görünür.
+  const iller = [...new Set(yerli.map((e) => e.il).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
+  const ilinde = (s) => !durum.il || s.eserler.some((e) => e.il === durum.il);
   const iliskiler = await eserler.iliskiler();
   const iliskiHaritasi = new Map();
   for (const i of iliskiler) {
@@ -128,6 +131,7 @@ export default async function basla() {
     kapsam: "sehir",
     sehir: BASLANGIC_SEHIR,
     odak: null,
+    il: "",
     rozetler: await basarim.liste(),
   };
   if (!durum.gezilen.size) {
@@ -307,6 +311,8 @@ export default async function basla() {
       await eserAc(olay.eser);
       return;
     }
+    // İlçeler sayfasındaki il seçimi: liste yalnızca o ilin ilçelerine iner.
+    if (olay.tur === "sec" && olay.id === "il") { durum.il = olay.deger === "hepsi" ? "" : String(olay.deger ?? ""); return; }
     if (olay.tur !== "dokun") return;
     const id = olay.id;
     if (id === "geri") { geri(); return; }
@@ -426,12 +432,14 @@ export default async function basla() {
   }
 
   function sehirlerEkrani() {
+    const gorunen = sehirler.filter(ilinde);
     return {
       tip: "sutun",
       cocuklar: [
-        { tip: "ust_cubuk", baslik: "İlçeler", alt: `${sehirler.length} ilçe · ${acikSehirler().length} açık`, geri: "geri" },
+        { tip: "ust_cubuk", baslik: "İlçeler", alt: `${durum.il || `${iller.length} il`} · ${gorunen.length} ilçe · ${acikSehirler().filter(ilinde).length} açık`, geri: "geri" },
         { tip: "metin", metin: "Her ilçe kendi sisini taşır. Bir esere dokunmak o ilçeyi açar; ilçeler arası bir bağa gitmek yeni bir ilçeyi ışıklandırır.", soluk: true },
-        { tip: "liste", ogeler: sehirler.map((s) => {
+        { tip: "secenekler", id: "il", secili: durum.il || "hepsi", secenekler: [{ id: "hepsi", metin: "Tüm iller" }, ...iller.map((il) => ({ id: il, metin: il }))] },
+        { tip: "liste", ogeler: gorunen.map((s) => {
           const acik = s.eserler.some((e) => durum.gezilen.has(e.id));
           const gezilen = s.eserler.filter((e) => durum.gezilen.has(e.id)).length;
           return {

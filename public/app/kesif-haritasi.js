@@ -17,10 +17,8 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
   const $ = (s) => document.querySelector(s);
   const kap = $("#kesif-haritasi");
   const kart = $("#kh-kart");
-  let kuruldu = null, isaretler = new Map(), harita = null, L = null, eserler = [], dalislar = new Set(), konumIsareti = null, seciliIsaret = null;
+  let kuruldu = null, isaretler = new Map(), harita = null, L = null, katman = null, seciliIl = "", eserler = [], dalislar = new Set(), konumIsareti = null, seciliIsaret = null;
 
-  const koyuMu = () => document.documentElement.dataset.tema === "koyu" || document.documentElement.classList.contains("kontrast");
-  const temaUygula = () => kap.classList.toggle("harita-koyu-tema", koyuMu());
 
   function isaret(e) {
     const renk = PIN_RENGI[e.tur] ?? "#0b7a66";
@@ -85,7 +83,7 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
     listeDugme.setAttribute("aria-expanded", String(ac));
     if (!ac) return;
     if (!liste.childElementCount) {
-      liste.append(...[...eserler].sort((a, b) => a.ad.localeCompare(b.ad, "tr")).map((e) => {
+      liste.append(...gorunenEserler().sort((a, b) => a.ad.localeCompare(b.ad, "tr")).map((e) => {
         const b = el("button", { type: "button" }, el("strong", { textContent: e.ad }), el("span", { textContent: [TUR_ADI[e.tur] ?? "Eser", e.ilce, e.il].filter(Boolean).join(" · ") }));
         b.addEventListener("click", () => { sonListeDugmesi = b; listeAc(false); kartAc(e, isaretler.get(e.id)); $("#kh-kapat").focus({ preventScroll: true }); });
         return el("li", {}, b);
@@ -97,6 +95,28 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
   liste.addEventListener("keydown", (o) => { if (o.key === "Escape") { o.stopPropagation(); listeAc(false); listeDugme.focus(); } });
   kart.addEventListener("keydown", (o) => { if (o.key === "Escape") { o.stopPropagation(); kartKapat(); } });
 
+  // İl seçimi: işaretler, liste ve görünüm yalnızca o ilin eserlerine iner. Veride tek il varsa da seçici görünür;
+  // yeni iller eklendikçe kendiliğinden dolar.
+  const gorunenEserler = () => eserler.filter((e) => !seciliIl || e.il === seciliIl);
+  function ilSeciciKur() {
+    const iller = [...new Set(eserler.map((e) => e.il).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
+    if (!iller.length || $("#kh-il")) return;
+    const sec = el("select", { id: "kh-il" }, el("option", { value: "", textContent: "Tüm iller" }), ...iller.map((il) => el("option", { value: il, textContent: il })));
+    sec.setAttribute("aria-label", "İl seç");
+    const kutu = el("label", { className: "kh-arac kh-il" }, sec);
+    kutu.insertAdjacentHTML("afterbegin", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5 9 4.5l6 2 5-2v13l-5 2-6-2-5 2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>');
+    sec.addEventListener("change", () => {
+      seciliIl = sec.value;
+      kartKapat();
+      liste.replaceChildren();
+      katman.clearLayers();
+      for (const e of gorunenEserler()) katman.addLayer(isaretler.get(e.id));
+      if (katman.getLayers().length) harita.fitBounds(katman.getBounds(), { padding: [32, 32], maxZoom: 15 });
+      $("#harita-sayi").textContent = `${gorunenEserler().length} eser haritada`;
+    });
+    $(".kh-araclar")?.prepend(kutu);
+  }
+
   async function kur() {
     L = await leafletYukle();
     const [liste, d] = await Promise.all([
@@ -107,9 +127,8 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
     dalislar = new Set(d.map((x) => x.eser));
     harita = L.map(kap, { zoomControl: true, attributionControl: true, scrollWheelZoom: false, tap: true });
     (await karoKatmani(L)).addTo(harita);
-    temaUygula();
-    new MutationObserver(temaUygula).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tema", "class"] });
-    const katman = L.featureGroup(eserler.map(isaret)).addTo(harita);
+    katman = L.featureGroup(eserler.map(isaret)).addTo(harita);
+    ilSeciciKur();
     // Eserlerin çoğu Bursa'nın tarihî merkezinde: ilk görünüm orası; diğer iller için uzaklaştırmak yeter.
     const merkez = eserler.filter((e) => e.il === "Bursa" && ["Osmangazi", "Yıldırım"].includes(e.ilce));
     if (merkez.length > 5) harita.setView([40.1845, 29.065], 14);
