@@ -108,7 +108,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "leaflet", "dist"), prefix: "/vendor/leaflet/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
-  app.get("/", (_, rep) => rep.redirect("/app/"));
+  // Kök adres doğrudan vatandaş uygulamasının ana sayfasıdır (yönlendirme yok); sayfadaki bütün yollar mutlak.
+  app.get("/", (_, rep) => rep.sendFile("index.html", path.join(kok, "public", "app")));
   app.get("/app", (_, rep) => rep.redirect("/app/"));
   app.get("/studio", (_, rep) => rep.redirect("/studio/"));
 

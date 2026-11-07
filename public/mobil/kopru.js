@@ -4,7 +4,8 @@
 //    https://kozmos.itaskira.com). Ağ taraması ya da IP keşfi yoktur. Bağlanınca bütün /api istekleri bu sunucuya gider
 //    (Studio'da canlıya alınan modüller ve dalışlar hemen görünür), pakette olmayan medya da native tarafta oradan
 //    getirilir. Sunucuya ulaşılamazsa paketteki anlık görüntüyle çevrimdışı çalışır ve arada bir yeniden dener.
-//  - Android geri tuşu: açık pencere → modülün kendi geri düğmesi → modülü kapat → profil → uygulamayı arka plana al.
+//  - Android geri tuşu: açık pencere → modülün kendi geri düğmesi → modülü kapat → Modüller/Profil sekmesinden Keşfet'e
+//    → uygulamayı arka plana al.
 //  - Sistem çubukları temaya uyar; dalış sırasında durum çubuğu gizlenir, her yeni durakta hafif titreşim olur.
 //  - Konum izni native sorulur, Türkçe sesli okuma Android'in metin okuma motoruyla yapılır, eserler paylaşılabilir.
 (() => {
@@ -12,7 +13,8 @@
   if (!C?.isNativePlatform?.()) return;
   const P = C.Plugins ?? {};
   const kok = document.documentElement;
-  kok.classList.add("lonca-native", `lonca-${C.getPlatform()}`);
+  // "kabuk": alt gezinmeli, ayrı sayfalı uygulama düzeni (public/app/kabuk.js, kabuk.css).
+  kok.classList.add("lonca-native", `lonca-${C.getPlatform()}`, "kabuk");
 
   const YAP = window.LONCA_MOBIL ?? {};
   const SAKLI_ANAHTAR = "lonca.anahtar";
@@ -222,8 +224,11 @@
   const gorunurMu = (e) => !!e && e.getClientRects().length > 0;
   function geri() {
     if (acik("#ayarlar")) return $("#ayar-kapat")?.click();
+    // Karşılama ekranında geri, Android alışkanlığıyla uygulamayı arka plana alır.
+    if (acik("#karsilama") && !acik("#hesap-penceresi")) return sessiz(P.App?.minimizeApp());
     if (acik("#katki")) return $("#katki-vazgec")?.click();
     if (acik("#tanisma")) return $("#tanisma-gec")?.click();
+    if (acik("#hesap-penceresi")) return $("#hesap-vazgec")?.click();
     const dlg = document.querySelector("dialog[open]");
     if (dlg) return dlg.close();
     if (acik("#katman")) return $("#katman-kapat")?.click();
@@ -231,6 +236,7 @@
       const ic = [...document.querySelectorAll("#sahne .s-ust-geri")].find(gorunurMu);
       return (ic ?? $("#geri"))?.click();
     }
+    if (window.loncaKabuk?.geri()) return;
     if (acik("#profil-ekrani")) return $("#profil-geri")?.click();
     sessiz(P.App?.minimizeApp());
   }
@@ -307,12 +313,19 @@
     baglantiBolumu();
     paylasDugmesi();
 
-    // Açılış ekranı: vitrin dolunca (en geç 4 sn) kapanır.
+    // Açılış ekranı: Android'in açılış görselinin yerini aynı logolu web açılış ekranı (kabuk.js) hemen devralır;
+    // o, veriler gelince solarak kapanır. Web açılış ekranı yoksa vitrin dolunca (en geç 4 sn) kapanır.
     let kapandi = false;
     const splashKapat = () => { if (kapandi) return; kapandi = true; sessiz(P.SplashScreen?.hide({ fadeOutDuration: 250 })); };
     const liste = $("#moduller");
     if (liste) new MutationObserver((_, o) => { if (liste.childElementCount) { o.disconnect(); requestAnimationFrame(splashKapat); } }).observe(liste, { childList: true });
     setTimeout(splashKapat, 4000);
+    if ($("#acilis-ekrani")) requestAnimationFrame(splashKapat);
+
+    // Alt gezinmede dokunuşa hafif titreşim; klavye açıkken alt çubuk gizlenir (Android'de klavyenin üstüne binmesin).
+    document.addEventListener("click", (e) => { if (e.target.closest?.("#alt-gezinme button, .pl-anahtar, .pl-satir[role=switch]")) titret("secim"); });
+    sessiz(P.Keyboard?.addListener("keyboardWillShow", () => kok.classList.add("klavye-acik")));
+    sessiz(P.Keyboard?.addListener("keyboardWillHide", () => kok.classList.remove("klavye-acik")));
 
     // Dalış ve başarımlar: DOM'u izleyerek (uygulama koduna dokunmadan) native tepki ver.
     let durakGozcu = null, bekliyor = false;

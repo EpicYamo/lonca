@@ -4,7 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f5f5f7">
+  <script>try { if (window.Capacitor?.isNativePlatform?.() || /[?&]kabuk(=|&|$)/.test(location.search)) document.documentElement.classList.add("kabuk"); } catch {}</script>
   <script>try { if (localStorage.getItem("lonca.tema") === "koyu") { document.documentElement.dataset.tema = "koyu"; document.querySelector('meta[name="theme-color"]').content = "#000000"; } } catch {}</script>
+  <script>try { if (localStorage.getItem("lonca.dil") === "en") { document.documentElement.lang = "en"; document.documentElement.classList.add("dil-bekle"); setTimeout(() => document.documentElement.classList.remove("dil-bekle"), 1500); } } catch {}</script>
+  <style>.dil-bekle body { visibility: hidden; }</style>
   <title>Lonca</title>
   <meta name="description" content="Bursa’nın vakıf eserlerini rehberler, oyunlar ve gezi rotalarıyla keşfet.">
   <link rel="manifest" href="/app/manifest.webmanifest">
@@ -17,6 +20,7 @@
   <link rel="stylesheet" href="/app/tema.css">
   <link rel="stylesheet" href="/app/kesif.css">
   <link rel="stylesheet" href="/app/zarif.css">
+  <link rel="stylesheet" href="/app/kabuk.css">
   <link rel="stylesheet" href="/mobil/mobil.css">
   <script src="/mobil/kopru.js"></script>
   <script type="importmap">
@@ -27,12 +31,13 @@
   <a class="atla" href="#uygulamalar-baslik">İçeriğe geç</a>
   <div id="ana-ekran" class="ana-ekran">
     <header class="ust-bar" id="ust-bar">
-      <p class="marka"><span class="marka-logo" id="marka-logo" aria-hidden="true"></span><span>Lonca</span></p>
+      <p class="marka"><span class="marka-logo" id="marka-logo" aria-hidden="true"></span><span id="marka-ad">Lonca</span></p>
       <div class="vitrin-dugmeler">
         <button class="profil-cip" id="profil-cip"><span class="gizli">Profilim ve hesabım: </span>
           <span class="avatar" id="cip-avatar" aria-hidden="true"></span>
           <span class="profil-cip-metin"><strong id="cip-ad">Gezgin</strong><span id="cip-seviye">Seviye 1</span></span>
         </button>
+        <button class="tema-dugme dil-dugme" id="dil-dugme" type="button" data-dil-dugmesi>EN</button>
         <button class="tema-dugme" id="tema-dugme" type="button" aria-label="Koyu temaya geç" aria-pressed="false">
           <svg class="tema-ay" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           <svg class="tema-gunes" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -44,7 +49,7 @@
     </header>
 
     <div class="meydan">
-      <section class="kapak-alani" id="vitrin" aria-labelledby="vitrin-baslik">
+      <section class="kapak-alani" id="vitrin" data-sekme="ana" aria-labelledby="vitrin-baslik">
         <div class="kolaj" id="kolaj" aria-hidden="true"></div>
         <div class="kapak-yazi">
           <p class="vitrin-selam" id="vitrin-selam">Hoş geldin</p>
@@ -55,7 +60,7 @@
         <p class="kolaj-atif" id="kolaj-atif"></p>
       </section>
 
-      <section class="arama-alani" role="search" aria-label="Eser ve uygulama ara">
+      <section class="arama-alani" data-sekme="ana" role="search" aria-label="Eser ve uygulama ara">
         <label class="arama-kutu">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           <span class="gizli">Ara</span>
@@ -68,12 +73,12 @@
 
       <div class="meydan-duzen">
         <main class="meydan-ana">
-          <section id="devam" class="devam" hidden aria-labelledby="devam-baslik">
+          <section id="devam" class="devam" data-sekme="ana" hidden aria-labelledby="devam-baslik">
             <h2 id="devam-baslik" class="bolum-baslik kucuk">Kaldığın yerden</h2>
             <button class="devam-karti" id="devam-karti"></button>
           </section>
 
-          <section class="modullerim" id="modullerim-bolum" aria-labelledby="modullerim-baslik">
+          <section class="modullerim" id="modullerim-bolum" data-sekme="moduller" aria-labelledby="modullerim-baslik">
             <div class="bolum-ust">
               <h2 id="modullerim-baslik" class="bolum-baslik">Modüllerim</h2>
               <button type="button" class="metin-dugme" id="modullerim-duzenle" aria-pressed="false" hidden>Düzenle</button>
@@ -82,7 +87,40 @@
             <p class="modullerim-bos" id="modullerim-bos" hidden>Henüz boş. Aşağıdaki uygulamalardan <strong>＋</strong> ile ekle; açtığın uygulamalar da buraya gelir.</p>
           </section>
 
-          <section class="one-cikanlar" aria-labelledby="one-cikanlar-baslik">
+          <section class="harita-bolum" id="harita-bolum" data-sekme="kesif" aria-labelledby="harita-baslik">
+            <div class="bolum-ust">
+              <h2 id="harita-baslik" class="bolum-baslik">Haritada keşfet</h2>
+              <span class="bolum-sayi" id="harita-sayi"></span>
+            </div>
+            <div class="kh-kap">
+              <div class="kh-harita" id="kesif-haritasi" role="region" aria-label="Vakıf eserleri haritası. İşaretlere dokununca eserin kısa notu açılır."></div>
+              <div class="kh-araclar">
+                <button type="button" class="kh-arac" id="kh-liste-dugme" aria-expanded="false" aria-controls="kh-liste">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+                  Liste
+                </button>
+              <button type="button" class="kh-arac kh-yakin" id="kh-yakin">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="currentColor"/></svg>
+                Yakınımdaki eserler
+              </button>
+              </div>
+              <ul class="kh-liste" id="kh-liste" aria-label="Haritadaki eserler" hidden></ul>
+              <div class="kh-kart" id="kh-kart" role="group" aria-labelledby="kh-ad" hidden>
+                <button type="button" class="kh-kapat" id="kh-kapat" aria-label="Kartı kapat">×</button>
+                <div class="kh-ust">
+                  <span class="kh-foto" id="kh-foto" aria-hidden="true"></span>
+                  <div class="kh-baslik">
+                    <p class="kh-tur" id="kh-tur"></p>
+                    <h3 id="kh-ad"></h3>
+                  </div>
+                </div>
+                <p class="kh-not" id="kh-not"></p>
+                <div class="kh-eylemler" id="kh-eylemler"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="one-cikanlar" data-sekme="ana" aria-labelledby="one-cikanlar-baslik">
             <div class="bolum-ust">
               <h2 id="one-cikanlar-baslik" class="bolum-baslik">Öne çıkanlar</h2>
               <div class="kaydir-dugmeler" id="one-cikan-oklar" hidden>
@@ -93,16 +131,24 @@
             <ul id="one-cikanlar" class="one-cikan-seridi"></ul>
           </section>
 
-          <section class="uygulamalar" aria-labelledby="uygulamalar-baslik">
+          <section class="uygulamalar" data-sekme="moduller" aria-labelledby="uygulamalar-baslik">
             <div class="bolum-ust">
               <h2 id="uygulamalar-baslik" class="bolum-baslik" tabindex="-1">Uygulamalar</h2>
               <span class="bolum-sayi" id="uygulama-sayisi"></span>
+              <label class="siralama"><span class="gizli">Sırala</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M7 20l-3-3M7 20l3-3M17 20V4M17 4l-3 3M17 4l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <select id="siralama" aria-label="Uygulamaları sırala">
+                  <option value="onerilen">Önerilen</option>
+                  <option value="yeni">En yeni</option>
+                  <option value="ad">A–Z</option>
+                </select>
+              </label>
             </div>
             <div class="kategori-cipleri" id="kategori-cipleri" role="group" aria-label="Kategoriye göre süz"></div>
             <ul id="moduller" class="uygulama-listesi"></ul>
           </section>
 
-          <section class="envanter" aria-labelledby="envanter-baslik">
+          <section class="envanter" data-sekme="ana" aria-labelledby="envanter-baslik">
             <div class="bolum-ust">
               <h2 id="envanter-baslik" class="bolum-baslik">Envanterden</h2>
               <span class="bolum-sayi">her gün yeni bir seçki</span>
@@ -111,7 +157,7 @@
           </section>
         </main>
 
-        <aside class="meydan-yan" aria-label="Günün eseri ve katkı">
+        <aside class="meydan-yan" data-sekme="ana" aria-label="Günün eseri ve katkı">
           <section class="gunun-eseri" id="gunun-eseri" aria-labelledby="gunun-baslik" hidden>
             <h2 id="gunun-baslik" class="bolum-baslik kucuk">Günün eseri</h2>
             <button type="button" class="gunun-karti" id="gunun-karti"></button>
@@ -202,6 +248,14 @@
   </div>
 
   <div id="modul-ekrani" class="modul-ekrani" hidden>
+    <!-- Uygulamada (kabuk) modülün üstünde Android uygulama çubuğu; web'de gizli, kapsül kullanılır. -->
+    <header class="modul-cubugu" id="modul-cubugu">
+      <button type="button" class="mc-geri" id="modul-geri" aria-label="Modülü kapat ve geri dön">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <p class="mc-baslik" id="modul-baslik" aria-hidden="true">Lonca</p>
+      <button type="button" class="mc-dugme" data-ayar aria-expanded="false" aria-controls="ayarlar" aria-label="Görünüm ve erişilebilirlik">Aa</button>
+    </header>
     <h1 id="baslik" class="gizli">Lonca</h1>
     <div class="ilerleme" id="ilerleme" hidden role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="İlerleme"><span></span></div>
     <main id="sahne" class="sahne" tabindex="-1"></main>
@@ -231,6 +285,23 @@
     </div>
   </div>
 
+  <!-- Karşılama: ilk açılışta giriş yap / hesap oluştur / hesap açmadan devam et. -->
+  <div id="karsilama" class="karsilama" hidden>
+    <div class="ks-kutu" role="dialog" aria-modal="true" aria-labelledby="ks-baslik" aria-describedby="ks-alt">
+      <span class="ks-gorsel" id="ks-gorsel" aria-hidden="true"></span>
+      <div class="ks-govde">
+        <span class="ks-logo" id="ks-logo" aria-hidden="true"></span>
+        <h2 id="ks-baslik">Lonca'ya hoş geldin</h2>
+        <p class="ks-alt" id="ks-alt">Vakıf eserlerini rehberler, oyunlar, haritalar ve dalışlarla keşfet. Hesabınla giriş yaparsan puanın ve başarımların her cihazda seninle.</p>
+        <div class="ks-dugmeler">
+          <button type="button" class="dugme" id="ks-giris">Giriş yap</button>
+          <button type="button" class="dugme ikincil" id="ks-kayit">Hesap oluştur</button>
+          <button type="button" class="ks-devam" id="ks-devam">Hesap açmadan devam et</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="tanisma" class="ayarlar" hidden>
     <form class="ayarlar-kutu tanisma-kutu" id="tanisma-formu" role="dialog" aria-modal="true" aria-labelledby="tanisma-baslik">
       <h2 id="tanisma-baslik">Lonca'ya hoş geldin</h2>
@@ -250,24 +321,30 @@
 
   <div id="hesap-penceresi" class="ayarlar" hidden>
     <form id="hesap-formu" class="ayarlar-kutu hesap-kutu" role="dialog" aria-modal="true" aria-labelledby="hesap-baslik">
+      <span class="hesap-logo" id="hesap-logo" aria-hidden="true"></span>
       <h2 id="hesap-baslik">Lonca hesabı</h2>
-      <p class="tanisma-alt" id="hesap-aciklama">Profilini güvenli hesabına bağla; mevcut cihaz profilin ilk girişte taşınır.</p>
+      <p class="tanisma-alt" id="hesap-aciklama">Profilini güvenli hesabına bağla; bu cihazdaki puan ve başarımların ilk girişte hesabına taşınır.</p>
       <div class="bolumlu hesap-kip" role="radiogroup" aria-label="Giriş ya da hesap oluştur">
         <button type="button" data-hesap-kip="giris" aria-checked="true" role="radio" class="secili">Giriş yap</button>
         <button type="button" data-hesap-kip="kayit" aria-checked="false" role="radio">Hesap oluştur</button>
       </div>
       <label class="hesap-alan">Kullanıcı adı
-        <input id="hesap-kimlik" class="tanisma-girdi" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.-]{3,32}" placeholder="Örn. ayse.yilmaz">
+        <input id="hesap-kimlik" class="tanisma-girdi" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.\-]{3,32}" placeholder="Örn. ayse.yilmaz" aria-describedby="hesap-kimlik-ipucu">
       </label>
+      <p class="hesap-ipucu" id="hesap-kimlik-ipucu">Harf, rakam, nokta, alt çizgi ya da tire; 3–32 karakter.</p>
       <label class="hesap-alan">Şifre
-        <input id="hesap-sifre" class="tanisma-girdi" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter">
+        <span class="hesap-sifre-kap">
+          <input id="hesap-sifre" class="tanisma-girdi" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter">
+          <button type="button" class="hesap-goster" id="hesap-goster" aria-label="Şifreyi göster" aria-pressed="false">
+            <svg class="goz-acik" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            <svg class="goz-kapali" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4l16 16M10.6 6.1A9.8 9.8 0 0 1 12 6c6 0 9.5 6 9.5 6a17 17 0 0 1-2.9 3.6M6.4 7.5A16.5 16.5 0 0 0 2.5 12s3.5 6.5 9.5 6.5a9 9 0 0 0 4-.9M9.9 10a3 3 0 0 0 4.1 4.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </span>
       </label>
-      <p id="hesap-kayit-notu" class="hesap-aciklama" hidden>Bu hesapla App profilini kullanabilir, aynı kullanıcı adıyla Studio’da modül hazırlayabilirsin.</p>
+      <p id="hesap-kayit-notu" class="hesap-aciklama" hidden>Bu hesapla uygulamadaki profilini her cihazda kullanır, aynı kullanıcı adıyla web'deki Lonca Studio'da modül hazırlayabilirsin.</p>
       <p id="hesap-hata" class="hesap-hata" role="alert" hidden></p>
-      <div class="tanisma-dugmeler">
-        <button type="button" class="dugme ikincil" id="hesap-vazgec">Vazgeç</button>
-        <button type="submit" class="dugme" id="hesap-gonder">Giriş yap</button>
-      </div>
+      <button type="submit" class="dugme hesap-gonder" id="hesap-gonder">Giriş yap</button>
+      <button type="button" class="hesap-vazgec" id="hesap-vazgec">Vazgeç</button>
     </form>
   </div>
 
@@ -352,6 +429,32 @@
     </div>
   </div>
 
+  <!-- Android uygulamasında (ve ?kabuk ile web'de) görünen alt gezinme çubuğu; kabuk.js yönetir. -->
+  <nav id="alt-gezinme" class="alt-gezinme" aria-label="Ana gezinme">
+    <button type="button" data-sekme="ana" aria-current="page">
+      <span class="ag-ikon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-6h-6v6H5.5A1.5 1.5 0 0 1 4 19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+      <span class="ag-ad">Ana sayfa</span>
+    </button>
+    <button type="button" data-sekme="kesif">
+      <span class="ag-ikon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 4.5L3.5 6.5v13L9 17.5l6 2 5.5-2v-13L15 6.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 4.5v13M15 6.5v13" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+      <span class="ag-ad">Keşfet</span>
+    </button>
+    <button type="button" data-sekme="moduller">
+      <span class="ag-ikon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span>
+      <span class="ag-ad">Modüller</span>
+    </button>
+    <button type="button" data-sekme="profil">
+      <span class="ag-ikon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4.5 20.5c1.2-3.8 4-5.6 7.5-5.6s6.3 1.8 7.5 5.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+      <span class="ag-ad">Profilim</span>
+    </button>
+  </nav>
+
+  <div id="acilis-ekrani" class="acilis-ekrani" aria-hidden="true">
+    <span class="ae-logo" id="ae-logo"></span>
+    <p class="ae-ad">Lonca</p>
+    <p class="ae-alt">Vakıf eserleri, cebinde</p>
+  </div>
+
   <div id="bildirimler" class="bildirimler" aria-live="polite"></div>
 
   <script>
@@ -369,7 +472,9 @@
       ciz();
     })();
   </script>
+  <script type="module" src="/ortak/dil.js"></script>
   <script type="module" src="/app/app.js"></script>
   <script type="module" src="/app/zarif.js"></script>
+  <script type="module" src="/app/kabuk.js"></script>
 </body>
 </html>

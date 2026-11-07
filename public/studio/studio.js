@@ -1,8 +1,11 @@
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { hareketAzalt } from "/ortak/animasyon.js";
 import { loncaLogo } from "/ortak/logo.js";
+import { dilAl } from "/ortak/dil.js";
 
 const $ = (s) => document.querySelector(s);
+// Tarih/saat biçimi arayüz diline uyar (metinler /ortak/dil.js ile çevrilir).
+const yerelDil = () => (dilAl() === "en" ? "en-GB" : "tr-TR");
 const el = (etiket, ozellik = {}, ...cocuk) => {
   const d = Object.assign(document.createElement(etiket), ozellik);
   d.append(...cocuk.filter((c) => c != null));
@@ -913,7 +916,7 @@ const EYLEMLER = {
   reddedildi: [["Atölyede aç", "ac", "ikincil"], ["Yeniden değerlendir", "bekliyor", "ikincil"], ["Sil", "sil", "tehlike"]],
 };
 let modulSuzgeci = "hepsi";
-const tarihYaz = (t) => (t ? new Date(t).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+const tarihYaz = (t) => (t ? new Date(t).toLocaleString(yerelDil(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
 
 async function modulleriListele() {
   // Sunucu ustaya yalnızca kendi modüllerini döndürür; onay kuyruğu admin'e özeldir.
@@ -984,7 +987,7 @@ function surumleriCiz() {
   sec.hidden = !liste.length;
   sec.replaceChildren(el("option", { value: "", textContent: `↶ Önceki sürümler (${liste.length})` }),
     ...liste.map((s, i) => el("option", { value: String(i),
-      textContent: `${new Date(s.zaman).toLocaleTimeString("tr", { hour: "2-digit", minute: "2-digit" })} · ${s.ad || s.id || "adsız"} · ${s.neden} · ${s.kod.split("\n").length} satır` })));
+      textContent: `${new Date(s.zaman).toLocaleTimeString(yerelDil(), { hour: "2-digit", minute: "2-digit" })} · ${s.ad || s.id || "adsız"} · ${s.neden} · ${s.kod.split("\n").length} satır` })));
 }
 $("#surumler").addEventListener("change", (e) => {
   const s = surumleriOku()[Number(e.target.value)];
@@ -1367,7 +1370,7 @@ async function gecmisiCiz() {
   catch (h) { liste.replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
   if (!kayitlar.length) { liste.replaceChildren(el("li", { className: "aciklama", textContent: "Henüz değişiklik yok." })); return; }
   liste.replaceChildren(...kayitlar.slice(0, 40).map((g) => {
-    const saat = new Date(g.zaman).toLocaleString("tr", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    const saat = new Date(g.zaman).toLocaleString(yerelDil(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
     const ayrinti = g.neden ?? (g.ozet?.length ? (g.islem === "ice-aktar" ? g.ozet.join(", ") : `${g.ozet.map((a) => ALAN_ADI[a] ?? a).join(", ")} değişti`) : "");
     const geriB = el("button", { type: "button", className: "kucuk-d ikincil yalniz-admin", textContent: g.geriAlindi ? "geri alındı" : "Geri al", disabled: g.geriAlindi });
     geriB.addEventListener("click", async () => {
@@ -1463,7 +1466,7 @@ async function sayaclariGuncelle() {
   try { yaz("#sayac-oneri", (await yApi("/api/eser-oneriler", { yeniden: false })).length); } catch {}
 }
 
-const saat = () => { $("#saat").textContent = new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }); };
+const saat = () => { $("#saat").textContent = new Date().toLocaleTimeString(yerelDil(), { hour: "2-digit", minute: "2-digit" }); };
 saat(); setInterval(saat, 30000);
 
 async function durumCubugu() {
@@ -1474,7 +1477,7 @@ async function durumCubugu() {
     $("#dc-modul").innerHTML = `modüller: <b>${yayinda}</b> yayında`;
   } catch {}
 }
-setInterval(() => { $("#dc-saat").textContent = new Date().toLocaleString("tr-TR", { weekday: "short", hour: "2-digit", minute: "2-digit" }); }, 1000);
+setInterval(() => { $("#dc-saat").textContent = new Date().toLocaleString(yerelDil(), { weekday: "short", hour: "2-digit", minute: "2-digit" }); }, 1000);
 durumCubugu();
 
 function kalfaDurumu() {
@@ -1505,7 +1508,7 @@ function saglikEtiketi(m) {
   const s = m.saglik;
   if (!s) return null;
   if (modelDurumu.tarama?.ilerleme?.suren?.includes(m.deger)) return { sinif: "suruyor", metin: "sınanıyor…", baslik: "Kalfa isteği sürüyor" };
-  const tarih = s.tarih ? new Date(s.tarih).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : "";
+  const tarih = s.tarih ? new Date(s.tarih).toLocaleString(yerelDil(), { dateStyle: "short", timeStyle: "short" }) : "";
   if (s.durum === "calisiyor") return { sinif: "iyi", metin: `✓ çalışıyor · ${saniye(s.sure)}`, baslik: `Kalfa testi ${tarih}: ${saniye(s.sure)}, ${s.deneme ?? "?"} deneme, ${s.satir ?? "?"} satır` };
   if (s.durum === "hata") return { sinif: "kotu", metin: `✗ ${s.hata}`, baslik: `Kalfa testi ${tarih}: ${s.hata}` };
   return { sinif: "", metin: "denenmedi", baslik: "Bu model henüz kalfa testinden geçmedi" };
@@ -1523,7 +1526,7 @@ function taramaGoster() {
   } else if (t?.guncelleme) {
     const calisan = modelDurumu.modeller.filter((m) => m.saglik?.durum === "calisiyor").length;
     const denenen = modelDurumu.modeller.filter((m) => m.saglik && m.saglik.durum !== "denenmedi").length;
-    yazi.textContent = `Son kalfa testi ${new Date(t.guncelleme).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}: ${denenen} modelden ${calisan} tanesi modül üretebildi.`;
+    yazi.textContent = `Son kalfa testi ${new Date(t.guncelleme).toLocaleString(yerelDil(), { dateStyle: "short", timeStyle: "short" })}: ${denenen} modelden ${calisan} tanesi modül üretebildi.`;
   } else yazi.textContent = "";
 }
 async function taramaYokla() {
@@ -1586,7 +1589,7 @@ async function modelleriYukle({ yenile = false } = {}) {
     sec.replaceChildren(el("option", { value: "", textContent: "Tüm sağlayıcılar" }), ...sahipler.map((x) => el("option", { value: x, textContent: x })));
     sec.value = sahipler.includes(onceki) ? onceki : "";
     const metin = v.modeller.filter((m) => m.tur === "metin").length;
-    $("#model-bilgi").textContent = `UstaGPT: ${metin} metin, ${v.modeller.length - metin} görsel model · liste ${new Date(v.guncelleme).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })} itibarıyla`;
+    $("#model-bilgi").textContent = `UstaGPT: ${metin} metin, ${v.modeller.length - metin} görsel model · liste ${new Date(v.guncelleme).toLocaleTimeString(yerelDil(), { hour: "2-digit", minute: "2-digit" })} itibarıyla`;
     durum.textContent = "";
   } catch (h) {
     modelDurumu.modeller = [];
