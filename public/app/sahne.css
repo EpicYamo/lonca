@@ -82,6 +82,10 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-satir.s-hizala-bas { justify-content: flex-start; } .s-satir.s-hizala-orta { justify-content: center; }
 .s-satir.s-hizala-son { justify-content: flex-end; } .s-satir.s-hizala-yay { justify-content: space-between; }
 .s-izgara { display: grid; grid-template-columns: repeat(var(--sutun, 2), minmax(0, 1fr)); gap: .75rem; }
+/* Büyük yazıda sütun en az bu kadar geniş olur; sığmazsa ızgara kendiliğinden tek sütuna iner (1× yazıda düzen değişmez). */
+@supports (width: max(1px, 2px)) {
+  .s-izgara { --sutun-en: calc(6rem + (var(--olcek, 1) - 1) * 12rem); grid-template-columns: repeat(auto-fit, minmax(min(100%, max(var(--sutun-en), (100% - (var(--sutun, 2) - 1) * .75rem) / var(--sutun, 2))), 1fr)); }
+}
 .s-kaydirma { display: flex; gap: .75rem; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -1rem; padding: .1rem 1rem .6rem; }
 .s-kaydirma > * { flex: 0 0 auto; width: min(72%, 300px); scroll-snap-align: start; }
 .s-kart { display: flex; flex-direction: column; gap: .6rem; padding: 1.1rem; text-align: left; background: var(--yuzey); border: 1px solid var(--cizgi); border-radius: 20px; }
@@ -151,7 +155,9 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-secenek { flex: 1; min-height: 42px; padding: .4rem .8rem; border: 0; border-radius: 10px; background: transparent; color: var(--soluk); font-weight: 650; white-space: nowrap; }
 .s-secenek.secili { background: var(--yuzey); color: var(--kobalt); box-shadow: 0 2px 8px rgba(20, 39, 99, .12); }
 .kontrast .s-secenekler { background: #000; border: 1px solid #fff; }
-.s-form { display: flex; gap: .5rem; }
+.s-form { display: flex; flex-wrap: wrap; gap: .5rem; }
+.s-form .s-girdi { min-width: min(100%, 10em); }
+.s-form .s-dugme { flex: 1 0 auto; }
 .s-girdi { flex: 1; min-height: 50px; padding: 0 1rem; border-radius: 14px; border: 2px solid var(--cizgi); background: var(--yuzey); color: var(--metin); font: inherit; }
 
 .s-agir-kap { display: flex; flex-direction: column; gap: .5rem; }
@@ -270,14 +276,14 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 
 .s-ust-cubuk {
   position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: .5rem; margin: 0 -1rem;
-  padding: calc(.55rem + env(safe-area-inset-top)) 7.6rem .55rem .7rem; min-height: calc(56px + env(safe-area-inset-top));
+  padding: calc(.55rem + env(safe-area-inset-top)) calc(7.6rem / var(--olcek, 1)) .55rem .7rem; /* kapsül px ile sabit; büyük yazıda boşluk büyümesin */ min-height: calc(56px + env(safe-area-inset-top));
   background: color-mix(in srgb, var(--zemin) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--cizgi);
 }
 .s-ust-geri, .s-ust-ikon { display: grid; place-items: center; flex: none; width: 42px; height: 42px; border-radius: 12px; border: 0; background: transparent; color: var(--ana); }
 .s-ust-geri:active, .s-ust-ikon:active { background: color-mix(in srgb, var(--ana) 14%, transparent); }
 .s-ust-metin { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; padding-left: .3rem; }
-.s-ust-metin strong { font-family: var(--yazi-baslik); font-weight: 400; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s-ust-metin strong { font-family: var(--yazi-baslik); font-weight: 400; font-size: 1.15rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: break-word; }
 .s-ust-metin span { color: var(--soluk); font-size: .8rem; }
 .s-kok-tam > .s-sutun > .s-ust-cubuk:first-child { margin-bottom: .2rem; }
 
@@ -407,3 +413,8 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-dalis-duz-not small { color: var(--soluk); font-size: .75rem; }
 .s-dalis-duz-not { margin-top: .6rem; padding: .8rem .9rem; border-radius: 14px; border: 1px solid var(--cizgi); }
 .s-dalis-duz .s-dalis-rozet { position: static; align-self: flex-start; color: var(--metin); background: color-mix(in srgb, var(--metin) 8%, transparent); border-color: var(--cizgi); }
+
+/* Erişilebilirlik: büyük yazıda uzun sözcükler kutudan taşmaz, yana kaydırılan şeritler klavyeyle odaklanınca belli olur. */
+.s-kok :is(h2, h3, h4, strong, .s-metin, .s-eser-ad, .s-dugme) { overflow-wrap: break-word; hyphens: auto; }
+.s-dugme { max-width: 100%; white-space: normal; }
+.s-fotograflar:focus-visible { outline: 3px solid var(--ana); outline-offset: 3px; }

@@ -38,6 +38,7 @@ npm run dev               # node --watch server/index.js → http://localhost:30
 npm start                 # izlemesiz
 npm test                  # node --test test/*.test.mjs (API, doğrulama, kalfa denetimi)
 npm run test:e2e          # Playwright ile uçtan uca senaryo (test/e2e/uctan-uca.mjs)
+npm run test:erisim       # axe + Playwright erişilebilirlik taraması (uygulama, 4 modül, dalış; klavye, 1.5× yazı, sesli okuma)
 npm run lint              # ESLint
 npm run format:check      # Prettier (yalnızca .prettierignore dışındaki dosyalar)
 npm run denetle           # veri, modül sözleşmesi ve depoya girmemesi gereken dosyalar
