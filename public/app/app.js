@@ -9,6 +9,7 @@ import { loncaLogo } from "/ortak/logo.js";
 import { modulSurumu } from "/ortak/arama.js";
 import * as raf from "./modullerim.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
+import { kesifHaritasiKur } from "./kesif-haritasi.js";
 
 const $ = (s) => document.querySelector(s);
 export const el = (etiket, ozellik = {}, ...cocuklar) => {
@@ -372,6 +373,17 @@ const eserSayfasi = eserSayfasiKur({
 });
 const eserPenceresi = (id) => eserSayfasi.ac(id);
 
+// Keşfet haritası: uygulamada Keşfet sekmesi açılınca, web'de bölüm ekrana girince kurulur.
+const kesifHaritasi = kesifHaritasiKur({
+  el, api, TUR_ADI, bildir, eserAc: (id) => eserPenceresi(id), modulAc: (m) => moduluAc(m),
+  moduller: () => modulListesi, dalisModulu: () => modulListesi.find((m) => /dalis/.test(m.id)) ?? null,
+});
+addEventListener("lonca:sekme", (e) => { if (e.detail === "kesif") kesifHaritasi.goster(); });
+if (!document.documentElement.classList.contains("kabuk") && "IntersectionObserver" in window) {
+  const g = new IntersectionObserver((k) => { if (k.some((x) => x.isIntersecting)) { g.disconnect(); kesifHaritasi.goster(); } }, { rootMargin: "200px" });
+  g.observe($("#harita-bolum"));
+}
+
 function devamKartiCiz() {
   const son = depo.oku("lonca.son-modul", null);
   const m = son && modulListesi.find((x) => x.id === son.id);
@@ -481,8 +493,12 @@ function uygulamalariCiz({ animasyonsuz = false } = {}) {
       el("span", { className: "ac-pill", ariaHidden: "true", textContent: "AÇ" }));
     b.addEventListener("click", () => moduluAc(m, b));
     const rafta = raf.raftaMi(m.id);
-    const ekle = el("button", { type: "button", className: `raf-dugme${rafta ? " rafta" : ""}`, textContent: rafta ? "✓" : "＋",
+    const ekle = el("button", { type: "button", className: `raf-dugme${rafta ? " rafta" : ""}`,
       ariaLabel: rafta ? `${m.ad}: Modüllerim'den çıkar` : `${m.ad}: Modüllerim'e ekle`, title: rafta ? "Modüllerim'de" : "Modüllerim'e ekle" });
+    // Yer imi: boşken "ekle", doluyken "Modüllerim'de" (dokununca çıkarılır).
+    ekle.innerHTML = rafta
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4-6.5 4v-16a1 1 0 0 1 1-1z" fill="currentColor"/><path d="M9 10l2.2 2.2L15.2 8" fill="none" stroke="var(--yuzey)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4-6.5 4v-16a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 7.5v6M9 10.5h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
     ekle.setAttribute("aria-pressed", String(rafta));
     ekle.addEventListener("click", () => {
       if (raf.raftaMi(m.id)) { raf.raftanKaldir(m.id); bildir(`${m.ad} Modüllerim'den çıkarıldı.`, { sure: 1800 }); }
@@ -527,7 +543,8 @@ function rafCiz() {
       igne.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 4 4H6l4-4-1-6zM12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
       igne.setAttribute("aria-pressed", String(sabit));
       igne.addEventListener("click", () => { raf.sabitle(m.id); rafCiz(); $(`#modullerim [data-id="${m.id}"] .igne`)?.focus(); });
-      const kaldir = el("button", { type: "button", className: "raf-eylem kaldir", textContent: "−", ariaLabel: `${m.ad}: Modüllerim'den çıkar` });
+      const kaldir = el("button", { type: "button", className: "raf-eylem kaldir", ariaLabel: `${m.ad}: Modüllerim'den çıkar` });
+      kaldir.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
       kaldir.addEventListener("click", () => { raf.raftanKaldir(m.id); rafCiz(); uygulamalariCiz({ animasyonsuz: true }); ($("#modullerim .raf-eylem") ?? $("#modullerim-duzenle"))?.focus(); });
       li.append(igne, kaldir);
     }
@@ -587,8 +604,45 @@ async function anaEkran({ gecisli = false } = {}) {
     ul.replaceChildren(el("li", { className: "bos", textContent: `Uygulamalar yüklenemedi: ${h.message}. Bağlantını kontrol edip sayfayı yenile.` }));
   }
   vitrinCiz();
-  if (!profil.profilOku() && !ONIZLEME) tanismaAc();
+  if (!profil.profilOku() && !hesapJetonuOku() && !ONIZLEME && !karsilamaGosterildi) karsilamaAc();
 }
+
+// ---------- Karşılama: giriş yap / hesap oluştur / hesap açmadan devam et ----------
+// İlk açılışta (cihazda profil ve oturum yoksa) gelir. Uygulamada tam ekran, web'de arkası bulanık pencere.
+// Hesap açmadan devam eden, takma ad sorusuyla (tanışma) sürer ve uygulamada serbestçe gezinir.
+let karsilamaGosterildi = false;
+function karsilamaAc() {
+  karsilamaGosterildi = true;
+  $("#ks-logo").innerHTML = loncaLogo({ boyut: 52 });
+  vitrinGetir().then((v) => {
+    const foto = v?.gununEseri?.foto ?? v?.secki?.[0]?.foto;
+    if (foto) $("#ks-gorsel").style.backgroundImage = `url("${foto}")`;
+  });
+  $("#karsilama").hidden = false;
+  document.documentElement.classList.add("karsilamada");
+  $("#ks-giris").focus({ preventScroll: true });
+}
+function karsilamaKapat() {
+  const k = $("#karsilama");
+  document.documentElement.classList.remove("karsilamada");
+  if (hareketAzalt() || k.hidden) { k.hidden = true; return; }
+  k.classList.add("gidiyor");
+  setTimeout(() => { k.hidden = true; k.classList.remove("gidiyor"); }, 260);
+}
+async function karsilamaHesap(kip) {
+  $("#karsilama").hidden = true;
+  const tamam = await hesapPenceresiAc(kip);
+  if (tamam) { karsilamaKapat(); return; }
+  // Vazgeçilirse karşılamaya dönülür.
+  $("#karsilama").hidden = false;
+  $(kip === "kayit" ? "#ks-kayit" : "#ks-giris").focus({ preventScroll: true });
+}
+$("#ks-giris").addEventListener("click", () => karsilamaHesap("giris"));
+$("#ks-kayit").addEventListener("click", () => karsilamaHesap("kayit"));
+$("#ks-devam").addEventListener("click", () => { karsilamaKapat(); tanismaAc(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#karsilama").hidden) { e.preventDefault(); $("#ks-devam").click(); }
+});
 
 let acilisZamani = 0, acilisZamanlayici = null;
 function acilisGoster(m) {

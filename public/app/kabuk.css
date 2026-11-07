@@ -29,7 +29,7 @@
 .kabuk .ust-bar { flex-wrap: nowrap; }
 .kabuk .marka { font-size: 1.375rem; font-weight: 700; letter-spacing: -.01em; min-width: 0; }
 .kabuk .marka span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.kabuk .ana-ekran:not([data-sekme="kesif"]) .marka-logo { display: none; }
+.kabuk .ana-ekran:not([data-sekme="ana"]) .marka-logo { display: none; }
 /* Profil alt gezinmede; üst çubukta yinelenmez. */
 .kabuk .ust-bar .profil-cip { display: none; }
 .kabuk .vitrin-dugmeler { flex-wrap: nowrap; gap: 0; }
@@ -41,12 +41,20 @@
 .kabuk .profil-ekrani .geri { display: none; }
 .kabuk .profil-ekrani .ust-serit h1 { margin: 0; text-align: left; font-size: 1.375rem; font-weight: 700; letter-spacing: -.01em; }
 
-/* ---------- Sayfalar: Keşfet ve Modüller aynı ekranın iki ayrı sayfası ---------- */
-.kabuk .ana-ekran[data-sekme="kesif"] [data-sekme="moduller"],
-.kabuk .ana-ekran[data-sekme="moduller"] [data-sekme="kesif"] { display: none !important; }
+/* ---------- Sayfalar: Ana sayfa, Keşfet (harita) ve Modüller aynı ekranın ayrı sayfaları ---------- */
+.kabuk .ana-ekran:not([data-sekme="ana"]) [data-sekme="ana"],
+.kabuk .ana-ekran:not([data-sekme="kesif"]) [data-sekme="kesif"],
+.kabuk .ana-ekran:not([data-sekme="moduller"]) [data-sekme="moduller"] { display: none !important; }
 .kabuk .ana-ekran[data-sekme="moduller"] .meydan-duzen { padding-top: .5rem; }
 .kabuk .ana-ekran[data-sekme="moduller"] .meydan-duzen { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
-.kabuk .kapak-alani { margin-top: .25rem; min-height: clamp(300px, 46vh, 460px); }
+/* Uygulamada kompakt: kapak kısa, açıklama satırı gizli; içerik ilk ekranda görünür. */
+.kabuk .kapak-alani { margin-top: .25rem; min-height: clamp(240px, 34vh, 360px); padding-top: 2rem; }
+.kabuk .vitrin-baslik { font-size: clamp(1.7rem, 7vw, 2.4rem); }
+.kabuk .vitrin-alt { display: none; }
+.kabuk .kapak-yazi { padding: 1rem 1.1rem 1.1rem; }
+.kabuk .meydan-duzen { gap: 1.6rem; padding-top: 1.1rem; }
+.kabuk .meydan-ana, .kabuk .meydan-yan { gap: 1.6rem; }
+.kabuk .oc-kart { min-height: 340px; }
 .kabuk :is(.ana-ekran, .profil-ekrani) { min-height: 100dvh; }
 .kabuk:not(.kabuk-modulde) body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
 .kabuk .meydan { padding-bottom: 1.5rem; }
@@ -140,3 +148,147 @@
 /* Klavye açıkken (Android, kopru.js) alt çubuk gizlenir. */
 .klavye-acik .alt-gezinme { display: none !important; }
 .klavye-acik body { padding-bottom: 0 !important; }
+
+/* ---------- Keşfet sekmesi: harita üst ve alt çubuk arasını doldurur ---------- */
+.kabuk .ana-ekran[data-sekme="kesif"] .meydan { padding-bottom: 0; }
+.kabuk .ana-ekran[data-sekme="kesif"] .meydan-duzen { display: block; padding: 0; max-width: none; }
+.kabuk .harita-bolum .bolum-ust { display: none; }
+.kabuk .harita-bolum .kh-kap { height: calc(100dvh - 64px - 80px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); border-radius: 0; box-shadow: none; }
+.kabuk.kaydirildi .ana-ekran[data-sekme="kesif"] .ust-bar { background: var(--zemin); border-bottom-color: transparent; }
+
+/* ---------- Modül ekranı: uygulamada Android uygulama çubuğu, web'de kapsül ---------- */
+.modul-cubugu { display: none; }
+.kabuk .modul-cubugu {
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: .25rem; min-height: 56px;
+  padding: env(safe-area-inset-top) .25rem 0; background: var(--yuzey); color: var(--metin);
+  border-bottom: .5px solid var(--cizgi); font-family: var(--yazi-sistem);
+}
+.kabuk .kapsul { display: none; }
+.mc-geri, .mc-dugme { display: grid; place-items: center; min-width: 48px; min-height: 48px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font: 600 1rem var(--yazi-sistem); cursor: pointer; }
+.mc-geri svg { width: 24px; height: 24px; }
+.mc-geri:active, .mc-dugme:active { background: var(--dolgu); }
+.mc-baslik { flex: 1; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.15rem; font-weight: 650; }
+/* Modülün kendi yapışkan üst şeridi uygulama çubuğunun altına otursun. */
+.kabuk .modul-ekrani .s-ust { top: calc(56px + env(safe-area-inset-top)); }
+/* Dalış tam ekran: çubuk gizlenir, kapsül döner. */
+.kabuk .modul-ekrani:has(.s-dalis-sahne) .modul-cubugu { display: none; }
+.kabuk .modul-ekrani:has(.s-dalis-sahne) .kapsul { display: flex; }
+
+/* ---------- Karşılama (web ve uygulama) ---------- */
+.karsilama {
+  position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: 1.5rem;
+  background: color-mix(in srgb, var(--zemin) 40%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2);
+  animation: perde-gel .3s ease-out both; font-family: var(--yazi-sistem);
+}
+.karsilamada body { overflow: hidden; }
+.ks-kutu {
+  display: grid; grid-template-columns: 1.05fr 1fr; width: min(900px, 100%); min-height: 520px; overflow: hidden;
+  border-radius: 28px; background: var(--yuzey); box-shadow: var(--golge-yuksek); animation: uyari-gel .35s var(--egri) both;
+}
+.ks-gorsel { position: relative; min-height: 240px; background: var(--yuzey-2) center / cover no-repeat; }
+.ks-gorsel::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(0, 0, 0, .25)); }
+.ks-govde { display: flex; flex-direction: column; justify-content: center; gap: .8rem; padding: 2.5rem 2.25rem; }
+.ks-logo, .ks-logo svg { width: 52px; height: 52px; }
+.ks-govde h2 { margin: .2rem 0 0; font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 700; letter-spacing: -.02em; line-height: 1.1; }
+.ks-alt { margin: 0; color: var(--soluk); font-size: .98rem; line-height: 1.5; }
+.ks-dugmeler { display: grid; gap: .6rem; margin-top: .8rem; }
+.ks-dugmeler .dugme { width: 100%; }
+.ks-dugmeler .dugme:not(.ikincil) { background: var(--ana); color: var(--ana-metin); }
+.ks-devam { min-height: 48px; border: 0; background: none; color: var(--vurgu); font: 600 1rem var(--yazi-sistem); cursor: pointer; }
+.ks-devam:hover { text-decoration: underline; }
+
+/* Telefonda ve uygulamada: tam ekran, fotoğraf üstte, düğmeler başparmak hizasında. */
+@media (max-width: 759px) {
+  .karsilama { padding: 0; place-items: stretch; background: var(--yuzey); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .ks-kutu { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 42dvh) 1fr; width: 100%; min-height: 100dvh; border-radius: 0; box-shadow: none; animation: none; }
+  .ks-gorsel::after { background: linear-gradient(180deg, transparent 50%, var(--yuzey) 100%); }
+  .ks-govde { justify-content: flex-end; padding: .5rem 1.4rem calc(1.4rem + env(safe-area-inset-bottom)); }
+}
+.kabuk .karsilama { padding: 0; place-items: stretch; background: var(--yuzey); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.kabuk .ks-kutu { grid-template-columns: 1fr; grid-template-rows: minmax(200px, 42dvh) 1fr; width: 100%; min-height: 100dvh; border-radius: 0; box-shadow: none; }
+.kabuk .ks-gorsel { margin-top: 0; }
+.kabuk .ks-gorsel::after { background: linear-gradient(180deg, transparent 50%, var(--yuzey) 100%); }
+.kabuk .ks-govde { justify-content: flex-end; padding: .5rem 1.4rem calc(1.4rem + env(safe-area-inset-bottom)); }
+:root.kontrast .ks-kutu { border: 1px solid #fff; }
+:root.hareket-az :is(.karsilama, .ks-kutu) { animation: none; }
+@media (prefers-reduced-motion: reduce) { :is(.karsilama, .ks-kutu) { animation: none; } }
+
+/* ---------- Keşfet haritası (web: bölüm, uygulama: sekme) ---------- */
+.kh-kap { position: relative; height: clamp(380px, 62vh, 620px); overflow: hidden; border-radius: var(--yaricap-buyuk); background: var(--yuzey-2); box-shadow: var(--golge-kart); isolation: isolate; }
+.kh-harita { position: absolute; inset: 0; z-index: 0; }
+.kh-isaret-kap { background: none; border: 0; }
+.kh-isaret { display: block; width: 16px; height: 16px; margin: 5px; border-radius: 50%; background: var(--renk); border: 2.5px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .35); transition: transform .15s var(--egri); }
+.kh-isaret-kap.secili .kh-isaret, .kh-isaret-kap:focus-visible .kh-isaret { transform: scale(1.45); }
+.kh-isaret-kap:focus-visible { outline: none; }
+.kh-isaret-kap:focus-visible .kh-isaret { box-shadow: 0 0 0 3px var(--vurgu); }
+.kh-araclar { position: absolute; z-index: 500; top: .8rem; right: .8rem; display: flex; gap: .5rem; }
+.kh-arac {
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; padding: 0 1rem;
+  border: 0; border-radius: 99px; background: var(--yuzey); color: var(--metin); box-shadow: var(--golge-yuksek); font: 600 .9rem var(--yazi-sistem); cursor: pointer;
+}
+.kh-arac svg { width: 18px; height: 18px; color: var(--vurgu); }
+.kh-liste {
+  position: absolute; z-index: 550; top: 4.2rem; right: .8rem; width: min(320px, calc(100% - 1.6rem)); max-height: calc(100% - 5rem); overflow-y: auto;
+  margin: 0; padding: .3rem; list-style: none; border-radius: var(--yaricap); background: var(--yuzey); box-shadow: var(--golge-yuksek); overscroll-behavior: contain;
+}
+.kh-liste button { display: grid; gap: .1rem; width: 100%; min-height: 48px; padding: .45rem .7rem; border: 0; border-radius: 10px; background: none; color: var(--metin); text-align: left; font: inherit; font-family: var(--yazi-sistem); cursor: pointer; }
+.kh-liste button:hover, .kh-liste button:focus-visible { background: var(--dolgu); }
+.kh-liste strong { font-size: .92rem; font-weight: 600; }
+.kh-liste span { color: var(--soluk); font-size: .78rem; }
+.kh-kart {
+  position: absolute; z-index: 600; left: .75rem; right: .75rem; bottom: .75rem; max-width: 480px; margin-inline: auto;
+  padding: 1rem; border-radius: var(--yaricap-buyuk); background: var(--yuzey); color: var(--metin); box-shadow: var(--golge-yuksek);
+  font-family: var(--yazi-sistem); animation: kh-kart-gel .28s var(--egri) both;
+}
+@keyframes kh-kart-gel { from { opacity: 0; transform: translateY(16px); } }
+.kh-kapat { position: absolute; top: .35rem; right: .35rem; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--soluk); font-size: 1.4rem; cursor: pointer; }
+.kh-ust { display: flex; gap: .8rem; align-items: center; padding-right: 2.2rem; }
+.kh-foto { width: 64px; height: 64px; flex: none; border-radius: 14px; background: var(--yuzey-2) center / cover no-repeat; }
+.kh-foto.bos { display: none; }
+.kh-tur { margin: 0; color: var(--vurgu); font-size: .78rem; font-weight: 600; }
+.kh-baslik h3 { margin: .1rem 0 0; font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
+.kh-not { margin: .7rem 0 0; color: var(--soluk); font-size: .88rem; line-height: 1.45; }
+.kh-eylemler { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
+.kh-eylemler .dugme { flex: 1 1 auto; width: auto; min-height: 44px; padding-inline: 1rem; }
+.kh-eylemler .dugme:not(.ikincil) { background: var(--ana); color: var(--ana-metin); }
+.kabuk .kh-kart { bottom: .9rem; }
+.kh-kap .leaflet-control-attribution { font-size: .62rem; }
+:root.kontrast :is(.kh-kart, .kh-arac, .kh-liste) { border: 1px solid #fff; }
+:root.hareket-az :is(.kh-kart, .kh-isaret) { animation: none; transition: none; }
+@media (max-width: 1039px) { .harita-bolum { order: 2; } }
+
+/* ---------- Modüllerim'e ekle (yer imi) ve rafta düzenleme düğmeleri ---------- */
+.raf-dugme { font-size: 0; transition: transform .15s var(--egri); }
+.raf-dugme svg { position: relative; width: 22px; height: 22px; }
+.raf-dugme::before { transition: background .2s ease-out, transform .2s var(--egri); }
+.raf-dugme:active { transform: scale(.88); }
+.raf-dugme.rafta svg { animation: yerimi-dol .32s var(--egri) both; }
+@keyframes yerimi-dol { from { transform: scale(.6); opacity: .4; } }
+.raf-eylem svg { width: 16px; height: 16px; }
+.raf-eylem.kaldir { background: var(--metin); color: var(--zemin); }
+.modullerim-rafi.duzenleniyor .raf-eylem { animation: rozet-gel .22s var(--egri) both; }
+@keyframes rozet-gel { from { transform: scale(.4); opacity: 0; } }
+:root.hareket-az :is(.raf-dugme.rafta svg, .modullerim-rafi.duzenleniyor .raf-eylem) { animation: none; }
+@media (prefers-reduced-motion: reduce) { :is(.raf-dugme.rafta svg, .modullerim-rafi.duzenleniyor .raf-eylem) { animation: none; } }
+
+/* Harita künyesi bağlantıları dokunmaya yeterli büyüklükte */
+.kh-kap .leaflet-control-attribution { font-size: .68rem; line-height: 1; }
+.kh-kap .leaflet-control-attribution a { display: inline-block; min-height: 24px; padding: 6px 3px; }
+/* Düzenleme rozetleri simgenin köşelerinde, komşu simgeye taşmadan. */
+.raf-eylem { top: -4px; width: 28px; height: 28px; }
+.raf-eylem.igne { left: calc(50% - 38px); }
+.raf-eylem.kaldir { right: calc(50% - 38px); }
+
+/* Karşılama hareketi: fotoğraf hafifçe yerine oturur, metin ve düğmeler sırayla belirir; kapanırken solar. */
+.ks-gorsel { animation: ks-foto 1.1s var(--egri) both; }
+.ks-govde > * { animation: ks-gel .5s var(--egri) both; }
+.ks-govde > :nth-child(2) { animation-delay: .06s; }
+.ks-govde > :nth-child(3) { animation-delay: .12s; }
+.ks-govde > :nth-child(4) { animation-delay: .18s; }
+.karsilama.gidiyor { opacity: 0; transition: opacity .25s ease-out; pointer-events: none; }
+@keyframes ks-foto { from { transform: scale(1.06); opacity: .6; } }
+@keyframes ks-gel { from { opacity: 0; transform: translateY(14px); } }
+:root.hareket-az :is(.ks-gorsel, .ks-govde > *) { animation: none; }
+:root.hareket-az .karsilama.gidiyor { transition: none; }
+@media (prefers-reduced-motion: reduce) { :is(.ks-gorsel, .ks-govde > *) { animation: none; } .karsilama.gidiyor { transition: none; } }

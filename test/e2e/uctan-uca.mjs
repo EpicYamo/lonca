@@ -74,6 +74,7 @@ try {
   const tel = await (await tarayici.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })).newPage();
   tel.on("pageerror", (e) => hatalar.push(`Uygulama: ${e.message}`));
   await tel.goto(`${ADRES}/app/`);
+  await tel.click("#ks-devam");
   await tel.fill("#tanisma-ad", "Deneme");
   await tel.click("#tanisma-formu button:not([type=button])");
   await tel.click("#moduller .karo");

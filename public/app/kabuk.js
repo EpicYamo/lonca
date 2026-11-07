@@ -1,7 +1,7 @@
 // Uygulama kabuğu: Android uygulamasında (html.kabuk) Lonca'yı tek uzun sayfa yerine yerel bir uygulama gibi gösterir.
 //  - Açılış ekranı: Android'in kendi açılış görselinden (aynı logo) devralır, veriler gelince solarak kapanır.
-//  - Üst çubuk: bulunulan sayfanın adı (Keşfet'te Lonca markası).
-//  - Alt gezinme: Keşfet · Modüller · Profilim; her biri ayrı sayfa, aralarında yumuşak geçiş.
+//  - Üst çubuk: bulunulan sayfanın adı (Ana sayfada Lonca markası); modül açıkken geri oklu modül çubuğu.
+//  - Alt gezinme: Ana sayfa · Keşfet (harita) · Modüller · Profilim; her biri ayrı sayfa, aralarında yumuşak geçiş.
 // Web'de yalnızca ?kabuk ile açılır (deneme için). app.js'e dokunmaz: profil ve ana ekran geçişleri onun kendi
 // düğmeleriyle (#profil-cip, #profil-geri) yapılır, böylece veri yükleme ve hesap mantığı tek yerde kalır.
 import { loncaLogo } from "/ortak/logo.js";
@@ -11,10 +11,10 @@ if (kok.classList.contains("lonca-native")) kok.classList.add("kabuk");
 const etkin = kok.classList.contains("kabuk") && !new URLSearchParams(location.search).has("onizleme");
 
 const $ = (s) => document.querySelector(s);
-const SEKMELER = ["kesif", "moduller", "profil"];
-const BASLIK = { kesif: "Lonca", moduller: "Modüller", profil: "Profilim" };
+const SEKMELER = ["ana", "kesif", "moduller", "profil"];
+const BASLIK = { ana: "Lonca", kesif: "Keşfet", moduller: "Modüller", profil: "Profilim" };
 const hareketAz = () => kok.classList.contains("hareket-az") || matchMedia("(prefers-reduced-motion: reduce)").matches;
-let sekme = "kesif";
+let sekme = "ana";
 
 function acilisKapat() {
   const a = $("#acilis-ekrani");
@@ -31,8 +31,10 @@ function gecisBayragi(yon) {
 }
 
 function ciz() {
-  $("#ana-ekran").dataset.sekme = sekme === "profil" ? "kesif" : sekme;
+  $("#ana-ekran").dataset.sekme = sekme === "profil" ? "ana" : sekme;
   $("#marka-ad").textContent = BASLIK[sekme];
+  // app.js harita gibi görünür olunca kurulan bölümler için dinler.
+  dispatchEvent(new CustomEvent("lonca:sekme", { detail: sekme }));
   for (const b of document.querySelectorAll("#alt-gezinme [data-sekme]")) {
     if (b.dataset.sekme === sekme) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   }
@@ -52,7 +54,7 @@ function sekmeyeGec(hedef, { kaydir = true } = {}) {
   sekme = hedef;
   if (hedef === "profil") { ciz(); $("#profil-cip").click(); return; }
   if (profilAcik) { ciz(); $("#profil-geri").click(); if (kaydir) scrollTo(0, 0); return; }
-  // Keşfet ↔ Modüller: aynı ekranın iki sayfası; görünüm geçişiyle değiştir.
+  // Ana sayfa · Keşfet · Modüller: aynı ekranın sayfaları; görünüm geçişiyle değiştir.
   const degistir = () => { ciz(); if (kaydir) scrollTo(0, 0); };
   if (!hareketAz() && document.startViewTransition && onceki !== hedef) {
     const g = document.startViewTransition(degistir);
@@ -60,11 +62,13 @@ function sekmeyeGec(hedef, { kaydir = true } = {}) {
   } else degistir();
 }
 
-// Android geri tuşu (kopru.js çağırır): Modüller/Profil → Keşfet; Keşfet'te arama doluysa temizler.
+// Android geri tuşu (kopru.js çağırır): açık harita kartını kapatır; diğer sekmelerden Ana sayfaya döner;
+// Ana sayfada arama doluysa temizler.
 // İşi yaptıysa true döner; false ise uygulama arka plana alınır.
 function geri() {
   if (!$("#modul-ekrani").hidden) return false;
-  if (sekme !== "kesif") { sekmeyeGec("kesif"); return true; }
+  if (!$("#kh-kart")?.hidden) { $("#kh-kapat").click(); return true; }
+  if (sekme !== "ana") { sekmeyeGec("ana"); return true; }
   const arama = $("#arama");
   if (arama?.value) { $("#arama-temizle")?.click(); return true; }
   if (scrollY > 200) { scrollTo({ top: 0, behavior: hareketAz() ? "auto" : "smooth" }); return true; }
@@ -90,7 +94,7 @@ function kur() {
     // Profil başka yoldan kapandıysa (ör. hesap işlemi sonrası ana ekrana dönüş) sekmeyi eşitle.
     const profilde = !$("#profil-ekrani").hidden;
     if (profilde && sekme !== "profil") { sekme = "profil"; ciz(); }
-    else if (!profilde && sekme === "profil" && !$("#ana-ekran").hidden) { sekme = "kesif"; ciz(); }
+    else if (!profilde && sekme === "profil" && !$("#ana-ekran").hidden) { sekme = "ana"; ciz(); }
   };
   const o = new MutationObserver(gozle);
   for (const s of ["#modul-ekrani", "#profil-ekrani", "#ana-ekran"]) o.observe($(s), { attributes: true, attributeFilter: ["hidden"] });
@@ -111,6 +115,12 @@ function kur() {
   if (liste.childElementCount) kapat();
   else new MutationObserver((_, mo) => { if (liste.childElementCount) { mo.disconnect(); kapat(); } }).observe(liste, { childList: true });
   setTimeout(acilisKapat, 4500);
+  // Modül çubuğu: geri oku modülü kapatır (#geri ile aynı yol), başlık modülün adını izler.
+  $("#modul-geri").addEventListener("click", () => $("#geri").click());
+  const baslikEsle = () => { $("#modul-baslik").textContent = $("#baslik").textContent; };
+  new MutationObserver(baslikEsle).observe($("#baslik"), { childList: true, characterData: true, subtree: true });
+  baslikEsle();
+
   window.loncaKabuk = { geri, sekmeyeGec, get sekme() { return sekme; } };
 }
 

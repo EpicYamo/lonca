@@ -224,6 +224,8 @@
   const gorunurMu = (e) => !!e && e.getClientRects().length > 0;
   function geri() {
     if (acik("#ayarlar")) return $("#ayar-kapat")?.click();
+    // Karşılama ekranında geri, Android alışkanlığıyla uygulamayı arka plana alır.
+    if (acik("#karsilama") && !acik("#hesap-penceresi")) return sessiz(P.App?.minimizeApp());
     if (acik("#katki")) return $("#katki-vazgec")?.click();
     if (acik("#tanisma")) return $("#tanisma-gec")?.click();
     if (acik("#hesap-penceresi")) return $("#hesap-vazgec")?.click();
