@@ -350,7 +350,7 @@
       const ilk = $("#ep-tarihce p")?.textContent ?? "";
       const ozet = ilk.length > 400 ? `${ilk.slice(0, 400).replace(/\s+\S*$/, "")}…` : ilk;
       titret("secim");
-      sessiz(P.Share.share({ title: ad, text: [ad, ust, ozet, "Lonca ile keşfet: Bursa'nın vakıf eserleri."].filter(Boolean).join("\n\n"), dialogTitle: "Eseri paylaş" }));
+      sessiz(P.Share.share({ title: ad, text: [ad, ust, ozet, "Lonca ile keşfet: vakıf eserleri."].filter(Boolean).join("\n\n"), dialogTitle: "Eseri paylaş" }));
     });
     eylem.prepend(b);
   }

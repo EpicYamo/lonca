@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdir, copyFile } from "node:fs/promises";
 import path from "node:path";
 import { deneySunucusu, KOK } from "./yardimci.mjs";
 
@@ -207,4 +207,51 @@ test("var olan modülün üzerine yazılınca önceki kodu yedeklenir", async ()
   const yedekler = (await readdir(path.join(s.veri, "moduller", "eski"))).filter((f) => f.startsWith("yedek-deneme-"));
   assert.equal(yedekler.length, 1);
   assert.equal(await oku(path.join(s.veri, "moduller", "eski", yedekler[0]), "utf8"), kod);
+});
+
+test("modül sürümü onayla değişir; liste ETag ile yoklanabilir", async () => {
+  const ilk = (await s.istek("GET", "/api/moduller/surum")).json();
+  assert.equal(typeof ilk.surum, "string");
+  const liste = await s.istek("GET", "/api/moduller");
+  const etiket = liste.headers.etag;
+  assert.ok(etiket);
+  assert.equal((await s.istek("GET", "/api/moduller", { basliklar: { "if-none-match": etiket } })).statusCode, 304);
+
+  const kod = await ornekKod();
+  await s.istek("POST", "/api/moduller", { govde: { id: "surum-deneme", ad: "Sürüm Deneme", kod } });
+  assert.equal((await s.istek("GET", "/api/moduller/surum")).json().surum, ilk.surum, "onay beklerken sürüm değişmez");
+  await s.istek("POST", "/api/moduller/surum-deneme/durum", { govde: { durum: "onayli" }, yonetici: true });
+  const sonra = (await s.istek("GET", "/api/moduller/surum")).json();
+  assert.notEqual(sonra.surum, ilk.surum);
+  assert.equal(sonra.sayi, ilk.sayi + 1);
+  const yeni = await s.istek("GET", "/api/moduller", { basliklar: { "if-none-match": etiket } });
+  assert.equal(yeni.statusCode, 200);
+  assert.ok(yeni.json().some((m) => m.id === "surum-deneme"));
+  await s.istek("DELETE", "/api/moduller/surum-deneme", { yonetici: true });
+  assert.equal((await s.istek("GET", "/api/moduller/surum")).json().surum, ilk.surum);
+});
+
+test("genel arama: ad, il, ilçe ve tür; Türkçe harfler gevşek eşleşir", async () => {
+  assert.deepEqual((await s.istek("GET", "/api/ara")).json(), []);
+  assert.equal((await s.istek("GET", `/api/ara?q=${"a".repeat(81)}`)).statusCode, 400);
+  const ulu = (await s.istek("GET", "/api/ara?q=ulucami")).json();
+  assert.equal(ulu[0].id, "bursa-ulucami");
+  assert.ok(!("tarihce" in ulu[0]), "arama yalnızca özet döner");
+  const izmir = (await s.istek("GET", "/api/ara?q=izmir")).json();
+  assert.ok(izmir.length > 0 && izmir.every((e) => e.il === "İzmir"));
+  const cesme = (await s.istek("GET", "/api/ara?q=cesme%20osmangazi&limit=50")).json();
+  assert.ok(cesme.some((e) => e.tur === "cesme"));
+  assert.ok(cesme.every((e) => e.ilce === "Osmangazi" && (e.tur === "cesme" || /çeşme/i.test(e.ad))));
+  assert.equal((await s.istek("GET", "/api/ara?q=hamam&limit=3")).json().length, 3);
+});
+
+test("vitrin il listesini, dalış özeti kareleri olmadan döner", async () => {
+  const v = (await s.istek("GET", "/api/vitrin")).json();
+  assert.ok(v.iller.includes("Bursa") && v.iller.includes("Konya"));
+  await mkdir(path.join(s.veri, "dalislar"), { recursive: true });
+  await copyFile(path.join(KOK, "data", "dalislar", "bursa-ulucami.json"), path.join(s.veri, "dalislar", "bursa-ulucami.json"));
+  const ozet = (await s.istek("GET", "/api/dalislar?ozet=1")).json();
+  assert.deepEqual(ozet.map((d) => d.eser), ["bursa-ulucami"]);
+  assert.ok(!("kareler" in ozet[0]));
+  assert.ok((await s.istek("GET", "/api/dalislar")).json()[0].kareler.length > 0);
 });

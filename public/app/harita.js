@@ -2,7 +2,7 @@ import { baglaninca } from "/ortak/animasyon.js";
 import { ayarlariGetir } from "/ortak/ayarlar.js";
 
 let googleOturumu = null;
-async function karoKatmani(L) {
+export async function karoKatmani(L) {
   const { harita } = await ayarlariGetir();
   if (harita?.saglayici === "google" && harita.anahtar) {
     try {
@@ -27,7 +27,7 @@ async function karoKatmani(L) {
 }
 
 let leafletYukleniyor = null;
-function leafletYukle() {
+export function leafletYukle() {
   leafletYukleniyor ??= new Promise((coz, reddet) => {
     const css = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/vendor/leaflet/leaflet.css" });
     const js = Object.assign(document.createElement("script"), { src: "/vendor/leaflet/leaflet.js" });
