@@ -238,6 +238,14 @@ function eserSayfasiKur() {
   if (!x) return;
   x.innerHTML = SVG.geri;
   x.setAttribute("aria-label", "Geri");
+  // Alttan gelen sayfa kapanırken de aşağı iner (Android sayfa kapanışı); hareketi azaltta hemen kapanır.
+  x.addEventListener("click", (o) => {
+    const d = $("#eser-penceresi");
+    if (!d?.open || hareketAz() || !d.animate) return;
+    o.stopImmediatePropagation();
+    const a = d.animate([{ transform: "none" }, { transform: "translateY(100%)" }], { duration: 240, easing: "cubic-bezier(.3, 0, .8, .15)" });
+    a.finished.then(() => d.close(), () => d.close());
+  }, { capture: true });
 }
 
 // ---------- Kaydırmalı tanıtım (yalnızca ilk açılışta, karşılamadan önce) ----------
