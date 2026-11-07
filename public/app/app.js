@@ -10,6 +10,7 @@ import { modulSurumu } from "/ortak/arama.js";
 import * as raf from "./modullerim.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
 import { kesifHaritasiKur } from "./kesif-haritasi.js";
+import { googleIleBaslat, googleDonusuOku, uygulamaDonusunuDinle, googleKodTakas } from "/ortak/google-giris.js";
 import { paylasimiDinle } from "./paylasim.js";
 import { t, dilSecimi } from "/ortak/dil.js";
 
@@ -878,23 +879,58 @@ function hesapBolumu() {
 let hesapPencereCoz = null;
 let hesapKipi = "giris";
 let hesapOdakOnce = null;
+// Kipler: giris · kayit · unuttum (e-postaya sıfırlama bağlantısı) · yenile (bağlantıyla gelen yeni şifre).
+let googleAcik = false, sifirlamaAcik = false, sifirlamaJetonu = null, bekleyenEposta = null;
+const HESAP_METINLERI = {
+  giris: { baslik: "Giriş yap", gonder: "Giriş yap", aciklama: "Tekrar hoş geldin. Profilin ve başarımların hesabınla eşitlenir." },
+  kayit: { baslik: "Hesap oluştur", gonder: "Hesap oluştur", aciklama: "Birkaç saniyede hesabını aç; bu cihazdaki puan ve başarımların hesabına taşınır." },
+  unuttum: { baslik: "Şifremi unuttum", gonder: "Sıfırlama bağlantısı gönder", aciklama: "Hesabına kayıtlı e-postayı yaz; şifreni yenilemen için bir bağlantı gönderelim." },
+  yenile: { baslik: "Yeni şifre belirle", gonder: "Şifreyi kaydet", aciklama: "Hesabın için yeni bir şifre belirle; kaydedince giriş yapmış olursun." },
+};
 function hesapPencereGuncelle() {
-  const kayit = hesapKipi === "kayit";
+  const k = hesapKipi, kayit = k === "kayit", giris = k === "giris", unuttum = k === "unuttum", yenile = k === "yenile";
   for (const dugme of $("#hesap-formu").querySelectorAll("[data-hesap-kip]")) {
-    const secili = dugme.dataset.hesapKip === hesapKipi;
+    const secili = dugme.dataset.hesapKip === k;
     dugme.classList.toggle("secili", secili);
     dugme.setAttribute("aria-checked", String(secili));
   }
+  $("#hesap-kip").hidden = unuttum || yenile;
+  $("#hesap-google-kap").hidden = !googleAcik || unuttum || yenile;
   $("#hesap-kayit-notu").hidden = !kayit;
-  $("#hesap-baslik").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
-  $("#hesap-gonder").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
-  $("#hesap-sifre").autocomplete = kayit ? "new-password" : "current-password";
+  // Kayıtta kullanıcı adı + e-posta + şifre tekrarı; girişte kullanıcı adı ya da e-posta.
+  const kimlik = $("#hesap-kimlik");
+  $("#hesap-kimlik-alan").hidden = unuttum || yenile;
+  kimlik.required = giris || kayit;
+  $("#hesap-kimlik-etiket").textContent = kayit ? "Kullanıcı adı" : "Kullanıcı adı ya da e-posta";
+  $("#hesap-kimlik-ipucu").hidden = !kayit;
+  kimlik.maxLength = kayit ? 32 : 254;
+  if (kayit) kimlik.pattern = "[a-zA-Z0-9_.\\-]{3,32}"; else kimlik.removeAttribute("pattern");
+  $("#hesap-eposta-alan").hidden = !(kayit || unuttum);
+  $("#hesap-eposta").required = kayit || unuttum;
+  $("#hesap-sifre-alan").hidden = unuttum;
+  $("#hesap-sifre").required = !unuttum;
+  $("#hesap-sifre-etiket").textContent = yenile ? "Yeni şifre" : "Şifre";
+  $("#hesap-sifre2-alan").hidden = !(kayit || yenile);
+  $("#hesap-sifre2").required = kayit || yenile;
+  $("#hesap-sifre2-etiket").textContent = yenile ? "Yeni şifre (tekrar)" : "Şifre (tekrar)";
+  $("#hesap-unuttum").hidden = !giris || !sifirlamaAcik;
+  $("#hesap-girise-don").hidden = !unuttum;
+  $("#hesap-baslik").textContent = HESAP_METINLERI[k].baslik;
+  $("#hesap-gonder").textContent = HESAP_METINLERI[k].gonder;
+  $("#hesap-aciklama").textContent = HESAP_METINLERI[k].aciklama;
+  $("#hesap-sifre").autocomplete = giris ? "current-password" : "new-password";
   $("#hesap-hata").hidden = true;
   $("#hesap-hata").textContent = "";
-  $("#hesap-aciklama").textContent = kayit ? "Birkaç saniyede hesabını aç; bu cihazdaki puan ve başarımların hesabına taşınır." : "Tekrar hoş geldin. Profilin ve başarımların hesabınla eşitlenir.";
+  $("#hesap-bilgi").hidden = true;
+  $("#hesap-yeniden").hidden = true;
   $("#hesap-sifre").type = "password";
   $("#hesap-goster").setAttribute("aria-pressed", "false");
   $("#hesap-goster").setAttribute("aria-label", "Şifreyi göster");
+}
+function hesapKipiSec(kip) {
+  hesapKipi = kip;
+  hesapPencereGuncelle();
+  (kip === "unuttum" ? $("#hesap-eposta") : kip === "yenile" ? $("#hesap-sifre") : $("#hesap-kimlik")).focus();
 }
 function hesapPenceresiKapat(tamam = false) {
   $("#hesap-penceresi").hidden = true;
@@ -912,7 +948,7 @@ function hesapPenceresiAc(kip = "giris") {
   $("#hesap-formu").reset();
   hesapPencereGuncelle();
   $("#hesap-penceresi").hidden = false;
-  $("#hesap-kimlik").focus();
+  (kip === "yenile" ? $("#hesap-sifre") : $("#hesap-kimlik")).focus();
   return new Promise((coz) => { hesapPencereCoz = coz; });
 }
 $("#hesap-formu").addEventListener("click", (e) => {
@@ -920,6 +956,13 @@ $("#hesap-formu").addEventListener("click", (e) => {
   if (dugme) { hesapKipi = dugme.dataset.hesapKip; hesapPencereGuncelle(); }
 });
 $("#hesap-vazgec").addEventListener("click", () => hesapPenceresiKapat(false));
+$("#hesap-unuttum").addEventListener("click", () => {
+  // Kullanıcı adı alanına e-posta yazılmışsa sıfırlama alanına taşınır.
+  const yazilan = $("#hesap-kimlik").value.trim();
+  hesapKipiSec("unuttum");
+  if (yazilan.includes("@")) $("#hesap-eposta").value = yazilan;
+});
+$("#hesap-girise-don").addEventListener("click", () => hesapKipiSec("giris"));
 $("#hesap-goster").addEventListener("click", () => {
   const g = $("#hesap-sifre").type === "password";
   $("#hesap-sifre").type = g ? "text" : "password";
@@ -943,32 +986,135 @@ $("#hesap-formu").addEventListener("submit", async (e) => {
   const dugme = $("#hesap-gonder");
   dugme.disabled = true;
   $("#hesap-hata").hidden = true;
-  const kayit = hesapKipi === "kayit";
-  const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
-  try {
-    const yanit = await fetch(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", {
-      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde),
-    });
+  const kip = hesapKipi, kayit = kip === "kayit";
+  const istek = async (yol, govde) => {
+    const yanit = await fetch(yol, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde) });
     const sonuc = await yanit.json().catch(() => ({}));
-    if (!yanit.ok) throw new Error(sonuc.hata ?? `İstek başarısız (${yanit.status})`);
-    localStorage.setItem(HESAP_JETON_ANAHTARI, sonuc.jeton);
-    try { await hesapOturumuYukle(sonuc.hesap); }
-    catch {
-      hesapKullanici = sonuc.hesap;
-      profilCipiGuncelle();
-      if (!$("#profil-ekrani").hidden) profilEkrani();
+    if (!yanit.ok) throw Object.assign(new Error(sonuc.hata ?? `İstek başarısız (${yanit.status})`), { veri: sonuc });
+    return sonuc;
+  };
+  const bilgiGoster = (metin, { yeniden = false } = {}) => {
+    $("#hesap-bilgi").textContent = metin;
+    $("#hesap-bilgi").hidden = false;
+    $("#hesap-yeniden").hidden = !yeniden;
+  };
+  try {
+    if (kip === "unuttum") {
+      const sonuc = await istek("/api/hesap/sifre-sifirla/iste", { eposta: $("#hesap-eposta").value.trim(), donus: location.pathname.startsWith("/app") ? "/app/" : "/" });
+      bilgiGoster(sonuc.mesaj);
+      return;
     }
+    if ((kayit || kip === "yenile") && $("#hesap-sifre").value !== $("#hesap-sifre2").value) throw new Error("Şifreler eşleşmiyor; iki alana da aynı şifreyi yaz.");
+    let sonuc;
+    if (kip === "yenile") {
+      sonuc = await istek("/api/hesap/sifre-sifirla", { jeton: sifirlamaJetonu, yeniSifre: $("#hesap-sifre").value, yeniSifreTekrar: $("#hesap-sifre2").value });
+      sifirlamaJetonu = null;
+    } else {
+      const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
+      if (kayit) Object.assign(govde, { eposta: $("#hesap-eposta").value.trim(), sifreTekrar: $("#hesap-sifre2").value });
+      if (kayit) govde.donus = location.pathname.startsWith("/app") ? "/app/" : "/";
+      sonuc = await istek(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", govde);
+    }
+    // E-posta doğrulaması açıkken kayıt oturum açmaz: girişe dönülür, bağlantı beklenir.
+    if (sonuc.dogrulamaGerekli) {
+      bekleyenEposta = sonuc.eposta;
+      const kimlik = $("#hesap-kimlik").value;
+      hesapKipiSec("giris");
+      $("#hesap-kimlik").value = kimlik;
+      $("#hesap-sifre").value = "";
+      bilgiGoster(sonuc.mesaj, { yeniden: true });
+      return;
+    }
+    await jetonlaOturumAc(sonuc);
     hesapPenceresiKapat(true);
-    bildir(kayit ? "Hesabın oluşturuldu. Profilin hesabına bağlandı." : `Hoş geldin, ${hesapKullanici.kimlik}.`);
+    bildir(kayit ? "Hesabın oluşturuldu. Profilin hesabına bağlandı." : kip === "yenile" ? "Şifren güncellendi; giriş yaptın." : `Hoş geldin, ${hesapKullanici.kimlik}.`);
   } catch (h) {
     $("#hesap-hata").textContent = h.message;
     $("#hesap-hata").hidden = false;
+    if (h.veri?.dogrulamaGerekli) { bekleyenEposta = h.veri.eposta; $("#hesap-yeniden").hidden = false; }
   } finally {
     hesapIslemi = false;
     dugme.disabled = false;
   }
 });
-hesapDurumunuYukle();
+$("#hesap-yeniden").addEventListener("click", async () => {
+  if (!bekleyenEposta) return;
+  try {
+    const y = await fetch("/api/hesap/eposta-dogrula/yeniden", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eposta: bekleyenEposta, donus: location.pathname.startsWith("/app") ? "/app/" : "/" }) });
+    const sonuc = await y.json().catch(() => ({}));
+    if (!y.ok) throw new Error(sonuc.hata ?? `İstek başarısız (${y.status})`);
+    $("#hesap-hata").hidden = true;
+    $("#hesap-bilgi").textContent = sonuc.mesaj;
+    $("#hesap-bilgi").hidden = false;
+  } catch (h) {
+    $("#hesap-hata").textContent = h.message;
+    $("#hesap-hata").hidden = false;
+  }
+});
+async function jetonlaOturumAc(sonuc) {
+  localStorage.setItem(HESAP_JETON_ANAHTARI, sonuc.jeton);
+  try { await hesapOturumuYukle(sonuc.hesap); }
+  catch {
+    hesapKullanici = sonuc.hesap;
+    profilCipiGuncelle();
+    if (!$("#profil-ekrani").hidden) profilEkrani();
+  }
+}
+
+// ---------- Google ile giriş (public/ortak/google-giris.js) ----------
+// Sunucuda ayar yoksa düğmeler gizli kalır. Web'de sayfa Google'a gidip döner; uygulamada akış Custom Tab'da açılır.
+async function googleSonucuIsle({ kod, hata }) {
+  if (hata) { bildir(hata, { sure: 5000 }); return; }
+  try {
+    const sonuc = await googleKodTakas(kod);
+    await jetonlaOturumAc(sonuc);
+    if (!$("#hesap-penceresi").hidden) hesapPenceresiKapat(true);
+    if (!$("#karsilama").hidden) karsilamaKapat();
+    bildir(`Hoş geldin, ${hesapKullanici.kimlik}.`);
+  } catch (h) { bildir(h.message, { sure: 5000 }); }
+}
+async function googleBaslat() {
+  try { await googleIleBaslat({ donus: location.pathname.startsWith("/app") ? "/app/" : "/" }); }
+  catch (h) { bildir(h.message, { sure: 5000 }); }
+}
+$("#ks-google").addEventListener("click", googleBaslat);
+$("#hesap-google").addEventListener("click", googleBaslat);
+// Google ve şifre sıfırlama düğmeleri sunucunun ayarına göre görünür (/api/ayarlar → hesap.google, hesap.sifreSifirlama).
+fetch("/api/ayarlar").then((y) => y.json()).then((a) => {
+  googleAcik = a?.hesap?.google === true;
+  sifirlamaAcik = a?.hesap?.sifreSifirlama === true;
+  $("#ks-google").hidden = !googleAcik;
+  if (!$("#hesap-penceresi").hidden) hesapPencereGuncelle();
+}).catch(() => {});
+uygulamaDonusunuDinle(googleSonucuIsle);
+// E-postadaki sıfırlama bağlantısı: /app/#sifre-sifirla=<jeton> → yeni şifre penceresi.
+const sifirlamaEslesme = /^#sifre-sifirla=([A-Za-z0-9_-]{10,200})$/.exec(location.hash);
+// E-postadaki doğrulama bağlantısı: /app/#eposta-dogrula=<jeton> → hesap doğrulanır, oturum açılır.
+const dogrulamaEslesme = /^#eposta-dogrula=([A-Za-z0-9_-]{10,200})$/.exec(location.hash);
+const googleDonusu = googleDonusuOku();
+if (dogrulamaEslesme) {
+  history.replaceState(null, "", location.pathname + location.search);
+  karsilamaGosterildi = true;
+  (async () => {
+    try {
+      const y = await fetch("/api/hesap/eposta-dogrula", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jeton: dogrulamaEslesme[1] }) });
+      const sonuc = await y.json().catch(() => ({}));
+      if (!y.ok) throw new Error(sonuc.hata ?? `İstek başarısız (${y.status})`);
+      await jetonlaOturumAc(sonuc);
+      bildir(`E-postan doğrulandı. Hoş geldin, ${hesapKullanici.kimlik}.`, { sure: 4200 });
+    } catch (h) { bildir(h.message, { sure: 5000 }); hesapDurumunuYukle(); }
+  })();
+} else if (sifirlamaEslesme) {
+  history.replaceState(null, "", location.pathname + location.search);
+  sifirlamaJetonu = sifirlamaEslesme[1];
+  karsilamaGosterildi = true;
+  hesapPenceresiAc("yenile");
+  hesapDurumunuYukle();
+} else if (googleDonusu) {
+  // Google'dan dönen sayfada karşılama yeniden açılmasın.
+  karsilamaGosterildi = true;
+  googleSonucuIsle(googleDonusu);
+} else hesapDurumunuYukle();
 
 function profilEkrani() {
   const p = profil.profilBilgi();

@@ -11,9 +11,11 @@ import { modelTaramasiKur, saglikEkle } from "./model-tarama.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
+import { googleGirisKur } from "./google-giris.js";
+import { epostaKur } from "./eposta.js";
 import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
-import { modulGorunurlukDogrula, paylasimAnahtariGecerli, davetKoduUret, davetKoduCoz, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
+import { modulGorunurlukDogrula, paylasimAnahtariGecerli, davetKoduUret, davetKoduCoz, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, sifreSifirlamaDogrula, epostaGecerli, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -34,7 +36,7 @@ function mesafe(a, b) {
 
 /**
  */
-export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = process.env, gunluk = true }) {
+export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = process.env, gunluk = true, googleFetch, epostaGonderici }) {
   const MODUL_DIZINI = path.join(veri, "moduller");
   const YUKLENEN = path.join(veri, "yuklenen");
   const eserDosyasi = jsonDosya(path.join(veri, "eserler.json"), { eserler: [] });
@@ -95,6 +97,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   // Atölye (kalfa + modül gönderme) ve Studio listelerini salt okunur görme: usta ya da editör hesabı.
   const ustaGerekli = async (req, rep) => { if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Atölyeyi kullanmak için usta ya da editör hesabıyla giriş yapmalısın" }); };
   const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
+  const google = googleGirisKur({ ortam, fetch: googleFetch });
+  const eposta = epostaKur({ ortam, gonderici: epostaGonderici });
   // Atölye oturumları (kalfa sohbeti + modül taslağı) kullanıcı başına saklanır; hesapsız yönetici "yonetici" altında.
   const atolye = atolyeKur(path.join(veri, "atolye"));
   const atolyeSahibi = async (req) => (await oturumSahibi(req))?.id ?? "yonetici";
@@ -122,7 +126,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     harita: googleAnahtari ? { saglayici: "google", anahtar: googleAnahtari } : { saglayici: "osm" },
     uc: { google: !!googleAnahtari, anahtar: googleAnahtari || undefined },
     yonetim: { sifreli: yetki.sifreli },
-    hesap: { gerekli: yetki.sifreli },
+    hesap: { gerekli: yetki.sifreli, google: google.etkin, sifreSifirlama: eposta.etkin },
   }));
   app.get("/api/yonetici", async (req, rep) => (yoneticiMi(req) ? { tamam: true } : rep.code(401).send({ hata: "şifre yanlış" })));
 
@@ -132,15 +136,21 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const hatalar = hesapGirdisiDogrula(req.body, { kayit: true });
     if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
     // Kayıt olan herkes usta olur (rol seçilmez). Admin (editör) hesapları yalnızca ILK_KULLANICILAR'dan ya da rol değişimiyle gelir.
-    const { kimlik, sifre } = req.body;
-    const r = await hesaplar.kayitOl({ kimlik, sifre, rol: "usta" });
+    const { kimlik, eposta: adres, sifre } = req.body;
+    // E-posta gönderimi açıksa hesap doğrulama bağlantısına tıklanana kadar giriş yapamaz; kapalıysa hemen açılır.
+    const kok = eposta.etkin ? genelAdres(req) : null;
+    if (eposta.etkin && !kok) return rep.code(503).send({ hata: "Sunucunun genel adresi ayarlı değil (LONCA_GENEL_ADRES)." });
+    const r = await hesaplar.kayitOl({ kimlik, eposta: adres, sifre, rol: "usta", dogrulama: eposta.etkin });
     if (r.hata) return rep.code(409).send({ hata: r.hata });
-    return rep.code(201).send(jetonVer(r.hesap));
+    if (!r.jeton) return rep.code(201).send(jetonVer(r.hesap));
+    dogrulamaPostasi(req, r.hesap, `${kok}${donusSec(req.body.donus)}#eposta-dogrula=${r.jeton}`);
+    return rep.code(201).send({ dogrulamaGerekli: true, eposta: r.hesap.eposta, mesaj: `${r.hesap.eposta} adresine bir doğrulama bağlantısı gönderdik. Bağlantıyı açınca hesabın açılır.` });
   });
   app.post("/api/hesap/giris", { preHandler: hesapSiniri }, async (req, rep) => {
     const hatalar = hesapGirdisiDogrula(req.body);
-    if (hatalar.length) return rep.code(401).send({ hata: "Kullanıcı adı ya da şifre yanlış." });
+    if (hatalar.length) return rep.code(401).send({ hata: "Kullanıcı adı, e-posta ya da şifre yanlış." });
     const r = await hesaplar.girisYap(req.body);
+    if (r.dogrulamaGerekli) return rep.code(403).send({ hata: r.hata, dogrulamaGerekli: true, eposta: r.eposta });
     if (r.hata) return rep.code(401).send({ hata: r.hata });
     return jetonVer(r.hesap);
   });
@@ -151,7 +161,151 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.put("/api/hesap/profil", async (req, rep) => {
     const h = await oturumSahibi(req);
     if (!h) return rep.code(401).send({ hata: "Giriş yapılmamış" });
+    if (req.body?.eposta != null) {
+      const r = await hesaplar.epostaAyarla(h.id, req.body.eposta);
+      if (r.hata) return rep.code(r.kod).send({ hata: r.hata });
+      // Yeni e-postaya doğrulama bağlantısı (Google bağlama için doğrulanmış e-posta gerekir).
+      const kok = eposta.etkin && r.degisti ? genelAdres(req) : null;
+      if (kok) {
+        const d = await hesaplar.dogrulamaHazirla({ id: h.id });
+        if (d) dogrulamaPostasi(req, d.hesap, `${kok}${donusSec(req.body.donus)}#eposta-dogrula=${d.jeton}`);
+      }
+    }
     return hesaplar.disaAcik(await hesaplar.profilGuncelle(h.id, req.body ?? {}));
+  });
+
+  // ---------- Şifremi unuttum (server/eposta.js) ----------
+  // İstek her zaman aynı yanıtı verir (e-postanın kayıtlı olup olmadığı anlaşılmasın). Bağlantı
+  // <genel adres><donus>#sifre-sifirla=<jeton> sayfasını açar; uygulama/Studio orada yeni şifreyi sorar.
+  // Genel adres isteğin Host başlığından alınmaz (uydurulmuş Host ile jeton başka bir siteye gönderilmesin):
+  // LONCA_GENEL_ADRES, yoksa https://LONCA_ALAN_ADI; ikisi de yoksa yalnızca localhost'tan gelen istekte o adres.
+  const SIFIRLAMA_DONUSLERI = new Set(["/", "/app/", "/studio/"]);
+  const genelAdres = (req) => {
+    const sabit = String(ortam.LONCA_GENEL_ADRES ?? "").trim().replace(/\/+$/, "");
+    if (sabit) return sabit;
+    if (ortam.LONCA_ALAN_ADI) return `https://${String(ortam.LONCA_ALAN_ADI).trim()}`;
+    return /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(req.host) ? `${req.protocol}://${req.host}` : null;
+  };
+  const donusSec = (d) => (SIFIRLAMA_DONUSLERI.has(d) ? d : "/");
+  // Gönderim beklenmez: yanıt süresinden hesabın durumu anlaşılmasın; hata günlüğe yazılır.
+  const postaGonder = (req, ileti) => eposta.gonder(ileti).catch((h) => req.log.error({ err: h.message }, "e-posta gönderilemedi"));
+  const dogrulamaPostasi = (req, h, baglanti) => postaGonder(req, {
+    kime: h.eposta,
+    konu: "Lonca e-posta doğrulama",
+    metin: `Merhaba ${h.kimlik},\n\nLonca hesabının e-postasını doğrulamak için bu bağlantıyı aç (24 saat geçerli):\n${baglanti}\n\nBu hesabı sen açmadıysan bu e-postayı yok sayabilirsin.\n`,
+    html: `<p>Merhaba ${htmlKacis(h.kimlik)},</p><p>Lonca hesabının e-postasını doğrulamak için aşağıdaki bağlantıyı aç (24 saat geçerli):</p><p><a href="${htmlKacis(baglanti)}">E-postamı doğrula</a></p><p>Bu hesabı sen açmadıysan bu e-postayı yok sayabilirsin.</p>`,
+  });
+
+  // ---------- E-posta doğrulama ----------
+  app.post("/api/hesap/eposta-dogrula", { preHandler: hesapSiniri }, async (req, rep) => {
+    const r = await hesaplar.epostaDogrula(req.body?.jeton);
+    if (r.hata) return rep.code(400).send({ hata: r.hata });
+    return jetonVer(r.hesap);
+  });
+  app.post("/api/hesap/eposta-dogrula/yeniden", { preHandler: hesapSiniri }, async (req, rep) => {
+    const adres = req.body?.eposta;
+    if (!epostaGecerli(adres)) return rep.code(400).send({ hata: "Geçerli bir e-posta adresi yaz" });
+    if (!eposta.etkin) return rep.code(503).send({ hata: "Bu sunucuda e-posta gönderimi kapalı." });
+    const kok = genelAdres(req);
+    if (!kok) return rep.code(503).send({ hata: "Sunucunun genel adresi ayarlı değil (LONCA_GENEL_ADRES)." });
+    const d = await hesaplar.dogrulamaHazirla({ eposta: adres });
+    if (d) dogrulamaPostasi(req, d.hesap, `${kok}${donusSec(req.body.donus)}#eposta-dogrula=${d.jeton}`);
+    return { tamam: true, mesaj: "Bu e-posta doğrulanmamış bir hesaptaysa yeni doğrulama bağlantısını gönderdik." };
+  });
+
+  app.post("/api/hesap/sifre-sifirla/iste", { preHandler: hesapSiniri }, async (req, rep) => {
+    const adres = req.body?.eposta;
+    if (!epostaGecerli(adres)) return rep.code(400).send({ hata: "Geçerli bir e-posta adresi yaz" });
+    if (!eposta.etkin) return rep.code(503).send({ hata: "Bu sunucuda e-posta gönderimi kapalı. Google ile devam edebilir ya da bir admin'den yardım isteyebilirsin." });
+    const donus = donusSec(req.body?.donus);
+    const kok = genelAdres(req);
+    if (!kok) return rep.code(503).send({ hata: "Sunucunun genel adresi ayarlı değil (LONCA_GENEL_ADRES)." });
+    const hazir = await hesaplar.sifirlamaHazirla(adres);
+    if (hazir) {
+      const baglanti = `${kok}${donus}#sifre-sifirla=${hazir.jeton}`;
+      const ad = hazir.hesap.kimlik;
+      postaGonder(req, {
+        kime: hazir.hesap.eposta,
+        konu: "Lonca şifre sıfırlama",
+        metin: `Merhaba ${ad},\n\nLonca hesabının şifresini sıfırlamak için bu bağlantıyı aç (1 saat geçerli):\n${baglanti}\n\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin; şifren değişmez.\n`,
+        html: `<p>Merhaba ${htmlKacis(ad)},</p><p>Lonca hesabının şifresini sıfırlamak için aşağıdaki bağlantıyı aç (1 saat geçerli):</p><p><a href="${htmlKacis(baglanti)}">Şifremi sıfırla</a></p><p>Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin; şifren değişmez.</p>`,
+      });
+    }
+    return { tamam: true, mesaj: "Bu e-posta bir hesapta kayıtlıysa sıfırlama bağlantısını gönderdik. Gelen kutunu (ve istenmeyen klasörünü) kontrol et." };
+  });
+  app.post("/api/hesap/sifre-sifirla", { preHandler: hesapSiniri }, async (req, rep) => {
+    const hatalar = sifreSifirlamaDogrula(req.body);
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const r = await hesaplar.sifirlamaUygula(req.body.jeton, req.body.yeniSifre);
+    if (r.hata) return rep.code(400).send({ hata: r.hata });
+    return jetonVer(r.hesap);
+  });
+
+  // ---------- Google ile giriş (server/google-giris.js) ----------
+  // baslat → Google → donus → tek kullanımlık kod → takas (jeton). Jeton adres çubuğuna hiç girmez; tarayıcıya/uygulamaya
+  // yalnızca 5 dakikalık, tek kullanımlık bir kod gider. "durum" (state) imzalıdır ve tarayıcıdaki çerezle eşleşmelidir.
+  const GOOGLE_DONUSLERI = new Set(["/", "/app/", "/studio/"]);
+  const UYGULAMA_SEMASI = "com.kozmos.lonca";
+  const DURUM_CEREZI = "lonca_google_durum";
+  const googleKodlari = new Map();
+  const googleSiniri = hizSiniri({ adet: Number(ortam.HESAP_SINIR ?? 20), pencereMs: 10 * 60_000, mesaj: "Çok fazla giriş denemesi; biraz sonra tekrar dene." });
+  const cerezOku = (req, ad) => {
+    for (const parca of String(req.headers.cookie ?? "").split(";")) {
+      const i = parca.indexOf("=");
+      if (i > 0 && parca.slice(0, i).trim() === ad) return parca.slice(i + 1).trim();
+    }
+    return null;
+  };
+  const htmlKacis = (x) => String(x).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  // Uygulamaya dönüş: Custom Tab'da açılan sayfa uygulamanın kendi adresine (com.kozmos.lonca://google) geçer.
+  const uygulamayaDon = (rep, sorgu) => {
+    const hedef = `${UYGULAMA_SEMASI}://google?${new URLSearchParams(sorgu)}`;
+    return rep.type("text/html; charset=utf-8").header("cache-control", "no-store").send(`<!doctype html><html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=${htmlKacis(hedef)}"><title>Lonca</title>
+<style>body{font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:90vh;margin:0;text-align:center;padding:16px}a{display:inline-block;margin-top:12px;padding:12px 20px;border-radius:12px;background:#1f4e9c;color:#fff;text-decoration:none}</style></head>
+<body><div><p>${sorgu.hata ? htmlKacis(sorgu.hata) : "Giriş tamamlandı."}</p><a href="${htmlKacis(hedef)}">Lonca uygulamasına dön</a></div></body></html>`);
+  };
+
+  app.get("/api/hesap/google/baslat", { preHandler: googleSiniri }, async (req, rep) => {
+    if (!google.etkin) return rep.code(404).send({ hata: "Google ile giriş bu sunucuda açık değil." });
+    const istemci = req.query?.istemci === "uygulama" ? "uygulama" : "web";
+    const donus = GOOGLE_DONUSLERI.has(req.query?.donus) ? req.query.donus : "/";
+    const nonce = randomBytes(16).toString("hex");
+    const durum = oturum.jetonUret({ id: "google-durum", n: nonce, d: donus, i: istemci }, 10 * 60_000);
+    const guvenli = req.protocol === "https" ? "; Secure" : "";
+    rep.header("set-cookie", `${DURUM_CEREZI}=${nonce}; Path=/api/hesap/google; HttpOnly; SameSite=Lax; Max-Age=600${guvenli}`);
+    return rep.header("cache-control", "no-store").redirect(google.yetkiAdresi({ durum, donus: google.donusAdresi(req) }));
+  });
+
+  app.get("/api/hesap/google/donus", { preHandler: googleSiniri }, async (req, rep) => {
+    const q = req.query ?? {};
+    const durum = oturum.jetonCoz(typeof q.state === "string" ? q.state : "");
+    const gecerli = durum?.id === "google-durum" && typeof durum.n === "string" && cerezOku(req, DURUM_CEREZI) === durum.n;
+    rep.header("set-cookie", `${DURUM_CEREZI}=; Path=/api/hesap/google; HttpOnly; SameSite=Lax; Max-Age=0`);
+    rep.header("cache-control", "no-store");
+    const istemci = durum?.i === "uygulama" ? "uygulama" : "web";
+    const donus = GOOGLE_DONUSLERI.has(durum?.d) ? durum.d : "/";
+    const bitir = (sorgu) => (istemci === "uygulama" ? uygulamayaDon(rep, sorgu) : rep.redirect(`${donus}#${new URLSearchParams({ [sorgu.kod ? "google-kod" : "google-hata"]: sorgu.kod ?? sorgu.hata })}`));
+    if (!google.etkin) return bitir({ hata: "Google ile giriş bu sunucuda açık değil." });
+    if (!gecerli) return bitir({ hata: "Giriş oturumu zaman aşımına uğradı; yeniden dene." });
+    if (typeof q.error === "string" || typeof q.code !== "string") return bitir({ hata: q.error === "access_denied" ? "Google girişi iptal edildi." : "Google girişi tamamlanamadı." });
+    const kimlik = await google.kodTakas({ kod: q.code, donus: google.donusAdresi(req) });
+    if (kimlik.hata) return bitir({ hata: kimlik.hata });
+    const r = await hesaplar.googleIleGiris(kimlik, { dogrulamaZorunlu: eposta.etkin });
+    if (r.hata) return bitir({ hata: r.hata });
+    const simdi = Date.now();
+    for (const [k, v] of googleKodlari) if (v.bitis < simdi) googleKodlari.delete(k);
+    const kod = randomBytes(24).toString("base64url");
+    googleKodlari.set(kod, { id: r.hesap.id, bitis: simdi + 5 * 60_000 });
+    return bitir({ kod });
+  });
+
+  app.post("/api/hesap/google/takas", { preHandler: hesapSiniri }, async (req, rep) => {
+    const kod = req.body?.kod;
+    const kayit = typeof kod === "string" ? googleKodlari.get(kod) : null;
+    if (kayit) googleKodlari.delete(kod);
+    const h = kayit && kayit.bitis > Date.now() ? await hesaplar.idIle(kayit.id) : null;
+    return h ? jetonVer(h) : rep.code(401).send({ hata: "Giriş kodu geçersiz ya da süresi doldu; yeniden dene." });
   });
   app.put("/api/hesap/sifre", { preHandler: hesapSiniri }, async (req, rep) => {
     const h = await oturumSahibi(req);
