@@ -50,6 +50,14 @@ test("açık bir yapım isteği yoksa kalfa sohbet eder, kod yazmaz", async () =
   assert.deepEqual(kalfa.dogrula(m.kod), []);
 });
 
+test("modül yalnızca bilgi bankasındaki eserleri, illeri ve türleri kullanabilir", () => {
+  const hatalar = kalfa.dogrula(sarmala(`  const e = await eserler.getir("eyfel-kulesi");\n  const l = await eserler.liste({ il: "Paris", tur: "kule" });`));
+  assert.ok(hatalar.some((h) => h.includes("eyfel-kulesi")), "olmayan eser kimliği");
+  assert.ok(hatalar.some((h) => h.includes("Paris")), "olmayan il");
+  assert.ok(hatalar.some((h) => h.includes("kule")), "olmayan tür");
+  assert.deepEqual(kalfa.dogrula(sarmala(`  const e = await eserler.getir("bursa-ulucami");\n  const l = await eserler.liste({ il: "Bursa", tur: "han" });\n  await sahne.ciz({ tip: "metin", metin: String(e?.ad ?? l.length) });`)), []);
+});
+
 test("yapım isteği sezgisi: yapı/yazı gibi adlar istek sayılmaz", () => {
   for (const m of ["bunu yap", "Modülü oluştur", "inşa et", "kodla şunu", "renkleri değiştir", "bir başarım ekle", "evet", "tamam", "yazar mısın", "yapabilir misin"]) assert.ok(insaIstegiMi(m), m);
   for (const m of ["Bu yapı ne zaman inşaat edildi?", "kitabedeki yazı ne diyor", "hanlarda hazine avı", "Ulucami'nin banisi kim?", "SDK'da harita var mı", "Vakfın kurucusu kim?"]) assert.ok(!insaIstegiMi(m), m);

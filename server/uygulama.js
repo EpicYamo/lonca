@@ -58,7 +58,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   // Kalfa modellerinin sağlık taraması (çalışma verisi; Studio'daki "Modelleri test et").
   const modelTaramasi = modelTaramasiKur({ kalfa, dosya: jsonDosya(path.join(veri, "kalfa-model-durumu.json"), { sonuclar: {} }) });
   const DALIS_DIZINI = path.join(veri, "dalislar");
-  const dalisKalfasi = dalisKalfasiKur({ kok, eserler, dalisDizini: DALIS_DIZINI, ortam });
+  const dalisKalfasi = dalisKalfasiKur({ kok, eserler, iliskiler, dalisDizini: DALIS_DIZINI, ortam });
   const yetki = yetkiKur(ortam.YONETICI_SIFRE);
   const { yoneticiMi } = yetki;
   const kalfaSiniri = hizSiniri({ adet: Number(ortam.KALFA_SINIR ?? 30), pencereMs: 10 * 60_000, mesaj: "Kalfa şu an çok meşgul; birkaç dakika sonra tekrar dene." });
