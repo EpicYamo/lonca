@@ -6,7 +6,7 @@ import { ciniArkaPlan } from "/ortak/cini.js";
 
 const $ = (s) => document.querySelector(s);
 const yuzyilYazi = (y) => (y ? `${y}. yüzyıl` : null);
-const ENG_YUZYIL = (y) => (y ? `${y}${["th", "st", "nd", "rd"][y % 10 > 3 || Math.floor(y / 10) === 1 ? 0 : y % 10]} century` : null);
+const ENG_YUZYIL = (y) => (y ? `${y}${[null, "st", "nd", "rd"][y % 10 > 3 || Math.floor(y / 10) === 1 ? 0 : y % 10] ?? "th"} century` : null);
 
 export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi, dalisModulu, modulAc }) {
   const d = $("#eser-penceresi");
