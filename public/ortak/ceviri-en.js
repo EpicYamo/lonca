@@ -518,8 +518,6 @@ export const EN = {
 
   // Dalış
   "Kaydır": "Scroll",
-  "Dalışa başla": "Start the dive",
-  "Dalışı bitir": "Finish the dive",
   "Gerçek fotoğraf": "Real photo",
   "Gerçek fotoğraf · YZ ile netleştirildi": "Real photo · sharpened with AI",
   "Gerçek fotoğraf · kenarları YZ": "Real photo · edges by AI",
