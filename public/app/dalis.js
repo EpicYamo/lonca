@@ -12,19 +12,22 @@
 // Kaydırma adım adımdır: dalışın içindeyken bir tekerlek hareketi, kaydırma (dokunma) ya da ok/sayfa tuşu kamerayı
 // yalnızca BİR sonraki durma noktasına (kartın tam okunur olduğu an) götürür; hızlı kaydırmak metinleri art arda
 // geçirmez. Dalışın başında yukarı, sonunda aşağı kaydırınca sayfa normal kaymaya döner.
-// Her kartta okuma süresi kadar beklenir: bu sürede ileri kaydırma kartı geçmez, süre bitince ilerler. Altta
-// "Devam et" düğmesi her an bir sonraki karta götürür; düğmenin dolan zemini bekleme süresini gösterir.
+// Her yazı kartı iki adımdır: ilk kaydırmada kart belirir ve okuma süresi kadar beklenir (bu sürede ileri kaydırma
+// kartı geçmez, süre bitince ilerler); ikinci kaydırmada kart ekranda kalırken kamera kartın gösterdiği yere
+// yavaşça yaklaşır (anlatılan ayrıntı canlanır), üçüncü kaydırma sıradaki karta geçer. Düğmeye gerek yoktur.
 import { hareketAzalt } from "/ortak/animasyon.js";
 
 const GORSEL_YOLU = /^\/medya\/[a-z0-9\-_/]+\.(?:jpe?g|png|webp)$/i;
 const BIRIM_VH = 80;                              // bir "birim" kaydırma mesafesi (ekran yüksekliğinin yüzdesi)
-const GIRIS = 0.6, HAREKET = 0.5, OKU = 0.85, DONUS = 0.4, GECIS = 1.35, SON = 0.4; // aşama uzunlukları (birim)
+const GIRIS = 1.1, HAREKET = 0.5, OKU = 1.5, DONUS = 0.4, GECIS = 1.35, SON = 0.4; // aşama uzunlukları (birim)
+const DUR_A = 0.3, DUR_B = 0.72;                 // yazı aşamasında iki durma noktası (aşamanın oranı; kart ikisinde de tam görünür)
+const YAKLAS = 0.8, YAKLAS_BASLIK = 0.9;         // okurken kameranın yaklaşma oranı (yeni boyut / eski boyut)
 const MAKS_KARE = 40, MAKS_BAKIS = 6;
 const GENIS = "(min-width: 1180px) and (min-aspect-ratio: 5/4)"; // web düzeni: görüntü ortada, kart yanda
 const YENI_HAREKET_MS = 180;                     // tekerlek olayları arasında bu kadar boşluk yoksa aynı hareket sayılır
 const ADIM_MS = [650, 1500], BIRIM_MS = 420;     // bir adımın süresi: mesafeyle uzar, sınırlar içinde kalır
 const OKUMA_MS = [900, 2600], HARF_MS = 9;       // kartta bekleme: metin uzunluğuyla uzar, sınırlar içinde kalır
-const OK_IKONU = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const CANLANMA_MS = 1700;                        // aynı kartın iki durağı arasındaki yavaş yaklaşma (canlanma) süresi
 const TAM = [0, 0, 1];
 
 export const ETIKETLER = {
@@ -39,6 +42,14 @@ export const ETIKETLER = {
 const kenet = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const yumusak = (a, b, x) => { const t = kenet((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 const yazi = (x, n) => (x == null ? "" : String(x).slice(0, n));
+
+// Kamerayı R içinde n noktasına (yoksa ortaya) doğru oran kadar yaklaştırır; görüntünün dışına taşmaz.
+function yaklastir(R, n, oran) {
+  const g = R[2] * oran;
+  const [cx, cy] = n ?? [R[0] + R[2] / 2, R[1] + R[2] / 2];
+  const ic = (v, bas) => kenet(v - g / 2, bas, bas + R[2] - g);
+  return [ic(cx, R[0]), ic(cy, R[1]), g];
+}
 
 function dortgen(p, varsayilan = null) {
   const d = Array.isArray(p) ? p.map(Number) : null;
@@ -78,12 +89,17 @@ function zamanCizelgesi(kareler) {
   kareler.forEach((k, i) => {
     duraklar.push(s);
     let su = TAM;
-    ekle({ tur: "oku", kare: i, A: su, B: su, bakis: (k.baslik || k.metin) ? { baslik: k.baslik, metin: k.metin, buyuk: true } : null, uzunluk: GIRIS });
+    // Okurken kamera durmaz: kartın gösterdiği noktaya (yoksa ortaya) yavaşça yaklaşır; sıradaki hareket oradan başlar.
+    const baslik = (k.baslik || k.metin) ? { baslik: k.baslik, metin: k.metin, buyuk: true } : null;
+    const ilkB = baslik ? yaklastir(su, null, YAKLAS_BASLIK) : su;
+    ekle({ tur: "oku", kare: i, A: su, B: ilkB, bakis: baslik, uzunluk: GIRIS });
+    su = ilkB;
     for (const b of k.bakislar) {
       const hedef = b.alan ?? su;
       if (hedef !== su) ekle({ tur: "hareket", kare: i, A: su, B: hedef, uzunluk: HAREKET });
-      ekle({ tur: "oku", kare: i, A: hedef, B: hedef, bakis: b, uzunluk: OKU });
-      su = hedef;
+      const yakin = yaklastir(hedef, b.nokta, YAKLAS);
+      ekle({ tur: "oku", kare: i, A: hedef, B: yakin, bakis: b, uzunluk: OKU });
+      su = yakin;
     }
     if (i === kareler.length - 1) {
       if (su !== TAM) ekle({ tur: "hareket", kare: i, A: su, B: TAM, uzunluk: DONUS });
@@ -95,18 +111,20 @@ function zamanCizelgesi(kareler) {
       ekle({ tur: "dis", kare: i, uzunluk: GECIS });
     } else ekle({ tur: "ic", kare: i, A: su, uzunluk: GECIS });
   });
-  // Durma noktaları: başlangıç, her kartın tam göründüğü an (okuma aşamasının ortası) ve son.
-  // okumalar[i]: o noktadaki kartın harf sayısı (bekleme süresi için).
-  const durmalar = [0], okumalar = [0];
+  // Durma noktaları: başlangıç, her yazı aşamasında iki nokta (kart belirdi · ayrıntı canlandı) ve son.
+  // okumalar[i]: o noktada beklenecek kartın harf sayısı (yalnızca ilk noktada; ikincide kısa bekleme).
+  // cift[i]: bu nokta, bir öncekiyle aynı kartın ikinci noktası mı (aradaki geçiş yavaş canlanmadır).
+  const durmalar = [0], okumalar = [0], cift = [false];
   for (const a of asamalar) {
-    const orta = (a.bas + a.son) / 2;
-    if (a.tur === "oku" && a.bakis && orta - durmalar.at(-1) > 0.15) {
-      durmalar.push(orta);
-      okumalar.push(`${a.bakis.ust ?? ""}${a.bakis.baslik ?? ""}${a.bakis.metin ?? ""}`.length);
-    }
+    if (a.tur !== "oku" || !a.bakis) continue;
+    const uz = a.son - a.bas, ilk = a.bas + uz * DUR_A, ikinci = a.bas + uz * DUR_B;
+    if (ilk - durmalar.at(-1) < 0.15) continue;
+    durmalar.push(ilk, ikinci);
+    okumalar.push(`${a.bakis.ust ?? ""}${a.bakis.baslik ?? ""}${a.bakis.metin ?? ""}`.length, 0);
+    cift.push(false, true);
   }
-  if (s - durmalar.at(-1) > 0.15) { durmalar.push(s); okumalar.push(0); } else durmalar[durmalar.length - 1] = s;
-  return { asamalar, duraklar, durmalar, okumalar, toplam: s };
+  if (s - durmalar.at(-1) > 0.15) { durmalar.push(s); okumalar.push(0); cift.push(false); } else durmalar[durmalar.length - 1] = s;
+  return { asamalar, duraklar, durmalar, okumalar, cift, toplam: s };
 }
 
 // Dalışı kaydıran öğe: kaydırılabilir en yakın ata ya da belge.
@@ -130,7 +148,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   if (hareketAzalt()) return duzKur(kutu, { kareler, etiket, el });
 
   const N = kareler.length;
-  const { asamalar, duraklar, durmalar, okumalar, toplam } = zamanCizelgesi(kareler);
+  const { asamalar, duraklar, durmalar, okumalar, cift, toplam } = zamanCizelgesi(kareler);
   const NS = "http://www.w3.org/2000/svg";
   const iz = el("div", { className: "s-dalis-iz" });
   iz.style.height = `calc(${toplam * BIRIM_VH}vh + 100dvh)`;
@@ -148,12 +166,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   const rozet = el("span", { className: "s-dalis-rozet" });
   const durakYazisi = el("span", { className: "s-dalis-durak" });
   const cubuk = el("div", { className: "s-dalis-cubuk", ariaHidden: "true" }, el("span", {}));
-  // Devam düğmesi: başta "Dalışa başla", kartlarda "Devam et", sonda "Dalışı bitir".
-  const devamYazi = el("span", { className: "s-dalis-devam-yazi", textContent: "Dalışa başla" });
-  const devamDolum = el("span", { className: "s-dalis-devam-dolum", ariaHidden: "true" });
-  const devamOk = el("span", { className: "s-dalis-devam-ok", ariaHidden: "true" });
-  devamOk.innerHTML = OK_IKONU;
-  const devam = el("button", { className: "s-dalis-devam", type: "button" }, devamDolum, devamYazi, devamOk);
+  const ipucu = el("div", { className: "s-dalis-ipucu", ariaHidden: "true", textContent: "Kaydır" });
   const noktalar = el("nav", { className: "s-dalis-noktalar", ariaLabel: "Duraklar" },
     ...kareler.map((k, i) => {
       const d = el("button", { className: "s-dalis-nokta", ariaLabel: `${i + 1}. durak${k.baslik ? `: ${k.baslik}` : ""}` });
@@ -163,7 +176,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   // Geniş ekranda görüntünün iki yanını dolduran bulanık arka plan (o anki karenin kendisi).
   const fon = el("div", { className: "s-dalis-fon", ariaHidden: "true" });
   const sahne = el("div", { className: "s-dalis-sahne" }, fon, tuval, svg, cubuk,
-    el("div", { className: "s-dalis-ustler" }, rozet, durakYazisi), kart, devam, noktalar);
+    el("div", { className: "s-dalis-ustler" }, rozet, durakYazisi), kart, ipucu, noktalar);
   iz.append(sahne);
   kutu.append(iz);
 
@@ -224,56 +237,38 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
 
   // Adım animasyonu: kaydırıcıyı yumuşak eğriyle hedefe götürür; sürerken yeni girdi yok sayılır.
   let animasyon = null, sonTekerlek = 0, bekleyenYerlesme = 0;
-  let okumaBitis = 0, okumaZamani = 0, bekleyenAdim = false, oncekiPay = -1;
+  let okumaBitis = 0, okumaZamani = 0, bekleyenAdim = false;
   function kaydir(son, sure, s, bitince) {
     cancelAnimationFrame(animasyon?.kare ?? 0);
     const bas = kap().scrollTop;
     const t0 = performance.now();
     animasyon = { s };
-    devam.classList.add("yolda");
     const adim = (t) => {
       const u = kenet((t - t0) / sure);
       kaydirici.scrollTop = bas + (son - bas) * yumusakGecis(u);
       if (u < 1 && calisiyor) { animasyon.kare = requestAnimationFrame(adim); return; }
       animasyon = null;
-      devam.classList.remove("yolda");
       bitince?.();
     };
     animasyon.kare = requestAnimationFrame(adim);
   }
   function git(s) {
-    const sure = kenet(ADIM_MS[0] + Math.abs(s - konum()) * BIRIM_MS, ...ADIM_MS);
+    // Aynı kartın ikinci noktasına geçiş: kart ekranda kalır, kamera ayrıntıya yavaşça yaklaşır.
+    const i = durmalar.indexOf(s), canlanma = cift[i] && Math.abs(durmalar[i - 1] - konum()) < 0.05;
+    const sure = canlanma ? CANLANMA_MS : kenet(ADIM_MS[0] + Math.abs(s - konum()) * BIRIM_MS, ...ADIM_MS);
     kaydir(hedefUst(s), sure, s, () => okumaBaslat(s));
   }
-  // Kartta bekleme: süre dolana kadar ileri kaydırma bekletilir (süre bitince yapılır); düğmenin zemini dolar.
+  // Kartta bekleme: süre dolana kadar ileri kaydırma bekletilir, süre bitince yapılır. İlk noktada okuma süresi
+  // (metin uzunluğuyla), canlanmadan sonraki ikinci noktada kısa bir an.
   function okumaBaslat(s) {
     clearTimeout(okumaZamani);
     const i = durmalar.indexOf(s), harf = okumalar[i] ?? 0;
-    const sure = harf ? kenet(OKUMA_MS[0] + harf * HARF_MS, ...OKUMA_MS) : 0;
+    const sure = harf ? kenet(OKUMA_MS[0] + harf * HARF_MS, ...OKUMA_MS) : cift[i] ? 700 : 0;
     okumaBitis = performance.now() + sure;
-    devam.classList.remove("hazir");
-    devamDolum.style.transition = "none";
-    devamDolum.style.transform = "scaleX(0)";
-    void devamDolum.offsetWidth;
-    devamDolum.style.transition = `transform ${sure}ms linear`;
-    devamDolum.style.transform = "scaleX(1)";
     okumaZamani = setTimeout(() => {
-      devam.classList.add("hazir");
       if (bekleyenAdim) { bekleyenAdim = false; adimAt(1); }
     }, sure);
   }
-  // Dalışın sonundan sayfanın devamına geç.
-  function bitir() {
-    const r = iz.getBoundingClientRect(), p = pencere();
-    kaydir(kap().scrollTop + (r.bottom - (p.top + p.height)) + 2, ADIM_MS[0], toplam);
-  }
-  devam.addEventListener("click", () => {
-    if (animasyon) return;
-    bekleyenAdim = false;
-    if (konum() >= toplam - 0.02) { bitir(); return; }
-    const hedefS = sonrakiDurma(1);
-    if (hedefS != null) git(hedefS);
-  });
   // Yöndeki bir sonraki durma noktası; yoksa null (dalıştan çıkılıyor).
   function sonrakiDurma(yon) {
     const s = animasyon ? animasyon.s : konum();
@@ -394,7 +389,9 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
       return { d: null, kare: u > 0.5 ? i + 1 : i };
     }
     if (!hazir(r)) return { d: null, kare: i };
-    const R = a.tur === "ic" ? ara(a.A, kareler[i].portal, e) : ara(a.A, a.B, a.tur === "hareket" ? e : 0);
+    // "oku": kart okunurken kamera A'dan B'ye (ayrıntıya) yavaşça yaklaşır; ikinci durma noktasında yaklaşma tamamlanır.
+    const okuE = yumusak(DUR_A - 0.1, DUR_B, u);
+    const R = a.tur === "ic" ? ara(a.A, kareler[i].portal, e) : ara(a.A, a.B, a.tur === "hareket" ? e : okuE);
     const d = donusum(r, R);
     resimCiz(r, d);
     if (a.tur === "ic" && hazir(sonraki) && u > 0.1) {
@@ -458,11 +455,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
       noktalar.querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-current", j === gosterilen ? "step" : "false"));
       for (const r of resimler.slice(gosterilen, gosterilen + 3)) r.decode?.().catch(() => {});
     }
-    const hal = s >= toplam - 0.02 ? "son" : s < (durmalar[1] ?? toplam) - 0.05 ? "basla" : "devam";
-    if (devam.dataset.hal !== hal) {
-      devam.dataset.hal = hal;
-      devamYazi.textContent = { basla: "Dalışa başla", devam: "Devam et", son: "Dalışı bitir" }[hal];
-    }
+    ipucu.style.opacity = String(1 - kenet(s / 0.3));
     cubuk.firstChild.style.transform = `scaleX(${s / toplam})`;
   }
 
@@ -471,10 +464,6 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     if (!calisiyor) return;
     if (iz.isConnected) {
       hedef = konum();
-      // Dalış henüz ekranın tepesine yapışmadıysa (üstte modül başlığı varken) sahnenin altı ekran dışında kalır;
-      // devam düğmesi o pay kadar yukarıda durur ki "Dalışa başla" baştan görünsün.
-      const pay = Math.max(0, Math.round(iz.getBoundingClientRect().top - pencere().top));
-      if (pay !== oncekiPay) { oncekiPay = pay; devam.style.setProperty("--ust-pay", `${pay}px`); }
       const fark = hedef - simdiki;
       // Adım animasyonu zaten yumuşak: kamera onu doğrudan izler; serbest kaydırmada hafif gecikmeyle yumuşatılır.
       if (animasyon && fark) { simdiki = hedef; cizilecek = true; }
