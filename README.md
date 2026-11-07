@@ -35,7 +35,7 @@ SDK, so a generated app cannot invent history.
 
 ## Setup
 
-Requires Node.js 20.12 or newer.
+Requires Node.js 20.19 or newer.
 
 ```bash
 npm install

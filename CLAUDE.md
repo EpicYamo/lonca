@@ -21,7 +21,7 @@ Kullanıcı Türkçe yazar; yanıtlar Türkçe olsun.
 - **Modül sözleşmesi** `sdk/lonca-sdk.d.ts`'dedir. Modül yalnızca `@lonca/sdk` import eder, ağa/DOM'a erişemez, `sahne.ayarla` zorunlu, en çok 2000 satır. SDK'ya düğüm/ekran eklersen `.d.ts`, `sdk/lonca-sdk.js`, `public/app/sahne.js` ve `server/kalfa.js` denetimini birlikte güncelle.
 - **Girdi doğrulaması sunucuda** (`server/dogrulama.js`). Yeni bir alan/uç nokta eklerken doğrulamasını ve testini de ekle. Yönetici işlemleri `x-yonetici-sifre` başlığıyla korunur (`server/guvenlik.js`).
 - **Adlandırma Türkçe.** Değişken, fonksiyon, dosya ve JSON alanları ASCII Türkçe (`eserler`, `yuzyil`, `tarihce`, `kalfaHazirla`, `dalis-kalfasi.js`); kullanıcıya görünen metin düzgün Türkçe (ç, ğ, ı, ö, ş, ü). Kod yorumları Türkçe.
-- **Derleme adımı yok.** Saf ES modülleri (`"type": "module"`), Node ≥ 20.12, tarayıcı tarafı doğrudan `public/`'ten sunulur. TypeScript yalnızca kalfanın tip denetimi için kullanılır. Yeni bağımlılık eklemeden önce gerçekten gerekli mi düşün.
+- **Derleme adımı yok.** Saf ES modülleri (`"type": "module"`), Node ≥ 20.19, tarayıcı tarafı doğrudan `public/`'ten sunulur. TypeScript yalnızca kalfanın tip denetimi için kullanılır. Yeni bağımlılık eklemeden önce gerçekten gerekli mi düşün.
 - **Dosya alanları:**
   - `public/studio/`: Studio. Yerleşim mantığı `duzen.js`'de, iş mantığı `studio.js`'de. Varsayılan açık tema + koyu tema anahtarı (`lonca.studio.tema`).
   - `public/app/`: vatandaş uygulaması. `public/ortak/` (özellikle `tasarim.css`) iki tarafça paylaşılır; değiştirmeden önce etkisini iki tarafta da kontrol et.
@@ -52,7 +52,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 
 ## Dış gereksinimler
 
-- Node.js ≥ 20.12.
+- Node.js ≥ 20.19 (`@fastify/static` 10, `require(esm)` ister).
 - Dalış üretimi için: `ffmpeg` ve `ffprobe` PATH'te (`brew install ffmpeg`), `python3` + Pillow (`pip3 install Pillow`). `server/dalis-kalfasi.js` iş başlamadan bunları denetler.
 - Veri hattı (`araclar/*.py`) için python3.
 

@@ -23,7 +23,7 @@ feat/… duzelt/… docs/…  ──PR──▶  dev  ──PR (beta)──▶  
 
 | İş | Ne denetler |
 | --- | --- |
-| Test (Node 20.12, 22) | `npm test`: API, yetki, doğrulama, kalfa denetimi |
+| Test (Node 20.19, 22) | `npm test`: API, yetki, doğrulama, kalfa denetimi |
 | Lint, biçim ve tutarlılık | `npm run lint` (ESLint), `npm run format:check` (Prettier), `npm run denetle` (veri ve modül sözleşmesi, depoya girmemesi gereken dosyalar), `node --check`, `bash -n apk.sh` |
 | Uçtan uca | `npm run test:e2e`, Playwright Chromium ile |
 | Bağımlılık denetimi | `npm audit --omit=dev --audit-level=high` engeller; tüm bağımlılıklar için `npm audit` yalnızca uyarır |

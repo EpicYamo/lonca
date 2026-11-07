@@ -30,7 +30,7 @@ bilgi() { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
 hata() { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------- Araçlar ----------
-command -v node >/dev/null || hata "Node.js gerekli (20.12+)."
+command -v node >/dev/null || hata "Node.js gerekli (20.19+)."
 
 if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]] || ! "${JAVA_HOME}/bin/java" -version 2>&1 | grep -qE 'version "(2[1-9]|1[7-9])'; then
   JAVA_HOME=""

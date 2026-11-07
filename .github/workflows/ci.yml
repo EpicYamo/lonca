@@ -30,7 +30,7 @@ jobs:
       fail-fast: false
       matrix:
         # package.json engines alt sınırı ve Docker imajındaki sürüm
-        node: ["20.12", "22"]
+        node: ["20.19", "22"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -130,7 +130,10 @@ jobs:
           curl -fsS http://127.0.0.1:3000/api/merhaba | grep -q '"lonca":true'
           # İmajdaki HEALTHCHECK komutunun kendisi
           docker exec lonca node -e "fetch('http://127.0.0.1:3000/api/merhaba').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
-          test "$(curl -fsS http://127.0.0.1:3000/api/eserler | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log((j.eserler??j).length>0)})')" = true
+          curl -fsS -o "$RUNNER_TEMP/eserler.json" http://127.0.0.1:3000/api/eserler
+          ADET=$(node -e 'const j=require(process.argv[1]);console.log(Array.isArray(j)?j.length:(j.eserler?.length??0))' "$RUNNER_TEMP/eserler.json")
+          echo "eser sayısı: $ADET"
+          test "$ADET" -gt 0
           for yol in /app/ /studio/ /sdk/lonca-sdk.js /vendor/leaflet/leaflet.js /vendor/three/build/three.module.js; do
             curl -fsS -o /dev/null "http://127.0.0.1:3000$yol" || { echo "::error::$yol yanıt vermedi"; exit 1; }
           done
