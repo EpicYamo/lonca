@@ -78,7 +78,7 @@ if [[ "$TUR" == release ]]; then
   if [[ ! -f "$ANAHTAR" ]]; then
     bilgi "İmza anahtarı oluşturuluyor ($ANAHTAR) — sakla; güncellemeler aynı anahtarla imzalanmalı"
     mkdir -p mobil/anahtar
-    SIFRE=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)
+    SIFRE=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24 || true)  # head erken kapatınca tr SIGPIPE alır; pipefail betiği durdurmasın
     keytool -genkeypair -v -keystore "$ANAHTAR" -alias lonca -keyalg RSA -keysize 2048 -validity 10000 \
       -storepass "$SIFRE" -keypass "$SIFRE" -dname "CN=Lonca, OU=Kozmos, O=Lonca, C=TR" >/dev/null 2>&1
     printf '%s' "$SIFRE" > mobil/anahtar/sifre.txt
