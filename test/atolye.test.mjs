@@ -16,7 +16,9 @@ const yeniOturum = async (secenek = { usta: true }) => (await s.istek("POST", "/
 test("atölye oturumları usta ya da editör hesabı ister", async () => {
   assert.equal((await s.istek("GET", "/api/atolye/oturumlar")).statusCode, 401);
   assert.equal((await s.istek("POST", "/api/atolye/oturumlar", { govde: {} })).statusCode, 401);
+  // Kayıt olan usta olur; vatandaş rolü yönetici şifresiyle verilir.
   const vatandas = (await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "atolye-vatandas", sifre: "sifresifre" } })).json();
+  await s.istek("PUT", `/api/hesap/${vatandas.hesap.id}/rol`, { yonetici: true, govde: { rol: "vatandas" } });
   const y = await s.istek("GET", "/api/atolye/oturumlar", { basliklar: { authorization: `Bearer ${vatandas.jeton}` } });
   assert.equal(y.statusCode, 401);
 });

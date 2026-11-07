@@ -31,31 +31,42 @@ try {
   const studio = await (await tarayici.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   studio.on("pageerror", (e) => hatalar.push(`Studio: ${e.message}`));
   await studio.goto(`${ADRES}/studio/`);
-  // Yönetici şifreli sunucuda atölye kilitli: usta hesabı aç
-  await studio.waitForSelector("#atolye-kilit:not([hidden])");
-  await studio.click("#kilit-kayit");
+  // Yönetici şifreli sunucuda Studio'nun tamamı giriş ister: kapıdan usta hesabı aç (kayıt olan herkes usta)
+  await studio.waitForSelector("#hesap-pencere[open]");
+  assert.ok(await studio.isVisible("#giris-kapisi"), "girişsiz Studio kapıda beklemeli");
+  await studio.click("[data-hesap-kip=kayit]");
   await studio.fill("#hesap-kimlik", "e2e-usta");
   await studio.fill("#hesap-sifre", "e2e-usta-sifre");
   await studio.click("#hesap-gonder");
-  await studio.waitForSelector("#hesap-pencere:not([open])", { state: "attached" });
+  await studio.waitForSelector("#giris-kapisi", { state: "hidden" });
   await studio.waitForSelector("#atolye-kilit", { state: "hidden" });
-  adim("usta hesabı açıldı, atölye kilidi kalktı");
+  adim("usta hesabı açıldı, Studio açıldı");
   await studio.fill("#istek", "Bursa hanları için süreli bir oyun");
   await studio.press("#istek", "Enter");
   await studio.waitForFunction(() => document.querySelector("#kod").value.includes("sahne.ayarla"), null, { timeout: 15000 });
   await studio.frameLocator("#cerceve").locator(".s-kapak").waitFor({ timeout: 10000 });
   adim("kalfa modülü yazdı, önizlemede kapak açıldı");
   await studio.click("#onaya-gonder");
-  await studio.waitForSelector("#durum.iyi");
+  // Kalfanın kendi "iyi" durumu da aynı kutuda; gönderimin sonucunu metinden bekle
+  await studio.waitForSelector("#durum.iyi >> text=onaya gönderildi");
   adim("modül onaya gönderildi");
 
   await studio.click(".sekme-d[data-sayfa=moduller]");
-  // Usta tüm modül listesini göremez: hesap penceresinden yönetici şifresine geçilir
+  // Usta listeyi görür ama yayınlayamaz; yeniden giriş de istenmez
+  await studio.waitForSelector(".modul-ogesi .etiket.bekliyor");
+  assert.ok(!(await studio.isVisible("#hesap-pencere[open]")), "usta Modüller'de yeniden giriş görmemeli");
+  assert.equal(await studio.locator(".modul-ogesi >> text=Yayınla").count(), 0, "usta yayınlayamaz");
+  adim("usta modülü listede görüyor, yayınlayamıyor");
+  // Çıkış → kapı → yönetici şifresiyle admin olarak gir
+  await studio.click("#hesap-d");
+  await studio.click("#hesap-kart button[value=cikis]");
   await studio.waitForSelector("#hesap-pencere[open]");
   await studio.click("#hesap-yonetici");
   await studio.waitForSelector("#giris[open]");
   await studio.fill("#giris-sifre", SIFRE);
   await studio.click("#giris-formu .birincil");
+  await studio.waitForSelector("#giris-kapisi", { state: "hidden" });
+  await studio.click(".sekme-d[data-sayfa=moduller]");
   await studio.click(".modul-ogesi >> text=Yayınla");
   await studio.waitForSelector(".etiket.onayli");
   adim("yönetici girişi yapıldı, modül yayınlandı");
