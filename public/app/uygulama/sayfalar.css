@@ -120,8 +120,9 @@
   align-items: stretch; padding: 0 0 var(--klavye, 0px); background: var(--yuzey);
   -webkit-backdrop-filter: none; backdrop-filter: none; animation: tam-sayfa-gel .34s var(--egri-gir) both;
 }
+/* Klavye açılıp kutu kısalınca ortalanan içerik üstten taşmasın ("safe"): ilk alanlar da kaydırılarak görülebilir. */
 .kabuk :is(#hesap-penceresi, #tanisma) > .ayarlar-kutu {
-  align-content: center; width: 100%; max-width: none; height: calc(100dvh - var(--klavye, 0px)); max-height: none; margin: 0;
+  align-content: safe center; width: 100%; max-width: none; height: calc(100dvh - var(--klavye, 0px)); max-height: none; margin: 0;
   padding: calc(env(safe-area-inset-top) + 2rem) max(1.4rem, calc((100% - 460px) / 2)) calc(1.5rem + env(safe-area-inset-bottom));
   border-radius: 0; box-shadow: none; overflow-y: auto; overscroll-behavior: contain; animation: none;
 }
