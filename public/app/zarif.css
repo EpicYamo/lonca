@@ -510,9 +510,24 @@ dialog.galeri { overflow: hidden; }
 :root.buyuk-hedef :is(.kategori-cip, .uygulama-satiri) { min-height: 60px; }
 .hesap-eylemler .dugme { white-space: nowrap; padding-inline: .5rem; }
 
+/* Google ile devam et: ikincil düğme gibi (dolgu zemin, kenarlıksız), solda renkli G. */
+.google-dugme { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; width: 100%; background: var(--dolgu); color: var(--metin); }
+.google-dugme[hidden] { display: none; }
+.google-dugme svg { width: 20px; height: 20px; flex: none; }
+.hesap-google { display: grid; gap: .7rem; margin-top: .2rem; }
+.hesap-google[hidden] { display: none; }
+.hesap-ya-da { display: flex; align-items: center; gap: .75rem; margin: 0; color: var(--soluk); font-size: .82rem; }
+.hesap-ya-da::before, .hesap-ya-da::after { content: ""; flex: 1; height: .5px; background: var(--cizgi); }
+:root.kontrast .google-dugme { border: 1px solid #fff; }
+.hesap-kutu .hesap-alan[hidden] { display: none; }
 /* Dil düğmesi (üst çubuk, web): tema düğmesiyle aynı daire; içinde geçilecek dilin kısaltması. */
 .dil-dugme .dil-kisa { position: relative; font-family: var(--yazi-sistem); font-size: .74rem; font-weight: 700; letter-spacing: .03em; }
 /* Profil → Ayarlar → Dil: satırın sağında iki seçenekli bölümlü seçici. */
 .pl-satir.pl-dil { cursor: default; }
 .pl-satir.pl-dil:active { background: none; }
 .pl-dil .bolumlu span { min-width: 4.6rem; padding: 0 .6rem; }
+/* Şifremi unuttum: şifre alanının altında sağda metin düğmesi; gönderim sonucu sakin bir bilgi kutusunda. */
+.hesap-unuttum { justify-self: end; min-height: 44px; margin: -.5rem 0 -.3rem; padding: 0 .2rem; border: 0; background: none; color: var(--vurgu); font: 600 .88rem var(--yazi-sistem); cursor: pointer; }
+.hesap-bilgi { margin: 0; padding: .65rem .75rem; border-radius: 10px; background: var(--vurgu-zemin); color: var(--metin); font-size: .88rem; line-height: 1.45; }
+.hesap-kutu :is(.hesap-kip, .hesap-unuttum, .hesap-bilgi, .hesap-vazgec)[hidden] { display: none; }
+:root.kontrast .hesap-bilgi { border: 1px solid #fff; }

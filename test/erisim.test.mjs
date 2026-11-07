@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deneySunucusu } from "./yardimci.mjs";
+import { deneySunucusu, kayitGovdesi } from "./yardimci.mjs";
 
 const ANA = "ana-anahtar-123";
 
@@ -27,7 +27,7 @@ test("anahtar varsa /api korunur, merhaba açıktır", async () => {
 
 test("hesapla giriş ana API anahtarını istemez; geçerli Bearer jetonu API erişimi sağlar", async () => {
   const { istek } = await deneySunucusu({ LONCA_API_ANAHTARI: ANA });
-  const kayit = await istek("POST", "/api/hesap/kayit", { govde: { kimlik: "app-kullanicisi", sifre: "guclu-sifre-123", rol: "vatandas" } });
+  const kayit = await istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "app-kullanicisi", sifre: "guclu-sifre-123", rol: "vatandas" }) });
   assert.equal(kayit.statusCode, 201);
   const { jeton } = kayit.json();
   const bearer = { authorization: `Bearer ${jeton}` };

@@ -302,6 +302,7 @@
         <h2 id="ks-baslik">Lonca'ya hoş geldin</h2>
         <p class="ks-alt" id="ks-alt">Vakıf eserlerini rehberler, oyunlar, haritalar ve dalışlarla keşfet. Hesabınla giriş yaparsan puanın ve başarımların her cihazda seninle.</p>
         <div class="ks-dugmeler">
+          <button type="button" class="dugme ikincil google-dugme" id="ks-google" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-2 3.2-4.9 3.2-8.3z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.9A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.1a6.6 6.6 0 0 1 0-4.2V7H2.1a11 11 0 0 0 0 10l3.7-2.9z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7l3.7 2.9C6.7 7.3 9.1 5.4 12 5.4z"/></svg><span>Google ile devam et</span></button>
           <button type="button" class="dugme" id="ks-giris">Giriş yap</button>
           <button type="button" class="dugme ikincil" id="ks-kayit">Hesap oluştur</button>
           <button type="button" class="ks-devam" id="ks-devam">Hesap açmadan devam et</button>
@@ -332,15 +333,22 @@
       <span class="hesap-logo" id="hesap-logo" aria-hidden="true"></span>
       <h2 id="hesap-baslik">Lonca hesabı</h2>
       <p class="tanisma-alt" id="hesap-aciklama">Profilini güvenli hesabına bağla; bu cihazdaki puan ve başarımların ilk girişte hesabına taşınır.</p>
-      <div class="bolumlu hesap-kip" role="radiogroup" aria-label="Giriş ya da hesap oluştur">
+      <div class="bolumlu hesap-kip" id="hesap-kip" role="radiogroup" aria-label="Giriş ya da hesap oluştur">
         <button type="button" data-hesap-kip="giris" aria-checked="true" role="radio" class="secili">Giriş yap</button>
         <button type="button" data-hesap-kip="kayit" aria-checked="false" role="radio">Hesap oluştur</button>
       </div>
-      <label class="hesap-alan">Kullanıcı adı
-        <input id="hesap-kimlik" class="tanisma-girdi" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required minlength="3" maxlength="32" pattern="[a-zA-Z0-9_.\-]{3,32}" placeholder="Örn. ayse.yilmaz" aria-describedby="hesap-kimlik-ipucu">
+      <div class="hesap-google" id="hesap-google-kap" hidden>
+        <button type="button" class="dugme google-dugme" id="hesap-google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.6 12.3c0-.8-.1-1.6-.2-2.3H12v4.4h6a5.1 5.1 0 0 1-2.2 3.4v2.8h3.6c2.1-2 3.2-4.9 3.2-8.3z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.3-2.7l-3.6-2.8c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.1v2.9A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.1a6.6 6.6 0 0 1 0-4.2V7H2.1a11 11 0 0 0 0 10l3.7-2.9z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.2-3.2A11 11 0 0 0 2.1 7l3.7 2.9C6.7 7.3 9.1 5.4 12 5.4z"/></svg><span>Google ile devam et</span></button>
+        <p class="hesap-ya-da" aria-hidden="true"><span>ya da</span></p>
+      </div>
+      <label class="hesap-alan" id="hesap-kimlik-alan"><span id="hesap-kimlik-etiket">Kullanıcı adı ya da e-posta</span>
+        <input id="hesap-kimlik" class="tanisma-girdi" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required minlength="3" maxlength="254" placeholder="Örn. ayse.yilmaz" aria-describedby="hesap-kimlik-ipucu">
       </label>
-      <p class="hesap-ipucu" id="hesap-kimlik-ipucu">Harf, rakam, nokta, alt çizgi ya da tire; 3–32 karakter.</p>
-      <label class="hesap-alan">Şifre
+      <p class="hesap-ipucu" id="hesap-kimlik-ipucu" hidden>Harf, rakam, nokta, alt çizgi ya da tire; 3–32 karakter.</p>
+      <label class="hesap-alan" id="hesap-eposta-alan" hidden>E-posta
+        <input id="hesap-eposta" class="tanisma-girdi" name="eposta" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="ornek@eposta.com">
+      </label>
+      <label class="hesap-alan" id="hesap-sifre-alan"><span id="hesap-sifre-etiket">Şifre</span>
         <span class="hesap-sifre-kap">
           <input id="hesap-sifre" class="tanisma-girdi" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter">
           <button type="button" class="hesap-goster" id="hesap-goster" aria-label="Şifreyi göster" aria-pressed="false">
@@ -349,9 +357,16 @@
           </button>
         </span>
       </label>
+      <button type="button" class="hesap-unuttum" id="hesap-unuttum" hidden>Şifremi unuttum</button>
+      <label class="hesap-alan" id="hesap-sifre2-alan" hidden><span id="hesap-sifre2-etiket">Şifre (tekrar)</span>
+        <input id="hesap-sifre2" class="tanisma-girdi" name="sifreTekrar" type="password" autocomplete="new-password" minlength="8" maxlength="200" placeholder="Şifreyi yeniden yaz">
+      </label>
       <p id="hesap-kayit-notu" class="hesap-aciklama" hidden>Bu hesapla uygulamadaki profilini her cihazda kullanır, aynı kullanıcı adıyla web'deki Lonca Studio'da modül hazırlayabilirsin.</p>
       <p id="hesap-hata" class="hesap-hata" role="alert" hidden></p>
+      <p id="hesap-bilgi" class="hesap-bilgi" role="status" hidden></p>
+      <button type="button" class="hesap-unuttum" id="hesap-yeniden" hidden>Doğrulama bağlantısını yeniden gönder</button>
       <button type="submit" class="dugme hesap-gonder" id="hesap-gonder">Giriş yap</button>
+      <button type="button" class="hesap-vazgec" id="hesap-girise-don" hidden>Girişe dön</button>
       <button type="button" class="hesap-vazgec" id="hesap-vazgec">Vazgeç</button>
     </form>
   </div>
