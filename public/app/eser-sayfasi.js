@@ -142,18 +142,35 @@ export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi
   }
 
   // ---------- Paylaş ----------
+  // Paylaşılan mesaj arkadaşın uygulaması olmasa da işe yarar: eserin adı ve kısa özeti, Google Haritalar'da konumu
+  // ve Lonca'da eser sayfasının bağlantısı. Android'de sayfanın kendi adresi (localhost) paylaşılamaz; bağlantı
+  // uygulamanın bağlandığı genel sunucudan (mobil/kopru.js → loncaMobil.sunucu) kurulur.
+  function paylasimBilgisi(e) {
+    const ilk = String(e.tarihce?.tr ?? "").split(/\n+/).find((p) => p.length > 40) ?? "";
+    const ozet = ilk.length > 300 ? `${ilk.slice(0, 300).replace(/\s+\S*$/, "")}…` : ilk;
+    const k = e.konum;
+    const konumVar = k && Number.isFinite(Number(k.lat)) && Number.isFinite(Number(k.lng));
+    // Koordinatı olmayan eserde (kayıtların yaklaşık yarısı) Haritalar adı ve adresiyle arar.
+    const adresAramasi = [e.ad, e.adres, e.ilce, e.il].filter(Boolean).join(", ");
+    const sorgu = konumVar ? `${Number(k.lat)},${Number(k.lng)}` : e.adres || e.ilce ? adresAramasi : "";
+    const haritaAdresi = sorgu ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sorgu)}` : "";
+    const native = window.Capacitor?.isNativePlatform?.();
+    const kok = native ? window.loncaMobil?.sunucu : location.origin;
+    const url = kok ? `${kok}/app/?eser=${encodeURIComponent(e.id)}` : "";
+    const konumSatiri = haritaAdresi ? `📍 ${konumVar && !k.yaklasik ? "Konum" : "Yaklaşık konum"}: ${haritaAdresi}` : "";
+    const govde = [e.ad, $("#ep-ust").textContent, ozet, konumSatiri].filter(Boolean).join("\n\n");
+    return { govde, url };
+  }
   $("#ep-paylas").addEventListener("click", async () => {
     if (!eser) return;
-    const ilk = String(eser.tarihce?.tr ?? "").split(/\n+/).find((p) => p.length > 40) ?? "";
-    const ozet = ilk.length > 300 ? `${ilk.slice(0, 300).replace(/\s+\S*$/, "")}…` : ilk;
+    const { govde, url } = paylasimBilgisi(eser);
+    const tamMetin = [govde, url ? `Lonca'da aç: ${url}` : "Lonca ile keşfet: vakıf eserleri."].join("\n\n");
     const native = window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Share;
-    const url = native ? undefined : `${location.origin}/app/?eser=${encodeURIComponent(eser.id)}`;
-    const metin = [eser.ad, $("#ep-ust").textContent, ozet, "Lonca ile keşfet: vakıf eserleri."].filter(Boolean).join("\n\n");
     try {
-      if (native) return await window.Capacitor.Plugins.Share.share({ title: eser.ad, text: metin, dialogTitle: "Eseri paylaş" });
-      if (navigator.share) return await navigator.share({ title: eser.ad, text: metin, url });
-      await navigator.clipboard.writeText(`${eser.ad}\n${url}`);
-      bildir("Bağlantı panoya kopyalandı.");
+      if (native) return await window.Capacitor.Plugins.Share.share({ title: eser.ad, text: tamMetin, dialogTitle: "Eseri paylaş" });
+      if (navigator.share) return await navigator.share({ title: eser.ad, text: govde, url: url || undefined });
+      await navigator.clipboard.writeText(tamMetin);
+      bildir("Eser bilgisi, konumu ve bağlantısı panoya kopyalandı.");
     } catch (h) { if (h?.name !== "AbortError") bildir("Paylaşılamadı; bağlantıyı adres çubuğundan kopyalayabilirsin."); }
   });
 

@@ -292,6 +292,7 @@ export const EN = {
   "{0} ile içine gir →": "Dive in with {0} →",
   "Dalışı var": "Has a dive",
   "Bağlantı panoya kopyalandı.": "Link copied to the clipboard.",
+  "Eser bilgisi, konumu ve bağlantısı panoya kopyalandı.": "Site details, location and link copied to the clipboard.",
   "Paylaşılamadı; bağlantıyı adres çubuğundan kopyalayabilirsin.": "Couldn't share; you can copy the link from the address bar.",
   "Eseri paylaş": "Share this site",
   "Lonca ile keşfet: vakıf eserleri.": "Explore with Lonca: foundation heritage.",
