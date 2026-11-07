@@ -6,7 +6,7 @@
 //    cihaz anahtarını HttpOnly çerezde tutar.
 //  - Eşleştirme: ana anahtarı bilen biri (Mac'te `npm run eslestir`) 6 haneli, 5 dakikalık bir kod alır;
 //    telefon POST /api/eslestir { kod, ad } ile kendine özel, iptal edilebilir bir anahtar alır.
-//  - Ağ taraması anahtarsız GET /api/merhaba ucunu yoklar; böylece anahtar ağdaki her adrese gönderilmez.
+//  - Android uygulaması sunucuyu anahtarsız GET /api/merhaba ucuyla yoklar, anahtar istenip istenmediğini oradan öğrenir.
 import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 import path from "node:path";
 import { jsonDosya } from "./depo.js";

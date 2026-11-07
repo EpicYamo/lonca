@@ -1,9 +1,9 @@
 // Lonca Android köprüsü. Web'de hiçbir şey yapmaz; Capacitor içinde açıldığında uygulamayı "gerçek uygulama" yapar:
 //
-//  - Lonca sunucusunu bulur: APK'ya gömülü genel adres (internet, Nginx arkası alan adı) → son adres →
-//    derleyen bilgisayarın yerel IP'leri → emülatör → aynı Wi-Fi'de /24 ağ taraması.
-//    Bulunca bütün /api istekleri canlı sunucuya gider (Studio'da canlıya alınan modüller ve dalışlar hemen görünür),
-//    pakette olmayan medya da native tarafta sunucudan getirilir. Bulamazsa paketteki anlık görüntüyle çevrimdışı çalışır.
+//  - Tek, sabit bir Lonca sunucusuna bağlanır: APK'ya derlenirken gömülen adres (LONCA_SUNUCU_URL, varsayılan
+//    https://kozmos.42.fr). Ağ taraması ya da IP keşfi yoktur. Bağlanınca bütün /api istekleri bu sunucuya gider
+//    (Studio'da canlıya alınan modüller ve dalışlar hemen görünür), pakette olmayan medya da native tarafta oradan
+//    getirilir. Sunucuya ulaşılamazsa paketteki anlık görüntüyle çevrimdışı çalışır ve arada bir yeniden dener.
 //  - Android geri tuşu: açık pencere → modülün kendi geri düğmesi → modülü kapat → profil → uygulamayı arka plana al.
 //  - Sistem çubukları temaya uyar; dalış sırasında durum çubuğu gizlenir, her yeni durakta hafif titreşim olur.
 //  - Konum izni native sorulur, Türkçe sesli okuma Android'in metin okuma motoruyla yapılır, eserler paylaşılabilir.
@@ -15,29 +15,27 @@
   kok.classList.add("lonca-native", `lonca-${C.getPlatform()}`);
 
   const YAP = window.LONCA_MOBIL ?? {};
-  const PORT = Number(YAP.port) || 3000;
-  const SAKLI = "lonca.sunucu", SAKLI_ANAHTAR = "lonca.anahtar";
+  const SAKLI_ANAHTAR = "lonca.anahtar";
   const ANAHTAR_BASLIGI = "x-lonca-anahtar";
   const oku = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   const yaz = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
   const sessiz = (p) => Promise.resolve(p).catch(() => {});
   const $ = (s) => document.querySelector(s);
+  // Eski sürümlerin ağ taramasıyla bulup sakladığı yerel adres artık kullanılmaz.
+  yaz("lonca.sunucu", null);
 
-  // ---------- Sunucu bulma ----------
+  // ---------- Sabit sunucu ----------
   const Http = P.CapacitorHttp;
   const anahtar = () => oku(SAKLI_ANAHTAR) || YAP.anahtar || "";
   function normalAdres(girdi) {
-    let s = String(girdi ?? "").trim();
-    if (!s) return null;
-    if (!/^https?:\/\//i.test(s)) s = `http://${s}`;
+    const s = String(girdi ?? "").trim();
+    if (!/^https?:\/\//i.test(s)) return null;
     try {
       const u = new URL(s);
-      // Çıplak IP/ad yazıldıysa (http, port yok) Lonca portu eklenir; https alan adları (Nginx arkası) olduğu gibi kalır.
-      if (!u.port && u.protocol === "http:" && !/^https?:\/\//i.test(String(girdi).trim())) u.port = String(PORT);
       return `${u.protocol}//${u.host}${u.pathname.replace(/\/+$/, "")}`;
     } catch { return null; }
   }
-  // Anahtar yalnızca bulunan Lonca sunucusuna gönderilir (tarama sırasında ağdaki başka cihazlara değil).
+  const SUNUCU = normalAdres(YAP.sunucu ?? YAP.genel);
   async function istek(url, { method = "GET", headers = {}, data, ms = 8000, metin = true, anahtarli = true } = {}) {
     if (anahtarli && anahtar()) headers = { ...headers, [ANAHTAR_BASLIGI]: anahtar() };
     const r = await Promise.race([
@@ -48,101 +46,60 @@
   }
   const coz = (r) => { try { return typeof r.data === "string" ? JSON.parse(r.data) : r.data; } catch { return null; } };
   // Sunucu sözleşmesi: GET /api/merhaba her zaman açık → { lonca: true, anahtarGerekli }.
-  // Anahtar isteniyorsa /api/ayarlar anahtarla doğrulanır. /api/merhaba'sı olmayan eski sunucular için /api/ayarlar denenir.
-  async function yokla(adres, ms = 1500) {
+  // Anahtar isteniyorsa /api/ayarlar anahtarla doğrulanır.
+  async function yokla(ms = 4000) {
+    if (!SUNUCU) return null;
+    durum.anahtarGerekli = false;
     try {
-      const r = await istek(`${adres}/api/merhaba`, { ms, anahtarli: false });
+      const r = await istek(`${SUNUCU}/api/merhaba`, { ms, anahtarli: false });
       const g = coz(r);
-      if (r.status === 404) {
-        const e = await istek(`${adres}/api/ayarlar`, { ms, anahtarli: false });
-        const h = coz(e);
-        return e.status === 200 && h && typeof h === "object" && "harita" in h ? adres : null;
-      }
       if (r.status !== 200 || !g?.lonca) return null;
-      if (!g.anahtarGerekli) return adres;
+      if (!g.anahtarGerekli) return SUNUCU;
       if (anahtar()) {
-        const k = await istek(`${adres}/api/ayarlar`, { ms: Math.max(ms, 2500) });
-        if (k.status === 200) return adres;
+        const k = await istek(`${SUNUCU}/api/ayarlar`, { ms });
+        if (k.status === 200) return SUNUCU;
       }
-      durum.anahtarGerekli = adres;
+      durum.anahtarGerekli = true;
       return null;
     } catch { return null; }
   }
   // Eşleştirme: sunucuda `node araclar/eslestir.mjs` 6 haneli kod verir; uygulama karşılığında kalıcı anahtar alır.
-  async function eslestir(adres, kod) {
-    const r = await istek(`${adres}/api/eslestir`, { method: "POST", headers: { "content-type": "application/json" }, data: { kod, ad: "Lonca Android" }, ms: 5000, anahtarli: false });
+  async function eslestir(kod) {
+    const r = await istek(`${SUNUCU}/api/eslestir`, { method: "POST", headers: { "content-type": "application/json" }, data: { kod, ad: "Lonca Android" }, ms: 5000, anahtarli: false });
     const g = coz(r);
     if (r.status !== 200 || !g?.anahtar) throw new Error(g?.hata || "Kod kabul edilmedi");
     yaz(SAKLI_ANAHTAR, g.anahtar);
     return g.anahtar;
   }
-  const ilkBulan = (sozler) => new Promise((coz) => {
-    let kalan = sozler.length;
-    if (!kalan) return coz(null);
-    for (const s of sozler) s.then((a) => { if (a) coz(a); else if (--kalan === 0) coz(null); });
-  });
-  // Bağlanma sırası: 1) APK'ya gömülü genel sunucu (internetteki alan adı, ör. https://kozmos.42.fr)
-  // 2) son bağlanılan adres 3) derleyen bilgisayarın yerel IP'leri ve emülatör 4) /24 ağ taraması 5) paketteki veri.
-  const GENEL = normalAdres(YAP.genel);
-  const gorunen = (a) => String(a).replace(/^http:\/\//, "");
-  function adaylar() {
-    const l = [oku(SAKLI), ...(YAP.sunucular ?? []), `http://10.0.2.2:${PORT}`].map(normalAdres).filter(Boolean);
-    return [...new Set(l)];
-  }
-  const ozelAg = (ip) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(ip) && ip !== "10.0.2.2";
-  async function agiTara(iptal) {
-    const denenen = new Set(adaylar());
-    const agler = [...new Set(adaylar().map((a) => new URL(a).hostname).filter(ozelAg).map((ip) => ip.split(".").slice(0, 3).join(".")))];
-    const hedefler = [];
-    for (const ag of agler) for (let i = 1; i < 255; i++) {
-      const a = `http://${ag}.${i}:${PORT}`;
-      if (!denenen.has(a)) hedefler.push(a);
-    }
-    let sira = 0, bulunan = null;
-    const isci = async () => {
-      while (!bulunan && !iptal.iptal && sira < hedefler.length) {
-        const a = await yokla(hedefler[sira++], 900);
-        if (a) bulunan ??= a;
-      }
-    };
-    await Promise.all(Array.from({ length: 48 }, isci));
-    return bulunan;
-  }
+  const gorunen = (a) => String(a).replace(/^https?:\/\//, "");
 
-  const durum = { canli: null, araniyor: false, tarama: null, anahtarGerekli: null, dinleyiciler: new Set() };
+  const durum = { canli: null, deneniyor: false, anahtarGerekli: false, dinleyiciler: new Set() };
   const durumYayinla = () => durum.dinleyiciler.forEach((f) => sessiz(f()));
   function baglan(adres) {
     durum.canli = adres;
-    if (adres) yaz(SAKLI, adres);
-    if (adres) durum.anahtarGerekli = null;
+    if (adres) durum.anahtarGerekli = false;
     sessiz(P.LoncaSunucu?.ayarla({ adres: adres ?? "", anahtar: anahtar() }));
     durumYayinla();
   }
-  async function hizliAra() {
-    let a = GENEL ? await yokla(GENEL, 4000) : null;
-    a ??= await ilkBulan(adaylar().filter((x) => x !== GENEL).map((x) => yokla(x)));
-    baglan(a);
-    return a;
-  }
-  // İlk açılışta API, hızlı aramanın bitmesini en fazla ~1,7 sn (genel sunucu varsa ~4,5 sn) bekler; sonra çevrimdışı açılır, tarama arkada sürer.
-  const hazir = hizliAra();
-  const ilkBekleme = Promise.race([hazir, new Promise((c) => setTimeout(c, GENEL ? 4500 : 1700))]);
-  function arkadaTara({ yenile = true } = {}) {
-    if (durum.tarama || durum.canli) return durum.tarama;
-    const iptal = { iptal: false };
-    durum.araniyor = true; durumYayinla();
-    durum.tarama = agiTara(iptal).then((a) => {
-      durum.araniyor = false; durum.tarama = null;
-      if (a && !durum.canli) { baglan(a); canliOldu(yenile); }
-      else {
-        durumYayinla();
-        if (!a && durum.anahtarGerekli) bildir(`${gorunen(durum.anahtarGerekli)} bulundu; bağlanmak için eşleştirme kodu gir (Erişilebilirlik → Bağlantı).`);
-      }
+  let suren = null;
+  function dene(ms) {
+    suren ??= (async () => {
+      durum.deneniyor = true; durumYayinla();
+      const a = await yokla(ms);
+      durum.deneniyor = false;
+      baglan(a);
       return a;
-    });
-    return durum.tarama;
+    })().finally(() => { suren = null; });
+    return suren;
   }
-  hazir.then((a) => { if (!a) arkadaTara(); });
+  // İlk açılışta API, sunucunun yanıtını en fazla ~4,5 sn bekler; sonra çevrimdışı açılır.
+  const hazir = dene();
+  const ilkBekleme = Promise.race([hazir, new Promise((c) => setTimeout(c, SUNUCU ? 4500 : 0))]);
+  // Çevrimdışıyken dakikada bir yeniden dener; bağlanınca (modül açık değilse) sayfayı canlı veriyle yeniler.
+  setInterval(async () => {
+    if (durum.canli || !SUNUCU || document.hidden) return;
+    if (await dene()) canliOldu(!modulAcik());
+  }, 60_000);
 
   const modulAcik = () => $("#modul-ekrani") && !$("#modul-ekrani").hidden;
   function canliOldu(yenile) {
@@ -153,7 +110,6 @@
     if (!durum.canli) return;
     baglan(null);
     bildir("Sunucuya ulaşılamıyor; paketteki verilerle devam ediliyor.");
-    arkadaTara({ yenile: false });
   }
 
   // ---------- fetch: /api → canlı sunucu ya da çevrimdışı anlık görüntü ----------
@@ -187,11 +143,11 @@
     if (durum.canli) {
       try { return await uzaktan(url, yontem, init); }
       catch {
-        if (yontem !== "GET") return hataYaniti("Lonca sunucusuna ulaşılamadı. Telefon, sunucunun çalıştığı bilgisayarla aynı Wi-Fi'de mi?");
+        if (yontem !== "GET") return hataYaniti("Lonca sunucusuna ulaşılamadı. İnternet bağlantını kontrol et.");
         koptu();
       }
     }
-    if (yontem !== "GET") return hataYaniti("Bunu göndermek için Lonca sunucusuna bağlı olmak gerekiyor. Telefonu sunucunun çalıştığı bilgisayarla aynı Wi-Fi'ye bağla.");
+    if (yontem !== "GET") return hataYaniti("Bunu göndermek için Lonca sunucusuna bağlı olmak gerekiyor. İnternet bağlantını kontrol et.");
     try { return await (await yerelApi()).yanitla(url); }
     catch (h) { return hataYaniti(`Çevrimdışı veri okunamadı: ${h.message}`, 500); }
   };
@@ -279,7 +235,8 @@
     sessiz(P.App?.minimizeApp());
   }
 
-  // ---------- Bağlantı ayarı (Erişilebilirlik penceresine eklenir) ----------
+  // ---------- Bağlantı durumu (Erişilebilirlik penceresine eklenir) ----------
+  // Sunucu adresi APK'ya gömülüdür, burada değiştirilmez; yalnızca durum, yeniden deneme ve (sunucu isterse) eşleştirme.
   function baglantiBolumu() {
     const kutu = $("#ayarlar .erisim-kutu");
     if (!kutu || kutu.querySelector(".mobil-baglanti")) return;
@@ -287,54 +244,40 @@
     f.className = "erisim-grup mobil-baglanti";
     f.innerHTML = `<legend>Bağlantı</legend>
       <p class="baglanti-durum" role="status"><span class="baglanti-nokta" aria-hidden="true"></span><span class="baglanti-metin"></span></p>
-      <label class="katki-alan">Sunucu adresi
-        <input class="baglanti-girdi" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="192.168.1.20:${PORT}">
-      </label>
       <label class="katki-alan">Eşleştirme kodu ya da API anahtarı <small>(sunucu istiyorsa)</small>
         <input class="baglanti-anahtar" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="6 haneli kod">
       </label>
-      <p class="baglanti-ipucu">Bilgisayarında <code>npm run dev</code> çalışırken telefon aynı Wi-Fi'deyse sunucu kendiliğinden bulunur.</p>
       <div class="baglanti-dugmeler">
-        <button type="button" class="dugme ikincil kucuk baglanti-ara">Ağda ara</button>
-        <button type="button" class="dugme kucuk baglanti-bagla">Bağlan</button>
+        <button type="button" class="dugme kucuk baglanti-bagla">Yeniden bağlan</button>
       </div>`;
     kutu.insertBefore(f, $("#ayar-kapat"));
-    const metin = f.querySelector(".baglanti-metin"), girdi = f.querySelector(".baglanti-girdi");
+    const metin = f.querySelector(".baglanti-metin");
     const ciz = async () => {
-      f.dataset.durum = durum.canli ? "canli" : durum.araniyor ? "araniyor" : "cevrimdisi";
+      f.dataset.durum = durum.canli ? "canli" : durum.deneniyor ? "araniyor" : "cevrimdisi";
       if (durum.canli) metin.textContent = `Canlı: ${gorunen(durum.canli)}`;
-      else if (durum.araniyor) metin.textContent = "Ağda Lonca sunucusu aranıyor…";
-      else if (durum.anahtarGerekli) metin.textContent = `${gorunen(durum.anahtarGerekli)} bulundu, eşleştirme kodu gerekli`;
+      else if (!SUNUCU) metin.textContent = "Bu pakette sunucu adresi yok: paketteki verilerle çalışıyor";
+      else if (durum.deneniyor) metin.textContent = `${gorunen(SUNUCU)} deneniyor…`;
+      else if (durum.anahtarGerekli) metin.textContent = `${gorunen(SUNUCU)} anahtar istiyor: eşleştirme kodu gir`;
       else {
         let tarih = "";
         try { tarih = new Date(await (await yerelApi()).anlikTarihi()).toLocaleDateString("tr-TR", { day: "numeric", month: "long" }); } catch {}
         metin.textContent = `Çevrimdışı: paketteki veriler${tarih ? ` (${tarih})` : ""}`;
       }
-      if (document.activeElement !== girdi) girdi.value = gorunen(durum.canli ?? oku(SAKLI) ?? GENEL ?? "");
     };
     durum.dinleyiciler.add(ciz);
     ciz();
-    f.querySelector(".baglanti-ara").addEventListener("click", async () => {
-      titret("secim");
-      if (durum.canli) { const a = await yokla(durum.canli); if (a) return bildir("Bağlantı yerinde."); baglan(null); }
-      const a = await hizliAra();
-      if (a) return canliOldu(true);
-      const b = await arkadaTara();
-      if (!b) bildir("Aynı ağda Lonca sunucusu bulunamadı.");
-    });
     f.querySelector(".baglanti-bagla").addEventListener("click", async () => {
-      const a = normalAdres(girdi.value) ?? durum.anahtarGerekli;
+      if (!SUNUCU) return bildir("Bu pakette sunucu adresi yok.");
       const alan = f.querySelector(".baglanti-anahtar");
       const k = alan.value.trim();
-      if (!a) return bildir("Adres anlaşılamadı. Örnek: 192.168.1.20:3000");
       titret("secim");
-      metin.textContent = "Deneniyor…";
       if (/^\d{6}$/.test(k)) {
-        try { await eslestir(a, k); alan.value = ""; bildir("Eşleşti; bu telefon artık sunucuya bağlanabilir."); }
+        try { await eslestir(k); alan.value = ""; bildir("Eşleşti; bu telefon artık sunucuya bağlanabilir."); }
         catch (h) { bildir(`Eşleştirme olmadı: ${h.message}`); return ciz(); }
       } else if (k) { yaz(SAKLI_ANAHTAR, k); alan.value = ""; }
-      if (await yokla(a, 3000)) { baglan(a); canliOldu(true); }
-      else { bildir(durum.anahtarGerekli === a ? "Sunucu bulundu ama anahtar gerekiyor ya da geçersiz. Sunucuda eşleştirme kodu üret." : `${gorunen(a)} adresinde Lonca sunucusu yok.`); ciz(); }
+      const onceki = durum.canli;
+      if (await dene(5000)) { if (onceki) bildir("Bağlantı yerinde."); else canliOldu(true); }
+      else bildir(durum.anahtarGerekli ? "Sunucu anahtar istiyor ya da anahtar geçersiz. Sunucuda eşleştirme kodu üret." : `${gorunen(SUNUCU)} adresine ulaşılamadı. İnternet bağlantını kontrol et.`);
     });
   }
 
@@ -402,13 +345,13 @@
   sessiz(P.App?.addListener("backButton", geri));
   sessiz(P.App?.addListener("pause", () => { try { window.speechSynthesis?.cancel(); } catch {} }));
   sessiz(P.App?.addListener("resume", async () => {
-    if (durum.canli) { if (!(await yokla(durum.canli, 2000))) koptu(); }
-    else if (await hizliAra()) canliOldu(true);
+    if (durum.canli) { if (!(await yokla(3000))) koptu(); }
+    else if (await dene()) canliOldu(!modulAcik());
   }));
   sessiz(P.Network?.addListener("networkStatusChange", async (s) => {
     if (!s.connected) { if (durum.canli) { baglan(null); bildir("İnternet bağlantısı yok; paketteki verilerle devam ediliyor."); } return; }
-    if (!durum.canli && (await hizliAra())) canliOldu(!modulAcik());
+    if (!durum.canli && (await dene())) canliOldu(!modulAcik());
   }));
 
-  window.loncaMobil = { durum, hizliAra, arkadaTara, titret };
+  window.loncaMobil = { durum, sunucu: SUNUCU, dene, titret };
 })();

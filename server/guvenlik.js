@@ -55,10 +55,19 @@ export function yetkiKur(sifre) {
   return { yoneticiMi, yoneticiGerekli, sifreli: !!beklenen };
 }
 
+// İstemci IP'si. Cloudflare Tunnel gibi bir vekilin arkasında gerçek IP, vekilin her seferinde üzerine yazdığı bir
+// başlıkta gelir (LONCA_IP_BASLIGI=cf-connecting-ip). Yalnızca Lonca'nın portu dışarı kapalıyken ayarlanmalı;
+// yoksa doğrudan gelen biri başlığı uydurup hız sınırını aşabilir. Boşsa Fastify'ın req.ip'si kullanılır.
+export function istemciIp(req) {
+  const baslik = (process.env.LONCA_IP_BASLIGI ?? "").trim().toLowerCase();
+  const deger = baslik ? req.headers[baslik] : undefined;
+  return typeof deger === "string" && deger.trim() ? deger.trim().slice(0, 64) : req.ip;
+}
+
 export function hizSiniri({ adet, pencereMs, mesaj = "Çok fazla istek; biraz sonra tekrar dene." }) {
   const kayit = new Map(); 
   return async (req, rep) => {
-    const simdi = Date.now(), ip = req.ip;
+    const simdi = Date.now(), ip = istemciIp(req);
     const liste = (kayit.get(ip) ?? []).filter((t) => simdi - t < pencereMs);
     if (liste.length >= adet) {
       rep.header("retry-after", Math.ceil((pencereMs - (simdi - liste[0])) / 1000));

@@ -58,7 +58,7 @@ Settings → Secrets and variables → Actions. Değerler hiçbir zaman depoya y
 | `ANDROID_KEYSTORE_BASE64` | Secret | İmza anahtarı (`lonca.keystore`), base64. Alias `lonca` olmalı. |
 | `ANDROID_KEYSTORE_SIFRE` | Secret | Anahtar deposu şifresi; anahtar şifresi de aynıdır (`apk.sh` böyle bekler). |
 | `LONCA_API_ANAHTARI` | Secret, isteğe bağlı | Sunucu anahtar istiyorsa APK'ya gömülür. Release'i görebilen herkes APK'dan okuyabilir. |
-| `LONCA_SUNUCU` | Variable, isteğe bağlı | APK'nın önce deneyeceği sunucu, ör. `http://192.168.1.20:3000`. Genel sunucu `apk.sh`'ta varsayılan olarak `https://kozmos.42.fr`. |
+| `LONCA_SUNUCU_URL` | Variable, isteğe bağlı | APK'nın bağlanacağı tek sunucu. Boşsa `apk.sh` varsayılanı `https://kozmos.42.fr`. Uygulama ağ taraması yapmaz. |
 
 İmza sırları yoksa iş akışı durmaz, **debug** APK yayımlar ve bunu sürüm notuna yazar. Güncellemelerin telefona
 üstüne kurulabilmesi için hep aynı anahtar kullanılmalı.

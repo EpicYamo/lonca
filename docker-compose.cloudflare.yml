@@ -1,0 +1,28 @@
+# İnternetteki sunucu için, Cloudflare Tunnel ile: sunucuda hiçbir port dışarı açılmaz, sertifika ve Nginx gerekmez.
+# cloudflared container'ı Cloudflare'e dışa doğru bağlanır; HTTPS'i Cloudflare sonlandırır.
+#
+# Bir kez, Cloudflare panelinde: Zero Trust → Networks → Tunnels → Create a tunnel (Cloudflared), token'ı kopyala.
+#   Public hostname: kozmos.42.fr  →  Service: HTTP, URL: lonca:3000
+# .env: CLOUDFLARE_TUNNEL_TOKEN=...  LONCA_API_ANAHTARI=...  YONETICI_SIFRE=...  (+ UstaGPT anahtarı)
+#   docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --build
+#   curl https://kozmos.42.fr/api/merhaba
+#
+# Not: Cloudflare yanıt başlıklarını en çok 100 sn bekler (ücretsiz plan); daha uzun süren tek bir istek 524 alır.
+services:
+  lonca:
+    ports: !reset []
+    expose:
+      - "3000"
+    environment:
+      # Hız sınırları (kalfa, hesap, eşleştirme) gerçek ziyaretçi IP'sini Cloudflare'in başlığından okur.
+      # Güvenli, çünkü Lonca'ya yalnızca cloudflared ulaşabiliyor (port dışarı kapalı).
+      LONCA_IP_BASLIGI: cf-connecting-ip
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.1
+    restart: unless-stopped
+    depends_on:
+      - lonca
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?.env içinde CLOUDFLARE_TUNNEL_TOKEN tanımlı olmalı}

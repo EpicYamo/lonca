@@ -81,15 +81,36 @@ docker compose up -d --build                           # listens on 0.0.0.0:3000
 docker compose exec lonca node araclar/eslestir.mjs    # 6-digit pairing code for a phone
 ```
 
-**Connecting the Android app on the same Wi-Fi:** the app finds the server by
-probing `GET /api/merhaba` (always open, returns `{ lonca, anahtarGerekli }`), so
-the key is never sent to every address on the network. It then either sends the
-main key in `x-lonca-anahtar`, or exchanges a pairing code for its own device key
+**Connecting the Android app:** the app checks its fixed server with
+`GET /api/merhaba` (always open, returns `{ lonca, anahtarGerekli }`). It then
+either sends the main key in `x-lonca-anahtar`, or exchanges a pairing code for its own device key
 with `POST /api/eslestir { kod, ad }` → `{ anahtar }`. Codes are single-use and
 expire after five minutes. List or revoke devices with
 `node araclar/eslestir.mjs --liste` / `--sil <id>`. In a browser, `/app/` and
 `/studio/` redirect to `/giris` once; the key is exchanged for a revocable
 HttpOnly cookie (`/cikis` logs out).
+
+### Internet deployment behind Cloudflare (recommended)
+
+`docker-compose.cloudflare.yml` runs a Cloudflare Tunnel (`cloudflared`) next to
+Lonca. No port is published on the server and no certificate is needed:
+Cloudflare terminates HTTPS and the tunnel connects outwards.
+
+1. Cloudflare dashboard → Zero Trust → Networks → Tunnels → create a Cloudflared
+   tunnel and copy its token. Add a public hostname: `kozmos.42.fr` → `HTTP`,
+   `lonca:3000`.
+2. In `.env`: `CLOUDFLARE_TUNNEL_TOKEN`, a strong `LONCA_API_ANAHTARI`,
+   `YONETICI_SIFRE` and the UstaGPT key.
+3. Start:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --build
+curl https://kozmos.42.fr/api/merhaba
+```
+
+The overlay sets `LONCA_IP_BASLIGI=cf-connecting-ip` so rate limits count the
+real visitor instead of the tunnel. Cloudflare waits at most 100 s for response
+headers (free plan); a single request that takes longer gets a 524.
 
 ### Internet deployment (Nginx + HTTPS)
 
@@ -116,10 +137,11 @@ docker compose -f docker-compose.yml -f docker-compose.sunucu.yml up -d --build
 Until the certificate exists Nginx serves a temporary self-signed one, so it
 can start and answer the HTTP-01 challenge. Needs Docker Compose 2.24+.
 
-The Android app does not need the IP: the APK is built with the server's HTTPS
-origin (the DNS name; `./apk.sh` defaults `LONCA_SUNUCU_URL` to
-`https://kozmos.42.fr`, `LONCA_SUNUCU_URL=yok` leaves it out), sends the API key in `x-lonca-anahtar`, and falls back
-to the bundled offline snapshot when the server cannot be reached.
+The Android app connects to exactly one server, fixed at build time: `./apk.sh`
+embeds `LONCA_SUNUCU_URL` (default `https://kozmos.42.fr`; a full `http://IP:3000`
+works for local testing, `yok` builds an offline-only app). There is no network
+scanning. The app sends the API key in `x-lonca-anahtar`, falls back to the bundled
+offline snapshot when the server cannot be reached and retries once a minute.
 
 ## Commands
 
