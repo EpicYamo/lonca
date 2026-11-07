@@ -1064,3 +1064,10 @@ body:not(.admin) .yalniz-admin { display: none !important; }
 
 /* Dil düğmesi (tema düğmesinin yanında): geçilecek dilin kısaltması. */
 .dil-d .dil-kisa { font-size: .74rem; font-weight: 700; letter-spacing: .03em; }
+
+/* ---------- Ekran klavyesi (/ortak/klavye.js): telefonda yazarken sohbet kutusu klavyenin üstünde kalır ---------- */
+body { height: min(100dvh, var(--gorunur-yukseklik, 100dvh)); }
+@media (max-width: 767px) {
+  .klavye-gorunur body { grid-template-rows: var(--ust-h) minmax(0, 1fr) 0; }
+  .klavye-gorunur .sekmeler { display: none; }
+}

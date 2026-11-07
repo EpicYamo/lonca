@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#f5f5f7">
   <script>try { if (window.Capacitor?.isNativePlatform?.() || /[?&]kabuk(=|&|$)/.test(location.search)) document.documentElement.classList.add("kabuk"); else if (!/[?&]onizleme/.test(location.search)) document.documentElement.classList.add("web-sekmeli"); } catch {}</script>
   <script>try { if (localStorage.getItem("lonca.tema") === "koyu") { document.documentElement.dataset.tema = "koyu"; document.querySelector('meta[name="theme-color"]').content = "#000000"; } } catch {}</script>
@@ -27,6 +27,7 @@
   <script type="importmap">
     { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/", "three/examples/jsm/": "/vendor/three/examples/jsm/" } }
   </script>
+  <script src="/ortak/klavye.js" defer></script>
 </head>
 <body>
   <a class="atla" href="#uygulamalar-baslik">İçeriğe geç</a>

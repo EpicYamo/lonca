@@ -341,3 +341,11 @@ body:has(#modul-ekrani:not([hidden])) .web-alt { display: none !important; }
   :root.web-sekmeli:not(.kabuk) .gunun-karti { grid-template-columns: 44% minmax(0, 1fr); align-items: stretch; }
   :root.web-sekmeli:not(.kabuk) .gunun-foto { aspect-ratio: auto; height: 100%; min-height: 240px; }
 }
+
+/* ---------- Ekran klavyesi (web ve uygulama; /ortak/klavye.js): pencereler klavyenin üstünde kalır ---------- */
+.ayarlar, .karsilama { bottom: var(--klavye, 0px); }
+.ayarlar-kutu, .eser-penceresi { max-height: calc(min(100dvh, var(--gorunur-yukseklik, 100dvh)) - 2.5rem - env(safe-area-inset-top)); }
+.klavye-gorunur .ayarlar-kutu { padding-bottom: 1rem; }
+@media (min-width: 760px) {
+  .ayarlar-kutu { max-height: min(88dvh, 860px, calc(var(--gorunur-yukseklik, 100dvh) - 2rem)); }
+}
