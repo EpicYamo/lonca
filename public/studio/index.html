@@ -73,7 +73,7 @@
       <svg class="ik" aria-hidden="true"><use href="#i-moduller"/></svg><span class="sekme-ad">Modüller</span><span class="sayac yalniz-admin" id="sayac-modul" hidden></span>
     </button>
     <button class="sekme-d" data-sayfa="icerik">
-      <svg class="ik" aria-hidden="true"><use href="#i-icerik"/></svg><span class="sekme-ad">İçerik</span><span class="sayac" id="sayac-oneri" hidden></span>
+      <svg class="ik" aria-hidden="true"><use href="#i-icerik"/></svg><span class="sekme-ad">İçerik</span><span class="sayac yalniz-admin" id="sayac-oneri" hidden></span>
     </button>
   </nav>
 
@@ -240,10 +240,10 @@
     <div class="sayfa-baslik icerik-baslik">
       <div>
         <h2 class="sayfa-h">İçerik</h2>
-        <p class="aciklama">Vakıf eserlerinin verisi, uygulamadan gelen öneriler ve her değişikliğin geçmişi.</p>
+        <p class="aciklama" id="icerik-aciklama">Vakıf eserlerinin verisi, uygulamadan gelen öneriler ve her değişikliğin geçmişi.</p>
       </div>
     </div>
-    <section class="panel kuyruk" aria-labelledby="kuyruk-baslik">
+    <section class="panel kuyruk yalniz-admin" aria-labelledby="kuyruk-baslik">
       <h3 id="kuyruk-baslik" class="bolum-h">Onay kuyruğu</h3>
       <p class="aciklama">Uygulamadan gelen yeni eser önerileri, düzenlemeler, hata bildirimleri ve ustaların kalfayla konuşurken eklenmesini istediği eserler. Onaylanmadan hiçbiri yayına girmez.</p>
       <ul id="oneriler-listesi" class="oneri-listesi"></ul>
@@ -395,7 +395,7 @@
       <label id="hesap-sifre-alan"><span id="hesap-sifre-etiket">Şifre</span> <input id="hesap-sifre" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter"></label>
       <button type="button" class="metin-d hesap-unuttum" id="hesap-unuttum" hidden>Şifremi unuttum</button>
       <label id="hesap-sifre2-alan" hidden><span id="hesap-sifre2-etiket">Şifre (tekrar)</span> <input id="hesap-sifre2" name="sifreTekrar" type="password" autocomplete="new-password" minlength="8" maxlength="200" placeholder="Şifreyi yeniden yaz"></label>
-      <p class="aciklama" id="hesap-kayit-notu" hidden>Yeni hesaplar usta olur: kalfayla modül yazar, onaya gönderir ve Studio'daki verileri görür. Onay ve düzenleme admin hesaplarındadır.</p>
+      <p class="aciklama" id="hesap-kayit-notu" hidden>Yeni hesaplar usta olur: kalfayla modül yazar, onaya gönderir ve eserleri görür. Onay kuyruğu, değişiklik geçmişi ve düzenleme admin hesaplarındadır.</p>
       <p id="hesap-hata" class="durum kotu" role="alert"></p>
       <p id="hesap-bilgi" class="durum iyi" role="status" hidden></p>
       <button type="button" class="metin-d hesap-unuttum" id="hesap-yeniden" hidden>Doğrulama bağlantısını yeniden gönder</button>

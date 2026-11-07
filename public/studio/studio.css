@@ -566,6 +566,8 @@ a.dugme-bag { text-decoration: none; }
 .icerik > * { max-width: none; margin: 0; }
 .icerik-baslik { grid-column: 1 / -1; margin-bottom: 2px; }
 .kuyruk { position: sticky; top: 0; }
+/* Usta onay kuyruğunu görmez; eser listesi bütün genişliği alır. */
+body:not(.admin) .icerik { grid-template-columns: minmax(0, 1fr); }
 .oneri-listesi { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 46vh; overflow-y: auto; }
 .oneri-listesi > .aciklama, .gecmis-listesi > .aciklama {
   position: relative; display: flex; flex-direction: column; align-items: center; gap: .6rem;

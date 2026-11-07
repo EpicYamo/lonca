@@ -528,7 +528,7 @@ const JETON_ANAHTARI = "lonca.studio.hesap";
 const ROL_ADI = { vatandas: "Vatandaş", usta: "Usta", editor: "Admin" };
 const ROL_ACIKLAMA = {
   vatandas: "Bu hesabın Studio yetkisi yok.",
-  usta: "Kalfayla modül yazıp onaya gönderebilir, Studio'daki verileri görebilirsin. Onay ve düzenleme admin hesaplarındadır.",
+  usta: "Kalfayla modül yazıp onaya gönderebilir, eserleri görebilirsin. Onay kuyruğu, değişiklik geçmişi ve düzenleme admin hesaplarındadır.",
   editor: "Modül yazabilir, onaylayıp yayınlayabilir, içeriği ve ayarları düzenleyebilirsin.",
 };
 let hesapGerekli = false, hesap = null;
@@ -1384,6 +1384,9 @@ async function icerikYukle() {
   [tamlikOzeti] = await Promise.all([fetch("/api/eserler-tamlik").then((y) => y.json())]);
   temelAlanlar = tamlikOzeti.temelAlanlar ?? [];
   await eserleriSuz();
+  $("#icerik-aciklama").textContent = yoneticiMi()
+    ? "Vakıf eserlerinin verisi, uygulamadan gelen öneriler ve her değişikliğin geçmişi."
+    : "Vakıf eserlerinin verisi. Bir hata görürsen eseri açıp düzeltmeyi onaya gönderebilirsin.";
   await onerileriCiz();
   await gecmisiCiz();
 }
@@ -1676,6 +1679,7 @@ let gecmisSuzgeci = false;
 async function gecmisiCiz() {
   const liste = $("#gecmis-listesi");
   if (!liste) return;
+  if (!yoneticiMi()) { liste.replaceChildren(); return; }
   let kayitlar;
   try { kayitlar = await yApi(`/api/eser-gecmisi${gecmisSuzgeci && seciliEser ? `?eser=${encodeURIComponent(seciliEser.id)}` : ""}`, { yeniden: false }); }
   catch (h) { liste.replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
@@ -1744,7 +1748,9 @@ $("#ice-aktar-pencere").addEventListener("close", async () => {
 const ALAN_ADI = { ad: "Ad", ad_en: "İngilizce ad", tur: "Tür", il: "İl", ilce: "İlçe", yuzyil: "Yüzyıl", konum: "Konum", adres: "Adres", tarihce: "Tarihçe", kaynak: "Kaynak", fotograflar: "Fotoğraflar" };
 const kisa = (x) => { const s = typeof x === "object" && x ? (x.tr ?? (x.lat != null ? `${x.lat}, ${x.lng}` : Array.isArray(x) ? `${x.length} fotoğraf` : JSON.stringify(x))) : String(x ?? "—"); return s.length > 140 ? s.slice(0, 140) + "…" : s; };
 
+// Onay kuyruğu ve değişiklik geçmişi yalnızca admin'e: usta için hiç istenmez (sunucu da 403 döner).
 async function onerileriCiz() {
+  if (!yoneticiMi()) { $("#oneriler-listesi").replaceChildren(); return; }
   let oneriler;
   try { oneriler = await yApi("/api/eser-oneriler", { yeniden: yoneticiMi() }); }
   catch (h) { $("#oneriler-listesi").replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
@@ -1776,7 +1782,7 @@ async function onerileriCiz() {
 async function sayaclariGuncelle() {
   const yaz = (secici, n) => { const s = $(secici); s.hidden = !n; s.textContent = String(n); };
   if (yoneticiMi()) try { yaz("#sayac-modul", (await yApi("/api/moduller?durum=hepsi", { yeniden: false })).filter((m) => m.durum === "bekliyor").length); } catch {}
-  try { yaz("#sayac-oneri", (await yApi("/api/eser-oneriler", { yeniden: false })).length); } catch {}
+  if (yoneticiMi()) try { yaz("#sayac-oneri", (await yApi("/api/eser-oneriler", { yeniden: false })).length); } catch {}
 }
 
 const saat = () => { $("#saat").textContent = new Date().toLocaleTimeString(yerelDil(), { hour: "2-digit", minute: "2-digit" }); };
