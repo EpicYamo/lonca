@@ -35,7 +35,7 @@ SDK, so a generated app cannot invent history.
 
 ## Setup
 
-Requires Node.js 20.12 or newer.
+Requires Node.js 20.19 or newer.
 
 ```bash
 npm install
@@ -96,6 +96,9 @@ HttpOnly cookie (`/cikis` logs out).
 | `npm run test:e2e` | End-to-end scenario in a real browser (run `npx playwright install chromium` first) |
 | `npm run konum` | Finds work coordinates through Google Places / OpenStreetMap (`-- --dene` only prints) |
 | `npm run vendor` | Re-bundles the real 3D library for the browser |
+| `npm run lint` · `npm run format:check` · `npm run denetle` | ESLint, Prettier and data/module consistency checks (all run in CI) |
+
+Branch flow (`dev` → `main` → `build`), CI jobs and APK releases are described in [docs/ci-cd.md](docs/ci-cd.md).
 
 ## Architecture
 

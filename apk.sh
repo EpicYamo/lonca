@@ -30,7 +30,7 @@ bilgi() { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
 hata() { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------- Araçlar ----------
-command -v node >/dev/null || hata "Node.js gerekli (20.12+)."
+command -v node >/dev/null || hata "Node.js gerekli (20.19+)."
 
 if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]] || ! "${JAVA_HOME}/bin/java" -version 2>&1 | grep -qE 'version "(2[1-9]|1[7-9])'; then
   JAVA_HOME=""
@@ -62,10 +62,12 @@ PORT="${PORT:-3000}"
 SUNUCU_ARG=()
 [[ -n "${LONCA_SUNUCU:-}" ]] && SUNUCU_ARG+=(--sunucu "$LONCA_SUNUCU")
 IPLER=""
-if command -v ipconfig >/dev/null 2>&1; then
+# CI'da derleme makinesinin IP'leri anlamsızdır; yalnızca LONCA_SUNUCU ve ağ taraması kullanılır.
+if [[ "${CI:-}" == true ]]; then :
+elif command -v ipconfig >/dev/null 2>&1; then
   for i in en0 en1 en2 en3 en4 en5 en6 en7 en8; do ip=$(ipconfig getifaddr "$i" 2>/dev/null || true); [[ -n "$ip" ]] && IPLER="$IPLER $ip"; done
 fi
-if [[ -z "$IPLER" ]] && command -v hostname >/dev/null 2>&1; then IPLER=$(hostname -I 2>/dev/null || true); fi
+if [[ -z "$IPLER" && "${CI:-}" != true ]] && command -v hostname >/dev/null 2>&1; then IPLER=$(hostname -I 2>/dev/null || true); fi
 for ip in $IPLER; do
   [[ "$ip" =~ ^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.) ]] && SUNUCU_ARG+=(--sunucu "http://$ip:$PORT")
 done
