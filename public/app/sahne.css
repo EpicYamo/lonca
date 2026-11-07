@@ -480,3 +480,20 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-kok :is(h2, h3, h4, strong, .s-metin, .s-eser-ad, .s-dugme) { overflow-wrap: break-word; hyphens: auto; }
 .s-dugme { max-width: 100%; white-space: normal; }
 .s-fotograflar:focus-visible { outline: 3px solid var(--ana); outline-offset: 3px; }
+/* Dalış "Devam" düğmesi: her durakta kısa bir beklemeden sonra belirir; kaydırmanın düğme karşılığı. */
+.s-dalis-devam {
+  position: absolute; z-index: 4; right: max(.9rem, env(safe-area-inset-right)); bottom: calc(1rem + env(safe-area-inset-bottom));
+  display: inline-flex; align-items: center; gap: .4rem; min-height: 48px; padding: 0 1.1rem 0 1.25rem; border: 1px solid rgba(240, 196, 110, .55); border-radius: 99px;
+  background: rgba(16, 19, 28, .72); color: #f6e3b4; font: 700 .95rem var(--yazi-sistem, system-ui); letter-spacing: .02em; cursor: pointer;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s ease-in, transform .2s ease-in;
+}
+.s-dalis-devam.hazir { opacity: 1; transform: none; pointer-events: auto; transition: opacity .35s ease-out .7s, transform .35s cubic-bezier(.2, 0, 0, 1) .7s; }
+.s-dalis-devam svg { width: 20px; height: 20px; }
+.s-dalis-devam[data-son="true"] svg { transform: rotate(-90deg); }
+.s-dalis-devam:active { transform: scale(.96); }
+.s-dalis-devam:focus-visible { outline: 2px solid #f0c46e; outline-offset: 3px; opacity: 1; pointer-events: auto; }
+.s-dalis-sahne:not(.genis) .s-dalis-kart:not(.ust) { bottom: calc(4.6rem + env(safe-area-inset-bottom)); }
+.s-dalis-sahne:not(.genis) .s-dalis-ipucu { left: 1.1rem; bottom: calc(1.9rem + env(safe-area-inset-bottom)); transform: none; animation: none; text-align: left; }
+:root.hareket-az .s-dalis-devam, :root.hareket-az .s-dalis-devam.hazir { transition: none; }
+@media (prefers-reduced-motion: reduce) { .s-dalis-devam, .s-dalis-devam.hazir { transition: none; } }
