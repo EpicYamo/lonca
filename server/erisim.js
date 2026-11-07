@@ -140,7 +140,7 @@ button{background:var(--v);border-color:var(--v);color:#fff;cursor:pointer}.h{co
 <p style="margin:0">Bu sunucu ağa açık; devam etmek için <code>.env</code> dosyasındaki <code>LONCA_API_ANAHTARI</code> değerini gir.</p>
 ${hata ? `<p class="h">${kacis(hata)}</p>` : ""}<input type="password" name="anahtar" autocomplete="current-password" placeholder="API anahtarı" autofocus required>
 <input type="hidden" name="devam" value="${kacis(devam)}"><button>Giriş</button></form></body></html>`;
-    const guvenliDevam = (d) => (typeof d === "string" && /^\/[a-z0-9/_.-]*$/i.test(d) && !d.startsWith("//") ? d : "/app/");
+    const guvenliDevam = (d) => (typeof d === "string" && /^\/[a-z0-9/_.-]*$/i.test(d) && !d.startsWith("//") ? d : "/");
 
     app.get("/giris", async (req, rep) => rep.type("text/html; charset=utf-8").header("cache-control", "no-store").send(sayfa(guvenliDevam(req.query?.devam))));
     app.post("/giris", { preHandler: eslestirmeSiniri }, async (req, rep) => {

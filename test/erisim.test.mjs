@@ -68,7 +68,7 @@ test("tarayıcı girişi çerezle çalışır", async () => {
   const h = await istek("POST", "/giris", { govde: `anahtar=${ANA}`, basliklar: { ...form, "x-forwarded-proto": "https" } });
   assert.match(h.headers["set-cookie"], /; Secure$/, "Nginx arkasında HTTPS'te Secure");
   const d = await istek("POST", "/giris", { govde: `anahtar=${ANA}&devam=%2F%2Fkotu.example`, basliklar: form });
-  assert.equal(d.headers.location, "/app/", "dış adrese yönlendirmez");
+  assert.equal(d.headers.location, "/", "dış adrese yönlendirmez");
 });
 
 test("hız sınırı vekil arkasında LONCA_IP_BASLIGI'ndaki gerçek istemci IP'sini sayar", async () => {

@@ -67,9 +67,9 @@ async function sayfaAc({ olcek = "1", hareket = false, genislik = 390, sesli = f
 }
 
 async function tanismayiGec(sayfa) {
-  await sayfa.waitForSelector("#karsilama:not([hidden])", { timeout: 5000 }).catch(() => {});
+  await sayfa.waitForSelector("#karsilama:not([hidden])", { timeout: 1500 }).catch(() => {});
   if (await sayfa.isVisible("#karsilama")) await sayfa.click("#ks-devam");
-  await sayfa.waitForSelector("#tanisma:not([hidden])", { timeout: 5000 }).catch(() => {});
+  await sayfa.waitForSelector("#tanisma:not([hidden])", { timeout: 1500 }).catch(() => {});
   if (await sayfa.isVisible("#tanisma")) { await sayfa.fill("#tanisma-ad", "Erişim"); await sayfa.click("#tanisma-formu button:not([type=button])"); }
   await sayfa.waitForSelector("#moduller .karo");
 }
@@ -190,12 +190,12 @@ try {
   // 1) Ana ekran ve pencereler (normal yazı, masaüstü genişliği de)
   for (const genislik of [390, 1280]) {
     const s = await sayfaAc({ genislik });
-    await s.waitForSelector("#karsilama:not([hidden])");
-    await axeTara(s, `karşılama (${genislik})`, "#karsilama");
-    await s.click("#ks-devam");
-    await s.waitForSelector("#tanisma:not([hidden])");
-    await axeTara(s, `tanışma (${genislik})`, "#tanisma");
-    await tanismayiGec(s);
+    // Web sitesinde giriş ve tanışma zorunlu değil; üst sağdaki profil menüsü taranır.
+    await s.waitForSelector("#moduller .karo");
+    await s.click("#profil-cip");
+    await s.waitForSelector("#profil-menu:not([hidden])");
+    await axeTara(s, `profil menüsü (${genislik})`, "#profil-menu");
+    await s.keyboard.press("Escape");
     await bekle(400);
     await axeTara(s, `ana ekran (${genislik})`);
     if (genislik === 390) {
@@ -212,6 +212,7 @@ try {
       await axeTara(s, "eser penceresi", "#eser-penceresi");
       await s.keyboard.press("Escape");
       await s.click("#profil-cip");
+      await s.click("#profil-menu >> text=Profilim");
       await s.waitForSelector("#profil-ekrani:not([hidden])");
       await axeTara(s, "profil");
       await s.click("#profil-geri");
