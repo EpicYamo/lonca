@@ -14,7 +14,7 @@ import { hesaplarKur } from "./hesap.js";
 import { googleGirisKur } from "./google-giris.js";
 import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
+import { modulGorunurlukDogrula, paylasimAnahtariGecerli, davetKoduUret, davetKoduCoz, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -22,7 +22,8 @@ const MAKS_FOTO = 6 * 1024 * 1024;
 const RENKLER = ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"];
 const IKONLAR = ["cami", "han", "hamam", "medrese", "cesme", "turbe", "genel"];
 export const KATEGORILER = ["rehber", "oyun", "gezi", "ogren"];
-export const MODUL_DURUMLARI = ["bekliyor", "onayli", "kaldirildi", "arsiv", "reddedildi"];
+// "ozel": ustanın yalnızca paylaşım bağlantısıyla açılan modülü; uygulamada listelenmez, onay kuyruğuna girmez.
+export const MODUL_DURUMLARI = ["bekliyor", "onayli", "ozel", "kaldirildi", "arsiv", "reddedildi"];
 const kimlikGecerli = (id) => typeof id === "string" && /^[a-z0-9-]{1,64}$/.test(id);
 
 function mesafe(a, b) {
@@ -54,11 +55,11 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const iliskiler = Array.isArray(iliskiVerisi.iliskiler) ? iliskiVerisi.iliskiler : [];
   const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
 
-  const kalfa = kalfaHazirla({ kok, eserler, ortam });
+  const kalfa = kalfaHazirla({ kok, eserler, iliskiler, ortam });
   // Kalfa modellerinin sağlık taraması (çalışma verisi; Studio'daki "Modelleri test et").
   const modelTaramasi = modelTaramasiKur({ kalfa, dosya: jsonDosya(path.join(veri, "kalfa-model-durumu.json"), { sonuclar: {} }) });
   const DALIS_DIZINI = path.join(veri, "dalislar");
-  const dalisKalfasi = dalisKalfasiKur({ kok, eserler, dalisDizini: DALIS_DIZINI, ortam });
+  const dalisKalfasi = dalisKalfasiKur({ kok, eserler, iliskiler, dalisDizini: DALIS_DIZINI, ortam });
   const yetki = yetkiKur(ortam.YONETICI_SIFRE);
   const { yoneticiMi } = yetki;
   const kalfaSiniri = hizSiniri({ adet: Number(ortam.KALFA_SINIR ?? 30), pencereMs: 10 * 60_000, mesaj: "Kalfa şu an çok meşgul; birkaç dakika sonra tekrar dene." });
@@ -564,7 +565,10 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.get("/api/moduller", async (req, rep) => {
     if (req.query.durum === "hepsi") {
       if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Bu liste için Studio'ya giriş yapmalısın" });
-      return modulDosyasi.oku();
+      // Onay kuyruğu dahil bütün liste yalnızca admin'e; usta yalnızca kendi modüllerini görür.
+      if (await editorMi(req)) return modulDosyasi.oku();
+      const sahip = (await yetkiliHesap(req))?.id;
+      return (await modulDosyasi.oku()).filter((m) => m.sahip && m.sahip === sahip);
     }
     const liste = await yayindakiler();
     const etiket = `"${modulSurumu(liste)}"`;
@@ -584,7 +588,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const { id } = req.params;
     const m = (await modulDosyasi.oku()).find((x) => x.id === id);
     if (!m || !kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
-    if (m.durum !== "onayli" && !(await ustaMi(req))) return rep.code(403).send({ hata: "modül yayında değil" });
+    // Yayında olmayan modülün kodunu admin ya da modülün sahibi olan usta okur.
+    if (m.durum !== "onayli" && !(await editorMi(req)) && !(m.sahip && m.sahip === (await yetkiliHesap(req))?.id))
+      return rep.code(403).send({ hata: "modül yayında değil" });
     const kod = await readFile(path.join(MODUL_DIZINI, `${id}.js`), "utf8");
     return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
   });
@@ -596,6 +602,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (typeof kod !== "string" || kod.length > MAKS_KOD) return rep.code(400).send({ hata: `kod gerekli (en fazla ${MAKS_KOD} karakter)` });
     const hatalar = kalfa.dogrula(kod);
     if (hatalar.length) return rep.code(400).send({ hata: "Modül doğrulamadan geçmedi", ayrintilar: hatalar });
+    const gorunurlukHatasi = modulGorunurlukDogrula(req.body.gorunurluk);
+    if (gorunurlukHatasi) return rep.code(400).send({ hata: gorunurlukHatasi });
+    const ozel = req.body.gorunurluk === "ozel";
 
     const liste = await modulDosyasi.oku();
     const onceki = liste.find((m) => m.id === id);
@@ -606,7 +615,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (onceki?.sahip && sahip !== onceki.sahip && !editor) return rep.code(409).send({ hata: "Bu kimlikte başka bir ustanın taslağı var; başka bir id seç" });
     // Yayındaki bir modülü editör (ya da yönetici) düzenlerse yayında kalır: kaydeden kişi zaten onay yetkilisi,
     // uygulamadan kaybolup yeniden onay beklemesin. Yeni modüller ve usta gönderimleri her zaman onay bekler.
-    const canliKalsin = editor && onceki?.durum === "onayli";
+    const canliKalsin = !ozel && editor && onceki?.durum === "onayli";
     const simdi = new Date().toISOString();
     const kayit = {
       id, ad: ad.trim().slice(0, 60), aciklama: String(aciklama).slice(0, 200),
@@ -616,7 +625,11 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       kategori: KATEGORILER.includes(kategori) ? kategori : undefined,
       kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
       sahip: sahip ?? onceki?.sahip ?? undefined,
-      durum: canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
+      // Özel modülün bağlantısı tahmin edilemez bir anahtar taşır; herkese açık modülün bağlantısı kimliğidir.
+      paylasim: ozel ? onceki?.paylasim ?? randomBytes(12).toString("base64url") : onceki?.paylasim,
+      // Elle yazılabilen kısa davet kodu (ABCD-EFGH): uygulamada ve webde "Davet kodu" alanına girilir.
+      davetKodu: ozel ? onceki?.davetKodu ?? yeniDavetKodu(liste) : onceki?.davetKodu,
+      durum: ozel ? "ozel" : canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
       ...(canliKalsin ? { yayin: simdi } : {}),
     };
     const kaynak = kaynakBul(kod, onceki);
@@ -642,6 +655,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const m = liste.find((x) => x.id === id);
     if (!m) return null;
     m.durum = durum;
+    if (durum === "ozel") { m.paylasim ??= randomBytes(12).toString("base64url"); m.davetKodu ??= yeniDavetKodu(liste); }
     m.guncelleme = new Date().toISOString();
     if (durum === "onayli") m.yayin = m.guncelleme;
     await modulDosyasi.yaz(liste);
@@ -665,6 +679,44 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     await modulDosyasi.yaz(liste);
     await rm(path.join(MODUL_DIZINI, `${id}.js`), { force: true });
     return { silindi: id };
+  });
+
+  // ---------- Paylaşım bağlantısı ----------
+  // /m/<anahtar>: özel modülde paylaşım anahtarı, yayındaki modülde kimlik. Tarayıcı web uygulamasında açar;
+  // Android'de uygulama yüklüyse aynı bağlantı (App Links) uygulamayı açar.
+  async function paylasilanModul(anahtar) {
+    if (!paylasimAnahtariGecerli(anahtar)) return null;
+    const liste = await modulDosyasi.oku();
+    const davet = davetKoduCoz(anahtar);
+    return liste.find((m) => m.durum === "ozel" && m.paylasim === anahtar)
+      ?? (davet && liste.find((m) => m.durum === "ozel" && m.davetKodu === davet))
+      ?? liste.find((m) => m.durum === "onayli" && m.id === anahtar) ?? null;
+  }
+  const yeniDavetKodu = (liste) => { let k; do k = davetKoduUret(); while (liste.some((m) => m.davetKodu === k)); return k; };
+  const paylasimOzeti = (m) => ({ id: m.id, ad: m.ad, aciklama: m.aciklama, izinler: m.izinler, renk: m.renk, ikon: m.ikon, kategori: m.kategori, durum: m.durum });
+  // Davet kodu kısa olduğundan tahmin denemelerine karşı IP başına sınır.
+  const paylasimSiniri = hizSiniri({ adet: Number(ortam.PAYLASIM_SINIR ?? 120), pencereMs: 10 * 60_000, mesaj: "Çok fazla deneme; biraz sonra tekrar dene." });
+  app.get("/api/paylasim/:anahtar", { preHandler: paylasimSiniri }, async (req, rep) => {
+    const m = await paylasilanModul(req.params.anahtar);
+    rep.header("cache-control", "no-store");
+    return m ? paylasimOzeti(m) : rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
+  });
+  app.get("/api/paylasim/:anahtar/kod", { preHandler: paylasimSiniri }, async (req, rep) => {
+    const m = await paylasilanModul(req.params.anahtar);
+    if (!m) return rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
+    const kod = await readFile(path.join(MODUL_DIZINI, `${m.id}.js`), "utf8");
+    return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
+  });
+  app.get("/m/:anahtar", async (req, rep) => {
+    const { anahtar } = req.params;
+    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/app/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/app/");
+  });
+  // Android App Links doğrulaması: ANDROID_IMZA_SHA256 (APK imza sertifikasının SHA-256 parmak izleri, virgülle) doluysa yayımlanır.
+  const imzalar = String(ortam.ANDROID_IMZA_SHA256 ?? "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(x));
+  app.get("/.well-known/assetlinks.json", async (_, rep) => {
+    if (!imzalar.length) return rep.code(404).send({ hata: "ANDROID_IMZA_SHA256 tanımlı değil" });
+    return [{ relation: ["delegate_permission/common.handle_all_urls"],
+      target: { namespace: "android_app", package_name: "com.kozmos.lonca", sha256_cert_fingerprints: imzalar } }];
   });
 
   // ---------- Dalışlar (uydudan içine kaydırmalı geziler) ----------
@@ -710,8 +762,30 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   // Dalış kalfası: bir eser için geziyi baştan sona hazırlar (dakikalar sürer; Studio ilerlemeyi yoklar).
   app.get("/api/dalis-kalfasi", async () => ({ hazir: dalisKalfasi.hazir(), etkin: dalisKalfasi.etkin()?.id ?? null }));
-  app.post("/api/dalis-kalfasi", { preHandler: [editorGerekli, kalfaSiniri] }, async (req, rep) => {
+  // Dalış önerileri: Studio'daki öneri düğmeleri her mesajdan sonra buradan yenilenir. Yalnızca bilgi bankasındaki
+  // eser adlarıyla kurulur (fotoğrafı ve konumu olan, dalışı henüz olmayan eserler önce); ?haric= az önce istenenleri atlar.
+  app.get("/api/dalis-kalfasi/oneriler", { preHandler: ustaGerekli }, async (req) => {
+    const haric = new Set(String(req.query.haric ?? "").split(",").filter(kimlikGecerli).slice(0, 20));
+    const dalisli = new Set((await dalislariOku()).filter((d) => d.durum !== "kaldirildi").map((d) => d.eser));
+    const adaylar = eserler.filter((e) => e.konum && e.fotograflar?.length && !haric.has(e.id));
+    const karistir = (dizi) => dizi.map((e) => [Math.random(), e]).sort((a, b) => a[0] - b[0]).map(([, e]) => e);
+    const sirali = [...karistir(adaylar.filter((e) => !dalisli.has(e.id))), ...karistir(adaylar.filter((e) => dalisli.has(e.id)))];
+    const secilen = [], turler = new Set();
+    for (const e of sirali) { if (secilen.length < 3 && !turler.has(e.tur)) { secilen.push(e); turler.add(e.tur); } }
+    for (const e of sirali) { if (secilen.length < 3 && !secilen.includes(e)) secilen.push(e); }
+    const kaliplar = [
+      (e) => `${e.ad} için uydudan içine inen bir dalış`,
+      (e) => `${e.ad} için tarihçesini öne çıkaran kısa bir dalış`,
+      (e) => `${e.ad} için ayrıntılarını gezdiren bir dalış`,
+    ];
+    return { oneriler: secilen.map((e, i) => ({ eser: e.id, metin: kaliplar[i % kaliplar.length](e) })) };
+  });
+  // Usta da dalış hazırlatabilir; dalış "bekliyor" olarak kaydedilir, yayın admin onayıyla olur. Usta mevcut bir dalışın
+  // (yayındaki ya da onay bekleyen) üzerine yazamaz.
+  app.post("/api/dalis-kalfasi", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
     const { istek, eser, uzerineYaz, oturum } = req.body ?? {};
+    const admin = await editorMi(req);
+    if (uzerineYaz && !admin) return rep.code(403).send({ hata: "Mevcut bir dalışın üzerine yalnızca admin yazabilir" });
     if (eser != null && !kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz eser kimliği" });
     if (istek != null && (typeof istek !== "string" || istek.length > 1000)) return rep.code(400).send({ hata: "istek en fazla 1000 harf" });
     if (!eser && !String(istek ?? "").trim()) return rep.code(400).send({ hata: "Kalfaya ne istediğini yaz" });
@@ -721,7 +795,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       try { await atolye.getir(sahip, oturum); } catch (h) { return rep.code(h.kod ?? 500).send({ hata: h.message }); }
     }
     try {
-      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz });
+      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz, korunanlar: admin ? ["onayli"] : ["onayli", "bekliyor"] });
       // Studio sayfası yenilense de dalışın ilerlemesi sohbetten yeniden izlenebilsin.
       if (oturum != null) await atolye.dalisEkle(sahip, oturum, { istek: istek || eser, is: is.id }).catch((h) => req.log.warn(h, "dalış oturuma yazılamadı"));
       return { is: is.id };
@@ -846,7 +920,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       catch (h) { return atolyeHatasi(rep, h); }
       try {
         const sonuc = await kalfa.calistir(sohbet, kod || undefined);
-        kalfaUretiminiKaydet(sonuc);
+        if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
         await atolye.kalfaBitir(sahip, oturum, { sonuc });
         return sonuc;
       } catch (h) {
@@ -863,7 +937,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
     try {
       const sonuc = await kalfa.calistir(sohbet, kod || undefined);
-      kalfaUretiminiKaydet(sonuc);
+      if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
       return sonuc;
     } catch (h) {
       req.log.error(h);

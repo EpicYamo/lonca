@@ -120,12 +120,24 @@ test("admin (editör) her şeyi düzenler; usta Studio listelerini yalnızca gö
     ["DELETE", "/api/moduller/yok"],
     ["POST", "/api/eser-oneriler/yok/karar", { karar: "onayla" }],
     ["GET", "/api/eserler-disa-aktar"],
-    ["POST", "/api/dalis-kalfasi", {}],
+    ["POST", "/api/dalislar/yok/durum", { durum: "onayli" }],
     ["PUT", "/api/kalfa/ayarlar", {}],
     ["GET", "/api/kalfa/modeller"],
   ];
   for (const [yontem, yol, govde] of yazma) {
     assert.equal((await s.istek(yontem, yol, { govde, basliklar: yetki(usta.jeton) })).statusCode, 401, `usta ${yontem} ${yol}`);
+  }
+  // Dalış: usta da hazırlatabilir (yayın yine admin onayıyla); mevcut dalışın üzerine yazamaz; vatandaş hiç kullanamaz.
+  assert.equal((await s.istek("POST", "/api/dalis-kalfasi", { govde: {}, basliklar: yetki(vatandas.jeton) })).statusCode, 401);
+  assert.equal((await s.istek("POST", "/api/dalis-kalfasi", { govde: {}, basliklar: yetki(usta.jeton) })).statusCode, 400, "usta dalış kalfasına ulaşır");
+  assert.equal((await s.istek("POST", "/api/dalis-kalfasi", { govde: { eser: eserId, uzerineYaz: true }, basliklar: yetki(usta.jeton) })).statusCode, 403);
+  assert.equal((await s.istek("GET", "/api/dalis-kalfasi/oneriler", { basliklar: yetki(vatandas.jeton) })).statusCode, 401);
+  const { oneriler } = (await s.istek("GET", `/api/dalis-kalfasi/oneriler?haric=${eserId}`, { basliklar: yetki(usta.jeton) })).json();
+  assert.equal(oneriler.length, 3);
+  const eserAdlari = new Map((await s.istek("GET", "/api/eserler")).json().map((e) => [e.id, e.ad]));
+  for (const o of oneriler) {
+    assert.notEqual(o.eser, eserId, "haric verilen eser önerilmez");
+    assert.ok(o.metin.startsWith(eserAdlari.get(o.eser)), "öneri bilgi bankasındaki eser adıyla kurulur");
   }
   // Model ayarlarını artık admin hesabı da değiştirebilir (yalnızca yönetici şifresi değil).
   assert.notEqual((await s.istek("PUT", "/api/kalfa/ayarlar", { basliklar: yetki(editor.jeton), govde: {} })).statusCode, 401);
@@ -141,6 +153,79 @@ test("vatandaş atölyeyi kullanamaz; bir usta başka ustanın taslağını ezem
   const baska = await kaydol({ kimlik: "baska-usta", sifre: "sifresifre" });
   assert.equal((await s.istek("POST", "/api/moduller", { basliklar: yetki(baska.jeton), govde: { id: "taslak-a", ad: "Ele geçirme", kod } })).statusCode, 409);
   assert.equal((await s.istek("POST", "/api/moduller", { usta: true, govde: { id: "taslak-a", ad: "Taslak 2", kod } })).statusCode, 201);
+});
+
+test("onay kuyruğunu yalnızca admin görür; usta yalnızca kendi modüllerini görür", async () => {
+  const kod = await readFile(path.join(KOK, "sdk", "ornekler", "yuzyil-avi.js"), "utf8");
+  const editor = await rolluAc("kuyruk-editor", "editor");
+  const ogretmen = await kaydol({ kimlik: "kuyruk-usta-a", sifre: "sifresifre" });
+  const diger = await kaydol({ kimlik: "kuyruk-usta-b", sifre: "sifresifre" });
+  const gonder = (jeton, id) => s.istek("POST", "/api/moduller", { basliklar: yetki(jeton), govde: { id, ad: id, kod } });
+  assert.equal((await gonder(ogretmen.jeton, "kuyruk-a")).statusCode, 201);
+  assert.equal((await gonder(diger.jeton, "kuyruk-b")).statusCode, 201);
+
+  const liste = async (jeton) => (await s.istek("GET", "/api/moduller?durum=hepsi", { basliklar: yetki(jeton) })).json().map((m) => m.id);
+  assert.deepEqual(await liste(ogretmen.jeton), ["kuyruk-a"]);
+  assert.deepEqual(await liste(diger.jeton), ["kuyruk-b"]);
+  const tum = await liste(editor.jeton);
+  assert.ok(tum.includes("kuyruk-a") && tum.includes("kuyruk-b"));
+
+  // Yayında olmayan kodu yalnızca sahibi ve admin okur.
+  const kodOku = (jeton) => s.istek("GET", "/api/moduller/kuyruk-a/kod", { basliklar: yetki(jeton) });
+  assert.equal((await kodOku(ogretmen.jeton)).statusCode, 200);
+  assert.equal((await kodOku(editor.jeton)).statusCode, 200);
+  assert.equal((await kodOku(diger.jeton)).statusCode, 403);
+});
+
+test("özel modül onay kuyruğuna girmez, yalnızca paylaşım bağlantısıyla açılır", async () => {
+  const kod = await readFile(path.join(KOK, "sdk", "ornekler", "yuzyil-avi.js"), "utf8");
+  const usta = await kaydol({ kimlik: "paylasim-usta", sifre: "sifresifre" });
+  const diger = await kaydol({ kimlik: "paylasim-diger", sifre: "sifresifre" });
+  const gonder = (govde) => s.istek("POST", "/api/moduller", { basliklar: yetki(usta.jeton), govde: { ad: govde.id, kod, ...govde } });
+
+  assert.equal((await gonder({ id: "paylasim-hatali", gorunurluk: "gizli" })).statusCode, 400);
+  const ozel = (await gonder({ id: "paylasim-ozel", gorunurluk: "ozel" })).json();
+  assert.equal(ozel.durum, "ozel");
+  assert.match(ozel.paylasim, /^[A-Za-z0-9_-]{16}$/);
+
+  // Uygulamada listelenmez, kimlikle kodu okunamaz.
+  assert.ok(!(await s.istek("GET", "/api/moduller")).json().some((m) => m.id === "paylasim-ozel"));
+  assert.equal((await s.istek("GET", "/api/moduller/paylasim-ozel/kod")).statusCode, 403);
+  assert.equal((await s.istek("GET", "/api/moduller/paylasim-ozel/kod", { basliklar: yetki(diger.jeton) })).statusCode, 403);
+  assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).statusCode, 404);
+
+  // Bağlantıyı bilen herkes (hesapsız) açar.
+  const ozet = await s.istek("GET", `/api/paylasim/${ozel.paylasim}`);
+  assert.equal(ozet.statusCode, 200);
+  assert.equal(ozet.json().id, "paylasim-ozel");
+  assert.equal(ozet.json().sahip, undefined);
+  const kodYaniti = await s.istek("GET", `/api/paylasim/${ozel.paylasim}/kod`);
+  assert.equal(kodYaniti.statusCode, 200);
+  assert.equal(kodYaniti.body, kod);
+  // Kısa davet koduyla da açılır (küçük harf ve tiresiz yazılsa bile); başkasının koduyla değil.
+  assert.match(ozel.davetKodu, /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+  const yazilan = ozel.davetKodu.toLowerCase().replace("-", "");
+  assert.equal((await s.istek("GET", `/api/paylasim/${yazilan}`)).json().id, "paylasim-ozel");
+  assert.equal((await s.istek("GET", `/api/paylasim/${ozel.davetKodu}/kod`)).body, kod);
+  const yonlen = await s.istek("GET", `/m/${ozel.paylasim}`);
+  assert.equal(yonlen.statusCode, 302);
+  assert.equal(yonlen.headers.location, `/app/?modul=${ozel.paylasim}`);
+
+  // Yeniden kaydedince anahtar değişmez; herkese açığa çevrilince onay bekler ve özel bağlantı kapanır.
+  const yeniden = (await gonder({ id: "paylasim-ozel", gorunurluk: "ozel" })).json();
+  assert.equal(yeniden.paylasim, ozel.paylasim);
+  assert.equal(yeniden.davetKodu, ozel.davetKodu);
+  const acik = (await gonder({ id: "paylasim-ozel", gorunurluk: "herkes" })).json();
+  assert.equal(acik.durum, "bekliyor");
+  assert.equal((await s.istek("GET", `/api/paylasim/${ozel.paylasim}`)).statusCode, 404);
+  assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).statusCode, 404);
+  assert.equal((await s.istek("GET", `/api/paylasim/${ozel.davetKodu}`)).statusCode, 404);
+
+  // Onaylanan herkese açık modül kimliğiyle paylaşılır.
+  assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { usta: true })).statusCode, 401);
+  const editor = await rolluAc("paylasim-editor", "editor");
+  assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { basliklar: yetki(editor.jeton) })).statusCode, 200);
+  assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).json().durum, "onayli");
 });
 
 test("cihazdaki profil yalnızca sunucuda veri yokken taşınır, üzerine yazmaz", async () => {

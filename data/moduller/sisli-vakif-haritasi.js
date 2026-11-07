@@ -3,16 +3,17 @@ import { sahne, ekran, eserler, basarim, profil, depo } from "@lonca/sdk";
 /*
   Sisli Vakıf Atlası
   ------------------------------------------------------------------
-  Bursa merkezli, Türkiye'ye yayılan bir vakıf mirası ağı. Harita
-  karanlık bir atlas gibi başlar; gezilen her eser şehrini açar. Şehirler
+  Bursa'nın ilçelerine yayılan bir vakıf mirası ağı. Harita karanlık
+  bir atlas gibi başlar; gezilen her eser ilçesini açar. İlçeler
   arasındaki külliye, bani, mimar, vakıf, hanedan ve ticaret bağları
-  küratörlü veriden gelir, ad benzerliğinden üretilmez.
+  envanter kaynaklı veriden gelir, ad benzerliğinden üretilmez.
+  (İç adlarda "sehir" bir bölgeyi, yani Bursa'nın bir ilçesini anlatır.)
 */
 
 const KAYIT = "sisli-vakif-atlasi-v5";
 const BASLANGIC = "bursa-ulucami";
-const BASLANGIC_SEHIR = "bursa";
-const SEHIR_YARICAP = 14000;
+const BASLANGIC_SEHIR = "osmangazi";
+const SEHIR_YARICAP = 3500;
 const BASLANGIC_MUHUR = 4;
 const YENI_ESER_PUANI = 10;
 
@@ -37,11 +38,11 @@ const TUR_ADI = {
 
 const BASARIMLAR = [
   { id: "ilk-sis", ad: "İlk Işık", aciklama: "İlk eseri haritada aç." },
-  { id: "uc-sehir", ad: "Üç Şehir", aciklama: "Üç ayrı şehirde birer eser keşfet." },
-  { id: "tam-sehir", ad: "Şehir Ustası", aciklama: "Bir şehirdeki bütün eserleri gez." },
+  { id: "uc-sehir", ad: "Üç İlçe", aciklama: "Üç ayrı ilçede birer eser keşfet." },
+  { id: "tam-sehir", ad: "İlçe Ustası", aciklama: "Bir ilçedeki bütün eserleri gez." },
   { id: "ag-kasifi", ad: "Bağ Kâşifi", aciklama: "Üç eserin tarihsel bağ ağını incele." },
   { id: "muhur-ustasi", ad: "Mühürdar", aciklama: "On mühür topla." },
-  { id: "anadolu-agi", ad: "Anadolu Ağı", aciklama: "Bütün şehirlerin sisini aç." },
+  { id: "anadolu-agi", ad: "Bursa Ağı", aciklama: "Bütün ilçelerin sisini aç." },
   { id: "tum-harita", ad: "Atlasın Sahibi", aciklama: "Konumu bilinen bütün eserleri keşfet." },
 ];
 
@@ -68,6 +69,9 @@ function ortalama(liste) {
   return { lat: t.lat / liste.length, lng: t.lng / liste.length };
 }
 
+// Atlasın bölgesi eserin ilçesidir (bütün eserler Bursa envanterinden).
+const bolge = (eser) => eser.ilce || eser.il;
+
 function sehirId(il) {
   return String(il ?? "")
     .toLocaleLowerCase("tr")
@@ -79,8 +83,8 @@ function sehirId(il) {
 function sehirleriKur(yerli) {
   const kume = new Map();
   for (const eser of yerli) {
-    if (!kume.has(eser.il)) kume.set(eser.il, []);
-    kume.get(eser.il).push(eser);
+    if (!kume.has(bolge(eser))) kume.set(bolge(eser), []);
+    kume.get(bolge(eser)).push(eser);
   }
   return [...kume.entries()].map(([ad, eserler]) => {
     const merkez = ortalama(eserler);
@@ -127,9 +131,7 @@ export default async function basla() {
     rozetler: await basarim.liste(),
   };
   if (!durum.gezilen.size) {
-    for (const id of [BASLANGIC, "edirne-selimiye-camii", "istanbul-suleymaniye-camii", "izmir-hisar-camii"]) {
-      if (bul(id)) durum.gezilen.add(id);
-    }
+    if (bul(BASLANGIC)) durum.gezilen.add(BASLANGIC);
   }
   durum.odak = odakHesapla();
 
@@ -179,7 +181,7 @@ export default async function basla() {
 
   function gorunenler() {
     const acik = new Set(acikSehirler().map((s) => s.id));
-    return yerli.filter((e) => acik.has(sehirId(e.il)));
+    return yerli.filter((e) => acik.has(sehirId(bolge(e))));
   }
 
   function acikAlanlar() {
@@ -202,14 +204,14 @@ export default async function basla() {
 
   function sehirBaglari() {
     const ciftler = new Map();
-    // Şehirler arası ağda yalnızca açık ve nedensel bağlar yer alır. Benzer mimari,
-    // aynı metinde anılma ya da komşuluk iki şehri tarihsel bir ağa bağlamaz.
+    // İlçeler arası ağda yalnızca açık ve nedensel bağlar yer alır. Benzer mimari,
+    // aynı metinde anılma ya da komşuluk iki ilçeyi tarihsel bir ağa bağlamaz.
     const gucluBaglar = new Set(["bani", "mimar", "vakif", "aile", "ticaret"]);
     const oncelik = { vakif: 0, bani: 1, mimar: 2, aile: 3, ticaret: 4 };
     for (const i of [...iliskiler].filter((x) => gucluBaglar.has(x.tur)).sort((a, b) => (oncelik[a.tur] ?? 9) - (oncelik[b.tur] ?? 9) || a.id.localeCompare(b.id))) {
       const a = bul(i.a), b = bul(i.b);
-      if (!a || !b || a.il === b.il) continue;
-      const ca = sehirBul(sehirId(a.il)), cb = sehirBul(sehirId(b.il));
+      if (!a || !b || bolge(a) === bolge(b)) continue;
+      const ca = sehirBul(sehirId(bolge(a))), cb = sehirBul(sehirId(bolge(b)));
       if (!ca || !cb) continue;
       const anahtar = [ca.id, cb.id].sort().join("|");
       if (!ciftler.has(anahtar)) ciftler.set(anahtar, { a: ca.merkez, b: cb.merkez, tur: i.tur });
@@ -224,9 +226,9 @@ export default async function basla() {
   }
 
   function odakHesapla() {
-    if (durum.kapsam === "ag") return { lat: 39.0, lng: 35.0, zoom: 5 };
+    if (durum.kapsam === "ag") return { lat: 40.2, lng: 29.3, zoom: 9 };
     const s = sehirBul(durum.sehir) ?? sehirBul(BASLANGIC_SEHIR) ?? sehirler[0];
-    return s ? { lat: s.merkez.lat, lng: s.merkez.lng, zoom: 13 } : { lat: 39.0, lng: 35.0, zoom: 5 };
+    return s ? { lat: s.merkez.lat, lng: s.merkez.lng, zoom: 13 } : { lat: 40.2, lng: 29.3, zoom: 9 };
   }
 
   async function basarimKontrol() {
@@ -249,12 +251,12 @@ export default async function basla() {
       durum.gezilen.add(eser.id);
       durum.muhur += 1;
       await profil.puanEkle(YENI_ESER_PUANI, `${eser.ad} keşfedildi`);
-      await sahne.bildir(`${eser.ad} · ${eser.il} sisi açıldı. +1 mühür`);
+      await sahne.bildir(`${eser.ad} · ${bolge(eser)} sisi açıldı. +1 mühür`);
     }
     if (esereBaglar(eser.id).length) durum.agGezilen.add(eser.id);
     durum.secili = eser.id;
     durum.kapsam = "sehir";
-    durum.sehir = sehirId(eser.il);
+    durum.sehir = sehirId(bolge(eser));
     durum.odak = odakHesapla();
     await kaydet();
     await basarimKontrol();
@@ -291,7 +293,7 @@ export default async function basla() {
     const acik = acikSehirler();
     const adaylar = sehirler.filter((s) => !acik.includes(s));
     if (!adaylar.length) {
-      await sahne.bildir("Bütün şehirlerin sisi açıldı.");
+      await sahne.bildir("Bütün ilçelerin sisi açıldı.");
       return;
     }
     const secilen = adaylar
@@ -372,13 +374,13 @@ export default async function basla() {
     const kapakEser = bul(BASLANGIC) ?? yerli[0] ?? null;
     return {
       tip: "kapak",
-      ust: "Türkiye · Vakıf Mirası Ağı",
+      ust: "Bursa · Vakıf Mirası Ağı",
       baslik: "Sisli Vakıf Atlası",
-      alt: `${sehirler.length} şehir · ${yerli.length} konumlu eser · ${iliskiler.length} kaynaklı bağ. Bursa'dan Edirne'ye, İzmir'den Mardin'e uzanan vakıf ağını sisin içinden aç.`,
+      alt: `${sehirler.length} ilçe · ${yerli.length} konumlu eser · ${iliskiler.length} kaynaklı bağ. Osmangazi'den İznik'e, Yenişehir'den Karacabey'e uzanan vakıf ağını sisin içinden aç.`,
       eser: kapakEser,
       cocuklar: [
         { tip: "dugme", id: "basla", metin: "Haritaya gir", ikon: "harita", tur: "ana" },
-        { tip: "dugme", id: "ag", metin: "Türkiye ağı", ikon: "pusula", tur: "ikincil" },
+        { tip: "dugme", id: "ag", metin: "Bursa ağı", ikon: "pusula", tur: "ikincil" },
         { tip: "dugme", id: "nasil", metin: "Nasıl oynanır?", ikon: "bilgi", tur: "ikincil" },
       ],
     };
@@ -392,9 +394,9 @@ export default async function basla() {
       tip: "sutun",
       cocuklar: [
         { tip: "ust_cubuk", baslik: "Vakıf Atlası",
-          alt: `${acik.length}/${sehirler.length} şehir · ${gorunen.length}/${yerli.length} eser · ${baglar.length} bağ`,
+          alt: `${acik.length}/${sehirler.length} ilçe · ${gorunen.length}/${yerli.length} eser · ${baglar.length} bağ`,
           geri: "geri",
-          sag: [{ id: "sehirler", ikon: "harita", etiket: "Şehirler" }, { id: "baglar", ikon: "yildiz", etiket: "Bağlar" }] },
+          sag: [{ id: "sehirler", ikon: "harita", etiket: "İlçeler" }, { id: "baglar", ikon: "yildiz", etiket: "Bağlar" }] },
         { tip: "harita", id: "harita", eserler: gorunen, secili: durum.secili,
           baglantilar: baglar,
           hayaletBaglantilar: durum.kapsam === "ag" ? sehirBaglari() : [],
@@ -404,17 +406,17 @@ export default async function basla() {
         { tip: "izgara", sutun: 2, cocuklar: [
           { tip: "istatistik", deger: durum.gezilen.size, etiket: "Gezilen eser", ikon: "konum" },
           { tip: "istatistik", deger: durum.muhur, etiket: "Mühür", ikon: "yildiz" },
-          { tip: "istatistik", deger: `${acik.length}/${sehirler.length}`, etiket: "Açık şehir", ikon: "harita" },
+          { tip: "istatistik", deger: `${acik.length}/${sehirler.length}`, etiket: "Açık ilçe", ikon: "harita" },
           { tip: "istatistik", deger: baglar.length, etiket: "Görünen bağ", ikon: "bilgi" },
         ] },
         { tip: "ilerleme", deger: durum.gezilen.size, toplam: yerli.length, etiket: "Atlasın sisini arala" },
-        { tip: "metin", metin: "Noktalar eserleri gösterir; küme işaretine dokununca harita yakınlaşır. Şehirler arası çizgiler yalnızca ortak bani, mimar, vakıf, hanedan veya ticaret kaydına dayanır; bir yol ya da seyahat rotası değildir. Çizgiye dokunup kaynaklı açıklamayı aç.", soluk: true },
+        { tip: "metin", metin: "Noktalar eserleri gösterir; küme işaretine dokununca harita yakınlaşır. İlçeler arası çizgiler yalnızca ortak bani, mimar, vakıf, hanedan veya ticaret kaydına dayanır; bir yol ya da seyahat rotası değildir. Çizgiye dokunup kaynaklı açıklamayı aç.", soluk: true },
         { tip: "satir", hizala: "yay", cocuklar: [
           { tip: "dugme", id: "arala", metin: "Sisi arala (1 mühür)", ikon: "pusula", tur: "ana", devre_disi: durum.muhur < 1 },
-          { tip: "dugme", id: "sehirler", metin: "Şehirler", ikon: "harita", tur: "ikincil" },
+          { tip: "dugme", id: "sehirler", metin: "İlçeler", ikon: "harita", tur: "ikincil" },
         ] },
         { tip: "satir", hizala: "yay", cocuklar: [
-          { tip: "dugme", id: "kapsam", metin: durum.kapsam === "ag" ? "Şehre yaklaş" : "Tüm ağ", ikon: "pusula", tur: "ikincil" },
+          { tip: "dugme", id: "kapsam", metin: durum.kapsam === "ag" ? "İlçeye yaklaş" : "Tüm ağ", ikon: "pusula", tur: "ikincil" },
           { tip: "dugme", id: "baglar", metin: "Bağlar", ikon: "bilgi", tur: "ikincil" },
         ] },
         { tip: "baslik", metin: "Bağ renkleri", boyut: 3 },
@@ -427,8 +429,8 @@ export default async function basla() {
     return {
       tip: "sutun",
       cocuklar: [
-        { tip: "ust_cubuk", baslik: "Şehirler", alt: `${sehirler.length} şehir · ${acikSehirler().length} açık`, geri: "geri" },
-        { tip: "metin", metin: "Her şehir kendi sisini taşır. Bir esere dokunmak o şehri açar; şehirler arası bir bağa gitmek yeni bir şehri ışıklandırır.", soluk: true },
+        { tip: "ust_cubuk", baslik: "İlçeler", alt: `${sehirler.length} ilçe · ${acikSehirler().length} açık`, geri: "geri" },
+        { tip: "metin", metin: "Her ilçe kendi sisini taşır. Bir esere dokunmak o ilçeyi açar; ilçeler arası bir bağa gitmek yeni bir ilçeyi ışıklandırır.", soluk: true },
         { tip: "liste", ogeler: sehirler.map((s) => {
           const acik = s.eserler.some((e) => durum.gezilen.has(e.id));
           const gezilen = s.eserler.filter((e) => durum.gezilen.has(e.id)).length;
@@ -453,7 +455,7 @@ export default async function basla() {
       tip: "sutun",
       cocuklar: [
         { tip: "ust_cubuk", baslik: s.ad, alt: `${s.eserler.length} eser · ${acik ? "açık" : "sisli"}`, geri: "geri" },
-        { tip: "metin", metin: acik ? `${s.ad} artık aydınlık. Eserlere dokunarak bağ ağını büyüt.` : `${s.ad} hâlâ karanlıkta. Bir mühürle şehrin kapısını aralayabilirsin.`, soluk: true },
+        { tip: "metin", metin: acik ? `${s.ad} artık aydınlık. Eserlere dokunarak bağ ağını büyüt.` : `${s.ad} hâlâ karanlıkta. Bir mühürle ilçenin kapısını aralayabilirsin.`, soluk: true },
         acik
           ? { tip: "liste", ogeler: s.eserler.map((e) => ({ id: `eser:${e.id}`, metin: e.ad, alt: `${turAdi(e.tur)}${e.yuzyil ? ` · ${e.yuzyil}. yüzyıl` : ""}`, ikon: "konum", sag: durum.gezilen.has(e.id) ? "gezildi" : "yeni" })) }
           : { tip: "dugme", id: `arala:${s.id}`, metin: `Sisi arala (1 mühür)`, ikon: "pusula", tur: "ana", devre_disi: durum.muhur < 1 },
@@ -467,11 +469,11 @@ export default async function basla() {
     if (!eser) return haritaEkrani();
     const baglar = esereBaglar(eser.id);
     const paragraflar = String(eser.tarihce?.tr ?? "").split(/\n+/).filter(Boolean);
-    const cipler = [turAdi(eser.tur), eser.il, eser.yuzyil ? `${eser.yuzyil}. yüzyıl` : null, eser.konum?.yaklasik ? "konum yaklaşık" : null].filter(Boolean);
+    const cipler = [turAdi(eser.tur), bolge(eser), eser.yuzyil ? `${eser.yuzyil}. yüzyıl` : null, eser.konum?.yaklasik ? "konum yaklaşık" : null].filter(Boolean);
     return {
       tip: "sutun",
       cocuklar: [
-        { tip: "ust_cubuk", baslik: eser.ad, alt: `${turAdi(eser.tur)} · ${eser.il}${eser.yuzyil ? ` · ${eser.yuzyil}. yüzyıl` : ""}`, geri: "geri" },
+        { tip: "ust_cubuk", baslik: eser.ad, alt: `${turAdi(eser.tur)} · ${bolge(eser)}${eser.yuzyil ? ` · ${eser.yuzyil}. yüzyıl` : ""}`, geri: "geri" },
         { tip: "fotograflar", eser },
         { tip: "cipler", ogeler: cipler },
         ...paragraflar.map((p, i) => ({ tip: "metin", metin: p, soluk: i > 2 })),
@@ -517,14 +519,14 @@ export default async function basla() {
     return {
       tip: "sutun",
       cocuklar: [
-        { tip: "ust_cubuk", baslik: "Tarihsel Bağlar", alt: `${liste.length} bağ · açık şehirler`, geri: "geri" },
+        { tip: "ust_cubuk", baslik: "Tarihsel Bağlar", alt: `${liste.length} bağ · açık ilçeler`, geri: "geri" },
         { tip: "metin", metin: "Külliye, bani, mimar, vakıf, hanedan ve ticaret bağları; her biri kaynaklı. Bağa dokununca iki eserin ilişkisi ve kaynağı açılır.", soluk: true },
         liste.length
           ? { tip: "liste", ogeler: liste.map((i) => {
             const a = bul(i.a), b = bul(i.b);
             return { id: `bag:${i.id}`, metin: `${kisalt(a?.ad, 24)} ↔ ${kisalt(b?.ad, 24)}`, alt: `${bagTuruAdi(i.tur)} · ${i.baslik}`, ikon: "bilgi" };
           }) }
-          : { tip: "metin", metin: "Henüz açık şehirler arasında kayıtlı bir bağ yok. Yeni şehirler açtıkça bağlar burada belirir." },
+          : { tip: "metin", metin: "Henüz açık ilçeler arasında kayıtlı bir bağ yok. Yeni ilçeler açtıkça bağlar burada belirir." },
         { tip: "dugme", id: "harita", metin: "Haritaya dön", ikon: "harita", tur: "ikincil" },
       ],
     };
@@ -534,16 +536,16 @@ export default async function basla() {
     return {
       tip: "sutun",
       cocuklar: [
-        { tip: "ust_cubuk", baslik: "Nasıl oynanır?", alt: "Sis, şehirler ve bağlar", geri: "geri" },
-        { tip: "baslik", metin: "1. Şehirleri ışıklandır", boyut: 2 },
-        { tip: "metin", metin: "Atlas karanlık başlar. Bursa'daki bir esere dokunduğunda Bursa aydınlanır. Şehirler arası bir bağdan başka bir şehre geçtiğinde o şehir de açılır. Mühürle kilitli bir şehri de aralayabilirsin." },
+        { tip: "ust_cubuk", baslik: "Nasıl oynanır?", alt: "Sis, ilçeler ve bağlar", geri: "geri" },
+        { tip: "baslik", metin: "1. İlçeleri ışıklandır", boyut: 2 },
+        { tip: "metin", metin: "Atlas karanlık başlar. Bir esere dokunduğunda o eserin ilçesi aydınlanır. İlçeler arası bir bağdan başka bir ilçeye geçtiğinde o ilçe de açılır. Mühürle kilitli bir ilçeyi de aralayabilirsin." },
         { tip: "baslik", metin: "2. Bağları oku", boyut: 2 },
         { tip: "metin", metin: "Haritadaki çizgiler kaynaklı bağları gösterir; yol veya rota değildir. Altın külliye, yeşil vakıf, mavi mimar, mor bani, turuncu hanedan, pembe ticaret. Kesikli çizgi tarihî komşuluktur. Metinde birlikte anılma ve mimari benzerlik haritada çizilmez; yalnızca eserlerin bağ ağında açıklanır. Çizgiye dokunup kaynağı aç." },
         { tip: "baslik", metin: "3. Bağ ağını incele", boyut: 2 },
         { tip: "metin", metin: "Bir eserin detayında merkezdeki eserden çıkan düğümler bağlı eserlerdir; birine dokununca o esere geçersin. Altta her bağın kısa açıklaması ve kaynağı bulunur." },
         { tip: "baslik", metin: "4. Tüm ağa bak", boyut: 2 },
-        { tip: "metin", metin: "“Tüm ağ” düğmesi Türkiye ölçeğine çekilir; açık şehirler karanlıkta ışıldar, şehir etiketleri görünür. “Şehre yaklaş” yeniden kendi şehrine döner." },
-        { tip: "metin", metin: "Tarihî bilgi uydurulmaz: bağlar envanter metinleri ve Vikipedi kaynaklarından küratörlü olarak hazırlanmıştır.", soluk: true },
+        { tip: "metin", metin: "“Tüm ağ” düğmesi Bursa ölçeğine çekilir; açık ilçeler karanlıkta ışıldar, ilçe etiketleri görünür. “İlçeye yaklaş” yeniden kendi ilçene döner." },
+        { tip: "metin", metin: "Tarihî bilgi uydurulmaz: eserler ve bağlar Vakıf Katılım'ın Bursa Vakıf Eserleri Envanteri'nden gelir.", soluk: true },
         { tip: "dugme", id: "geri", metin: "Geri", ikon: "geri", tur: "ikincil" },
       ],
     };

@@ -21,6 +21,21 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Modül paylaşım bağlantısı: https://kozmos.itaskira.com/m/<anahtar> uygulamayı açar (App Links).
+                 Doğrulama için sunucu /.well-known/assetlinks.json'u ANDROID_IMZA_SHA256 ile yayımlar; doğrulanmazsa
+                 Android bağlantıyı tarayıcıda açar ve web sayfası "Uygulamada aç" (lonca://) şeridini gösterir. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="kozmos.itaskira.com" android:pathPrefix="/m/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="lonca" android:host="m" />
+            </intent-filter>
             <!-- Google ile giriş: Custom Tab'daki akış bitince sunucu com.kozmos.lonca://google?kod=… adresine döner. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

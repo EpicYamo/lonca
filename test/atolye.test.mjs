@@ -26,16 +26,28 @@ test("atölye oturumları usta ya da editör hesabı ister", async () => {
 test("kalfanın yanıtı ve modül taslağı oturuma yazılır; oturum yeniden açılınca geri gelir", async () => {
   const o = await yeniOturum();
   assert.match(o.id, /^[a-f0-9]{12}$/);
-  const y = await s.istek("POST", "/api/kalfa", { usta: true, govde: { oturum: o.id, istek: "hanlarda bir hazine avı", kod: "" } });
+  // İlk mesaj bir fikir: kalfa yalnızca sohbet eder, kod yazmaz.
+  const fikir = (await s.istek("POST", "/api/kalfa", { usta: true, govde: { oturum: o.id, istek: "hanlarda bir hazine avı", kod: "" } })).json();
+  assert.equal(fikir.tur, "sohbet");
+  assert.equal(fikir.kod, undefined);
+  assert.ok(fikir.oneriler.length > 0);
+  let ara = (await s.istek("GET", `/api/atolye/oturumlar/${o.id}`, { usta: true })).json();
+  assert.ok(!ara.taslak?.kod, "sohbet yanıtı taslağa kod yazmaz");
+  assert.equal(ara.mesajlar[1].ek.tur, "sohbet");
+  assert.deepEqual(ara.mesajlar[1].ek.oneriler, fikir.oneriler);
+
+  const y = await s.istek("POST", "/api/kalfa", { usta: true, govde: { oturum: o.id, istek: "tamam, yap", kod: "" } });
   assert.equal(y.statusCode, 200);
   const sonuc = y.json();
+  assert.equal(sonuc.tur, "modul");
 
   // Sayfa yenilendi: istemci oturumu sunucudan okur.
   const geri = (await s.istek("GET", `/api/atolye/oturumlar/${o.id}`, { usta: true })).json();
   assert.equal(geri.baslik, "hanlarda bir hazine avı");
-  assert.deepEqual(geri.mesajlar.map((m) => m.rol), ["usta", "kalfa"]);
-  assert.equal(geri.mesajlar[1].metin, sonuc.aciklama_ustaya);
-  assert.equal(geri.mesajlar[1].ek.model, "sahte");
+  assert.deepEqual(geri.mesajlar.map((m) => m.rol), ["usta", "kalfa", "usta", "kalfa"]);
+  assert.equal(geri.mesajlar[3].metin, sonuc.aciklama_ustaya);
+  assert.equal(geri.mesajlar[3].ek.model, "sahte");
+  assert.equal(geri.mesajlar[3].ek.tur, "modul");
   assert.equal(geri.taslak.kod, sonuc.kod);
   assert.equal(geri.taslak.id, sonuc.id);
   assert.equal(geri.bekleyen, null);
@@ -43,7 +55,7 @@ test("kalfanın yanıtı ve modül taslağı oturuma yazılır; oturum yeniden a
   // Kalfa ürettiği kodu hâlâ tanır (modül gönderilince kaynak "kalfa" yazılır).
   const liste = (await s.istek("GET", "/api/atolye/oturumlar", { usta: true })).json().oturumlar;
   const ozet = liste.find((x) => x.id === o.id);
-  assert.equal(ozet.mesajSayisi, 2);
+  assert.equal(ozet.mesajSayisi, 4);
   assert.equal(ozet.modul, sonuc.ad);
   assert.equal(ozet.bekliyor, false);
 });

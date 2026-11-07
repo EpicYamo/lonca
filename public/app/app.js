@@ -11,6 +11,8 @@ import * as raf from "./modullerim.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
 import { kesifHaritasiKur } from "./kesif-haritasi.js";
 import { googleAcikMi, googleIleBaslat, googleDonusuOku, uygulamaDonusunuDinle, googleKodTakas } from "/ortak/google-giris.js";
+import { paylasimiDinle } from "./paylasim.js";
+import { t, dilSecimi } from "/ortak/dil.js";
 
 const $ = (s) => document.querySelector(s);
 export const el = (etiket, ozellik = {}, ...cocuklar) => {
@@ -76,10 +78,11 @@ $("#ayar-kapat").addEventListener("click", () => ayarlar(false));
 $("#ayarlar").addEventListener("click", (e) => { if (e.target === e.currentTarget) ayarlar(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#ayarlar").hidden) ayarlar(false); });
 
-let turkceSes = null;
+let turkceSes = null, ingilizceSes = null;
 function sesBul() {
   const sesler = speechSynthesis.getVoices();
   turkceSes = sesler.find((v) => v.lang?.toLowerCase().startsWith("tr")) ?? null;
+  ingilizceSes = sesler.find((v) => v.lang?.toLowerCase().startsWith("en")) ?? null;
   $("#ses-notu").textContent = sesler.length && !turkceSes ? "Bu cihazda Türkçe ses bulunamadı, sesli okuma çalışmayacak." : "";
 }
 if ("speechSynthesis" in window) { sesBul(); speechSynthesis.addEventListener("voiceschanged", sesBul); }
@@ -88,8 +91,11 @@ function seslendir(metin, zorla = false) {
   if ((!tercih.ses && !zorla) || !turkceSes || !("speechSynthesis" in window)) return;
   if (zorla && !tercih.ses && !tercih.dokunOku) return;
   speechSynthesis.cancel();
-  const s = new SpeechSynthesisUtterance(metin);
-  s.voice = turkceSes; s.lang = turkceSes.lang; s.rate = tercih.sesHizi;
+  // Arayüz İngilizceyken arayüz metinleri İngilizce sesle okunur; eser içerikleri Türkçe kaldığı için Türkçe sesle.
+  const cevrilmis = t(metin);
+  const ses = cevrilmis !== metin && ingilizceSes ? ingilizceSes : turkceSes;
+  const s = new SpeechSynthesisUtterance(ses === turkceSes ? metin : cevrilmis);
+  s.voice = ses; s.lang = ses.lang; s.rate = tercih.sesHizi;
   speechSynthesis.speak(s);
 }
 
@@ -668,7 +674,8 @@ function acilisBitir() {
 
 let calisan = null; // { modul, iptal, sahneApi }
 async function moduluAc(m, karo) {
-  if (!ONIZLEME) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
+  // Paylaşım bağlantısıyla açılan modül rafa eklenmez (özel modül uygulama listesinde yoktur).
+  if (!ONIZLEME && !m.kodYolu) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
   depo.yaz("lonca.son-modul", { id: m.id, zaman: Date.now() });
   calisan?.iptal.abort();
   const iptal = new AbortController();
@@ -693,7 +700,7 @@ async function moduluAc(m, karo) {
   if (desen && !g) desen.style.viewTransitionName = "";
 
   try {
-    const [yanit] = await Promise.all([api(`/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
+    const [yanit] = await Promise.all([api(m.kodYolu ?? `/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
     $("#acilis").style.viewTransitionName = "";
     await modulCalistir(await yanit.text(), yontemlerOlustur(m), { iptal: iptal.signal });
     if (bu !== calisan) return;
@@ -806,6 +813,7 @@ const SVG = {
   ay: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
   erisim: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v4.5m0 0l-3.5 6m3.5-6l3.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   palet: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-.9.7-1.5 1.7-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="11" r="1.3" fill="currentColor"/><circle cx="10.5" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15" cy="7.8" r="1.3" fill="currentColor"/></svg>',
+  dil: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.5 5.3 3.5 8.5s-1.1 6.1-3.5 8.5c-2.4-2.4-3.5-5.3-3.5-8.5s1.1-6.1 3.5-8.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
   arti: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
   studio: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20h8M12 16v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   cikis: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -1036,6 +1044,9 @@ function profilEkrani() {
   }, temaAnahtari);
   temaSatiri.setAttribute("role", "switch");
   temaSatiri.setAttribute("aria-checked", String(koyu));
+  // Dil: Türkçe / English (seçim hemen uygulanır, sayfa yenilenmez).
+  const dilSatiri = el("div", { className: "pl-satir pl-dil" }, svgSpan("dil"),
+    el("span", { className: "pl-ad", id: "pl-dil-ad", textContent: "Dil" }), dilSecimi({ etiketId: "pl-dil-ad" }));
 
   $("#profil-icerik").replaceChildren(
     el("section", { className: "profil-kart profil-kahraman", ariaLabel: "Profil özeti" },
@@ -1068,6 +1079,7 @@ function profilEkrani() {
       el("h2", { className: "bolum-baslik", id: "profil-ayar-baslik", textContent: "Ayarlar" }),
       el("div", { className: "pl-grup" },
         temaSatiri,
+        dilSatiri,
         ayarSatiri("erisim", "Erişilebilirlik", (b) => ayarlar(true, b)),
         ayarSatiri("palet", "Adı ve rengi değiştir", tanismaAc),
         ayarSatiri("arti", "Eser öner", () => katkiAc()))),
@@ -1346,6 +1358,8 @@ if (ONIZLEME) {
   // Paylaşılan bağlantı: /app/?eser=<id> eser sayfasını açar.
   const paylasilan = new URLSearchParams(location.search).get("eser");
   if (paylasilan && /^[a-z0-9-]{1,80}$/.test(paylasilan)) eserPenceresi(paylasilan);
+  // Paylaşılan modül: /m/<anahtar> → /app/?modul=<anahtar>; Android'de uygulama bağlantısı.
+  paylasimiDinle({ ac: (m) => moduluAc(m), hata: (mesaj) => bildir(mesaj, { tur: "hata", sure: 4000 }) });
 }
 
 export { TUR_ADI };

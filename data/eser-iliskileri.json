@@ -93,15 +93,6 @@
    "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 215; Cilt 2, s. 53"
   },
   {
-   "id": "bedesten-orhan",
-   "a": "bursa-yildirim-bayezid-bedesteni",
-   "b": "bursa-orhan-bey-kulliyesi",
-   "tur": "metin",
-   "baslik": "Orhan Gazi vakfıyla kurulan çarşı",
-   "aciklama": "Bedesten metni, Orhan Gazi'nin Emir Hanı'nı çarşının ilk çekirdeği olarak anar. Emir Han da Orhan Bey Külliyesi'nden günümüze ulaşan yapılardandır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 53"
-  },
-  {
    "id": "orhan-kulliye-hamam",
    "a": "bursa-orhan-bey-kulliyesi",
    "b": "bursa-orhan-bey-hamami-aynali-carsi",
@@ -127,15 +118,6 @@
    "baslik": "Aynı külliyenin parçası",
    "aciklama": "Orhan Bey Hamamı ve Emir Hanı, Orhan Bey Külliyesi'nin günümüze ulaşan birimlerindendir. Hamam, Emir Hanı ile Koza Han arasında yer alır.",
    "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 207"
-  },
-  {
-   "id": "orhan-kulliye-ulucami",
-   "a": "bursa-orhan-bey-kulliyesi",
-   "b": "bursa-ulucami",
-   "tur": "komsu",
-   "baslik": "Aynı tarihî çarşı aksı",
-   "aciklama": "Orhan Bey Camii, Ulucami'nin doğusunda, tarihî belediye binasının batısında yer alır. İki yapı Bursa'nın tarihî çarşı dokusunu birlikte tanımlar.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191"
   },
   {
    "id": "orhan-hamam-ulucami",
@@ -165,15 +147,6 @@
    "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15"
   },
   {
-   "id": "koza-orhan-kulliye",
-   "a": "bursa-koza-hani",
-   "b": "bursa-orhan-bey-kulliyesi",
-   "tur": "komsu",
-   "baslik": "Orhan Camii ile Ulucami arasındaki aks",
-   "aciklama": "Koza Han, Orhan Camii ile Ulucami arasındaki tarihî çarşı aksında yer alır; Orhan Bey Külliyesi bu aksın çekirdeğindedir.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 15"
-  },
-  {
    "id": "koza-mescit",
    "a": "bursa-koza-hani",
    "b": "bursa-koza-han-mescidi",
@@ -201,15 +174,6 @@
    "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15, 43"
   },
   {
-   "id": "emirhan-koza",
-   "a": "bursa-emir-han",
-   "b": "bursa-koza-hani",
-   "tur": "komsu",
-   "baslik": "Çarşı içinde komşu yapılar",
-   "aciklama": "Orhan Bey Hamamı metni, Emir Hanı ile Koza Han'ı tarihî çarşı bölgesinde komşu yapılar olarak anar.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 207"
-  },
-  {
    "id": "muradiye-cesme",
    "a": "bursa-ii-murad-kulliyesi",
    "b": "bursa-muradiye-cesmesi",
@@ -228,15 +192,6 @@
    "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 115, 167"
   },
   {
-   "id": "muradiye-cesme-sehzade",
-   "a": "bursa-muradiye-cesmesi",
-   "b": "bursa-sehzade-mustafa-turbesi",
-   "tur": "kulliye",
-   "baslik": "Aynı külliye",
-   "aciklama": "İkisi de II. Murad Külliyesi'ne bağlı yapılardır: çeşme külliyenin batı ucunda, türbe ise Muradiye türbeler topluluğu içinde yer alır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 115, 127, 167"
-  },
-  {
    "id": "osman-orhan-turbesi",
    "a": "bursa-osman-gazi-turbesi",
    "b": "bursa-orhan-gazi-turbesi",
@@ -251,7 +206,7 @@
    "b": "bursa-orhan-bey-kulliyesi",
    "tur": "bani",
    "baslik": "Aynı bani: Orhan Gazi",
-   "aciklama": "Orhan Gazi Türbesi ve Orhan Bey Külliyesi, Osmanlı Devleti'nin ikinci sultanı Orhan Gazi'nin Bursa'daki yapılarıdır.",
+   "aciklama": "Orhan Bey Külliyesi'nin camisi H. 740 / M. 1339-40'ta Orhan Bey tarafından yaptırılmıştır; Bursa'nın fâtihi Orhan Gazi, babası Osman Gazi'yi defnettirdiği Gümüşlü Kümbet kompleksine defnedilmiştir.",
    "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 229"
   },
   {
@@ -264,211 +219,490 @@
    "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 2, s. 235"
   },
   {
-   "id": "bursa-muradiye-edirne-ucserefeli",
-   "a": "bursa-ii-murad-kulliyesi",
-   "b": "edirne-uc-serefeli-cami",
-   "tur": "bani",
-   "baslik": "Aynı bani: II. Murad",
-   "aciklama": "Bursa Muradiye Külliyesi 1426'da, Edirne Üç Şerefeli Cami ise 1437-1447 arasında Sultan II. Murad tarafından yaptırılmıştır. İki yapı da II. Murad'ın imar programının parçasıdır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 115; Vikipedi, Üç Şerefeli Cami"
+   "id": "uftade-cami-turbe",
+   "a": "bursa-hz-uftade-camii",
+   "b": "bursa-hz-uftade-turbesi",
+   "tur": "kulliye",
+   "baslik": "Üftâde'nin camisi ve türbesi",
+   "aciklama": "Üftâde Hazretleri H. 988 / M. 1580'de vefat edince kendi adıyla anılan camisinin doğusundaki türbesine defnedilmiştir. Türbenin camiyle birlikte XVI. yüzyılın ikinci yarısında yapıldığı değerlendirilir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 447; Cilt 2, s. 259"
   },
   {
-   "id": "bursa-yesil-edirne-eski",
-   "a": "bursa-yesil-celebi-mehmed-kulliyesi",
-   "b": "edirne-eski-cami",
-   "tur": "bani",
-   "baslik": "Çelebi Mehmed dönemi",
-   "aciklama": "Edirne Eski Cami, Süleyman Çelebi'nin başlattığı inşayı 1414'te tamamlayan I. Mehmed (Çelebi Mehmed) dönemine aittir. Bursa Yeşil Külliyesi de onun eseridir.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 337; Vikipedi, Eski Cami"
+   "id": "uftade-tekke-cami",
+   "a": "bursa-hz-uftade-tekkesi",
+   "b": "bursa-hz-uftade-tekke-camii",
+   "tur": "kulliye",
+   "baslik": "Dergâhın tevhidhanesi",
+   "aciklama": "Tekke Camii, Üftâde Dergâhı'nın tevhidhanesi olarak yapılmıştır. Tekkenin Hu Çeşmesi'ndeki H. 974 / M. 1566 tarihli kitabe, ikisinin de XVI. yüzyılın ikinci yarısına ait olduğunu gösterir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 455; Cilt 2, s. 195"
   },
   {
-   "id": "bursa-yildirim-kutahya-ulu",
-   "a": "bursa-yildirim-bayezid-kulliyesi",
-   "b": "kutahya-ulu-camii",
+   "id": "uftade-tekke-turbe",
+   "a": "bursa-hz-uftade-tekkesi",
+   "b": "bursa-hz-uftade-turbesi",
+   "tur": "aile",
+   "baslik": "Torunu Kutub İbrâhim Efendi",
+   "aciklama": "Üftâde Hazretleri'nin torunu ve tekkenin dördüncü şeyhi Kutub İbrâhim Efendi, H. 1081 / M. 1670'te tekkeye yeni yapılar ekletmiş; türbenin ilk kapsamlı onarımını da aynı yıl o yaptırmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 195, 259"
+  },
+  {
+   "id": "hidirlik-uftade",
+   "a": "bursa-hidirlik-nilufer-hatun-camii",
+   "b": "bursa-hz-uftade-tekkesi",
+   "tur": "metin",
+   "baslik": "Üftâde'nin şeyhi Hızır Dede",
+   "aciklama": "Rivayete göre Hıdırlık semti adını, Üftâde Hazretleri'nin şeyhi Hızır Dede'nin burada medfun olmasından alır. Üftâde'nin bu adı, Hızır Dede'yi rüyasında görmesinin ardından aldığı kabul edilir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 339; Cilt 2, s. 195"
+  },
+  {
+   "id": "ulucami-uftade",
+   "a": "bursa-ulucami",
+   "b": "bursa-hz-uftade-camii",
+   "tur": "metin",
+   "baslik": "Üftâde'nin müezzinlik yaptığı cami",
+   "aciklama": "Üftâde Hazretleri, Uludağ yamacındaki dergâhını kurmadan önce Ulucami'de müezzinlik yapmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 447"
+  },
+  {
+   "id": "ulucami-somuncu",
+   "a": "bursa-ulucami",
+   "b": "bursa-seyh-hamit-somuncu-baba-ayazma-camii-ve-haziresi",
+   "tur": "metin",
+   "baslik": "Açılıştaki Somuncu Baba",
+   "aciklama": "Somuncu Baba adıyla bilinen Hamîdüddin Aksarâyî 1399'da Ulucami'nin açılışında bulunmuş, ilk hutbeyi okumuştur. Ayazma'daki cami onun adına Hacı Sevindik tarafından yaptırılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37, 431"
+  },
+  {
+   "id": "timurtas-umur",
+   "a": "bursa-timurtas-pasa-kulliyesi",
+   "b": "bursa-umur-bey-kulliyesi",
+   "tur": "aile",
+   "baslik": "Kara Timurtaş Paşa'nın oğulları",
+   "aciklama": "Timurtaş Paşa Külliyesi'ni 1390'da Kara Timurtaş Paşa'nın oğlu Ali Paşa, Umur Bey Külliyesi'ni ise kardeşi Umur Bey yaptırmıştır. İki kardeş de Ankara Savaşı'ndan sonra babalarıyla birlikte Timur'a esir düşmüştür.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 219; Cilt 2, s. 317"
+  },
+  {
+   "id": "timurtas-sitti",
+   "a": "bursa-timurtas-pasa-kulliyesi",
+   "b": "bursa-kanberler-sitti-hatun-camii",
+   "tur": "aile",
+   "baslik": "Kara Timurtaş Paşa'nın torunu",
+   "aciklama": "Sitti Hatun, Timurtaş Bey oğlu Oruç Bey'in kızıdır. Timurtaş Paşa Külliyesi'nin haziresinde Kara Timurtaş Paşa ile Oruç Bey'in çocukları İklime Hatun ve Mustafa Çelebi de yatar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 219, 361"
+  },
+  {
+   "id": "umur-sitti",
+   "a": "bursa-umur-bey-kulliyesi",
+   "b": "bursa-kanberler-sitti-hatun-camii",
+   "tur": "aile",
+   "baslik": "Amca ve yeğen",
+   "aciklama": "Umur Bey, Kara Timurtaş Paşa'nın beş oğlundan biri ve Oruç Bey'in kardeşidir. Kanberler Camii'ni yaptıran Sitti Hatun ise Oruç Bey'in kızıdır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 361; Cilt 2, s. 317"
+  },
+  {
+   "id": "sitti-cami-mektep",
+   "a": "bursa-kanberler-sitti-hatun-camii",
+   "b": "bursa-sitti-hatun-kanberler-mektebi",
+   "tur": "bani",
+   "baslik": "Aynı bani: Sitti Hatun",
+   "aciklama": "Fâtih'in veziri Zağanos Paşa'nın eşi Sitti Hatun, Kanberler Mahallesi'nde bir cami, bir sıbyan mektebi ve bir çeşme yaptırmıştır. Cami vakfiyesi H. 864 / M. 1459-60 tarihlidir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 361; Cilt 2, s. 89"
+  },
+  {
+   "id": "umur-cami-turbe",
+   "a": "bursa-umur-bey-kulliyesi",
+   "b": "bursa-umur-bey-turbesi",
+   "tur": "kulliye",
+   "baslik": "Caminin haziresindeki türbe",
+   "aciklama": "Umur Bey Türbesi, Umur Bey'in külliye birimi olarak yaptırdığı caminin haziresindedir. Sanduka kitabesine göre Umur Bey H. 865 / M. 1461'de vefat etmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 317, 331"
+  },
+  {
+   "id": "nakkas-mescit-hazire",
+   "a": "bursa-nakkas-ali-mescidi-ve-haziresi",
+   "b": "bursa-nakkas-ali-mescidi-hazire-alani",
+   "tur": "kulliye",
+   "baslik": "Mescidin haziresi",
+   "aciklama": "Hazire, Nakkaş Ali Mescidi'nin doğu ve güneyindedir. Nakkaş Ali'nin torunu, Şehrengiz-i Bursa müellifi Lâmiî Çelebi 1532'de dedesinin mescidinin haziresine defnedilmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 401, 403"
+  },
+  {
+   "id": "nakkas-yesil",
+   "a": "bursa-nakkas-ali-mescidi-ve-haziresi",
+   "b": "bursa-yesil-celebi-mehmed-kulliyesi",
+   "tur": "mimar",
+   "baslik": "Yeşil Cami'nin nakkaşbaşısı",
+   "aciklama": "Mescidi yaptıran Nakkaş Ali, Yeşil Cami ve Türbe'nin nakkaşbaşısıdır. Adı, Çelebi Mehmed'in yaptırdığı Yeşil Cami'deki kitabede \"Ali bin İlyas\" olarak geçer.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 401"
+  },
+  {
+   "id": "nakkas-yesil-turbe",
+   "a": "bursa-nakkas-ali-mescidi-ve-haziresi",
+   "b": "bursa-yesil-turbe",
+   "tur": "mimar",
+   "baslik": "Yeşil Türbe'nin nakkaşbaşısı",
+   "aciklama": "Envanter, Nakkaş Ali Mescidi'nin banisi Nakkaş Ali'yi Yeşil Cami ile birlikte Yeşil Türbe'nin de nakkaşbaşısı olarak anar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 401"
+  },
+  {
+   "id": "cerag-geyve",
+   "a": "bursa-cerag-cirag-bey-camii",
+   "b": "bursa-geyve-hani",
+   "tur": "aile",
+   "baslik": "Hacı İvaz Paşa ve kardeşi",
+   "aciklama": "Çerağ Bey Camii'ni, Yeşil Külliye'nin mimarı Hacı İvaz Paşa'nın kardeşi Şerefüddin Şeyh Çerağ Bey yaptırmıştır. Geyve Hanı'nı ise Hacı İvaz Paşa yaptırıp Çelebi Mehmed'e hediye etmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 291; Cilt 2, s. 31"
+  },
+  {
+   "id": "hayrettin-iznik-yesil",
+   "a": "bursa-hayrettin-pasa-camii",
+   "b": "bursa-yesil-imaret-candarli-halil-pasa-camii",
+   "tur": "bani",
+   "baslik": "Aynı bani: Çandarlı Halil Hayreddin Paşa",
+   "aciklama": "Bursa'daki Hayrettin Paşa Camii'ni ve İznik'teki Yeşil Camii'yi Sultan I. Murad döneminde Çandarlı Kara Halil Hayreddin Paşa yaptırmıştır. İznik'teki camiye H. 780 / M. 1378-79'da başlanmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 337; Cilt 3, s. 63"
+  },
+  {
+   "id": "alipasa-iznik-yesil",
+   "a": "bursa-ali-pasa-camii-ve-haziresi",
+   "b": "bursa-yesil-imaret-candarli-halil-pasa-camii",
+   "tur": "aile",
+   "baslik": "Çandarlı Ali Paşa",
+   "aciklama": "Bursa'daki Ali Paşa Camii'ni Halil Hayreddin Paşa'nın büyük oğlu Çandarlı Ali Paşa yaptırmıştır. Ali Paşa, babasının İznik'te başlattığı Yeşil Camii'yi de H. 794 / M. 1392'de tamamlamıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 255; Cilt 3, s. 63"
+  },
+  {
+   "id": "iznik-yesil-turbe",
+   "a": "bursa-yesil-imaret-candarli-halil-pasa-camii",
+   "b": "bursa-candarli-halil-pasa-turbesi",
+   "tur": "aile",
+   "baslik": "Çandarlı ailesinin türbesi",
+   "aciklama": "Yeşil Camii'yi yaptıran Halil Hayreddin Paşa'nın oğulları Sadrazam İbrahim Paşa ile camiyi tamamlayan Ali Paşa, İznik'teki Çandarlı Halil Paşa Türbesi'nde yatar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 63, 79"
+  },
+  {
+   "id": "ibrahim-cami-hamam",
+   "a": "bursa-candarli-ibrahim-pasa-mahkeme-hoca-muslihuddin-camii",
+   "b": "bursa-mahkeme-ibrahim-pasa-hamami",
+   "tur": "bani",
+   "baslik": "Aynı bani: Çandarlı İbrahim Paşa",
+   "aciklama": "Mahkeme Camii de denen cami, Çelebi Mehmed döneminde Çandarlı İbrahim Paşa tarafından yaptırılmıştır. Aynı paşanın yaptırdığı Mahkeme Hamamı, H. 825 / M. 1421 tarihli vakfiyede İznik'teki imaretine vakfedilmiş olarak geçer.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 289; Cilt 2, s. 137"
+  },
+  {
+   "id": "mahkeme-hamam-turbe",
+   "a": "bursa-mahkeme-ibrahim-pasa-hamami",
+   "b": "bursa-candarli-halil-pasa-turbesi",
+   "tur": "aile",
+   "baslik": "Banisinin türbesi",
+   "aciklama": "Mahkeme Hamamı'nı yaptıran Halil Hayreddin Paşa oğlu Çandarlı İbrâhim Paşa, İznik'teki aile türbesinde yatar; kitabeli sandukasına göre H. 832 / M. 1429'da vefat etmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 137; Cilt 3, s. 79"
+  },
+  {
+   "id": "ishak-cuma",
+   "a": "bursa-ishak-pasa-kulliyesi",
+   "b": "bursa-yildirim-bayezid-cuma-camii",
+   "tur": "komsu",
+   "baslik": "İnegöl çarşısında komşu",
+   "aciklama": "İnegöl'deki Yıldırım Bayezid (Cuma) Camii, çarşı merkezindeki İshak Paşa Külliyesi'nin doğusunda yer alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 183"
+  },
+  {
+   "id": "besikciler-cesme",
+   "a": "bursa-besikciler-sinan-dede-camii-ve-haziresi",
+   "b": "bursa-besikciler-sinan-dede-camii-cesmesi",
+   "tur": "kulliye",
+   "baslik": "Caminin çeşmesi",
+   "aciklama": "Beşikçiler Çeşmesi caminin hemen yanındadır. Evliya Çelebi'nin aktardığına göre çeşme XVII. yüzyılda da kullanılıyordu; 1985'te özgün biçimine uygun olarak yeniden yapılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 283; Cilt 2, s. 123"
+  },
+  {
+   "id": "mecidiye-cesme",
+   "a": "bursa-mecidiye-camii",
+   "b": "bursa-mecidiye-camii-cesmesi",
+   "tur": "kulliye",
+   "baslik": "Caminin avlu çeşmesi",
+   "aciklama": "Çeşme, Kırım göçmenleri için yapılan Mecidiye Camii'nin avlu duvarındadır ve camiyle eş zamanlı yapıldığı düşünülür. 1985'teki büyük onarımda camiyle birlikte yenilenmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 395; Cilt 2, s. 131"
+  },
+  {
+   "id": "mecidiye-tiyatro",
+   "a": "bursa-mecidiye-camii",
+   "b": "bursa-ahmet-vefik-pasa-tiyatrosu",
+   "tur": "metin",
+   "baslik": "Vali Ahmet Vefik Paşa",
+   "aciklama": "Mecidiye Camii'ni 1877-78 savaşından sonra Bursa Valisi Ahmet Vefik Paşa yaptırmıştır. Tiyatro da adını, aynı valinin 1879-1882 arasında Bursa'da kurduğu ilk Türk tiyatrosundan alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 395; Cilt 2, s. 99"
+  },
+  {
+   "id": "sinan-kulliye-medrese",
+   "a": "bursa-sinan-pasa-kulliyesi",
+   "b": "bursa-sinan-pasa-kulliyesi-nde-medrese",
+   "tur": "kulliye",
+   "baslik": "Aynı külliyenin parçası",
+   "aciklama": "Medrese, \"Yemen Fâtihi\" Koca Sinan Paşa'nın H. 998 / M. 1590 tarihli vakfiyesinde külliyenin bir birimi olarak caminin kuzeyinde anılır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 361"
+  },
+  {
+   "id": "seyhmuftu-cami-turbe",
+   "a": "bursa-seyh-muftu-camii",
+   "b": "bursa-seyh-muftu-turbesi",
+   "tur": "kulliye",
+   "baslik": "Caminin avlusundaki türbe",
+   "aciklama": "Türbe, Şeyh Müftü Camii'nin kuzeybatı köşesine bitişiktir. İçinde caminin ilk yapısını yaptıran, Şeyh Müftü lakaplı Abdülkerim el-Kâdirî yatar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 301, 311"
+  },
+  {
+   "id": "azeb-cami-turbe",
+   "a": "bursa-azeb-bey-camii",
+   "b": "bursa-azeb-bey-turbesi",
+   "tur": "bani",
+   "baslik": "Aynı bani: Azeb Bey",
+   "aciklama": "Kitabelere göre Abdullah oğlu Azeb Bey önce türbesini H. 854 / M. 1449'da, camisini ise H. 860 / M. 1456'da yaptırmıştır. Envanter bu sıralamayı alışılmışın dışında bulur.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 271; Cilt 2, s. 209"
+  },
+  {
+   "id": "ebuishak-zaviye-turbe",
+   "a": "bursa-ebu-ishak-kazeruni-kamberler-camii-zaviye",
+   "b": "bursa-ebu-ishak-turbesi",
+   "tur": "metin",
+   "baslik": "Kâzerûniye zaviyesinin şeyhi",
+   "aciklama": "Ebû İshak Türbesi'nde yatan Seyyid Muhammed Nattâ, Bursa'daki İshâkıyye (Kâzerûniyye) zaviyesinin postnişiniydi. Ebu İshak Külliyesi'ni Yıldırım Bayezid, tarikatın kurucusu Şeyh Ebu İshak Kâzerûni adına yaptırmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 303; Cilt 2, s. 211"
+  },
+  {
+   "id": "ebuishak-timurtas",
+   "a": "bursa-ebu-ishak-kazeruni-kamberler-camii-zaviye",
+   "b": "bursa-timurtas-pasa-kulliyesi",
+   "tur": "komsu",
+   "baslik": "Yüz metre yukarıda",
+   "aciklama": "Envanter, Ebu İshak Külliyesi'nin Demirtaşpaşa (Timurtaş Paşa) Külliyesi'nin yaklaşık yüz metre yukarısında bulunduğunu kaydeder.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 303"
+  },
+  {
+   "id": "ebuishak-yildirim",
+   "a": "bursa-ebu-ishak-kazeruni-kamberler-camii-zaviye",
+   "b": "bursa-yildirim-bayezid-kulliyesi",
    "tur": "bani",
    "baslik": "Aynı bani: Yıldırım Bayezid",
-   "aciklama": "Kütahya Ulu Camii, Yıldırım Bayezid'in Kütahya valiliği sırasında başlatılmış; Bursa Yıldırım Külliyesi ise onun tarafından 1391-1395 arasında yaptırılmıştır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 415; Vikipedi, Kütahya Ulu Camii"
+   "aciklama": "Ebu İshak Külliyesi'ni 14. yüzyılın sonunda, Yıldırım Külliyesi'ni ise 1391-1395 arasında Sultan Yıldırım Bayezid yaptırmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 303; Cilt 2, s. 415"
   },
   {
-   "id": "bursa-koza-edirne-bayezid",
-   "a": "bursa-koza-hani",
-   "b": "edirne-ii-bayezid-kulliyesi",
-   "tur": "bani",
-   "baslik": "Aynı bani: II. Bayezid",
-   "aciklama": "Koza Hanı 1491'de II. Bayezid'in İstanbul'daki külliyesine gelir sağlamak için; Edirne II. Bayezid Külliyesi ise 1484-1488 arasında aynı sultan tarafından yaptırılmıştır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15; Vikipedi, II. Bayezid Külliyesi"
+   "id": "piremir-cami-turbe",
+   "a": "bursa-pir-emir-camii",
+   "b": "bursa-pir-emir-pir-emir-mehmet-turbesi",
+   "tur": "kulliye",
+   "baslik": "Zaviyenin haziresindeki türbe",
+   "aciklama": "Hoca Alizâde'nin Buharalı Pir Emir Mehmed adına yaptırdığı mescit ve zaviyede irşat eden Pir Emir, vefatında mescidin kuzeyindeki hazireye, bugünkü türbesinin yerine defnedilmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 509, 539"
   },
   {
-   "id": "bursa-fidan-istanbul-mahmud",
+   "id": "piremir-emirsultan",
+   "a": "bursa-pir-emir-camii",
+   "b": "bursa-emir-sultan-kulliyesi",
+   "tur": "metin",
+   "baslik": "Emir Sultan dergâhına talip",
+   "aciklama": "Pir Emir, 1495 dolaylarında Bursa'ya gelince Emîr Sultan'ın akrabası olduğunu öne sürüp dergâh üzerinde hak iddia etmiş; talebi kabul görmeyince dostu onun adına bu mescidi yaptırmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 509"
+  },
+  {
+   "id": "uckuzular-emirsultan",
+   "a": "bursa-uc-kuzular-kozlar-camii-ve-kabri",
+   "b": "bursa-emir-sultan-kulliyesi",
+   "tur": "metin",
+   "baslik": "Emir Sultan'la irtibatlı üç kardeş",
+   "aciklama": "Rivayete göre caminin doğusundaki üç mezar, 15. yüzyılda Emir Sultan ile irtibatı bulunan Safiyyüddin, Açıkbaş Mehmed ve Ali Efendi kardeşlere aittir; cami adını onlardan alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 443"
+  },
+  {
+   "id": "uckuzular-cami-turbe",
+   "a": "bursa-uc-kuzular-kozlar-camii-ve-kabri",
+   "b": "bursa-uc-kozlar-kuzular-turbe-ve-haziresi",
+   "tur": "kulliye",
+   "baslik": "Caminin altındaki türbe",
+   "aciklama": "Üç Kozlar Türbesi aynı adı taşıyan caminin haziresinde, caminin alt kısmındadır. İçinde dergâhın ilk şeyhi Muhyiddin-i Bursevî ve ailesine ait yedi sanduka bulunur.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 443; Cilt 2, s. 253"
+  },
+  {
+   "id": "fidan-mescit",
    "a": "bursa-fidan-hani",
-   "b": "istanbul-mahmud-pasa-camii",
-   "tur": "vakif",
-   "baslik": "İstanbul'daki külliyeye vakıf han",
-   "aciklama": "Fidan Hanı, Fatih Sultan Mehmed'in sadrazamı Mahmud Paşa'nın İstanbul'daki külliyesine gelir sağlamak üzere vakfedilmiştir. Han bu yüzden Mahmud Paşa Hanı olarak da anılır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 25; Vikipedi, Mahmud Paşa Camii"
+   "b": "bursa-fidan-mahmudpasa-hani-mescidi",
+   "tur": "kulliye",
+   "baslik": "Hanın avlusundaki mescit",
+   "aciklama": "Mescit, Fidan Hanı'nın avlusunun ortasındadır ve hana gelen tüccarların vakit namazları için yapılmıştır. Hanın banisine ithafen \"Mahmut Paşa Mescidi\" olarak da bilinir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 311; Cilt 2, s. 25"
   },
   {
-   "id": "bursa-osman-bilecik-ertugrul",
-   "a": "bursa-osman-gazi-turbesi",
-   "b": "bilecik-ertugrul-gazi-turbesi",
+   "id": "fidan-hatice",
+   "a": "bursa-fidan-hani",
+   "b": "bursa-hatice-isfendiyar-sultan-atpazari-camii-ve-kabri",
    "tur": "aile",
-   "baslik": "Baba-oğul hanedan türbeleri",
-   "aciklama": "Ertuğrul Gazi, Osman Gazi'nin babasıdır. Söğüt'teki türbesi ile Bursa'daki Osman Gazi Türbesi, Osmanlı hanedanının kuruluş hafızasını birlikte taşır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 235; Vikipedi, Ertuğrul Gazi Türbesi"
+   "baslik": "Mahmud Paşa ve eşi Hatice Sultan",
+   "aciklama": "Fidan Hanı, Fâtih'in sadrazamı Mahmud Paşa'nın İstanbul'daki külliyesine gelir sağlamak için vakfedilmiştir. Atpazarı'ndaki mescidi yaptıran Hatice Sultan, paşanın eşidir; Mahmud Paşa 1474'te öldürülünce Bursa'ya yerleşmiştir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 333; Cilt 2, s. 25"
   },
   {
-   "id": "bursa-ulucami-edirne-eski",
-   "a": "bursa-ulucami",
-   "b": "edirne-eski-cami",
-   "tur": "tipoloji",
-   "baslik": "Çok kubbeli ulucami geleneği",
-   "aciklama": "Bursa Ulucami ve Edirne Eski Cami, erken Osmanlı'nın çok kubbeli ulucami planını temsil eden iki büyük örnektir.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37; Vikipedi, Eski Cami"
+   "id": "hatice-yesil-turbe",
+   "a": "bursa-hatice-isfendiyar-sultan-atpazari-camii-ve-kabri",
+   "b": "bursa-yesil-turbe",
+   "tur": "aile",
+   "baslik": "Çelebi Mehmed'in torunu",
+   "aciklama": "Hatice Sultan'ın annesi Selçuk Hatun, Yeşil Türbe'de yatan Çelebi Mehmed'in kızıdır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 333; Cilt 2, s. 391"
   },
   {
-   "id": "bursa-ulucami-kutahya-ulu",
-   "a": "bursa-ulucami",
-   "b": "kutahya-ulu-camii",
-   "tur": "tipoloji",
-   "baslik": "Ulucami formu",
-   "aciklama": "İki yapı da aynı çok kubbeli ulucami geleneğine bağlıdır; Kütahya Ulu Camii Yıldırım Bayezid dönemine uzanır.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37; Vikipedi, Kütahya Ulu Camii"
+   "id": "hafsa-yesil-turbe",
+   "a": "bursa-hafsa-sultan-bedreddin-cesmesi",
+   "b": "bursa-yesil-turbe",
+   "tur": "aile",
+   "baslik": "Çelebi Mehmed'in kızı",
+   "aciklama": "Çeşmenin bulunduğu Hafsa Sultan Camii'ni H. 847 / M. 1443'te Çelebi Mehmed'in kızı Hafsa Sultan yaptırmıştır. Çelebi Mehmed, Yeşil Külliye'deki Yeşil Türbe'de yatar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 127, 391"
   },
   {
-   "id": "bursa-yildirim-medrese-konya-karatay",
-   "a": "bursa-yildirim-medresesi",
-   "b": "konya-karatay-medresesi",
-   "tur": "tipoloji",
-   "baslik": "Anadolu medrese geleneği",
-   "aciklama": "Bursa Yıldırım Medresesi ve Konya Karatay Medresesi, Anadolu'daki kubbeli avlulu medrese geleneğinin farklı yüzyıllardaki örnekleridir.",
-   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 439; Vikipedi, Karatay Medresesi"
+   "id": "simkes-koza",
+   "a": "bursa-simkes-sirmakes-camii",
+   "b": "bursa-koza-hani",
+   "tur": "metin",
+   "baslik": "Koza Hanı'nın eski adı",
+   "aciklama": "Koza Hanı'na \"Simkeş\" ya da \"Sırmakeş\" denildiği gibi bu cami de aynı adla anılır; mahallenin eski adı da Simkeş Mahallesi'dir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 417"
   },
   {
-   "id": "istanbul-suleymaniye-edirne-selimiye",
-   "a": "istanbul-suleymaniye-camii",
-   "b": "edirne-selimiye-camii",
-   "tur": "mimar",
-   "baslik": "Aynı mimar: Mimar Sinan",
-   "aciklama": "Süleymaniye 1550-1557, Selimiye 1568-1575 arasında inşa edilmiştir; ikisi de Mimar Sinan'ın baş eserleri ve Osmanlı selatin camilerinin zirvesidir.",
-   "kaynak": "Vikipedi, Süleymaniye Camii; Vikipedi, Selimiye Camii"
-  },
-  {
-   "id": "istanbul-suleymaniye-rustem",
-   "a": "istanbul-suleymaniye-camii",
-   "b": "istanbul-rustem-pasa-camii",
-   "tur": "mimar",
-   "baslik": "Aynı mimar: Mimar Sinan",
-   "aciklama": "Rüstem Paşa Camii 1561-1563'te Mimar Sinan tarafından yapılmıştır; Süleymaniye de onun eseridir. İki yapı Sinan'ın klasik dönemdeki farklı ölçeklerini gösterir.",
-   "kaynak": "Vikipedi, Rüstem Paşa Camii; Vikipedi, Süleymaniye Camii"
-  },
-  {
-   "id": "edirne-selimiye-istanbul-sultanahmet",
-   "a": "edirne-selimiye-camii",
-   "b": "istanbul-sultanahmet-camii",
-   "tur": "tipoloji",
-   "baslik": "Sinan sonrası selatin cami geleneği",
-   "aciklama": "Sultanahmet, Sinan'ın öğrencisi Sedefkâr Mehmed Ağa'nın eseridir; merkezî kubbe ve yarım kubbelerle Sinan ekolünü sürdürür.",
-   "kaynak": "Vikipedi, Sultanahmet Camii; Vikipedi, Selimiye Camii"
-  },
-  {
-   "id": "konya-karatay-ince-minareli",
-   "a": "konya-karatay-medresesi",
-   "b": "konya-ince-minareli-medrese",
+   "id": "nilufer-iznik-yesil",
+   "a": "bursa-nilufer-hatun-imareti",
+   "b": "bursa-yesil-imaret-candarli-halil-pasa-camii",
    "tur": "komsu",
-   "baslik": "Konya'nın Selçuklu medreseleri",
-   "aciklama": "İki medrese de 13. yüzyıl Konya'sında, birbirine yakın alanda inşa edilmiş Selçuklu eğitim yapılarıdır.",
-   "kaynak": "Vikipedi, Karatay Medresesi; Vikipedi, İnce Minareli Medrese"
+   "baslik": "İznik'te komşu",
+   "aciklama": "Nilüfer Hatun İmareti, İznik'te Yeşil Camii'nin batısında yer alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 111"
   },
   {
-   "id": "konya-mevlana-karatay",
-   "a": "konya-mevlana-muzesi",
-   "b": "konya-karatay-medresesi",
-   "tur": "komsu",
-   "baslik": "Aynı Selçuklu kent dokusu",
-   "aciklama": "Mevlânâ Külliyesi ve Karatay Medresesi, Konya'nın Selçuklu dönemi kent merkezindeki iki önemli yapı topluluğudur.",
-   "kaynak": "Vikipedi, Mevlânâ Müzesi; Vikipedi, Karatay Medresesi"
+   "id": "nilufer-suleyman",
+   "a": "bursa-nilufer-hatun-imareti",
+   "b": "bursa-suleyman-pasa-medresesi",
+   "tur": "aile",
+   "baslik": "Nilüfer Hatun'un oğulları",
+   "aciklama": "Nilüfer Hatun İmareti'ni 1388'de I. Murad annesi adına yaptırmıştır. Süleyman Paşa Medresesi'nin banisi Süleyman Paşa da Orhan Gazi ile Nilüfer Hatun'un oğlu, yani I. Murad'ın kardeşidir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 91, 111, 399"
   },
   {
-   "id": "mardin-zinciriye-kasimiye",
-   "a": "mardin-zinciriye-medresesi",
-   "b": "mardin-kasimiye-medresesi",
-   "tur": "komsu",
-   "baslik": "Mardin'in medrese geleneği",
-   "aciklama": "Zinciriye (1385) ve Kasımiye (15. yüzyıl) Mardin'in Artuklu ve Akkoyunlu dönemlerine ait iki büyük medresesidir.",
-   "kaynak": "Vikipedi, Zinciriye Medresesi; Vikipedi, Kasımiye Medresesi"
+   "id": "nilufer-yarhisar",
+   "a": "bursa-nilufer-hatun-imareti",
+   "b": "bursa-orhan-gazi-hamami",
+   "tur": "metin",
+   "baslik": "Nilüfer Hatun'un memleketi",
+   "aciklama": "Orhan Gazi Hamamı'nın bulunduğu Yarhisar, Orhan Gazi'nin eşi ve I. Murad'ın annesi Nilüfer Hatun'un memleketidir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 111, 399"
   },
   {
-   "id": "mardin-ulu-zinciriye",
-   "a": "mardin-ulu-camii",
-   "b": "mardin-zinciriye-medresesi",
-   "tur": "komsu",
-   "baslik": "Aynı tarihî doku",
-   "aciklama": "Mardin Ulu Camii ve Zinciriye Medresesi, Mardin'in Artuklu dönemi kent merkezinde yer alır.",
-   "kaynak": "Vikipedi, Mardin Ulu Camii; Vikipedi, Zinciriye Medresesi"
+   "id": "suleyman-orhan-turbe",
+   "a": "bursa-suleyman-pasa-medresesi",
+   "b": "bursa-orhan-gazi-turbesi",
+   "tur": "aile",
+   "baslik": "Orhan Gazi'nin büyük oğlu",
+   "aciklama": "İznik'teki medreseyi, Orhan Gazi'nin büyük oğlu ve Gelibolu fâtihi Süleyman Paşa yaptırmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 229; Cilt 3, s. 91"
   },
   {
-   "id": "konya-karatay-mardin-zinciriye",
-   "a": "konya-karatay-medresesi",
-   "b": "mardin-zinciriye-medresesi",
-   "tur": "tipoloji",
-   "baslik": "Anadolu medrese geleneği",
-   "aciklama": "Karatay (1251) ve Zinciriye (1385), Anadolu'daki kubbeli avlulu medrese geleneğinin iki örneğidir.",
-   "kaynak": "Vikipedi, Karatay Medresesi; Vikipedi, Zinciriye Medresesi"
-  },
-  {
-   "id": "izmir-hisar-kizlaragasi",
-   "a": "izmir-hisar-camii",
-   "b": "izmir-kizlaragasi-hani",
-   "tur": "komsu",
-   "baslik": "Kemeraltı'nın tarihî çekirdeği",
-   "aciklama": "Hisar Camii, Kızlarağası Hanı ve Kemeraltı Çarşısı aynı tarihî ticaret dokusunda yer alır.",
-   "kaynak": "Vikipedi, Hisar Camii; Vikipedi, Kızlarağası Hanı"
-  },
-  {
-   "id": "izmir-konak-hisar",
-   "a": "izmir-konak-camii",
-   "b": "izmir-hisar-camii",
-   "tur": "komsu",
-   "baslik": "İzmir'in Osmanlı camileri",
-   "aciklama": "Konak (Yalı) Camii ve Hisar Camii, İzmir'in Osmanlı döneminden kalan iki önemli camisidir.",
-   "kaynak": "Vikipedi, Konak Camii; Vikipedi, Hisar Camii"
-  },
-  {
-   "id": "izmir-sadirdanalti-kestanepazari",
-   "a": "izmir-sadirdanalti-camii",
-   "b": "izmir-kestanepazari-camii",
-   "tur": "komsu",
-   "baslik": "Kemeraltı camileri",
-   "aciklama": "İki cami de Kemeraltı Çarşısı'nın tarihî mahalle dokusunda yer alır.",
-   "kaynak": "Vikipedi, Şadırvanaltı Camii; Vikipedi, Kestanepazarı Camii"
-  },
-  {
-   "id": "edirne-ucserefeli-selimiye",
-   "a": "edirne-uc-serefeli-cami",
-   "b": "edirne-selimiye-camii",
-   "tur": "komsu",
-   "baslik": "Edirne'nin selatin camileri",
-   "aciklama": "Üç Şerefeli ve Selimiye, Edirne'nin 15. ve 16. yüzyıldaki iki büyük selatin camisidir.",
-   "kaynak": "Vikipedi, Üç Şerefeli Cami; Vikipedi, Selimiye Camii"
-  },
-  {
-   "id": "edirne-bayezid-selimiye",
-   "a": "edirne-ii-bayezid-kulliyesi",
-   "b": "edirne-selimiye-camii",
-   "tur": "komsu",
-   "baslik": "Edirne'nin iki büyük külliyesi",
-   "aciklama": "II. Bayezid Külliyesi ve Selimiye, Edirne'nin Osmanlı başkenti olduğu dönemin iki büyük selatin külliyesidir.",
-   "kaynak": "Vikipedi, II. Bayezid Külliyesi; Vikipedi, Selimiye Camii"
-  },
-  {
-   "id": "balikesir-zagnos-istanbul-mahmud",
-   "a": "balikesir-zagnos-pasa-camii",
-   "b": "istanbul-mahmud-pasa-camii",
+   "id": "yenisehir-orhan",
+   "a": "bursa-orhan-gazi-camii-ulucami",
+   "b": "bursa-orhan-bey-kulliyesi",
    "tur": "bani",
-   "baslik": "Fatih'in iki vezirinin camileri",
-   "aciklama": "Mahmud Paşa ve Zağanos Paşa, Fatih Sultan Mehmed'in vezirleridir; iki cami de 15. yüzyıl Osmanlı vezir baniliğini temsil eder.",
-   "kaynak": "Vikipedi, Zağnos Paşa Camii; Vikipedi, Mahmud Paşa Camii"
+   "baslik": "Aynı bani: Orhan Gazi",
+   "aciklama": "Yenişehir'deki Orhan Gazi Camii'nin ilk yapısı 1324-1362 arasında Orhan Gazi tarafından yapılmıştır; Bursa'daki Orhan Bey Külliyesi ise H. 740 / M. 1339-40'ta Orhan Bey tarafından yaptırılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 191; Cilt 3, s. 385"
+  },
+  {
+   "id": "gurle-yenisehir",
+   "a": "bursa-gurle-koyu-hamami",
+   "b": "bursa-orhan-gazi-camii-ulucami",
+   "tur": "bani",
+   "baslik": "Aynı bani: Orhan Gazi",
+   "aciklama": "Gürle Köyü Hamamı bölgenin fethinden sonra XIV. yüzyılda, Yenişehir'deki Orhan Gazi Camii'nin ilk yapısı ise 1324-1362 arasında Orhan Gazi tarafından yaptırılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 347, 385"
+  },
+  {
+   "id": "sehadet-orhan-turbe",
+   "a": "bursa-sehadet-kale-saray-camii",
+   "b": "bursa-orhan-gazi-turbesi",
+   "tur": "metin",
+   "baslik": "Hisar'ın ilk camisi",
+   "aciklama": "Şehadet Camii metnine göre Orhan Gazi, Bursa'nın fethiyle şimdiki türbesinin bulunduğu yerdeki Saint Elias Manastırı'nı camiye çevirmiş; bu cami cuma namazına yetmeyince yeni bir cami yapılmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 421"
+  },
+  {
+   "id": "alaeddin-osman",
+   "a": "bursa-alaeddin-bey-camii-ve-haziresi",
+   "b": "bursa-osman-gazi-turbesi",
+   "tur": "aile",
+   "baslik": "Osman Gazi'nin büyük oğlu",
+   "aciklama": "Caminin banisi Alâeddin Bey, Osman Gazi'nin büyük oğludur; babasının yerine geçmeyi kabul etmeyip bu görevi kardeşi Orhan Gazi'ye bırakmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 247"
+  },
+  {
+   "id": "geyikli-cami-cesme",
+   "a": "bursa-geyikli-babasultan-camii",
+   "b": "bursa-geyikli-baba-cesmesi",
+   "tur": "kulliye",
+   "baslik": "Geyikli Baba'nın çeşmesi",
+   "aciklama": "Çeşme Babasultan Camii'nin yanındadır. Üzerinde Geyikli Baba'ya ait olduğu rivayet edilen el ve ayak izleri bulunur; bu yüzden suyu kutsal kabul edilir.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 3, s. 237, 257"
+  },
+  {
+   "id": "kavakli-geyikli",
+   "a": "bursa-kavakli-camii",
+   "b": "bursa-geyikli-babasultan-camii",
+   "tur": "metin",
+   "baslik": "Geyikli Baba'nın diktiği ağaç",
+   "aciklama": "Kavaklı Camii, rivayete göre Geyikli Baba'nın caminin önüne diktiği ağaca telmihle bu adla anılır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 373"
+  },
+  {
+   "id": "kavakli-kocanaip",
+   "a": "bursa-kavakli-camii",
+   "b": "bursa-koca-naip-camii-ve-haziresi",
+   "tur": "bani",
+   "baslik": "Aynı bani: Koca Nâib",
+   "aciklama": "Kavaklı Camii'ni 1370'te, Koca Naip Camii'ni de I. Murad devrinin Bursa kadı nâibi Koca Nâib yaptırmıştır. İki metne göre 1372'de vefat eden Koca Nâib, Pınarbaşı'nda Mevlevîhane'nin karşısındaki türbesinde yatar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 373, 383"
+  },
+  {
+   "id": "eyne-issiz",
+   "a": "bursa-eyne-bey-inebey-subasi-medresesi",
+   "b": "bursa-issiz-susuz-han",
+   "tur": "bani",
+   "baslik": "Aynı bani: Eyne (İne) Bey",
+   "aciklama": "İnebey Medresesi'ni Feleküddin oğlu Eyne Bey, Karacabey'deki Issız Han'ı ise 1394'te Feleküddin oğlu İne Bey yaptırmıştır. İki metin de onu I. Murad devrinde Karesi sancak beyi olarak anar.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 67; Cilt 3, s. 223"
+  },
+  {
+   "id": "ertugrul-yildirim",
+   "a": "bursa-ertugrul-bey-camii-ve-kabri",
+   "b": "bursa-yildirim-bayezid-kulliyesi",
+   "tur": "aile",
+   "baslik": "Yıldırım Bayezid'in oğlu",
+   "aciklama": "Ertuğrul Bey Camii'ni, Kadı Burhaneddin ile Çorum'daki savaşta ölen Yıldırım Bayezid'in oğlu Şehzade Ertuğrul Çelebi yaptırmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 307; Cilt 2, s. 415"
+  },
+  {
+   "id": "yildirim-inegol",
+   "a": "bursa-yildirim-bayezid-kulliyesi",
+   "b": "bursa-yildirim-bayezid-cuma-camii",
+   "tur": "bani",
+   "baslik": "Aynı bani: Yıldırım Bayezid",
+   "aciklama": "Bursa'daki külliyeyi 1391-1395 arasında, İnegöl'deki Cuma Camii'ni de vakıf belgelerine göre Sultan Yıldırım Bayezid yaptırmıştır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 415; Cilt 3, s. 183"
+  },
+  {
+   "id": "karisdiran-muradiye",
+   "a": "bursa-karisdiran-karsiduran-suleyman-bey-turbesi",
+   "b": "bursa-ii-murad-kulliyesi",
+   "tur": "komsu",
+   "baslik": "Muradiye'nin ihata duvarında",
+   "aciklama": "Karışdıran Süleyman Bey Türbesi, Muradiye Külliyesi'ni çevreleyen ihata duvarının batı kesiminde yer alır.",
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 221"
   }
  ]
 }

@@ -259,7 +259,7 @@ test("kalfa kaynağı: kalfanın yazdığı kod 'kalfa', elle değiştirilen 'el
 });
 
 test("sahte kalfanın şablonu 'sahte' olarak işaretlenir", async () => {
-  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması" }] }, usta: true });
+  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması yap" }] }, usta: true });
   const sonuc = y.json();
   assert.equal(sonuc.model, "sahte");
   const m = (await s.istek("POST", "/api/moduller", { govde: { id: "sahte-deneme", ad: "Sahte", kod: sonuc.kod }, usta: true })).json();
@@ -296,8 +296,8 @@ test("genel arama: ad, il, ilçe ve tür; Türkçe harfler gevşek eşleşir", a
   const ulu = (await s.istek("GET", "/api/ara?q=ulucami")).json();
   assert.equal(ulu[0].id, "bursa-ulucami");
   assert.ok(!("tarihce" in ulu[0]), "arama yalnızca özet döner");
-  const izmir = (await s.istek("GET", "/api/ara?q=izmir")).json();
-  assert.ok(izmir.length > 0 && izmir.every((e) => e.il === "İzmir"));
+  const iznik = (await s.istek("GET", "/api/ara?q=iznik")).json();
+  assert.ok(iznik.length > 0 && iznik.every((e) => e.ilce === "İznik" || e.ad.includes("znik")));
   const cesme = (await s.istek("GET", "/api/ara?q=cesme%20osmangazi&limit=50")).json();
   assert.ok(cesme.some((e) => e.tur === "cesme"));
   assert.ok(cesme.every((e) => e.ilce === "Osmangazi" && (e.tur === "cesme" || /çeşme/i.test(e.ad))));
@@ -306,11 +306,22 @@ test("genel arama: ad, il, ilçe ve tür; Türkçe harfler gevşek eşleşir", a
 
 test("vitrin il listesini, dalış özeti kareleri olmadan döner", async () => {
   const v = (await s.istek("GET", "/api/vitrin")).json();
-  assert.ok(v.iller.includes("Bursa") && v.iller.includes("Konya"));
+  assert.deepEqual(v.iller, ["Bursa"], "yalnızca Vakıf Katılım envanterindeki iller");
   await mkdir(path.join(s.veri, "dalislar"), { recursive: true });
   await copyFile(path.join(KOK, "data", "dalislar", "bursa-ulucami.json"), path.join(s.veri, "dalislar", "bursa-ulucami.json"));
   const ozet = (await s.istek("GET", "/api/dalislar?ozet=1")).json();
   assert.deepEqual(ozet.map((d) => d.eser), ["bursa-ulucami"]);
   assert.ok(!("kareler" in ozet[0]));
   assert.ok((await s.istek("GET", "/api/dalislar")).json()[0].kareler.length > 0);
+});
+
+test("assetlinks.json yalnızca ANDROID_IMZA_SHA256 doluysa yayımlanır", async () => {
+  assert.equal((await s.istek("GET", "/.well-known/assetlinks.json")).statusCode, 404);
+  const imza = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, "0")).join(":");
+  const d = await deneySunucusu({ ANDROID_IMZA_SHA256: `${imza}, bozuk` });
+  const y = await d.istek("GET", "/.well-known/assetlinks.json");
+  assert.equal(y.statusCode, 200);
+  assert.equal(y.json()[0].target.package_name, "com.kozmos.lonca");
+  assert.deepEqual(y.json()[0].target.sha256_cert_fingerprints, [imza.toUpperCase()]);
+  await d.app.close();
 });

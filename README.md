@@ -118,9 +118,13 @@ a read-only deploy key (`~/.ssh/config` host alias `github-lonca` →
 cd /opt/lonca && ./docker/guncelle.sh      # LONCA_DAL=main for another branch; default dev
 ```
 
-It fast-forwards the branch, rebuilds and waits for `/api/merhaba`. If Studio
-edits on the server changed tracked files in `data/` or `public/medya/`, it stops
-and lists them instead of overwriting.
+It fast-forwards the branch, rebuilds and waits for `/api/merhaba`. Studio edits
+made on the server (tracked files in `data/` or `public/medya/`, e.g. a newly
+drafted module in `data/moduller/index.json`) are kept: the script copies `data/`
+to `/opt/lonca-yedek/<time>/`, stashes those changes, fast-forwards and re-applies
+them. Only if GitHub changed the same lines does it stop, leaving the server on
+the old commit with its data untouched. Uncommitted changes to code files stop it
+before anything happens.
 
 The overlay sets `LONCA_IP_BASLIGI=cf-connecting-ip` so rate limits count the
 real visitor instead of the tunnel. Cloudflare waits at most 100 s for response
@@ -255,14 +259,13 @@ published). It demonstrates almost the entire SDK in one standalone app:
   through `depo`.
 
 **Showcase: Sisli Vakıf Atlası** (`data/moduller/sisli-vakif-haritasi.js`, published).
-A dark, globe-like fog-of-war atlas across nine cities: Bursa, İzmir, Edirne,
-İstanbul, Konya, Mardin, Balıkesir, Kütahya and Bilecik. Opened cities glow in
-the dark; clusters become glowing dots and split as you zoom. Curated historical
-links are drawn as curved arcs (same külliye, patron, architect, endowed han,
+A dark fog-of-war atlas of Bursa's districts (Osmangazi, Yıldırım, İznik,
+Yenişehir, İnegöl and more). Opened districts glow in the dark; clusters become
+glowing dots and split as you zoom. Curated historical links are drawn as curved arcs (same külliye, patron, architect, endowed han,
 dynasty, trade network, explicit textual mention, historic neighbourhood).
-Opening a work shows its photos, inventory/Wikipedia text, source, a radial
+Opening a work shows its photos, inventory text, source, a radial
 relationship graph and a link list with the explanation and source behind every
-relationship. A mühür economy lets you reveal the next hidden city when stuck.
+relationship. A mühür economy lets you reveal the next hidden district when stuck.
 
 **Completeness filters:** `eserler.liste({ tam: true })` returns works with every
 core field (name, category, province, district, century, location, address,
@@ -276,9 +279,14 @@ and absent fields. The same filters are available over HTTP through
 
 1. The chat and the current code go to `POST /api/kalfa`. The API key stays on
    the server.
-2. The journeyman knows the SDK contract, the rules and the two example apps. It
-   uses the `eser_ara` tool to look at what is actually in the database, and
-   delivers the module through the `modul_yaz` tool.
+2. The journeyman knows the SDK contract, the rules and the two example apps. By
+   default it converses (`yanit_ver`): it answers questions and discusses the
+   idea, and writes code (`modul_yaz`) when the usta asks for it in any wording
+   ("yap", "hazırla", "başlayalım", "şunu da ekleyelim", "evet"…): the model reads
+   the intent, the server only refuses code for a plain question. It looks things up in the knowledge base with
+   `eser_ara` and `eser_bilgisi` (full record, history, source, relations). Every
+   reply carries the sources it drew from (work records with their citation, SDK
+   parts) and 2–3 suggested follow-ups shown as buttons in Studio.
 3. The code is audited:
    - Only `@lonca/sdk` may be imported; `eval` and dynamic import are forbidden.
    - Unknown node types, icons, 3D focus and theme names are rejected.
@@ -302,18 +310,16 @@ and absent fields. The same filters are available over HTTP through
 
 ## Data
 
-`data/eserler.json`: **187 works** across nine cities. **165 works** come from
-Vakıf Katılım's *Bursa Vakıf Eserleri Envanteri* (three volumes); **22 works**
-from İzmir, Edirne, İstanbul, Konya, Mardin, Balıkesir, Kütahya and Bilecik were
-curated with Turkish Wikipedia text, coordinates and Wikimedia Commons photos
-(CC BY-SA). 49 works currently have coordinates and appear on the atlas.
+`data/eserler.json`: **165 works**, all from Vakıf Katılım's *Bursa Vakıf
+Eserleri Envanteri* (three volumes). Works from other sources (for example
+Wikipedia) are not added: every record must come from the Vakıf Katılım
+inventory. 131 works currently have coordinates and appear on the atlas.
 
 - **History and source:** Turkish and English history text, plus the source
   (volume and page).
 - **Century:** filled only when the book states a construction date. Repair
   dates are not construction dates; without a date the field stays empty.
-- **Photos:** **480 photos** across 187 works. Bursa photos come from the books;
-  the new city photos come from Wikimedia Commons and are stored locally.
+- **Photos:** **443 photos** across 165 works, all taken from the books.
 - **Location:** the books carry no coordinates. Manually entered approximate
   locations are used for known buildings, together with positions found by
   `npm run konum`. Approximate locations are labelled as such in the app
@@ -332,7 +338,6 @@ Data pipeline (`araclar/`):
 | `kitap-ice-aktar.py` | Reads PDF text with positions. Splits two-page spreads, TR/EN columns and complex sub-sections, and repairs broken "Ş/İ" characters. |
 | `foto-cikar.py` | Extracts photos with their position on the page and attaches each to the work that starts before it. Section covers go to the next work. |
 | `veri-olustur.py` | Merges manual corrections (`data/bursa-ek.json`) with the photos. |
-| `sehir-ekle.mjs` | Adds the curated city records from Turkish Wikipedia + Wikimedia Commons (text, coordinates, local photos). |
 
 ```bash
 python3 araclar/kitap-ice-aktar.py kitaplar/bursa-envanteri-cilt-*.pdf > /tmp/ham.json
@@ -417,6 +422,4 @@ test/         node:test suites · e2e/ end-to-end scenario
 - **Bursa work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*.
   Used within the scope of the hackathon; the repository is private for this
   reason.
-- **New city texts and photos:** Turkish Wikipedia and Wikimedia Commons,
-  CC BY-SA 4.0; each record carries its page/source link.
 - **Map data:** © OpenStreetMap contributors or © Google.

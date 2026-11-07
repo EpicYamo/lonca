@@ -3,7 +3,8 @@
 // Ustanın serbest isteğiyle çalışır ("Ulu Cami'nin minberini ve şadırvanını anlatan bir dalış yap").
 // Adımlar (her biri Studio'da canlı izlenir):
 //   0. İstek       isteğe uyan eser adayları yerelde puanlanır, dil modeli doğru eseri ve odağı seçer
-//   1. Kaynaklar   eser kaydı (Vakıf envanteri) + Türkçe Vikipedi metni ve koordinatı
+//   1. Kaynaklar   bilgi bankası: eser kaydı (Vakıf envanteri, cilt/sayfa künyesiyle) ve kaynaklı tarihsel bağlar
+//                  (data/eser-iliskileri.json); Türkçe Vikipedi yalnızca DALIS_VIKIPEDI=1 ise
 //   2. Fotoğraflar görsel model eserin fotoğraflarını tanır (hava / dış / iç / detay)
 //   3. Plan        dil modeli, aşağıdaki DALIS_SISTEM istemiyle geziyi planlar: dış duraklar, giriş, merkez,
 //                  kollar (ayrıntılar) ve her durağın kaynaklı bilgi kartları
@@ -13,7 +14,9 @@
 //   6. İşaretler   görsel model bilgi kartlarının oklarının göstereceği noktaları bulur
 //   7. Kayıt       data/dalislar/<eser>.json, durum "bekliyor": editör Studio'da inceleyip onaylar
 //
-// Bilgi kartları yalnızca verilen kaynaklardan yazılır (E: envanter, V: Vikipedi, G: kaynaksız genel kavram).
+// Bilgi kartları yalnızca verilen kaynaklardan yazılır (E: envanter, B: kaynaklı tarihsel bağ, V: Vikipedi,
+// G: kaynaksız genel kavram). Planın kullanmadığı envanter cümleleri kartlara aynen eklenir; gezi tarihçenin
+// tamamını anlatır, yalnızca "nerede" sorusunda kalmaz.
 // Kartların doğruluğunu insan editör onaylar; kalfa yalnızca taslak üretir.
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -24,6 +27,9 @@ import { dalisUretici, dalisSohbet, dalisAyarlari } from "./dalis-uretim.js";
 const UYDU_DUZEYLERI = [6, 9, 12, 14, 16, 18];
 const CAPRAZ = [0.3, 0.3, 0.4];          // ortak noktası olmayan iki kare arasında yumuşak geçiş
 const MAKS_KOL = 5;
+const MAKS_KART = 5;                    // bir duraktaki kart sayısı (oynatıcı modülü künye kartıyla en çok 6 gösterir)
+const KANIT_UZUNLUK = 220;              // kanıt alıntısının en çok uzunluğu (harf)
+const KART_METNI = 340;                 // kart metninin en çok uzunluğu (harf)
 
 export const DALIS_SISTEM = `Sen Lonca platformunun "dalış kalfası"sın. Bir vakıf eseri için kaydırarak gezilen, uydudan eserin içine inen bir gezi ("dalış") planlarsın. Planını yalnızca JSON olarak verirsin; görüntüleri ve uydu inişini platform üretir.
 
@@ -36,8 +42,10 @@ export const DALIS_SISTEM = `Sen Lonca platformunun "dalış kalfası"sın. Bir 
 6. Çıkış: platform kendisi yapar (gökyüzüne yükseliş).
 
 # Bilgi kartları (bakışlar)
-- Her durakta en çok 3 kart. Kart: { "u": üst etiket (en çok 20 harf), "b": başlık (en çok 45 harf), "m": metin (en çok 230 harf, sıcak ve sade Türkçe), "k": kaynak ("E" veya "V"), "kanit": ilgili kaynaktan aynen kopyalanmış 20–100 harflik kısa parça, "nerede": isteğe bağlı, gerçek fotoğrafta görülebilen şeyin İngilizce kısa tarifi }.
-- "E" yalnızca ENVANTER, "V" yalnızca VİKİPEDİ. Her kartta "kanit" ZORUNLU; alıntı ilgili kaynakta kelimesi kelimesine bulunmalı. Karttaki ad, kişi ve sayılar bu alıntıyla desteklenmeli. Kaynakta açıkça bulunmayan bilgi, çıkarım veya efsaneyi yazma; emin değilsen kartı çıkar.
+- Gezi eserin hikâyesini DERİNLEMESİNE anlatır; yalnızca nerede olduğunu söyleyen yüzeysel bir gezi istenmez. ENVANTER metnindeki bilgilerin TAMAMINI duraklara dağıt: her cümle en az bir kartta kullanılsın. Konum/adres bilgisi en çok bir kartta geçer.
+- Anlatı sırası (kaynakta olanlarla): dış duraklarda bani, yapım tarihi ve vakfın amacı/gelir bağı; girişte kapı, kitabe ve cephe; merkezde iç mekân, plan ve yapının işlevi (kimlere hizmet ettiği); kollarda ayrıntılar; son duraklarda onarımlar, dönüşümler, bugünkü kullanım ve TARİHSEL BAĞLAR.
+- Her durakta 2–${MAKS_KART} kart. Kart: { "u": üst etiket (en çok 20 harf), "b": başlık (en çok 45 harf), "m": metin (en çok 300 harf, 1–3 cümle, sıcak ve sade Türkçe), "k": kaynak ("E", "B" veya "V"), "kanit": ilgili kaynaktan aynen kopyalanmış 20–200 harflik parça, "nerede": isteğe bağlı, gerçek fotoğrafta görülebilen şeyin İngilizce kısa tarifi }.
+- "E" yalnızca ENVANTER, "B" yalnızca TARİHSEL BAĞLAR, "V" yalnızca VİKİPEDİ. Her kartta "kanit" ZORUNLU; alıntı ilgili kaynakta kelimesi kelimesine bulunmalı. Karttaki ad, kişi ve sayılar bu alıntıyla desteklenmeli. Kaynakta açıkça bulunmayan bilgi, çıkarım veya efsaneyi yazma; emin değilsen kartı çıkar.
 - "G" yalnızca vakıf, vakfiye, bani, külliye, imaret, kitabe, mihrap, minber, mahfil, şadırvan, revak, kubbe, kasnak, mukarnas, taç kapı, kavsara, söve, şebeke, çini, türbe, sanduka, hazire, han, bedesten, medrese, darüşşifa, tekke ve zaviye gibi genel kavramları tanımlamak için kullanılabilir. Platform tanımı uygular; G kartına tarih, kişi, sayı ya da bu esere özgü iddia koyma.
 - "nerede" yalnızca verilen GERÇEK fotoğrafta açıkça görünen bir şey için yazılır. YZ ile üretilmiş karede sonradan uydurulan ayrıntıyı kanıt gibi anlatma.
 - Kaynakta varsa bani, mimar, yapım tarihi, vakfın hizmeti/gelir bağı, onarım veya dönüşüm ve bugünkü kullanım bilgilerini kısa kartlara dağıt; özellikle bani, tarih ve vakıf boyutunu atlama. Kaynakta yoksa ekleme.
@@ -57,7 +65,7 @@ export const DALIS_SISTEM = `Sen Lonca platformunun "dalış kalfası"sın. Bir 
   "dis": [ { "foto": 1, "baslik": "...", "yazi": "alt|ust", "genislet": "...", "bakislar": [ ... ] } ],
   "giris": { "istem": "...", "baslik": "...", "bakislar": [ ... ] } | null,
   "merkez": { "istem": "...", "foto": null | iç mekân fotoğrafının numarası, "baslik": "...", "bakislar": [ ... ] },
-  "kollar": [ { "baslik": "...", "aranacak": "...", "istem": "...", "k": "E|V", "kanit": "kaynakta aynen geçen kısa alıntı", "bakislar": [ ... ] } ]
+  "kollar": [ { "baslik": "...", "aranacak": "...", "istem": "...", "k": "E|B|V", "kanit": "kaynakta aynen geçen kısa alıntı", "bakislar": [ ... ] } ]
 }
 "yazi": görüntünün alt kısmı önemliyse "ust" (kart üstte durur).
 
@@ -225,27 +233,98 @@ function iddialarAlintidaMi(baslik, metin, kanit) {
     && m.adlar.every((ad) => ifadeGeciyor(kanit, ad));
 }
 
-export function kaynakKaniti(kaynak, kanit, kaynakMetinleri = {}) {
-  if (kaynak !== "E" && kaynak !== "V") return false;
-  const alinti = katla(kisalt(kanit, 100));
-  const metin = katla(kaynakMetinleri[kaynak]);
-  return alinti.length >= 20 && !!metin && metin.includes(alinti);
+const sade = (s) => katla(s).replace(/\s+/g, " ").trim();
+
+// Kanıtın geçtiği kaynak parçası ({ metin, kaynak? }) ya da null. Bir kaynağın metni tek dize ya da parça listesi
+// olabilir (tarihsel bağlar: her bağ kendi künyesiyle ayrı parça).
+function kanitParcasi(kaynak, kanit, kaynakMetinleri = {}) {
+  if (!["E", "B", "V"].includes(kaynak)) return null;
+  const alinti = sade(kisalt(kanit, KANIT_UZUNLUK));
+  if (alinti.length < 20) return null;
+  const parcalar = [].concat(kaynakMetinleri[kaynak] ?? []).map((p) => (typeof p === "string" ? { metin: p } : p));
+  return parcalar.find((p) => p?.metin && sade(p.metin).includes(alinti)) ?? null;
 }
 
-export function bakislariTemizle(liste, izinliKaynak, kaynakMetinleri = {}) {
-  return (Array.isArray(liste) ? liste : []).slice(0, 4).flatMap((ham) => {
+export function kaynakKaniti(kaynak, kanit, kaynakMetinleri = {}) {
+  return !!kanitParcasi(kaynak, kanit, kaynakMetinleri);
+}
+
+// kanitlar: verilirse geçerli kartların kanıt alıntıları buraya eklenir (hangi envanter cümlelerinin kullanıldığını
+// bulmak için). Kartın "ky" alanı gösterilecek künyedir (E: eser kaynağı, cilt/sayfa; B: bağın kendi kaynağı).
+export function bakislariTemizle(liste, izinliKaynak, kaynakMetinleri = {}, kanitlar = null) {
+  return (Array.isArray(liste) ? liste : []).slice(0, MAKS_KART).flatMap((ham) => {
     const k = ham?.k;
     if (!izinliKaynak.has(k)) return [];
     if (k === "G") {
       const sozluk = GENEL_BILGI.get(katla(ham?.b));
       return sozluk ? [{ u: kisalt(ham?.u, 24), b: kisalt(ham?.b, 60), m: sozluk, k: "G" }] : [];
     }
-    if (!kaynakKaniti(k, ham?.kanit, kaynakMetinleri)) return [];
-    const metin = kisalt(ham?.m, 300), baslik = kisalt(ham?.b, 60);
-    const alinti = kisalt(ham?.kanit, 100);
+    const parca = kanitParcasi(k, ham?.kanit, kaynakMetinleri);
+    if (!parca) return [];
+    const metin = kisalt(ham?.m, KART_METNI), baslik = kisalt(ham?.b, 60);
+    const alinti = kisalt(ham?.kanit, KANIT_UZUNLUK);
     if (!metin || !iddialarAlintidaMi(baslik, metin, alinti)) return [];
-    return [{ u: kisalt(ham?.u, 24), b: baslik, m: metin, k, nerede: ham?.nerede ? kisalt(ham.nerede, 120) : undefined }];
+    kanitlar?.push(sade(alinti));
+    const ky = k === "B" ? parca.kaynak : k === "E" ? kaynakMetinleri.kunye : undefined;
+    return [{ u: kisalt(ham?.u, 24), b: baslik, m: metin, k, ky: ky ? kisalt(ky, 120) : undefined, nerede: ham?.nerede ? kisalt(ham.nerede, 120) : undefined }];
   });
+}
+
+// Envanter metnini cümlelere böler. "II. Bayezid", "s. 15", "1. kat" gibi kısaltmalarda bölmez; çok uzun cümleyi
+// noktalı virgül ya da virgülden KART_METNI'ni aşmayacak parçalara ayırır.
+export function cumleler(metin) {
+  const ham = String(metin ?? "").replace(/\s+/g, " ").trim().split(/(?<=[.!?…])\s+(?=["“(]?[A-ZÇĞİÖŞÜÂÎÛ0-9])/);
+  const birlesik = [];
+  for (const c of ham) {
+    const onceki = birlesik.at(-1);
+    if (onceki && /(?:^|[\s(])(?:[IVXLC]+|[A-Za-zÇĞİÖŞÜçğıöşü]{1,2}|\d+|Hz|vb|bkz|yy|Dr|Prof)\.$/.test(onceki)) birlesik[birlesik.length - 1] = `${onceki} ${c}`;
+    else birlesik.push(c);
+  }
+  return birlesik.flatMap((c) => {
+    if (c.length <= KART_METNI) return [c];
+    const parcalar = [];
+    let su = "";
+    for (const p of c.split(/(?<=[;,])\s+/)) {
+      if (su && (su + " " + p).length > KART_METNI) { parcalar.push(su); su = p; }
+      else su = su ? `${su} ${p}` : p;
+    }
+    if (su) parcalar.push(su);
+    return parcalar.filter((p) => p.length <= KART_METNI);
+  }).filter((c) => c.length >= 25);
+}
+
+// Kartın konusunu gösteren üst etiket; yalnızca cümlede geçen kelimelerden seçilir, yeni bilgi eklemez.
+function konuEtiketi(cumle) {
+  const k = katla(cumle);
+  if (/\bvakf|\bvakif|gelir/.test(k)) return "Vakıf";
+  if (/onar|tamir|restor|yenilen|yikil|yangin|deprem/.test(k)) return "Onarım";
+  if (/gunumuz|bugun|kullanil|hizmet ver/.test(k)) return "Bugün";
+  if (/yaptir|insa|bani|kurdur|yapil/.test(k)) return "Yapım";
+  if (/kitabe|yazit/.test(k)) return "Kitabe";
+  if (/kubbe|kemer|revak|cephe|plan|duvar|minare|mihrap|minber|avlu|kapi/.test(k)) return "Mimari";
+  return "Envanterden";
+}
+
+// Planın kartlarında kullanılmamış envanter cümlelerini, gezi sırasını koruyarak boş yeri olan duraklara aynen ekler.
+// Böylece kalfa az kart yazsa ya da kartları denetimden geçemese bile gezi tarihçenin tamamını anlatır.
+export function eksikCumleleriEkle(kareler, envanter, kanitlar, kunye) {
+  const kullanildi = (c) => {
+    const s = sade(c);
+    return kanitlar.some((k) => s.includes(k.slice(0, 30)) || k.includes(s.slice(0, 30)));
+  };
+  const eksik = cumleler(envanter).filter((c) => !kullanildi(c));
+  const duraklar = kareler.filter((k) => k.t !== "uydu");
+  if (!eksik.length || !duraklar.length) return 0;
+  let eklenen = 0;
+  eksik.forEach((c, i) => {
+    const hedef = Math.min(duraklar.length - 1, Math.floor((i * duraklar.length) / eksik.length));
+    const sira = [...duraklar.slice(hedef), ...duraklar.slice(0, hedef).reverse()];
+    const durak = sira.find((d) => (d.k?.length ?? 0) < MAKS_KART);
+    if (!durak) return;
+    (durak.k ??= []).push({ u: konuEtiketi(c), b: "", m: c, k: "E", ky: kunye ? kisalt(kunye, 120) : undefined });
+    eklenen++;
+  });
+  return eklenen;
 }
 
 // Dalış üretimi dış araçlara dayanır (ffmpeg/ffprobe kırpma ve ölçek için, python3 + Pillow karo dikme için).
@@ -260,12 +339,14 @@ export function eksikAraclar() {
     .map(([, , tarif]) => tarif);
 }
 
-export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "data", "dalislar"), ortam = process.env }) {
+export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = path.join(kok, "data", "dalislar"), ortam = process.env }) {
   const isler = new Map();
   let etkin = null;
   const hazir = () => { const a = dalisAyarlari(ortam); return !!(a.api && a.anahtar); };
 
-  function baslat({ istek = "", eserId = null, uzerineYaz = false }) {
+  // korunanlar: üzerine yazılmayacak mevcut dalış durumları. Usta (admin olmayan) için "bekliyor" da korunur ki
+  // başkasının onay bekleyen dalışını ezemesin.
+  function baslat({ istek = "", eserId = null, uzerineYaz = false, korunanlar = ["onayli"] }) {
     if (!hazir()) throw Object.assign(new Error("Dalış kalfası için .env'de USTAGPT_BASE_URL ve USTAGPT_API_KEY (ya da DALIS_API_URL ve DALIS_API_ANAHTARI) gerekli"), { kod: 503 });
     const eksik = eksikAraclar();
     if (eksik.length) throw Object.assign(new Error(`Dalış kalfası için bu bilgisayarda şu araçlar eksik: ${eksik.join("; ")}. Kurup sunucuyu yeniden başlat.`), { kod: 503 });
@@ -278,8 +359,12 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     (async () => {
       const { eser, odak } = await istegiCoz(is, eserId);
       const tanimYolu = path.join(dalisDizini, `${eser.id}.json`);
-      if (existsSync(tanimYolu) && !uzerineYaz && JSON.parse(readFileSync(tanimYolu, "utf8")).durum === "onayli")
-        throw new Error(`${eser.ad} için yayında bir dalış var; yenisini yapmak için önce Dalışlar listesinden onu kaldır`);
+      const mevcut = existsSync(tanimYolu) ? JSON.parse(readFileSync(tanimYolu, "utf8")).durum : null;
+      if (mevcut && !uzerineYaz && korunanlar.includes(mevcut)) {
+        throw new Error(mevcut === "onayli"
+          ? `${eser.ad} için yayında bir dalış var; yenisini yapmak için önce Dalışlar listesinden onu kaldır`
+          : `${eser.ad} için onay bekleyen bir dalış var; admin onu inceleyince yenisini isteyebilirsin`);
+      }
       return calistir(is, eser, kisalt(odak, 1000), tanimYolu);
     })()
       .then((sonuc) => { is.durum = "bitti"; is.sonuc = sonuc; yaz(is, `Hazır: ${sonuc.kareSayisi} durak. Studio'da inceleyip onayla.`); })
@@ -300,7 +385,7 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     let eser = eserId ? eserler.find((e) => e.id === eserId) : null;
     if (eser && !is.istek) { is.eser = eser.id; is.ad = eser.ad; return { eser, odak: "" }; }
     const aday = eser ? [eser] : adaylar(eserler, is.istek);
-    if (!aday.length) throw new Error("İstekte adı geçen bir eser bulunamadı (yalnızca fotoğrafı olan eserler için dalış yapılabilir). Eserin adını yaz.");
+    if (!aday.length) throw new Error("Bu istek bilgi bankamızdaki bir vakıf eserine uymuyor (dalış yalnızca veritabanımızdaki, fotoğrafı olan eserler için yapılır). Aşağıdaki önerilerden birini seçebilir ya da bilgi bankasındaki bir eserin adını yazabilirsin. Nasıl devam edelim?");
     yaz(is, `Adaylar: ${aday.slice(0, 6).map((e) => e.ad).join(", ")}${aday.length > 6 ? "…" : ""}`);
     const { metin, model } = await dalisSohbet({
       ortam, sistem: ISTEK_SISTEM, maks: 800,
@@ -308,7 +393,7 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     });
     const j = jsonCikar(metin);
     eser = aday.find((e) => e.id === j?.eser) ?? null;
-    if (!eser) throw new Error(kisalt(j?.neden, 300) || "İstekteki eser anlaşılamadı; eserin adını yaz.");
+    if (!eser) throw new Error(`${kisalt(j?.neden, 300) || "İstekteki eser bilgi bankamızda bulunamadı."} Aşağıdaki önerilerden birini seçebilir ya da bilgi bankasındaki bir eserin adını yazabilirsin. Nasıl devam edelim?`);
     is.eser = eser.id; is.ad = eser.ad;
     yaz(is, `Eser: ${eser.ad} (${eser.il}) — ${kisalt(j?.neden, 160)} [${model}]`);
     if (j?.odak) yaz(is, `Odak: ${kisalt(j.odak, 300)}`);
@@ -317,9 +402,11 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
 
   async function calistir(is, eser, not, tanimYolu) {
     // 1. Kaynaklar
-    yaz(is, "Kaynaklar toplanıyor: eser kaydı ve Vikipedi…", 1);
-    const viki = await vikipedi(eser).catch(() => null);
-    yaz(is, viki ? `Vikipedi: "${viki.baslik}" (${viki.metin.length} harf)` : "Vikipedi'de uygun madde bulunamadı; yalnızca envanter kullanılacak.");
+    // Kalfa yalnızca bilgi bankamızla çalışır: Vikipedi varsayılan olarak kapalı (DALIS_VIKIPEDI=1 ile açılır).
+    const vikiAcik = ortam.DALIS_VIKIPEDI === "1";
+    yaz(is, vikiAcik ? "Kaynaklar toplanıyor: eser kaydı ve Vikipedi…" : "Kaynak: bilgi bankasındaki eser kaydı (envanter)", 1);
+    const viki = vikiAcik ? await vikipedi(eser).catch(() => null) : null;
+    if (vikiAcik) yaz(is, viki ? `Vikipedi: "${viki.baslik}" (${viki.metin.length} harf)` : "Vikipedi'de uygun madde bulunamadı; yalnızca envanter kullanılacak.");
     let hedef = null;
     if (viki?.konum && (!eser.konum || mesafe(viki.konum, eser.konum) < 20_000)) hedef = viki.konum;
     else if (eser.konum) hedef = { lat: eser.konum.lat, lng: eser.konum.lng };
@@ -349,9 +436,16 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     // 3. Plan
     yaz(is, "Gezi planlanıyor…", 3);
     const envanter = eser.tarihce?.tr ? kisalt(eser.tarihce.tr, 6000) : "";
+    // Bilgi bankasındaki kaynaklı tarihsel bağlar: her biri kendi künyesiyle ayrı kaynak parçası.
+    const baglar = iliskiler.filter((i) => i?.a === eser.id || i?.b === eser.id).slice(0, 12).flatMap((i) => {
+      const diger = eserler.find((e) => e.id === (i.a === eser.id ? i.b : i.a));
+      return diger && i.aciklama ? [{ metin: `${diger.ad}: ${i.baslik ?? ""}. ${i.aciklama}`, kaynak: i.kaynak }] : [];
+    });
+    yaz(is, `Bilgi bankası: tarihçe ${envanter.length} harf (${eser.kaynak ?? "Vakıf Katılım"}), ${baglar.length} kaynaklı tarihsel bağ`);
     const istem = [
       `# ESER\n${JSON.stringify({ id: eser.id, ad: eser.ad, tur: eser.tur, yuzyil: eser.yuzyil, il: eser.il, ilce: eser.ilce, adres: eser.adres })}`,
       `# ENVANTER (k: "E")\n${envanter || "(tarihçe yok)"}\nKaynak: ${eser.kaynak ?? "Vakıf Katılım"}`,
+      `# TARİHSEL BAĞLAR (k: "B")\n${baglar.length ? baglar.map((b) => `- ${b.metin} (Kaynak: ${b.kaynak ?? "Vakıf Katılım"})`).join("\n") : "(yok — B kartı yazma)"}`,
       `# VİKİPEDİ (k: "V")\n${viki ? `${viki.baslik}\n${viki.metin}` : "(yok — V kartı yazma)"}`,
       `# FOTOĞRAFLAR\n${fotoBilgi.map((f) => `${f.no}. ${f.tur}: ${f.tarif}`).join("\n") || fotolar.map((_, i) => `${i + 1}. (bilinmiyor)`).join("\n")}`,
       not ? `# USTANIN İSTEĞİ\n${not}` : "",
@@ -369,8 +463,10 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
       }
     }
     if (!plan) throw new Error("Kalfa geçerli bir plan üretemedi (günlüğe bak)");
-    const izinli = new Set(["E", "G", ...(viki ? ["V"] : [])]);
-    const kaynakMetinleri = { E: envanter, V: viki?.metin ?? "" };
+    const izinli = new Set(["E", "G", ...(baglar.length ? ["B"] : []), ...(viki ? ["V"] : [])]);
+    const kaynakMetinleri = { E: envanter, B: baglar, V: viki?.metin ?? "", kunye: eser.kaynak };
+    const kanitlar = [];
+    const temizle = (liste) => bakislariTemizle(liste, izinli, kaynakMetinleri, kanitlar);
     const dis = (Array.isArray(plan.dis) ? plan.dis : [])
       .filter((d) => Number.isInteger(d?.foto) && d.foto >= 1 && d.foto <= fotolar.length && ["hava", "dis"].includes(fotoBilgi[d.foto - 1]?.tur))
       .sort((a, b) => (fotoBilgi[a.foto - 1].tur === "hava" ? 0 : 1) - (fotoBilgi[b.foto - 1].tur === "hava" ? 0 : 1))
@@ -404,14 +500,14 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
         try { r = await u.gercekKare({ ad, kaynak, genislet, netlestir, genisletIstem: kisalt(d.genislet, 400) }); }
         catch (h) { yaz(is, `  ${ad}: genişletilemedi (${kisalt(h.message, 80)}), fotoğraf kırpılarak kullanılıyor`); r = await u.gercekKare({ ad, kaynak }); }
         kareler.push({ g: ad, t: r.yz ? "yeniden-cizim" : netlestir ? "netlestirilmis" : genislet ? "genisletilmis" : "gercek", p: CAPRAZ,
-           b: kisalt(d.baslik, 60), y: d.yazi === "ust" ? "ust" : undefined, k: bakislariTemizle(d.bakislar, izinli, kaynakMetinleri) });
+           b: kisalt(d.baslik, 60), y: d.yazi === "ust" ? "ust" : undefined, k: temizle(d.bakislar) });
       }
       // 4c. Giriş
       if (plan.giris?.istem) try {
         const kirp = [0.3, 0.35, 0.4];
         await u.uretilenKare({ ad: "g1", uret: { ref: [{ kare: kareler.at(-1).g, kirp }], istem: `Vertical photo continuing the reference: ${kisalt(plan.giris.istem, 900)}` } });
         kareler.at(-1).p = kirp;
-         kareler.push({ g: "g1", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.giris.baslik, 60), k: bakislariTemizle(plan.giris.bakislar, izinli, kaynakMetinleri) });
+         kareler.push({ g: "g1", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.giris.baslik, 60), k: temizle(plan.giris.bakislar) });
       } catch { yaz(is, "  Giriş karesi üretilemedi, atlandı"); }
       // 4d. Merkez
       yaz(is, "Merkez karesi üretiliyor…");
@@ -441,19 +537,24 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
       }
       if (kollar.length && !bulunan.length) yaz(is, "  Ayrıntılar gerçek görselde doğrulanamadı; uydurma yakın çekim yerine merkez karesiyle devam ediliyor");
 
-      const merkezBakis = bakislariTemizle(plan.merkez.bakislar, izinli, kaynakMetinleri);
+      const merkezBakis = temizle(plan.merkez.bakislar);
       if (bulunan.length) merkezBakis.push({ u: "Gezi", b: `${bulunan.length} doğrulanmış ayrıntı`, m: `${bulunan.map((x) => kisalt(x.kol.baslik, 30)).join(", ")}; her birinden sonra bu noktaya döneceğiz.`, k: "" });
       else merkezBakis.push({ u: "Kaynak notu", b: "Burada duruyoruz", m: "Bu eserin kaynaklarında fotoğraftaki ayrıntılarla güvenle eşleştirilebilecek başka bir öğe bulunmadı.", k: "" });
       kareler.at(-1).p = CAPRAZ;
       if (bulunan.length) {
         bulunan.forEach((b, i) => {
           kareler.push({ g: "m", t: "canlandirma", p: b.kirp, b: i === 0 ? kisalt(plan.merkez.baslik, 60) || "İçeride" : `Şimdi: ${kisalt(b.kol.baslik, 45)}`, k: i === 0 ? merkezBakis : undefined });
-          const kb = bakislariTemizle(b.kol.bakislar, izinli, kaynakMetinleri);
+          const kb = temizle(b.kol.bakislar);
           if (kb[0] && !kb[0].nerede) kb[0].n = [0.5, 0.5];
           kareler.push({ g: b.ad, t: "canlandirma", c: b.kirp, b: kisalt(b.kol.baslik, 60), k: kb });
         });
         kareler.push({ g: "m", t: "canlandirma", p: CAPRAZ, b: "" });
       } else kareler.push({ g: "m", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.merkez.baslik, 60) || "Eserin merkezinde", k: merkezBakis });
+
+      // Planın atladığı envanter cümleleri: tarihçenin tamamı gezide anlatılsın.
+      const eklenen = eksikCumleleriEkle(kareler, envanter, kanitlar, eser.kaynak);
+      const kartSayisi = kareler.reduce((t, k) => t + (k.k?.length ?? 0), 0);
+      yaz(is, `Bilgi kartları: ${kartSayisi} kart${eklenen ? ` (${eklenen} envanter cümlesi plan dışında kaldığı için aynen eklendi)` : ""}`);
 
       // 6. İşaretler: "nerede" verilen kartların noktaları
       yaz(is, "Bilgi kartlarının okları yerleştiriliyor…", 6);
