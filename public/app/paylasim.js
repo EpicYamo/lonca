@@ -65,49 +65,83 @@ async function modulGetir(anahtar) {
   return { ...govde, paylasim: anahtar, kodYolu: `/api/paylasim/${encodeURIComponent(anahtar)}/kod` };
 }
 
-// "Modüllerim" başlığının yanındaki "Davet kodu" düğmesi: bireysel (özel) modülü kısa kodla açar.
-function davetAlaniKur(ac) {
-  const ust = document.querySelector("#modullerim-bolum .bolum-ust");
-  if (!ust || document.getElementById("davet-dugme")) return;
-  const dugme = document.createElement("button");
-  dugme.type = "button";
-  dugme.id = "davet-dugme";
-  dugme.className = "metin-dugme";
-  dugme.textContent = "Davet kodu";
-  dugme.setAttribute("aria-haspopup", "dialog");
-  dugme.style.marginLeft = "auto"; // başlık solda, "Davet kodu" ve "Düzenle" sağda yan yana
-  ust.querySelector("h2")?.after(dugme);
+// Modüller bölümünün başındaki "Davet koduyla eriş" kartı: bireysel (özel) modülü kısa kodla açar.
+// Android kabuğunda yalnızca Modüller sekmesinde görünür (data-sekme="moduller").
+const DAVET_STILI = `
+.davet-karti{display:grid;gap:.75rem;margin:0 0 1.6rem;padding:1.1rem 1.1rem 1rem;border-radius:var(--yaricap-buyuk,22px);background:var(--yuzey);box-shadow:var(--golge-kart,none)}
+.davet-ust{display:flex;align-items:center;gap:.8rem}
+.davet-simge{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:12px;background:var(--dolgu);color:var(--vurgu)}
+.davet-simge svg{width:24px;height:24px}
+.davet-karti h2{margin:0;font-size:1.06rem;font-weight:650;letter-spacing:-.01em}
+.davet-karti p{margin:.1rem 0 0;color:var(--soluk);font-size:.86rem;text-wrap:pretty}
+.davet-form{display:flex;gap:.5rem}
+.davet-form input{flex:1;min-width:0;min-height:48px;padding:0 1rem;border:0;border-radius:12px;background:var(--dolgu);color:var(--metin);font:inherit;font-size:1.05rem;font-variant-numeric:tabular-nums;letter-spacing:.08em;text-transform:uppercase}
+.davet-form input::placeholder{color:var(--soluk);letter-spacing:.08em}
+.davet-form input:focus{outline:2px solid var(--vurgu);outline-offset:0}
+.davet-form button{flex:none;min-height:48px;padding:0 1.3rem;border:0;border-radius:12px;background:var(--ana);color:var(--ana-metin);font:inherit;font-weight:600;cursor:pointer;transition:transform .15s var(--egri,ease-out),opacity .15s var(--egri,ease-out)}
+.davet-form button:active{transform:scale(.97)}
+.davet-form button:disabled{opacity:.5;cursor:not-allowed}
+.davet-hata{min-height:0;margin:0;color:var(--soluk);font-size:.86rem}
+.davet-hata:empty{display:none}
+.davet-karti.sarsil{animation:davet-sarsil .32s var(--egri,ease-out)}
+@keyframes davet-sarsil{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@media (prefers-reduced-motion:reduce){.davet-karti.sarsil{animation:none}}
+:root.hareket-az .davet-karti.sarsil{animation:none}
+:root.kontrast .davet-karti{border:1px solid #fff}`;
 
-  const pencere = document.createElement("dialog");
-  pencere.className = "izin-penceresi";
-  pencere.setAttribute("aria-labelledby", "davet-baslik");
-  pencere.innerHTML = `<form class="izin-kutu" novalidate>
-      <h2 id="davet-baslik">Davet koduyla aç</h2>
-      <p class="tanisma-alt" id="davet-alt">Bir usta seninle bireysel modülünü paylaştıysa sana verdiği kodu yaz.</p>
-      <input id="davet-girdi" class="tanisma-girdi" placeholder="ABCD-EFGH" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-describedby="davet-alt davet-hata">
-      <p class="izin-not" id="davet-hata" role="alert"></p>
-      <div class="tanisma-dugmeler">
-        <button type="button" class="dugme ikincil" value="vazgec">Vazgeç</button>
-        <button type="submit" class="dugme">Aç</button>
-      </div>
-    </form>`;
-  document.body.append(pencere);
-  const girdi = pencere.querySelector("#davet-girdi"), hataYeri = pencere.querySelector("#davet-hata");
-  const ac_ = pencere.querySelector('button[type="submit"]');
-  dugme.addEventListener("click", () => { girdi.value = ""; hataYeri.textContent = ""; pencere.showModal(); girdi.focus(); });
-  pencere.querySelector('[value="vazgec"]').addEventListener("click", () => pencere.close());
-  pencere.querySelector("form").addEventListener("submit", async (e) => {
+function davetAlaniKur(ac) {
+  const bolum = document.getElementById("modullerim-bolum");
+  if (!bolum || document.getElementById("davet-karti")) return;
+  if (!document.getElementById("davet-stil")) {
+    const stil = document.createElement("style");
+    stil.id = "davet-stil";
+    stil.textContent = DAVET_STILI;
+    document.head.append(stil);
+  }
+  const kart = document.createElement("section");
+  kart.id = "davet-karti";
+  kart.className = "davet-karti";
+  kart.dataset.sekme = "moduller";
+  kart.setAttribute("aria-labelledby", "davet-baslik");
+  kart.innerHTML = `<div class="davet-ust">
+      <span class="davet-simge" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7a4 4 0 1 1-3.87 5H8v3H5v-3H3"/><circle cx="15" cy="11" r="1"/></svg></span>
+      <div><h2 id="davet-baslik">Davet koduyla eriş</h2>
+      <p id="davet-alt">Bir usta seninle bireysel modülünü paylaştıysa kodunu yaz.</p></div>
+    </div>
+    <form class="davet-form" novalidate>
+      <label class="gizli" for="davet-girdi">Davet kodu</label>
+      <input id="davet-girdi" placeholder="ABCD-EFGH" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-describedby="davet-alt davet-hata">
+      <button type="submit">Aç</button>
+    </form>
+    <p class="davet-hata" id="davet-hata" role="alert"></p>`;
+  bolum.before(kart);
+  const girdi = kart.querySelector("#davet-girdi"), hataYeri = kart.querySelector("#davet-hata");
+  const dugme = kart.querySelector('button[type="submit"]');
+  const hataGoster = (metin) => {
+    hataYeri.textContent = metin;
+    kart.classList.remove("sarsil");
+    void kart.offsetWidth; // animasyonu yeniden başlat
+    kart.classList.add("sarsil");
+  };
+  // Yazarken ABCD-EFGH biçimine getir.
+  girdi.addEventListener("input", () => {
+    const k = girdi.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    girdi.value = k.length > 4 ? `${k.slice(0, 4)}-${k.slice(4)}` : k;
+    hataYeri.textContent = "";
+  });
+  kart.querySelector("form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const kod = girdi.value.trim().toUpperCase().replace(/[\s-]/g, "");
-    if (!/^[A-Z0-9]{8}$/.test(kod)) { hataYeri.textContent = "Kod 8 harf ve rakamdan oluşur (örneğin ABCD-EFGH)."; return; }
-    ac_.disabled = true;
+    const kod = girdi.value.replace(/-/g, "");
+    if (kod.length !== 8) return hataGoster("Kod 8 harf ve rakamdan oluşur (örneğin ABCD-EFGH).");
+    dugme.disabled = true;
     try {
       const m = await modulGetir(`${kod.slice(0, 4)}-${kod.slice(4)}`);
-      pencere.close();
+      girdi.value = "";
+      girdi.blur();
       ac(m);
     } catch (h) {
-      hataYeri.textContent = h.message === "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." ? "Bu kodla bir modül bulunamadı." : h.message;
-    } finally { ac_.disabled = false; }
+      hataGoster(h.message === "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." ? "Bu kodla bir modül bulunamadı. Kodu ustaya bir daha sor." : h.message);
+    } finally { dugme.disabled = false; }
   });
 }
 
