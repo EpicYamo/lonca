@@ -97,7 +97,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const atolyeSahibi = async (req) => (await oturumSahibi(req))?.id ?? "yonetici";
 
   const app = Fastify({ logger: gunluk ? { level: "info" } : false, bodyLimit: 1024 * 1024, trustProxy: true });
-  const erisim = await erisimKur({ anahtar: ortam.LONCA_API_ANAHTARI, veri });
+  const erisim = await erisimKur({ anahtar: ortam.LONCA_API_ANAHTARI, veri, hesapOturumuGecerli: async (req) => !!(await oturumSahibi(req)) });
   erisim.kur(app);
 
   // ---------- Statik ----------

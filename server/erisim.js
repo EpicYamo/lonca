@@ -16,7 +16,7 @@ const BASLIK = "x-lonca-anahtar";
 const CEREZ = "lonca_anahtar";
 const KOD_OMRU = 5 * 60_000;
 const ozet = (s) => createHash("sha256").update(String(s)).digest("hex");
-const ACIK_UCLAR = new Set(["/api/merhaba", "/api/eslestir"]);
+const ACIK_UCLAR = new Set(["/api/merhaba", "/api/eslestir", "/api/hesap/kayit", "/api/hesap/giris"]);
 
 function cerezOku(req, ad) {
   for (const parca of String(req.headers.cookie ?? "").split(";")) {
@@ -27,7 +27,7 @@ function cerezOku(req, ad) {
 }
 const kacis = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-export async function erisimKur({ anahtar, veri }) {
+export async function erisimKur({ anahtar, veri, hesapOturumuGecerli = async () => false }) {
   const gerekli = typeof anahtar === "string" && anahtar.length > 0;
   const anaOzet = gerekli ? Buffer.from(ozet(anahtar), "hex") : null;
   const cihazDosyasi = jsonDosya(path.join(veri, "cihazlar.json"), []);
@@ -41,7 +41,7 @@ export async function erisimKur({ anahtar, veri }) {
   const cihazBul = (deger) => (typeof deger === "string" && deger ? cihazlar.find((c) => c.ozet === ozet(deger)) : undefined);
 
   /** "ana" | "cihaz" | null */
-  function kimlik(req) {
+  async function kimlik(req) {
     if (!gerekli) return "ana";
     for (const deger of [req.headers[BASLIK], cerezOku(req, CEREZ)]) {
       if (anaMi(deger)) return "ana";
@@ -52,9 +52,10 @@ export async function erisimKur({ anahtar, veri }) {
         return "cihaz";
       }
     }
+    if (await hesapOturumuGecerli(req)) return "hesap";
     return null;
   }
-  const yetkiliMi = (req) => kimlik(req) !== null;
+  const yetkiliMi = async (req) => (await kimlik(req)) !== null;
 
   function cihazEkle(ad) {
     const deger = `lca_${randomBytes(32).toString("base64url")}`;
@@ -66,7 +67,7 @@ export async function erisimKur({ anahtar, veri }) {
   const disaVer = ({ ozet: _, ...c }) => c;
 
   const anaGerekli = async (req, rep) => {
-    if (gerekli && kimlik(req) !== "ana") return rep.code(401).send({ hata: "Bu işlem için ana API anahtarı gerekli", anahtarGerekli: true });
+    if (gerekli && (await kimlik(req)) !== "ana") return rep.code(401).send({ hata: "Bu işlem için ana API anahtarı gerekli", anahtarGerekli: true });
   };
   const eslestirmeSiniri = hizSiniri({ adet: 10, pencereMs: 10 * 60_000, mesaj: "Çok fazla eşleştirme denemesi; biraz sonra tekrar dene." });
 
@@ -80,11 +81,11 @@ export async function erisimKur({ anahtar, veri }) {
     app.addHook("onRequest", async (req, rep) => {
       if (!gerekli) return;
       const yol = req.url.split("?")[0];
-      if (yol.startsWith("/api/") && !ACIK_UCLAR.has(yol.replace(/\/+$/, "")) && !yetkiliMi(req)) {
+      if (yol.startsWith("/api/") && !ACIK_UCLAR.has(yol.replace(/\/+$/, "")) && !(await yetkiliMi(req))) {
         return rep.code(401).send({ hata: "API anahtarı gerekli", anahtarGerekli: true, lonca: true });
       }
       // Tarayıcıda uygulama/Studio açılırken çerez yoksa giriş sayfasına yönlendir.
-      if (req.method === "GET" && /^\/(app|studio)\/(index\.html)?$/.test(yol) && !yetkiliMi(req)) {
+      if (req.method === "GET" && /^\/(app|studio)\/(index\.html)?$/.test(yol) && !(await yetkiliMi(req))) {
         return rep.redirect(`/giris?devam=${encodeURIComponent(yol)}`);
       }
     });

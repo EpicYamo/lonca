@@ -25,6 +25,18 @@ test("anahtar varsa /api korunur, merhaba açıktır", async () => {
   assert.match(y.headers.location, /^\/giris\?devam=/);
 });
 
+test("hesapla giriş ana API anahtarını istemez; geçerli Bearer jetonu API erişimi sağlar", async () => {
+  const { istek } = await deneySunucusu({ LONCA_API_ANAHTARI: ANA });
+  const kayit = await istek("POST", "/api/hesap/kayit", { govde: { kimlik: "app-kullanicisi", sifre: "guclu-sifre-123", rol: "vatandas" } });
+  assert.equal(kayit.statusCode, 201);
+  const { jeton } = kayit.json();
+  const bearer = { authorization: `Bearer ${jeton}` };
+  assert.equal((await istek("GET", "/api/hesap/ben", { basliklar: bearer })).statusCode, 200);
+  assert.equal((await istek("GET", "/api/eserler", { basliklar: bearer })).statusCode, 200);
+  assert.equal((await istek("GET", "/api/eserler")).statusCode, 401);
+  assert.equal((await istek("POST", "/api/hesap/giris", { govde: { kimlik: "app-kullanicisi", sifre: "guclu-sifre-123" } })).statusCode, 200);
+});
+
 test("eşleştirme kodu tek kullanımlık cihaz anahtarı verir, cihaz silinince geçersizleşir", async () => {
   const { istek } = await deneySunucusu({ LONCA_API_ANAHTARI: ANA });
   assert.equal((await istek("POST", "/api/eslestirme-kodu")).statusCode, 401);

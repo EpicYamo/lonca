@@ -93,6 +93,25 @@ try {
   assert.equal(yayinda.length, 1);
   adim("öneri onaylandı ve eser yayına girdi");
 
+  await tel.click("#profil-cip");
+  await tel.waitForSelector("#profil-ekrani:not([hidden])");
+  await tel.getByRole("button", { name: "Hesap oluştur", exact: true }).click();
+  await tel.fill("#hesap-kimlik", "e2e-gezgin");
+  await tel.fill("#hesap-sifre", "e2e-gezgin-sifre");
+  await tel.click("#hesap-gonder");
+  await tel.waitForSelector(".hesap-kart >> text=@e2e-gezgin");
+  const tasinanPuan = await tel.evaluate(() => JSON.parse(localStorage.getItem("lonca.profil")).puan);
+  assert.ok(tasinanPuan > 0, "cihazdaki profil puanı ilk kayıt sırasında hesaba taşınmalı");
+  adim("App profilinden hesap açıldı, cihaz profili hesaba taşındı");
+
+  await tel.locator(".hesap-kart").getByRole("button", { name: "Oturumu kapat" }).click();
+  await tel.locator(".hesap-kart").getByRole("button", { name: "Giriş yap" }).click();
+  await tel.fill("#hesap-kimlik", "e2e-gezgin");
+  await tel.fill("#hesap-sifre", "e2e-gezgin-sifre");
+  await tel.click("#hesap-gonder");
+  await tel.waitForSelector(".hesap-kart >> text=@e2e-gezgin");
+  adim("App hesabıyla tekrar giriş yapıldı");
+
   assert.deepEqual(hatalar, [], "sayfa hatası olmamalı");
   console.log("\nUçtan uca senaryo başarılı.");
 } catch (h) {

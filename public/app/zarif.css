@@ -357,6 +357,31 @@ dialog.galeri { overflow: hidden; }
 .profil-ad { font-family: var(--yazi-baslik); font-weight: 700; letter-spacing: -.01em; }
 .profil-seviye { color: var(--vurgu); font-weight: 600; }
 .profil-modul h3 { font-family: inherit; font-weight: 600; font-size: 1rem; }
+.hesap-kart { align-items: stretch; gap: .55rem; padding: 1.1rem; background: var(--yuzey-2); text-align: left; }
+.hesap-kart h2 { margin: 0; font-size: 1.1rem; font-weight: 650; }
+.hesap-ust { color: var(--soluk); font-size: .72rem; font-weight: 600; letter-spacing: .04em; }
+.hesap-aciklama { margin: 0; color: var(--soluk); font-size: .88rem; line-height: 1.45; }
+.hesap-eylemler { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: .25rem; }
+.hesap-eylemler .dugme { flex: 1 1 130px; }
+.hesap-kutu { display: grid; gap: .65rem; }
+.hesap-kutu h2 { margin: 0; }
+.hesap-kutu .hesap-alan { display: grid; gap: .35rem; margin: .15rem 0 0; color: var(--soluk); font-size: .88rem; }
+.hesap-kutu .hesap-alan input { width: 100%; }
+.hesap-kip { margin: .25rem 0; }
+.hesap-kip button { flex: 1; min-height: 40px; border: 0; border-radius: 8px; background: transparent; color: var(--soluk); font: 500 .9rem var(--yazi-sistem); }
+.hesap-kip button.secili { background: var(--yuzey); color: var(--metin); box-shadow: var(--golge-kart); }
+.hesap-kip button:focus-visible, .hesap-rol input:focus-visible + span { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.hesap-kayit { display: grid; gap: .45rem; margin: .25rem 0 0; padding: 0; border: 0; }
+.hesap-kayit legend { margin-bottom: .2rem; color: var(--soluk); font-size: .78rem; }
+.hesap-rol { display: flex; align-items: flex-start; gap: .6rem; padding: .7rem .75rem; border-radius: 12px; background: var(--yuzey-2); cursor: pointer; }
+.hesap-rol input { flex: none; width: 18px; height: 18px; margin: .1rem 0 0; accent-color: var(--vurgu); }
+.hesap-rol span { display: grid; gap: .12rem; }
+.hesap-rol b { color: var(--metin); font-size: .9rem; font-weight: 600; }
+.hesap-rol small { color: var(--soluk); font-size: .78rem; line-height: 1.4; }
+.hesap-hata { margin: 0; padding: .65rem .75rem; border-radius: 10px; background: var(--yuzey-2); color: var(--metin); font-size: .88rem; }
+.hesap-kutu .tanisma-dugmeler { margin-top: .15rem; }
+:root[data-tema="koyu"] .hesap-kip button.secili { background: #636366; box-shadow: none; }
+:root.kontrast .hesap-kart, :root.kontrast .hesap-rol, :root.kontrast .hesap-hata { border: 1px solid #fff; }
 
 /* ---------- Modül ekranındaki kapsül (Aa · ×) ---------- */
 .kapsul { -webkit-backdrop-filter: saturate(1.8) blur(20px); backdrop-filter: saturate(1.8) blur(20px); }

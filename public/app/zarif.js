@@ -5,6 +5,7 @@
 const SAYFALAR = [
   { kutu: "#ayarlar .ayarlar-kutu", kapat: "#ayar-kapat" },
   { kutu: "#tanisma .ayarlar-kutu", kapat: "#tanisma-gec" },
+  { kutu: "#hesap-penceresi .hesap-kutu", kapat: "#hesap-vazgec" },
   { kutu: "#katki .ayarlar-kutu", kapat: "#katki-vazgec" },
   { kutu: "#eser-penceresi", kapat: "#ep-x" },
 ];
