@@ -1124,6 +1124,16 @@ const EYLEMLER = {
   arsiv: [["Arşivden çıkar", "kaldirildi", "ikincil"], ["Sil", "sil", "tehlike"]],
   reddedildi: [["Atölyede aç", "ac", "ikincil"], ["Yeniden değerlendir", "bekliyor", "ikincil"], ["Sil", "sil", "tehlike"]],
 };
+// Usta yalnızca kendi modüllerini görür; onaydan ya da yayından geri çekip özel taslağa döndürebilir ve silebilir.
+// Özel taslak uygulamada listelenmez; atölyede açıp "Herkese açık" seçerek yeniden onaya gönderilir.
+const USTA_EYLEMLER = {
+  bekliyor: [["Atölyede aç", "ac", "ikincil"], ["Onaydan geri çek", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+  onayli: [["Atölyede aç", "ac", "ikincil"], ["Yayından geri çek", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+  ozel: [["Atölyede aç", "ac", "ikincil"], ["Sil", "sil", "tehlike"]],
+  kaldirildi: [["Atölyede aç", "ac", "ikincil"], ["Taslağa al", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+  arsiv: [["Sil", "sil", "tehlike"]],
+  reddedildi: [["Atölyede aç", "ac", "ikincil"], ["Taslağa al", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+};
 let modulSuzgeci = "hepsi";
 const tarihYaz = (t) => (t ? new Date(t).toLocaleString(yerelDil(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
 
@@ -1132,7 +1142,7 @@ async function modulleriListele() {
   $("#sayfa-moduller .sayfa-h").textContent = yoneticiMi() ? "Modüller" : "Modüllerim";
   $("#moduller-aciklama").textContent = yoneticiMi()
     ? "Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür."
-    : "Atölyede yazıp onaya gönderdiğin modüller. Admin onaylayınca uygulamada görünür.";
+    : "Atölyede yazıp onaya gönderdiğin modüller. Admin onaylayınca uygulamada görünür. İstediğin an geri çekip özel taslağa döndürebilir ya da silebilirsin.";
   let moduller;
   try { moduller = await yApi("/api/moduller?durum=hepsi"); }
   catch (h) { $("#liste").replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
@@ -1152,10 +1162,13 @@ async function modulleriListele() {
   $("#liste").replaceChildren(...liste.map((m) => {
     const karo = el("span", { className: "mini-karo", ariaHidden: "true" });
     karo.style.backgroundImage = ciniArkaPlan(m.id, m.renk);
-    const eylemler = el("div", { className: "modul-eylemler" }, ...(EYLEMLER[m.durum] ?? []).filter(([, eylem]) => eylem === "ac" || yoneticiMi()).map(([etiket, eylem, sinif]) => {
+    const admin = yoneticiMi();
+    const eylemler = el("div", { className: "modul-eylemler" }, ...((admin ? EYLEMLER : USTA_EYLEMLER)[m.durum] ?? []).map(([etiket, eylem, sinif]) => {
       const b = el("button", { className: sinif, type: "button", textContent: etiket });
+      // Kalıcı silme ve yayındaki modülü geri çekme ikinci tıklamayla onaylanır.
+      const onayMetni = eylem === "sil" ? "Emin misin? Kalıcı sil" : !admin && m.durum === "onayli" && eylem === "ozel" ? "Emin misin? Uygulamadan kalkar" : null;
       b.addEventListener("click", async () => {
-        if (eylem === "sil" && !b.dataset.emin) { b.dataset.emin = "1"; b.textContent = "Emin misin? Kalıcı sil"; setTimeout(() => { delete b.dataset.emin; b.textContent = etiket; }, 4000); return; }
+        if (onayMetni && !b.dataset.emin) { b.dataset.emin = "1"; b.textContent = onayMetni; setTimeout(() => { delete b.dataset.emin; b.textContent = etiket; }, 4000); return; }
         b.disabled = true;
         try {
           if (eylem === "ac") return await atolyedeAc(m);
