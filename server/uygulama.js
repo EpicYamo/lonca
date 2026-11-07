@@ -519,6 +519,10 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     // Bir ustanın taslağını başka bir usta ezemez; editör ve yönetici ezebilir.
     const sahip = (await oturumSahibi(req))?.id ?? null;
     if (onceki?.sahip && sahip !== onceki.sahip && !editor) return rep.code(409).send({ hata: "Bu kimlikte başka bir ustanın taslağı var; başka bir id seç" });
+    // Yayındaki bir modülü editör (ya da yönetici) düzenlerse yayında kalır: kaydeden kişi zaten onay yetkilisi,
+    // uygulamadan kaybolup yeniden onay beklemesin. Yeni modüller ve usta gönderimleri her zaman onay bekler.
+    const canliKalsin = editor && onceki?.durum === "onayli";
+    const simdi = new Date().toISOString();
     const kayit = {
       id, ad: ad.trim().slice(0, 60), aciklama: String(aciklama).slice(0, 200),
       izinler: Array.isArray(izinler) ? izinler.filter((x) => x === "konum") : [],
@@ -527,7 +531,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       kategori: KATEGORILER.includes(kategori) ? kategori : undefined,
       kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
       sahip: sahip ?? onceki?.sahip ?? undefined,
-      durum: "bekliyor", olusturma: onceki?.olusturma ?? new Date().toISOString(), guncelleme: new Date().toISOString(),
+      durum: canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
+      ...(canliKalsin ? { yayin: simdi } : {}),
     };
     const kaynak = kaynakBul(kod, onceki);
     kayit.kaynak = { ...kaynak, ozet: kodOzeti(kod) };

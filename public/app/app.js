@@ -833,6 +833,18 @@ async function modulleriYokla() {
     if (surum === sonSurum) return;
     const liste = await (await api("/api/moduller")).json();
     sonSurum = modulSurumu(liste);
+    // Açık modül Studio'da kaldırıldıysa kapat; güncellendiyse haber ver (yeniden açınca yeni sürüm yüklenir).
+    if (calisan) {
+      const guncel = liste.find((m) => m.id === calisan.modul.id);
+      if (!guncel) {
+        const ad = calisan.modul.ad;
+        $("#geri").click();
+        bildir(`“${ad}” yayından kaldırıldı.`, { sure: 4200 });
+      } else if (guncel.guncelleme !== calisan.modul.guncelleme && calisan.bildirilen !== guncel.guncelleme) {
+        calisan.bildirilen = guncel.guncelleme;
+        bildir(`“${guncel.ad}” güncellendi; kapatıp açınca yeni sürüm gelir.`, { sure: 4200 });
+      }
+    }
     const gelenler = raf.yenileriBul(liste);
     modulListesi = liste;
     for (const m of gelenler) yeniGelenler.add(m.id);

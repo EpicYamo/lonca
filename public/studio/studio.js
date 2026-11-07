@@ -465,7 +465,7 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
       dugme.dataset.emin = "1";
       const eski = dugme.textContent;
       dugme.textContent = "Üzerine yaz?";
-      durumYaz("kotu", `“${var_.ad}” (${DURUM_ADI[var_.durum]}) bu kimlikle zaten var. Gönderirsen kodu değişir ve yeniden onay bekler. Yeni bir modül istiyorsan önce kimliği değiştir; yine de göndermek için düğmeye tekrar bas.`);
+      durumYaz("kotu", `“${var_.ad}” (${DURUM_ADI[var_.durum]}) bu kimlikle zaten var. Gönderirsen kodu değişir: yayındaysa ve editörsen uygulamada hemen güncellenir, değilse yeniden onay bekler. Yeni bir modül istiyorsan önce kimliği değiştir; yine de göndermek için düğmeye tekrar bas.`);
       setTimeout(() => { delete dugme.dataset.emin; dugme.textContent = eski; }, 6000);
       return;
     }
@@ -478,6 +478,11 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
   };
   try {
     const s = await yApi("/api/moduller", { method: "POST", govde });
+    if (s.durum === "onayli") {
+      durumYaz("iyi", `“${s.ad}” güncellendi ve yayında kaldı (${kaynakMetni(s.kaynak)}). Uygulama birkaç saniye içinde yeni sürümü görür.`);
+      sayaclariGuncelle(); durumCubugu();
+      return;
+    }
     durumYaz("iyi", `“${s.ad}” onaya gönderildi (${kaynakMetni(s.kaynak)}). Yayınlayınca uygulamada hemen görünür.`);
     const yayinla = el("button", { type: "button", className: "birincil kucuk-d", textContent: "Şimdi yayınla" });
     const listeyeGit = el("button", { type: "button", className: "ikincil kucuk-d", textContent: "Modüllerde gör" });
