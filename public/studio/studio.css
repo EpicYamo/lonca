@@ -737,6 +737,8 @@ a.dugme-bag { text-decoration: none; }
 .hesap-ya-da { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--soluk); font-size: .78rem; }
 .hesap-ya-da::before, .hesap-ya-da::after { content: ""; flex: 1; height: 1px; background: var(--cizgi); }
 .giris label[hidden] { display: none; }
+.giris :is(.kip, .durum, .aciklama, .metin-d, button)[hidden] { display: none; }
+.hesap-unuttum { display: block; margin: 6px 0 0 auto; }
 
 .kilit-karti {
   display: grid; justify-items: start; gap: 8px; margin: 0 12px 12px; padding: 18px;

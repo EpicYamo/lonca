@@ -379,7 +379,8 @@
   <dialog id="hesap-pencere" class="giris hesap-pencere" aria-labelledby="hesap-baslik">
     <form method="dialog" id="hesap-formu">
       <h2 class="pencere-h" id="hesap-baslik"><svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-baslik-metin">Giriş yap</span></h2>
-      <div class="kip hesap-kip" role="radiogroup" aria-label="Giriş ya da kayıt">
+      <p class="aciklama" id="hesap-kip-aciklama" hidden></p>
+      <div class="kip hesap-kip" id="hesap-kip" role="radiogroup" aria-label="Giriş ya da kayıt">
         <button type="button" role="radio" aria-checked="true" data-hesap-kip="giris" class="secili">Giriş yap</button>
         <button type="button" role="radio" aria-checked="false" data-hesap-kip="kayit">Hesap oluştur</button>
       </div>
@@ -387,14 +388,17 @@
         <button type="button" class="ikincil google-dugme" id="hesap-google"><span class="google-g" id="hesap-google-g" aria-hidden="true"></span>Google ile devam et</button>
         <p class="hesap-ya-da" aria-hidden="true"><span>ya da</span></p>
       </div>
-      <label><span id="hesap-kimlik-etiket">Kullanıcı adı ya da e-posta</span> <input id="hesap-kimlik" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="254" placeholder="su.gungor"></label>
+      <label id="hesap-kimlik-alan"><span id="hesap-kimlik-etiket">Kullanıcı adı ya da e-posta</span> <input id="hesap-kimlik" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="254" placeholder="su.gungor"></label>
       <label id="hesap-eposta-alan" hidden>E-posta <input id="hesap-eposta" name="eposta" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="ornek@eposta.com"></label>
-      <label>Şifre <input id="hesap-sifre" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter"></label>
-      <label id="hesap-sifre2-alan" hidden>Şifre (tekrar) <input id="hesap-sifre2" name="sifreTekrar" type="password" autocomplete="new-password" minlength="8" maxlength="200" placeholder="Şifreyi yeniden yaz"></label>
+      <label id="hesap-sifre-alan"><span id="hesap-sifre-etiket">Şifre</span> <input id="hesap-sifre" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter"></label>
+      <button type="button" class="metin-d hesap-unuttum" id="hesap-unuttum" hidden>Şifremi unuttum</button>
+      <label id="hesap-sifre2-alan" hidden><span id="hesap-sifre2-etiket">Şifre (tekrar)</span> <input id="hesap-sifre2" name="sifreTekrar" type="password" autocomplete="new-password" minlength="8" maxlength="200" placeholder="Şifreyi yeniden yaz"></label>
       <p class="aciklama" id="hesap-kayit-notu" hidden>Yeni hesaplar usta olur: kalfayla modül yazar, onaya gönderir ve Studio'daki verileri görür. Onay ve düzenleme admin hesaplarındadır.</p>
       <p id="hesap-hata" class="durum kotu" role="alert"></p>
+      <p id="hesap-bilgi" class="durum iyi" role="status" hidden></p>
       <div class="eylemler">
         <button class="birincil" value="gonder" id="hesap-gonder">Giriş yap</button>
+        <button class="ikincil" type="button" id="hesap-girise-don" hidden>Girişe dön</button>
         <button class="ikincil" value="iptal" formnovalidate id="hesap-vazgec">Vazgeç</button>
         <button class="metin-d" type="button" id="hesap-yonetici">Yönetici şifresiyle gir</button>
       </div>

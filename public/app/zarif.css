@@ -526,3 +526,8 @@ dialog.galeri { overflow: hidden; }
 .pl-satir.pl-dil { cursor: default; }
 .pl-satir.pl-dil:active { background: none; }
 .pl-dil .bolumlu span { min-width: 4.6rem; padding: 0 .6rem; }
+/* Şifremi unuttum: şifre alanının altında sağda metin düğmesi; gönderim sonucu sakin bir bilgi kutusunda. */
+.hesap-unuttum { justify-self: end; min-height: 44px; margin: -.5rem 0 -.3rem; padding: 0 .2rem; border: 0; background: none; color: var(--vurgu); font: 600 .88rem var(--yazi-sistem); cursor: pointer; }
+.hesap-bilgi { margin: 0; padding: .65rem .75rem; border-radius: 10px; background: var(--vurgu-zemin); color: var(--metin); font-size: .88rem; line-height: 1.45; }
+.hesap-kutu :is(.hesap-kip, .hesap-unuttum, .hesap-bilgi, .hesap-vazgec)[hidden] { display: none; }
+:root.kontrast .hesap-bilgi { border: 1px solid #fff; }

@@ -216,6 +216,17 @@ export function sifreDegisimiDogrula(veri) {
   return hatalar;
 }
 
+/** Şifre sıfırlama gövdesi: { jeton, yeniSifre, yeniSifreTekrar }. */
+export function sifreSifirlamaDogrula(veri) {
+  if (!veri || typeof veri !== "object" || Array.isArray(veri)) return ["gövde bir nesne olmalı"];
+  const hatalar = [];
+  if (typeof veri.jeton !== "string" || !veri.jeton || veri.jeton.length > 200) hatalar.push("Bağlantı geçersiz ya da süresi dolmuş; yeniden iste.");
+  if (typeof veri.yeniSifre !== "string" || veri.yeniSifre.length < 8) hatalar.push("Yeni şifre en az 8 karakter olmalı");
+  else if (veri.yeniSifre.length > 200) hatalar.push("Şifre en çok 200 karakter olabilir");
+  else if (veri.yeniSifreTekrar !== veri.yeniSifre) hatalar.push("Şifreler eşleşmiyor");
+  return hatalar;
+}
+
 // Studio atölye oturumu (server/atolye.js): editördeki modül taslağı ve kalfaya giden istek.
 export const ATOLYE_TASLAK_ALANLARI = ["kod", "ad", "id", "aciklama", "renk", "ikon", "kategori"];
 export const ATOLYE_MAKS_KOD = 150_000;

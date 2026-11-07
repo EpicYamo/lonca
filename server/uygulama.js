@@ -12,9 +12,10 @@ import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
 import { googleGirisKur } from "./google-giris.js";
+import { epostaKur } from "./eposta.js";
 import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
-import { modulGorunurlukDogrula, paylasimAnahtariGecerli, davetKoduUret, davetKoduCoz, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
+import { modulGorunurlukDogrula, paylasimAnahtariGecerli, davetKoduUret, davetKoduCoz, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, sifreSifirlamaDogrula, epostaGecerli, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -35,7 +36,7 @@ function mesafe(a, b) {
 
 /**
  */
-export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = process.env, gunluk = true, googleFetch }) {
+export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = process.env, gunluk = true, googleFetch, epostaGonderici }) {
   const MODUL_DIZINI = path.join(veri, "moduller");
   const YUKLENEN = path.join(veri, "yuklenen");
   const eserDosyasi = jsonDosya(path.join(veri, "eserler.json"), { eserler: [] });
@@ -97,6 +98,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const ustaGerekli = async (req, rep) => { if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Atölyeyi kullanmak için usta ya da editör hesabıyla giriş yapmalısın" }); };
   const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
   const google = googleGirisKur({ ortam, fetch: googleFetch });
+  const eposta = epostaKur({ ortam, gonderici: epostaGonderici });
   // Atölye oturumları (kalfa sohbeti + modül taslağı) kullanıcı başına saklanır; hesapsız yönetici "yonetici" altında.
   const atolye = atolyeKur(path.join(veri, "atolye"));
   const atolyeSahibi = async (req) => (await oturumSahibi(req))?.id ?? "yonetici";
@@ -119,7 +121,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     harita: googleAnahtari ? { saglayici: "google", anahtar: googleAnahtari } : { saglayici: "osm" },
     uc: { google: !!googleAnahtari, anahtar: googleAnahtari || undefined },
     yonetim: { sifreli: yetki.sifreli },
-    hesap: { gerekli: yetki.sifreli, google: google.etkin },
+    hesap: { gerekli: yetki.sifreli, google: google.etkin, sifreSifirlama: eposta.etkin },
   }));
   app.get("/api/yonetici", async (req, rep) => (yoneticiMi(req) ? { tamam: true } : rep.code(401).send({ hata: "şifre yanlış" })));
 
@@ -153,6 +155,47 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       if (r.hata) return rep.code(r.kod).send({ hata: r.hata });
     }
     return hesaplar.disaAcik(await hesaplar.profilGuncelle(h.id, req.body ?? {}));
+  });
+
+  // ---------- Şifremi unuttum (server/eposta.js) ----------
+  // İstek her zaman aynı yanıtı verir (e-postanın kayıtlı olup olmadığı anlaşılmasın). Bağlantı
+  // <genel adres><donus>#sifre-sifirla=<jeton> sayfasını açar; uygulama/Studio orada yeni şifreyi sorar.
+  // Genel adres isteğin Host başlığından alınmaz (uydurulmuş Host ile jeton başka bir siteye gönderilmesin):
+  // LONCA_GENEL_ADRES, yoksa https://LONCA_ALAN_ADI; ikisi de yoksa yalnızca localhost'tan gelen istekte o adres.
+  const SIFIRLAMA_DONUSLERI = new Set(["/", "/app/", "/studio/"]);
+  const genelAdres = (req) => {
+    const sabit = String(ortam.LONCA_GENEL_ADRES ?? "").trim().replace(/\/+$/, "");
+    if (sabit) return sabit;
+    if (ortam.LONCA_ALAN_ADI) return `https://${String(ortam.LONCA_ALAN_ADI).trim()}`;
+    return /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(req.host) ? `${req.protocol}://${req.host}` : null;
+  };
+  app.post("/api/hesap/sifre-sifirla/iste", { preHandler: hesapSiniri }, async (req, rep) => {
+    const adres = req.body?.eposta;
+    if (!epostaGecerli(adres)) return rep.code(400).send({ hata: "Geçerli bir e-posta adresi yaz" });
+    if (!eposta.etkin) return rep.code(503).send({ hata: "Bu sunucuda e-posta gönderimi kapalı. Google ile devam edebilir ya da bir admin'den yardım isteyebilirsin." });
+    const donus = SIFIRLAMA_DONUSLERI.has(req.body?.donus) ? req.body.donus : "/";
+    const kok = genelAdres(req);
+    if (!kok) return rep.code(503).send({ hata: "Sunucunun genel adresi ayarlı değil (LONCA_GENEL_ADRES)." });
+    const hazir = await hesaplar.sifirlamaHazirla(adres);
+    if (hazir) {
+      const baglanti = `${kok}${donus}#sifre-sifirla=${hazir.jeton}`;
+      const ad = hazir.hesap.kimlik;
+      // Gönderim beklenmez: yanıt süresinden e-postanın kayıtlı olduğu anlaşılmasın; hata günlüğe yazılır.
+      eposta.gonder({
+        kime: hazir.hesap.eposta,
+        konu: "Lonca şifre sıfırlama",
+        metin: `Merhaba ${ad},\n\nLonca hesabının şifresini sıfırlamak için bu bağlantıyı aç (1 saat geçerli):\n${baglanti}\n\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin; şifren değişmez.\n`,
+        html: `<p>Merhaba ${htmlKacis(ad)},</p><p>Lonca hesabının şifresini sıfırlamak için aşağıdaki bağlantıyı aç (1 saat geçerli):</p><p><a href="${htmlKacis(baglanti)}">Şifremi sıfırla</a></p><p>Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin; şifren değişmez.</p>`,
+      }).catch((h) => req.log.error({ err: h.message }, "şifre sıfırlama e-postası gönderilemedi"));
+    }
+    return { tamam: true, mesaj: "Bu e-posta bir hesapta kayıtlıysa sıfırlama bağlantısını gönderdik. Gelen kutunu (ve istenmeyen klasörünü) kontrol et." };
+  });
+  app.post("/api/hesap/sifre-sifirla", { preHandler: hesapSiniri }, async (req, rep) => {
+    const hatalar = sifreSifirlamaDogrula(req.body);
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const r = await hesaplar.sifirlamaUygula(req.body.jeton, req.body.yeniSifre);
+    if (r.hata) return rep.code(400).send({ hata: r.hata });
+    return jetonVer(r.hesap);
   });
 
   // ---------- Google ile giriş (server/google-giris.js) ----------

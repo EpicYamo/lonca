@@ -1,5 +1,5 @@
 // Hesaplar: vatandaş / usta / editör. Kayıtlar data/kullanicilar.json'da (gitignore'da), şifreler scrypt özeti.
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import { jsonDosya } from "./depo.js";
 import { sifreOzetle, sifreDogrula, sifreDogrulaYoksa } from "./guvenlik.js";
 import { ROLLER, PROFIL_RENKLERI, kullaniciAdiDuzelt, epostaDuzelt, epostaGecerli } from "./dogrulama.js";
@@ -120,6 +120,32 @@ export function hesaplarKur(dosyaYolu) {
     return h;
   }
 
+  // Şifremi unuttum: e-postaya tek kullanımlık, 1 saatlik bağlantı. Hesapta yalnızca jetonun özeti durur.
+  const ozet = (x) => createHash("sha256").update(String(x)).digest("hex");
+  async function sifirlamaHazirla(eposta, omurMs = 60 * 60_000) {
+    const liste = await dosya.oku();
+    const h = liste.find((x) => x.eposta && x.eposta === epostaDuzelt(eposta));
+    if (!h) return null;
+    const jeton = randomBytes(32).toString("base64url");
+    h.sifirlama = { ozet: ozet(jeton), bitis: Date.now() + omurMs };
+    await dosya.yaz(liste);
+    return { hesap: h, jeton };
+  }
+  // Bağlantıyla yeni şifre: e-posta sahipliğini kanıtladığı için ilk şifre zorunluluğu da kalkar.
+  async function sifirlamaUygula(jeton, yeniSifre) {
+    if (typeof jeton !== "string" || jeton.length > 200) return { hata: "Bağlantı geçersiz ya da süresi dolmuş; yeniden iste." };
+    const liste = await dosya.oku();
+    const o = ozet(jeton);
+    const h = liste.find((x) => x.sifirlama?.ozet === o);
+    if (!h || !(h.sifirlama.bitis > Date.now())) return { hata: "Bağlantı geçersiz ya da süresi dolmuş; yeniden iste." };
+    h.sifre = sifreOzetle(yeniSifre);
+    delete h.sifirlama;
+    delete h.sifreDegismeli;
+    h.guncelleme = new Date().toISOString();
+    await dosya.yaz(liste);
+    return { hesap: h };
+  }
+
   // E-posta ekleme/değiştirme: başka bir hesapta kayıtlıysa reddedilir. Google'a bağlı hesabın e-postası değişmez
   // (giriş zaten Google'ın kimliğiyle; e-posta yalnızca bağlama içindir).
   async function epostaAyarla(id, eposta) {
@@ -155,5 +181,5 @@ export function hesaplarKur(dosyaYolu) {
   const disaAcik = (h) => h && { id: h.id, kimlik: h.kimlik, rol: h.rol, profil: h.profil, basarimlar: h.basarimlar ?? {}, sifreDegismeli: !!h.sifreDegismeli,
     eposta: h.eposta ?? null, google: !!h.google, sifreVar: !!h.sifre };
 
-  return { kimlikleBul, idIle, epostaylaBul, kayitOl, girisYap, googleIleGiris, epostaAyarla, tohumla, sifreDegistir, profilGuncelle, rolDegistir, cihazdanTasi, disaAcik };
+  return { kimlikleBul, idIle, epostaylaBul, kayitOl, girisYap, googleIleGiris, epostaAyarla, sifirlamaHazirla, sifirlamaUygula, tohumla, sifreDegistir, profilGuncelle, rolDegistir, cihazdanTasi, disaAcik };
 }
