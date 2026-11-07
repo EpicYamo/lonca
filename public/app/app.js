@@ -1,6 +1,7 @@
 import { modulCalistir } from "./calistirici.js";
 import { ekranYontemleri, TUR_ADI } from "./ekranlar.js";
 import { sahneOlustur } from "./sahne.js";
+import { tuvalMotoru } from "./tuval.js";
 import * as profil from "./profil.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { cizim } from "/ortak/cizimler.js";
@@ -209,7 +210,7 @@ function bildir(metin, { tur = "bilgi", sure = 2600 } = {}) {
 }
 
 function yontemlerOlustur(modul) {
-  return (gonder) => {
+  return (gonder, ham) => {
     let uygulamaModu = false;
     const hedefKoy = (...d) => (uygulamaModu ? katman.koy(...d) : sahneyeKoy(...d));
     const ekranlar = ekranYontemleri({
@@ -232,7 +233,8 @@ function yontemlerOlustur(modul) {
       }
     }]));
     katman.temizle = () => ekranlar._temizle();
-    const sahneApi = sahneOlustur({ el, kap: $("#sahne"), sekmeCubugu: $("#sekme-cubugu"), gonder, bileşen: ekranlar._bilesen });
+    const tuval = tuvalMotoru({ ham: ham ?? (() => false), gonder, el });
+    const sahneApi = sahneOlustur({ el, kap: $("#sahne"), sekmeCubugu: $("#sekme-cubugu"), gonder, bileşen: ekranlar._bilesen, tuval });
     calisan.sahneApi = sahneApi;
 
     return {
@@ -295,6 +297,9 @@ function yontemlerOlustur(modul) {
       "basarim.liste": async () => profil.basarimListe(modul.id),
       "depo.oku": async (k) => profil.depoOku(modul.id, k),
       "depo.yaz": async (k, v) => profil.depoYaz(modul.id, k, v),
+      "oyun.bekle": (sn) => tuval.bekle(sn),
+      // Yanıtsız oyun akışı (çizim, kare onayı, ses, titreşim): calistirici.js "akis" mesajlarını buraya verir.
+      _akis: (v) => tuval.akis(v),
     };
   };
 }

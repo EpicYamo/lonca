@@ -40,7 +40,14 @@ export async function modulCalistir(kod, yontemlerYap, { iptal } = {}) {
 <script>${kapat(sdk)}</script><script>${kapat(BASLATICI)}</script>`;
 
   const gonder = (olay) => cerceve.contentWindow?.postMessage({ lonca: 1, tur: "olay", olay }, "*");
-  const yontemler = typeof yontemlerYap === "function" ? yontemlerYap(gonder) : yontemlerYap;
+  // Oyun akışı (kare, dokunma, klavye): yanıt beklenmeyen ham mesaj. Çerçeve kapandıysa false döner (döngü durur).
+  const ham = (veri) => {
+    const w = cerceve.isConnected ? cerceve.contentWindow : null;
+    if (!w) return false;
+    w.postMessage({ ...veri, lonca: 1 }, "*");
+    return true;
+  };
+  const yontemler = typeof yontemlerYap === "function" ? yontemlerYap(gonder, ham) : yontemlerYap;
 
   return new Promise((coz, reddet) => {
     const bitir = (hata) => {
@@ -57,9 +64,11 @@ export async function modulCalistir(kod, yontemlerYap, { iptal } = {}) {
       if (m.tur === "hazir") return cerceve.contentWindow.postMessage({ lonca: 1, tur: "calistir", kod }, "*");
       if (m.tur === "bitti") return bitir();
       if (m.tur === "hata") return bitir(new Error(m.mesaj));
+      // Çizim komutları ve kare onayı: yanıtsız, sıradan SDK çağrısı değil.
+      if (m.tur === "akis") return yontemler._akis?.(m.veri);
 
       const yanit = (veri) => cerceve.contentWindow?.postMessage({ lonca: 1, id: m.id, ...veri }, "*");
-      const yontem = Object.hasOwn(yontemler, m.yontem) ? yontemler[m.yontem] : null;
+      const yontem = typeof m.yontem === "string" && !m.yontem.startsWith("_") && Object.hasOwn(yontemler, m.yontem) ? yontemler[m.yontem] : null;
       if (!yontem) return yanit({ ok: false, hata: `Bilinmeyen SDK yöntemi: ${m.yontem}` });
       try {
         yanit({ ok: true, sonuc: await yontem(...(Array.isArray(m.args) ? m.args : [])) });
