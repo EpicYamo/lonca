@@ -87,6 +87,8 @@ export default async function basla() {
 
 test("sağlayıcı yanıt vermezse istek zaman aşımıyla anlaşılır biçimde biter", async () => {
   const asilFetch = globalThis.fetch;
+  // AbortSignal.timeout timerı unref edebildiği için test bitene dek event loop'u açık tut.
+  const beklet = setTimeout(() => {}, 500);
   globalThis.fetch = (_url, { signal }) => new Promise((_, red) => signal.addEventListener("abort", () => red(signal.reason)));
   try {
     const k = kalfaHazirla({ kok: KOK, eserler: [], ortam: { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "m", KALFA_ZAMAN_ASIMI_SN: "0.05" } });
@@ -99,5 +101,5 @@ test("sağlayıcı yanıt vermezse istek zaman aşımıyla anlaşılır biçimde
     iptal.abort(new Error("durduruldu"));
     await assert.rejects(is, /durduruldu/);
     assert.equal(istenenModel, "baska-model");
-  } finally { globalThis.fetch = asilFetch; }
+  } finally { clearTimeout(beklet); globalThis.fetch = asilFetch; }
 });

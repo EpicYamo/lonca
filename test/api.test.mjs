@@ -22,6 +22,9 @@ test("tarihsel bağlar listelenir ve esere göre süzülür", async () => {
   const hepsi = (await s.istek("GET", "/api/eser-iliskileri")).json();
   assert.ok(hepsi.length >= 20);
   assert.ok(hepsi.every((i) => i.id && i.a && i.b && i.tur && i.baslik && i.aciklama && i.kaynak));
+  const eserKimlikleri = new Set((await s.istek("GET", "/api/eserler")).json().map((e) => e.id));
+  assert.ok(hepsi.every((i) => i.a !== i.b && eserKimlikleri.has(i.a) && eserKimlikleri.has(i.b)), "bağların iki ucu da gerçek ve farklı eser olmalı");
+  assert.equal(new Set(hepsi.map((i) => i.id)).size, hepsi.length, "bağ kimlikleri eşsiz olmalı");
 
   const ulucami = (await s.istek("GET", "/api/eser-iliskileri?eser=bursa-ulucami")).json();
   assert.ok(ulucami.length > 0);

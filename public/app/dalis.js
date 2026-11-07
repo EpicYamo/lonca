@@ -237,7 +237,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
           b.ust ? el("span", { className: "s-dalis-ust", textContent: b.ust }) : null,
           b.baslik ? el("strong", { textContent: b.baslik }) : null,
           b.metin ? el("p", { textContent: b.metin }) : null,
-          b.kaynak ? el("small", { textContent: `Kaynak: ${b.kaynak}` }) : null].filter(Boolean));
+          b.kaynak ? el("span", { className: "s-dalis-kaynak", textContent: `Kaynak · ${b.kaynak}` }) : null].filter(Boolean));
         // Kart, işaret noktasının karşı yarısına yerleşir; noktasız kartlar karenin tercihine uyar.
         const alan = b.alan ?? TAM;
         const ust = b.nokta ? b.nokta[1] > alan[1] + alan[2] / 2 : k.yazi === "ust";
@@ -320,6 +320,6 @@ function duzKur(kutu, { kareler, etiket, el }) {
         b.ust ? el("span", { className: "s-dalis-ust", textContent: b.ust }) : null,
         b.baslik ? el("strong", { textContent: b.baslik }) : null,
         b.metin ? el("p", { textContent: b.metin }) : null,
-        b.kaynak ? el("small", { textContent: `Kaynak: ${b.kaynak}` }) : null))))));
+        b.kaynak ? el("span", { className: "s-dalis-kaynak", textContent: `Kaynak · ${b.kaynak}` }) : null))))));
   return Promise.resolve({ guncelle() {}, yokEt() {} });
 }

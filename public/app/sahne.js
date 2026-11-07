@@ -150,31 +150,39 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
         eserler: n.eserler, rota: !!n.rota, secili: n.secili,
         baglantilar: n.baglantilar, hayaletBaglantilar: n.hayaletBaglantilar, sis: n.sis, etiketler: n.etiketler, odak: n.odak,
         onSec: (eser) => gonder({ tur: "dokun", id: metin(n.id), eser }),
+        onBagSec: (bag) => { if (bag?.id) gonder({ tur: "dokun", id: `bag:${metin(bag.id)}`, bag }); },
       }), (api) => api.guncelle({ eserler: n.eserler, rota: !!n.rota, secili: n.secili, baglantilar: n.baglantilar, hayaletBaglantilar: n.hayaletBaglantilar, sis: n.sis, etiketler: n.etiketler, odak: n.odak }));
       case "graf": {
         const merkez = n.merkez ?? {};
         const iliskiler = (Array.isArray(n.iliskiler) ? n.iliskiler : []).filter((x) => x?.eser).slice(0, 8);
-        const kap = el("div", { className: "s-graf", role: "group", ariaLabel: `${metin(merkez.ad)} bağ ağı` });
+        const kap = el("section", { className: "s-graf", role: "group", ariaLabel: `${metin(merkez.ad)} kaynaklı bağ ağı` });
         if (!iliskiler.length) {
           kap.append(el("p", { className: "s-graf-bos", textContent: "Bu eser için kayıtlı tarihsel bağ yok." }));
           return kap;
         }
         const NS = "http://www.w3.org/2000/svg";
         const svg = document.createElementNS(NS, "svg");
-        svg.setAttribute("viewBox", "0 0 380 320");
+        svg.setAttribute("viewBox", "0 0 440 360");
         svg.setAttribute("role", "img");
-        svg.setAttribute("aria-label", `${metin(merkez.ad)} çevresindeki ${iliskiler.length} tarihsel bağ`);
-        const cx = 190, cy = 160, R = 112;
+        svg.setAttribute("aria-label", `${metin(merkez.ad)} ve ${iliskiler.length} kaynaklı tarihsel bağ`);
+        const cx = 220, cy = 155, R = 112;
         const kisa = (s, n) => { const t = metin(s); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
+        const defs = document.createElementNS(NS, "defs");
         const cizgiGrubu = document.createElementNS(NS, "g");
         const dugumGrubu = document.createElementNS(NS, "g");
-        svg.append(cizgiGrubu, dugumGrubu);
+        svg.append(defs, cizgiGrubu, dugumGrubu);
 
+        const hale = document.createElementNS(NS, "circle");
+        hale.setAttribute("cx", cx);
+        hale.setAttribute("cy", cy);
+        hale.setAttribute("r", 39);
+        hale.setAttribute("class", "s-graf-hale");
+        dugumGrubu.append(hale);
         const merkezDaire = document.createElementNS(NS, "circle");
         merkezDaire.setAttribute("cx", cx);
         merkezDaire.setAttribute("cy", cy);
-        merkezDaire.setAttribute("r", 29);
-        merkezDaire.style.fill = "var(--ana)";
+        merkezDaire.setAttribute("r", 32);
+        merkezDaire.style.fill = "var(--ana, #b99345)";
         merkezDaire.style.stroke = "var(--zemin)";
         merkezDaire.style.strokeWidth = "4";
         dugumGrubu.append(merkezDaire);
@@ -197,8 +205,8 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
           cizgi.setAttribute("x2", x);
           cizgi.setAttribute("y2", y);
           cizgi.setAttribute("stroke", BAG_RENK[il.tur] ?? BAG_RENK.komsu);
-          cizgi.setAttribute("stroke-width", "2.6");
-          cizgi.setAttribute("stroke-opacity", ".8");
+          cizgi.setAttribute("stroke-width", "3");
+          cizgi.setAttribute("stroke-opacity", ".62");
           cizgi.setAttribute("stroke-linecap", "round");
           cizgiGrubu.append(cizgi);
 
@@ -207,33 +215,63 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
           g.style.cursor = "pointer";
           const baslik = document.createElementNS(NS, "title");
           baslik.textContent = `${metin(il.eser.ad)} — ${metin(il.baslik || bagTuruAdi(il.tur))}`;
+          const foto = il.eser.fotograflar?.find?.((f) => typeof f === "string");
+          if (foto) {
+            const kirp = document.createElementNS(NS, "clipPath");
+            const kirpId = `graf-foto-${i}-${Math.random().toString(36).slice(2)}`;
+            kirp.setAttribute("id", kirpId);
+            const daireKirp = document.createElementNS(NS, "circle");
+            daireKirp.setAttribute("cx", x);
+            daireKirp.setAttribute("cy", y);
+            daireKirp.setAttribute("r", 10);
+            kirp.append(daireKirp);
+            defs.append(kirp);
+            const resim = document.createElementNS(NS, "image");
+            resim.setAttribute("href", foto);
+            resim.setAttribute("x", x - 10);
+            resim.setAttribute("y", y - 10);
+            resim.setAttribute("width", 20);
+            resim.setAttribute("height", 20);
+            resim.setAttribute("preserveAspectRatio", "xMidYMid slice");
+            resim.setAttribute("clip-path", `url(#${kirpId})`);
+            resim.setAttribute("aria-hidden", "true");
+            g.append(resim);
+          }
           const daire = document.createElementNS(NS, "circle");
           daire.setAttribute("cx", x);
           daire.setAttribute("cy", y);
-          daire.setAttribute("r", 9);
-          daire.setAttribute("fill", BAG_RENK[il.tur] ?? BAG_RENK.komsu);
+          daire.setAttribute("r", 12);
+          daire.setAttribute("fill", foto ? "transparent" : BAG_RENK[il.tur] ?? BAG_RENK.komsu);
+          daire.setAttribute("class", "s-graf-dugum");
           daire.style.stroke = "var(--zemin)";
           daire.style.strokeWidth = "3";
           const yazi = document.createElementNS(NS, "text");
           yazi.setAttribute("x", x);
-          yazi.setAttribute("y", y + 22);
+          yazi.setAttribute("y", y + 26);
           yazi.setAttribute("text-anchor", "middle");
-          yazi.style.fill = "var(--metin)";
-          yazi.style.font = "600 9px var(--yazi-baslik, sans-serif)";
-          yazi.textContent = kisa(il.eser.ad, 18);
+          yazi.setAttribute("class", "s-graf-dugum-adi");
+          yazi.textContent = kisa(il.eser.ad, 16);
           g.append(baslik, daire, yazi);
-          const sec = () => gonder({ tur: "dokun", id: `graf:${metin(n.id)}`, eser: il.eser });
+          const sec = () => gonder({ tur: "dokun", id: `eser:${metin(il.eser.id)}`, eser: il.eser });
           g.addEventListener("click", sec);
           dugumGrubu.append(g);
         });
-        kap.append(svg);
+        kap.append(el("p", { className: "s-graf-ipucu", textContent: `${iliskiler.length} kaynaklı bağ · çizgiler yol/rota değildir. Açıklamayı ve künyeyi aşağıda incele.` }), svg);
 
         const liste = el("div", { className: "s-graf-liste" });
         for (const il of iliskiler) {
-          const d = el("button", { className: "s-graf-oge", type: "button" },
-            el("strong", { textContent: metin(il.eser.ad) }),
-            el("span", { textContent: `${bagTuruAdi(il.tur)}${il.baslik ? ` · ${metin(il.baslik)}` : ""}` }));
-          d.addEventListener("click", () => gonder({ tur: "dokun", id: `graf:${metin(n.id)}`, eser: il.eser }));
+          const d = el("button", { className: `s-graf-oge s-graf-${metin(il.tur)}`, type: "button" });
+          const foto = il.eser.fotograflar?.find?.((f) => typeof f === "string");
+          d.append(
+            foto ? el("img", { className: "s-graf-foto", src: foto, alt: "", loading: "lazy" }) : el("span", { className: "s-graf-foto s-graf-foto-bos", ariaHidden: "true", textContent: "✧" }),
+            el("span", { className: "s-graf-govde" },
+              el("span", { className: "s-graf-tur", textContent: bagTuruAdi(il.tur) }),
+              el("strong", { textContent: metin(il.eser.ad) }),
+              il.baslik ? el("span", { className: "s-graf-baslik", textContent: metin(il.baslik) }) : null,
+              il.aciklama ? el("span", { className: "s-graf-aciklama", textContent: metin(il.aciklama) }) : null,
+              il.kaynak ? el("small", { className: "s-graf-kaynak", textContent: `Kaynak: ${metin(il.kaynak)}` }) : null),
+            el("span", { className: "s-graf-ok", ariaHidden: "true", textContent: "›" }));
+          d.addEventListener("click", () => gonder({ tur: "dokun", id: `eser:${metin(il.eser.id)}`, eser: il.eser }));
           liste.append(d);
         }
         kap.append(liste);

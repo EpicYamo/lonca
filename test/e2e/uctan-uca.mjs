@@ -78,6 +78,7 @@ try {
   await tel.click("#eser-oner");
   await tel.fill("#katki-formu [name=ad]", "Uçtan Uca Çeşmesi");
   await tel.selectOption("#katki-formu [name=tur]", "cesme");
+  await tel.fill("#katki-formu [name=il]", "Bursa");
   await tel.fill("#katki-formu [name=tarihce]", "Test sırasında önerilen, mahalle arasında küçük bir çeşme.");
   await tel.fill("#katki-formu [name=kaynak]", "E2E testi");
   await tel.click("#katki-gonder");
