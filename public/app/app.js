@@ -1485,6 +1485,7 @@ export { TUR_ADI };
 window.loncaUygulama = {
   profilGoster() { profilEkrani(); ekranGoster("profil"); },
   anaGoster() { ekranGoster("ana"); profilCipiGuncelle(); },
+  eserAc: (id) => eserPenceresi(id),
 };
 
 window.loncaHesap = {
