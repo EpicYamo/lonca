@@ -64,13 +64,43 @@ function onerileriTemizle(liste) {
   return sonuc;
 }
 
-// Model öneri vermediyse (ör. araç çağırmadan düz metinle yanıtladıysa) düğmeler boş kalmasın.
-const YEDEK_ONERILER = {
-  sohbet: ["Tamam, bu modülü hazırla", "Hangi eserler var?", "SDK hangi ekranları sunuyor?"],
-  duzenle: ["Değişiklikleri yap", "Bu modül nasıl çalışıyor?", "Bir başarım ekle"],
-  modul: ["Bir başarım ekle", "Renkleri değiştir", "Bu modül nasıl çalışıyor?"],
+// Ustanın dili: İngilizce yazdıysa ya da İngilizce istediyse "en". Kaba bir sezgidir; asıl kararı model verir,
+// bu yalnızca öneri üretimine ve yedek önerilere dil ipucu olarak gider.
+const INGILIZCE_SOZCUKLER = new Set("the a an and for of to in with about make build create please can you what when who where how is are was were it this that me my i want game guide quiz map kids children".split(" "));
+export function ingilizceMi(metin) {
+  const t = String(metin ?? "").toLocaleLowerCase("tr");
+  if (/\b(ingilizce|english|in english)\b/.test(t)) return !/\b(türkçe|turkish)\b/.test(t);
+  if (/[çğışöü]/.test(t)) return false;
+  const k = t.split(/[^a-z]+/).filter(Boolean);
+  return k.length >= 3 && k.filter((x) => INGILIZCE_SOZCUKLER.has(x)).length / k.length >= 0.25;
+}
+
+// Eser türlerinin öneri cümlelerindeki adları.
+const TUR_ADLARI = {
+  cami: ["camileri", "mosques"], han: ["hanları", "inns"], hamam: ["hamamları", "bathhouses"], medrese: ["medreseleri", "madrasas"],
+  cesme: ["çeşmeleri", "fountains"], turbe: ["türbeleri", "tombs"], kulliye: ["külliyeleri", "complexes"], mescit: ["mescitleri", "small mosques"],
+  tekke: ["tekkeleri", "dervish lodges"], imaret: ["imaretleri", "soup kitchens"],
 };
-const onerilerVeyaYedek = (liste, tur) => { const o = onerileriTemizle(liste); return o.length ? o : YEDEK_ONERILER[tur]; };
+const karistir = (dizi) => dizi.map((e) => [Math.random(), e]).sort((a, b) => a[0] - b[0]).map(([, e]) => e);
+
+// Bilgi bankasından öneri cümleleri: açılıştaki örnek fikirler ve yapay zekâ öneri veremediğinde yedek.
+// Yalnızca eser adı, il ve tür kullanılır (hiçbir tarihî bilgi cümleye girmez).
+export function veridenOneriler(eserler, { dil = "tr", kod = false } = {}) {
+  const en = dil === "en";
+  const fotolu = karistir(eserler.filter((e) => e.fotograflar?.length));
+  const e1 = fotolu[0], e2 = fotolu.find((e) => e.tur !== e1?.tur && TUR_ADLARI[e.tur]) ?? fotolu[1];
+  if (!e1) return [];
+  const ad = (e) => (en ? e.ad_en || e.ad : e.ad);
+  const turAdi = (e) => TUR_ADLARI[e.tur]?.[en ? 1 : 0] ?? (en ? "heritage sites" : "vakıf eserlerini");
+  if (kod) {
+    return en
+      ? ["Add achievements to this module", `Add ${ad(e1)} to this module`, "How does this module work?"]
+      : ["Bu modüle başarımlar ekle", `${ad(e1)} da bu modülde olsun`, "Bu modül nasıl çalışıyor?"];
+  }
+  return en
+    ? [`A treasure hunt for kids around ${ad(e1)}`, `A night-themed map guide to the ${turAdi(e2)} of ${e2.il}`, `Tell me about ${ad(fotolu[2] ?? e1)}`]
+    : [`${ad(e1)} çevresinde çocuklar için bir hazine avı`, `${e2.il} ${turAdi(e2)} gece temasıyla gezdiren haritalı bir rehber`, `${ad(fotolu[2] ?? e1)} hakkında bilgi verir misin?`];
+}
 
 export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
@@ -92,7 +122,8 @@ export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env
 - KAPSAM: Yalnızca bilgi bankamızdaki (Lonca veritabanı) vakıf eserleri üzerine çalışırsın. İnternetten, ezberinden ya da başka bir kaynaktan bilgi GETİRME; bir eser, kişi, tarih ya da olay hakkında söylediğin her şey eser_ara / eser_bilgisi sonuçlarında aynen geçmeli.
 - Eserlerle ilgili soruları BİLGİ BANKASINDAN yanıtla: önce eser_ara ile eseri bul, sonra eser_bilgisi ile kaydını (tarihçe, yüzyıl, kaynak, kaynaklı tarihsel bağlar) oku. Bilgi bankasında yoksa "bilgi bankamızda bu bilgi yok" de, tahmin yürütme.
 - Usta bilgi bankasında OLMAYAN bir eser (eser_ara boş döner) ya da vakıf eserleriyle ilgisi olmayan bir konu isterse onu yapma, modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından ona en yakın 2–3 eseri bul (aynı tür, aynı il ya da adı benzeyen), bunları öner ve "Nasıl devam edelim?" diye sor. Bu önerileri "oneriler" alanına da koy.
-- SDK ve modül yapımıyla ilgili soruları aşağıdaki sözleşmeden yanıtla; sözleşmede olmayan bir özellik uydurma, yapılamıyorsa dürüstçe söyle.
+- SDK ve modül yapımıyla ilgili soruları sözleşmeden yanıtla (aşağıda tamamı var; belirli bir konuyu sdk_bilgisi ile de arayabilirsin); sözleşmede olmayan bir özellik uydurma, yapılamıyorsa dürüstçe söyle.
+- DİL: Ustaya onun yazdığı dilde yanıt ver. Usta İngilizce yazıyorsa ya da modülün İngilizce olmasını isterse ("İngilizce yap", "in English") yanıtlarını, önerileri ve modülün BÜTÜN metinlerini (başlık, düğmeler, sorular, açıklamalar, modul_yaz'daki ad/aciklama/aciklama_ustaya) İngilizce yaz. Bilgi bankasının İngilizce alanlarını kullan: eser adı için eser.ad_en || eser.ad, tarihçe için eser.tarihce.en || eser.tarihce.tr (İngilizcesi olmayan eserde Türkçesini göster ve bunu belirt). Ustanın dili tanımadığı bir dil değilse Türkçe varsay.
 - Her yanıtta (yanit_ver ya da modul_yaz) "kaynaklar" alanına yanıtında bilgisini kullandığın eserlerin id'lerini, "sdk" alanına dayandığın SDK parçalarını yaz ("eserler.liste", "ekran.uc", düğüm tipi için yalnızca adı: "kapak"). "oneriler" alanına ustanın tek dokunuşla gönderebileceği 2–3 kısa soru ya da istek yaz: sohbetin şimdiki hâline uysun, ustanın ağzından yazılsın, en çok 80 harf; biri genelde modülü yaptırmak ya da geliştirmek olsun.
 
 # Modül kuralları (modul_yaz)
@@ -142,7 +173,9 @@ ${ornekOyun}
 \`\`\`
 
 - eser_ara: Bilgi bankasında hangi eserlerin bulunduğunu öğrenmek için (il, tür ya da ad ile). Usta belirli eserlerden, bir ilçeden ya da "hangi eserler var" gibi bir şeyden söz ediyorsa ÖNCE bunu kullan. Modül yazarken sonuçlar yalnızca eser kimliklerini ve varlığını öğrenmen içindir: ekranda gösterilecek bilgiyi koda elle YAZMA, modül çalışırken eserler.getir / eserler.liste ile oku.
-- eser_bilgisi: Bir eserin bilgi bankasındaki tam kaydı (tarihçe, yüzyıl, adres, kaynak, kaynaklı tarihsel bağlar). Ustanın bir eserle ilgili sorusunu yanıtlarken kullan.
+- eser_ara'da "metin" ile tarihçelerin içinde (Türkçe ve İngilizce) arama yapabilirsin: bir kişi, olay ya da kavram geçen eserleri bulmak için ("Mimar Sinan", "kervansaray", "Orhan Gazi").
+- eser_bilgisi: Bir eserin bilgi bankasındaki tam kaydı (Türkçe ve İngilizce ad ve tarihçe, yüzyıl, adres, kaynak, kaynaklı tarihsel bağlar). Ustanın bir eserle ilgili sorusunu yanıtlarken kullan.
+- sdk_bilgisi: SDK sözleşmesinde (@lonca/sdk) bir konuyu arar ve ilgili tip tanımlarını döndürür ("harita", "basarim", "DalisKaresi").
 - yanit_ver: Sohbet yanıtı (kod yok). Kod yazmadığın her turu bununla bitir.
 - modul_yaz: Modülü teslim eder; yalnızca usta açıkça istediğinde.
 
@@ -179,7 +212,8 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
           il: { type: "string", description: "Örn. İzmir" },
           ilce: { type: "string" },
           tur: { type: "string", description: "cami, han, hamam, medrese, cesme, turbe…" },
-          ad: { type: "string", description: "Ad içinde geçen kelime" },
+          ad: { type: "string", description: "Türkçe ya da İngilizce adda geçen kelime" },
+          metin: { type: "string", description: "Tarihçede (Türkçe/İngilizce) ya da adda geçen kelime/ifade: kişi, olay, kavram" },
           limit: { type: "integer", description: "En fazla kaç sonuç (varsayılan 20, en çok 50)" },
         },
       },
@@ -191,6 +225,15 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
         type: "object",
         properties: { id: { type: "string", description: "Eser kimliği (eser_ara sonucundan)" } },
         required: ["id"],
+      },
+    },
+    {
+      ad: "sdk_bilgisi",
+      aciklama: "SDK sözleşmesinde (@lonca/sdk, lonca-sdk.d.ts) bir konuyu arar; ilgili tip tanımlarını ve açıklamalarını döndürür.",
+      sema: {
+        type: "object",
+        properties: { konu: { type: "string", description: "Aranan ad ya da kelime: harita, ekran.uc, basarim, DalisKaresi…" } },
+        required: ["konu"],
       },
     },
     {
@@ -212,14 +255,28 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
   const kucuk = (s) => String(s ?? "").toLocaleLowerCase("tr");
   function eserAra(g = {}) {
     const limit = Math.min(Math.max(Number(g.limit) || 20, 1), 50);
+    const metin = kucuk(g.metin).trim();
+    const metinde = (e) => [e.ad, e.ad_en, e.tarihce?.tr, e.tarihce?.en].map(kucuk).find((m) => m.includes(metin));
     const bulunan = eserler.filter((e) =>
       (!g.il || kucuk(e.il) === kucuk(g.il)) &&
       (!g.ilce || kucuk(e.ilce) === kucuk(g.ilce)) &&
       (!g.tur || kucuk(e.tur) === kucuk(g.tur)) &&
-      (!g.ad || kucuk(e.ad).includes(kucuk(g.ad))));
+      (!g.ad || kucuk(e.ad).includes(kucuk(g.ad)) || kucuk(e.ad_en).includes(kucuk(g.ad))) &&
+      (!metin || metinde(e)));
+    // Metin aramasında eşleşen yerin çevresi de döner: model hangi cümleye dayandığını görsün.
+    const parca = (e) => {
+      if (!metin) return undefined;
+      const kaynak = [e.tarihce?.tr, e.tarihce?.en].find((m) => kucuk(m).includes(metin));
+      if (!kaynak) return undefined;
+      const i = kucuk(kaynak).indexOf(metin);
+      return `…${kaynak.slice(Math.max(0, i - 120), i + metin.length + 160).replace(/\s+/g, " ")}…`;
+    };
     return {
       toplam: bulunan.length,
-      eserler: bulunan.slice(0, limit).map(({ id, ad, il, ilce, tur, yuzyil, adres, konum }) => ({ id, ad, il, ilce, tur, yuzyil, adres, konum })),
+      eserler: bulunan.slice(0, limit).map((e) => ({
+        id: e.id, ad: e.ad, ad_en: e.ad_en ?? null, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil, adres: e.adres, konum: e.konum,
+        ingilizce: !!e.tarihce?.en, ...(parca(e) && { parca: parca(e) }),
+      })),
     };
   }
 
@@ -240,9 +297,32 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
       return { diger: diger ? { id: diger.id, ad: diger.ad, il: diger.il } : null, tur: i.tur, baslik: i.baslik, aciklama: i.aciklama, kaynak: i.kaynak };
     });
     return {
-      id: e.id, ad: e.ad, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil ?? null, adres: e.adres ?? null, konum: e.konum ?? null,
-      tarihce: String(e.tarihce?.tr ?? "").slice(0, 4000), kaynak: e.kaynak ?? null, fotografSayisi: e.fotograflar?.length ?? 0, iliskiler: baglar,
+      id: e.id, ad: e.ad, ad_en: e.ad_en ?? null, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil ?? null, adres: e.adres ?? null, konum: e.konum ?? null,
+      tarihce: String(e.tarihce?.tr ?? "").slice(0, 4000), tarihce_en: e.tarihce?.en ? String(e.tarihce.en).slice(0, 4000) : null, kaynak: e.kaynak ?? null, fotografSayisi: e.fotograflar?.length ?? 0, iliskiler: baglar,
     };
+  }
+
+  // SDK sözleşmesinde arama: d.ts üst düzey bloklara (yorumu + interface/type/const) bölünür, konuyu içerenler döner.
+  const sdkBloklari = (() => {
+    const satirlar = sdkTipleri.split("\n");
+    const bloklar = [];
+    let parca = [], derinlik = 0;
+    for (const s of satirlar) {
+      parca.push(s);
+      derinlik += (s.match(/\{/g) ?? []).length - (s.match(/\}/g) ?? []).length;
+      if (derinlik <= 1 && /[;}]\s*$/.test(s)) { bloklar.push(parca.join("\n")); parca = []; }
+    }
+    if (parca.length) bloklar.push(parca.join("\n"));
+    return bloklar.filter((b) => b.trim());
+  })();
+  function sdkBilgisi(g = {}) {
+    const konu = kucuk(g.konu).trim();
+    if (!konu) return { hata: "konu boş" };
+    const terimler = konu.split(/[\s.]+/).filter(Boolean);
+    const bulunan = sdkBloklari.filter((b) => terimler.every((t) => kucuk(b).includes(t)));
+    let metin = "";
+    for (const b of bulunan) { if (metin.length + b.length > 6000) break; metin += `${b}\n`; }
+    return bulunan.length ? { bulunan: bulunan.length, tanimlar: metin } : { bulunan: 0, not: "Sözleşmede bu konu yok; bu özellik SDK ile yapılamıyor olabilir." };
   }
 
   // Yanıtın dayandığı kaynaklar sunucuda kurulur: yalnızca araçların gerçekten döndürdüğü eserler ve sözleşmede bulunan SDK adları.
@@ -274,16 +354,54 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
   // secenek.model: yalnızca bu istek için başka bir model (model taraması kullanır); secenek.sinyal: iptal.
   // secenek.insa: usta açıkça istemiş sayılır (model taraması doğrudan modül yazdırır).
   // Dönüş: modül yazıldıysa { tur: "modul", kod, … }; sohbet yanıtıysa { tur: "sohbet", metin, … }. İkisinde de kaynaklar ve oneriler.
-  async function calistir(sohbet, mevcutKod, { model, sinyal, insa = false } = {}) {
+  // Konuşmanın şimdiki hâline göre sonraki 2–3 öneriyi yapay zekâya ayrıca sordurur (ana yanıt öneri vermediyse).
+  // Hata ya da sahte modda bilgi bankasından kurulan önerilere düşer.
+  const ONERI_SISTEM = `Lonca Studio'da usta, vakıf eserleri hakkında modül (mini uygulama) yapan kalfayla konuşuyor. Konuşmaya bakıp ustanın bir sonraki adımda tek dokunuşla gönderebileceği 3 kısa öneri yaz: biri bir soru, biri modülü yaptırmak ya da geliştirmek, biri fikri genişletmek olsun. Ustanın ağzından, ustanın dilinde (Türkçe ya da İngilizce), en çok 80 harf. Yalnızca konuşmada ya da verilen eser listesinde geçen eserlerden söz et; tarih, kişi uydurma. oneri_ver aracıyla ver.`;
+  const oneriAraci = [{ ad: "oneri_ver", aciklama: "Önerileri teslim eder.", sema: { type: "object", properties: { oneriler: { type: "array", items: { type: "string" } } }, required: ["oneriler"] } }];
+  async function onerileriUret(sohbet, { yanit = "", dil = "tr", kod = false, model, sinyal } = {}) {
+    const yedek = () => veridenOneriler(eserler, { dil, kod });
+    let saglayici = saglayiciAl();
+    if (saglayici.tur === "sahte") return yedek();
+    if (model) saglayici = { ...saglayici, model };
+    try {
+      const ornekEserler = karistir(eserler.filter((e) => e.fotograflar?.length)).slice(0, 8).map((e) => (dil === "en" ? e.ad_en || e.ad : e.ad));
+      const ozet = [...sohbet.slice(-6), ...(yanit ? [{ rol: "kalfa", metin: yanit }] : [])]
+        .map((m) => `${m.rol === "usta" ? "USTA" : "KALFA"}: ${String(m.metin).slice(0, 1200)}`).join("\n\n");
+      const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem: ONERI_SISTEM, araclar: oneriAraci, sinyal, zamanAsimiMs: Math.min(zamanAsimiMs, 45_000) });
+      const durum = adaptor.baslat([{ rol: "usta", metin: `# KONUŞMA\n${ozet}\n\n# BİLGİ BANKASINDAN BAZI ESERLER\n${ornekEserler.join(", ")}\n\nDil: ${dil === "en" ? "İngilizce" : "ustanın dili"}${kod ? "\nStudio'da yazılmış bir modül var." : ""}` }]);
+      const { cagrilar, metin } = await adaptor.iste(durum);
+      const girdi = cagrilar[0]?.girdi ?? jsonCoz(metin);
+      const oneriler = onerileriTemizle(Array.isArray(girdi) ? girdi : girdi?.oneriler);
+      return oneriler.length ? oneriler : yedek();
+    } catch {
+      return yedek();
+    }
+  }
+
+  // secenek.dil: Studio arayüzünün dili ("tr" | "en"); ustanın yazdığı dil ve açık isteği her zaman önce gelir.
+  async function calistir(sohbet, mevcutKod, { model, sinyal, insa = false, dil = "tr" } = {}) {
     const sonMesaj = sohbet.at(-1)?.metin;
     const insaIzni = insa || insaIzniVar(sonMesaj);
+    // Öneri dili: son mesaj İngilizceyse ya da konuşmada İngilizce istendiyse İngilizce.
+    const oneriDili = ingilizceMi(sonMesaj) || sohbet.some((m) => m.rol === "usta" && /\b(ingilizce|english)\b/i.test(m.metin)) ? "en" : dil;
     let saglayici = saglayiciAl();
-    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun, { insaIzni: insa || insaIstegiMi(sonMesaj) }), model: "sahte" };
+    if (saglayici.tur === "sahte") {
+      const s = sahteYanit(sohbet, ornekOyun, { insaIzni: insa || insaIstegiMi(sonMesaj) });
+      const ingilizce = oneriDili === "en" && s.tur === "sohbet";
+      const oneriler = ingilizce ? [`Build it: ${String(sonMesaj).slice(0, 60)}`, ...veridenOneriler(eserler, { dil: "en" }).slice(0, 2)] : s.oneriler;
+      return { ...s, oneriler: oneriler?.length ? oneriler : veridenOneriler(eserler, { dil: oneriDili, kod: !!mevcutKod }), model: "sahte" };
+    }
     if (model) saglayici = { ...saglayici, model };
     const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar, sinyal, zamanAsimiMs });
+    const tamamla = async (sonuc) => (sonuc.oneriler.length ? sonuc : {
+      ...sonuc, oneriler: await onerileriUret(sohbet, { yanit: sonuc.metin ?? sonuc.aciklama_ustaya, dil: oneriDili, kod: !!(mevcutKod || sonuc.kod), model, sinyal }),
+    });
 
     const konusma = sohbet.map((m) => ({ ...m }));
     if (mevcutKod) konusma.at(-1).metin += `\n\n(Studio'daki güncel modül kodu:)\n\`\`\`js\n${mevcutKod}\n\`\`\``;
+    if (oneriDili === "en" && (ingilizceMi(sonMesaj) || /\b(ingilizce|english)\b/i.test(sonMesaj) || sohbet.some((m) => m.rol === "usta" && /\b(ingilizce|english)\b/i.test(m.metin)))) {
+      konusma.at(-1).metin += "\n\n(Ustanın dili İngilizce: yanıtını, aciklama_ustaya'yı, önerileri ve modülün bütün metinlerini İngilizce yaz; eserlerin İngilizce alanlarını kullan.)";
+    } else if (dil === "en") konusma.at(-1).metin += "\n\n(Studio arayüzü İngilizce: usta Türkçe yazmadıkça İngilizce yanıtla.)";
     if (insa) konusma.at(-1).metin += "\n\n(Usta modülü şimdi yazmanı istiyor: modul_yaz ile teslim et.)";
 
     const durum = adaptor.baslat(konusma);
@@ -291,15 +409,15 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
     const aramalar = [];
     const izler = { gorulen: new Set(), okunan: [] };
     const sohbetYaniti = (girdi, metin) => ({
-      tur: "sohbet", metin, aramalar, kaynaklar: kaynaklariKur(girdi, izler), oneriler: onerilerVeyaYedek(girdi?.oneriler, mevcutKod ? "duzenle" : "sohbet"), model: saglayici.model,
+      tur: "sohbet", metin, aramalar, kaynaklar: kaynaklariKur(girdi, izler), oneriler: onerileriTemizle(girdi?.oneriler), model: saglayici.model,
     });
 
     for (let adim = 1; adim <= MAKS_ADIM && deneme < MAKS_DENEME; adim++) {
       const { cagrilar, metin, sonuclariBildir } = await adaptor.iste(durum);
       if (!cagrilar.length) {
         // Araç çağırmadan düz metinle yanıtlayan modeller: bu bir sohbet yanıtıdır.
-        if (metin?.trim()) return sohbetYaniti({}, metin.trim());
-        sonuclariBildir([{ id: null, icerik: "Yanıtını bir araç çağrısıyla ver (yanit_ver, eser_ara, eser_bilgisi ya da modul_yaz).", hata: true }]);
+        if (metin?.trim()) return tamamla(sohbetYaniti({}, metin.trim()));
+        sonuclariBildir([{ id: null, icerik: "Yanıtını bir araç çağrısıyla ver (yanit_ver, eser_ara, eser_bilgisi, sdk_bilgisi ya da modul_yaz).", hata: true }]);
         continue;
       }
       const sonuclar = [];
@@ -320,6 +438,10 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
           sonuclar.push(kayit
             ? { id: c.id, icerik: JSON.stringify(kayit) }
             : { id: c.id, hata: true, icerik: `Bilgi bankasında "${c.girdi?.id ?? ""}" kimlikli eser yok; önce eser_ara ile ara.` });
+        } else if (c.ad === "sdk_bilgisi") {
+          const sonuc = sdkBilgisi(c.girdi);
+          aramalar.push({ sdk: String(c.girdi?.konu ?? "").slice(0, 60), bulunan: sonuc.bulunan ?? 0 });
+          sonuclar.push({ id: c.id, icerik: JSON.stringify(sonuc) });
         } else if (c.ad === "yanit_ver") {
           const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim() : "";
           if (m) { yanit = sohbetYaniti(c.girdi, m); sonuclar.push({ id: c.id, icerik: "Yanıt iletildi." }); }
@@ -342,9 +464,9 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
       // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
       if (teslim) {
         const { kaynaklar, sdk, oneriler, ...modul } = teslim;
-        return { ...modul, tur: "modul", deneme, aramalar, kaynaklar: kaynaklariKur({ kaynaklar, sdk }, izler), oneriler: onerilerVeyaYedek(oneriler, "modul"), model: saglayici.model };
+        return tamamla({ ...modul, tur: "modul", deneme, aramalar, kaynaklar: kaynaklariKur({ kaynaklar, sdk }, izler), oneriler: onerileriTemizle(oneriler), model: saglayici.model });
       }
-      if (yanit) return yanit;
+      if (yanit) return tamamla(yanit);
       sonuclariBildir(sonuclar);
     }
     const hata = new Error(deneme ? "Kalfa geçerli bir modül üretemedi" : "Kalfa bir yanıt üretemedi");
@@ -354,6 +476,8 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
 
   return {
     calistir,
+    onerileriUret,
+    baslangicOnerileri: (dil) => veridenOneriler(eserler, { dil }),
     dogrula: (kod) => dogrula(kod, sdkTipleri, bilgiBankasi()),
     get sahte() { return saglayiciAl().tur === "sahte"; },
     get model() { const s = saglayiciAl(); return s.tur === "sahte" ? "sahte" : s.model; },

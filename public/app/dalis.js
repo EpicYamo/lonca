@@ -466,6 +466,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     cubuk.firstChild.style.transform = `scaleX(${s / toplam})`;
   }
 
+
   function dongu() {
     if (!calisiyor) return;
     if (iz.isConnected) {

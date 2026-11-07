@@ -77,7 +77,10 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
   // Liste: haritadaki eserlerin erişilebilir karşılığı (ada göre). Seçilen eserin kartı açılır.
   let sonListeDugmesi = null;
   const listeDugme = $("#kh-liste-dugme"), liste = $("#kh-liste");
-  function listeAc(ac) {
+  // Masaüstü web'de (≥1100px, Android kabuğu değil) liste haritanın solunda kalıcı paneldir.
+  const kaliciPanel = () => document.documentElement.classList.contains("web-sekmeli") && !document.documentElement.classList.contains("kabuk") && matchMedia("(min-width: 1100px)").matches;
+  function listeAc(ac, { odakla = true } = {}) {
+    if (!ac && kaliciPanel()) return;
     liste.hidden = !ac;
     listeDugme.setAttribute("aria-expanded", String(ac));
     if (!ac) return;
@@ -88,7 +91,7 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
         return el("li", {}, b);
       }));
     }
-    liste.querySelector("button")?.focus({ preventScroll: true });
+    if (odakla) liste.querySelector("button")?.focus({ preventScroll: true });
   }
   listeDugme.addEventListener("click", async () => { await hazirla(); listeAc(liste.hidden); });
   liste.addEventListener("keydown", (o) => { if (o.key === "Escape") { o.stopPropagation(); listeAc(false); listeDugme.focus(); } });
@@ -135,7 +138,12 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
 
   return {
     // Görünür olunca kurulur; sekme değişiminde boyutunu yeniden hesaplar (gizliyken Leaflet ölçemez).
-    goster() { hazirla().then(() => setTimeout(() => harita?.invalidateSize(), 60)); },
+    goster() {
+      hazirla().then(() => {
+        if (kaliciPanel()) listeAc(true, { odakla: false });
+        setTimeout(() => harita?.invalidateSize(), 60);
+      });
+    },
     kartKapat,
   };
 }

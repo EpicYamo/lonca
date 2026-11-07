@@ -223,8 +223,9 @@ export function atolyeTaslakDogrula(veri) {
   }
   return { hatalar, taslak: hatalar.length ? null : taslak };
 }
-export function atolyeIstekDogrula({ istek, kod } = {}) {
+export function atolyeIstekDogrula({ istek, kod, dil } = {}) {
   const hatalar = [];
+  if (dil != null && dil !== "tr" && dil !== "en") hatalar.push("dil: tr | en");
   if (typeof istek !== "string" || !istek.trim()) hatalar.push("istek: kalfaya ne istediğini yaz");
   else if (istek.length > 4000) hatalar.push("istek en fazla 4000 karakter olabilir");
   if (kod != null && (typeof kod !== "string" || kod.length > ATOLYE_MAKS_KOD)) hatalar.push("kod çok uzun");

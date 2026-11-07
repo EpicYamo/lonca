@@ -1,6 +1,6 @@
 import { sahne, ekran, eserler, depo, dalislar } from "@lonca/sdk";
 
-// Eser Keşfi: dokuz şehrin vakıf eserlerini tek yerde gezdiren rehber.
+// Eser Keşfi: Bursa'nın vakıf eserlerini tek yerde gezdiren rehber.
 // Şehir seç, haritada bul, yakınındakileri gör; her eserin tarihçesini, fotoğraflarını,
 // kaynaklarını ve kaynaklı tarihsel bağlarını aç. Bilgiler yalnızca eser kaydından gelir.
 
