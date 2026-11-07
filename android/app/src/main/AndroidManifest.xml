@@ -34,11 +34,15 @@
 
     <!-- Permissions -->
 
+    <!-- Sunucuyla (kozmos.itaskira.com) konuşmak için; kullanıcıya sorulmaz. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Çevrimdışı ↔ çevrimiçi geçişini fark etmek için (@capacitor/network); kullanıcıya sorulmaz. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- "Yakınımdaki eserler" için. Uygulama açılışında değil, yalnızca bu özellik kullanıldığı an sorulur.
+         Android 12+ kullanıcıya "yaklaşık konum" seçeneğini de sunar; o da yeterlidir. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Dalışta durak değişince hafif titreşim (@capacitor/haptics); kullanıcıya sorulmaz. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <!-- Android 11+: metin okuma (TTS) motorunu bulabilmek için -->
