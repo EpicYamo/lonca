@@ -509,3 +509,10 @@ dialog.galeri { overflow: hidden; }
 :root.kontrast .kategori-cip.secili { background: #ffd400; color: #000; }
 :root.buyuk-hedef :is(.kategori-cip, .uygulama-satiri) { min-height: 60px; }
 .hesap-eylemler .dugme { white-space: nowrap; padding-inline: .5rem; }
+
+/* Dil düğmesi (üst çubuk, web): tema düğmesiyle aynı daire; içinde geçilecek dilin kısaltması. */
+.dil-dugme .dil-kisa { position: relative; font-family: var(--yazi-sistem); font-size: .74rem; font-weight: 700; letter-spacing: .03em; }
+/* Profil → Ayarlar → Dil: satırın sağında iki seçenekli bölümlü seçici. */
+.pl-satir.pl-dil { cursor: default; }
+.pl-satir.pl-dil:active { background: none; }
+.pl-dil .bolumlu span { min-width: 4.6rem; padding: 0 .6rem; }

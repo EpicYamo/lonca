@@ -3,6 +3,7 @@
 import { TUR_ADI } from "./ekranlar.js";
 import { leafletYukle, karoKatmani, bagTuruAdi } from "./harita.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
+import { dilAl } from "/ortak/dil.js";
 
 const $ = (s) => document.querySelector(s);
 const yuzyilYazi = (y) => (y ? `${y}. yüzyıl` : null);
@@ -169,7 +170,8 @@ export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi
     $("#ep-foto-sayi").hidden = fotolar.length < 1;
     $("#ep-foto-sayi").textContent = `${fotolar.length} fotoğraf · tam ekran`;
     $("#ep-dil").hidden = !e.tarihce?.en;
-    if (!e.tarihce?.en) dil = "tr";
+    // Arayüz İngilizceyse eserin İngilizce metni (varsa) öne gelir.
+    dil = e.tarihce?.en && dilAl() === "en" ? "en" : "tr";
     metniCiz();
     $("#ep-kaynak").textContent = `Kaynak: ${e.kaynak}`;
     if (hataYazisi) $("#ep-hata").textContent = hataYazisi;

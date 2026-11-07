@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#f5f5f7">
   <script>try { if (window.Capacitor?.isNativePlatform?.() || /[?&]kabuk(=|&|$)/.test(location.search)) document.documentElement.classList.add("kabuk"); } catch {}</script>
   <script>try { if (localStorage.getItem("lonca.tema") === "koyu") { document.documentElement.dataset.tema = "koyu"; document.querySelector('meta[name="theme-color"]').content = "#000000"; } } catch {}</script>
+  <script>try { if (localStorage.getItem("lonca.dil") === "en") { document.documentElement.lang = "en"; document.documentElement.classList.add("dil-bekle"); setTimeout(() => document.documentElement.classList.remove("dil-bekle"), 1500); } } catch {}</script>
+  <style>.dil-bekle body { visibility: hidden; }</style>
   <title>Lonca</title>
   <meta name="description" content="Bursa’nın vakıf eserlerini rehberler, oyunlar ve gezi rotalarıyla keşfet.">
   <link rel="manifest" href="/app/manifest.webmanifest">
@@ -35,6 +37,7 @@
           <span class="avatar" id="cip-avatar" aria-hidden="true"></span>
           <span class="profil-cip-metin"><strong id="cip-ad">Gezgin</strong><span id="cip-seviye">Seviye 1</span></span>
         </button>
+        <button class="tema-dugme dil-dugme" id="dil-dugme" type="button" data-dil-dugmesi>EN</button>
         <button class="tema-dugme" id="tema-dugme" type="button" aria-label="Koyu temaya geç" aria-pressed="false">
           <svg class="tema-ay" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
           <svg class="tema-gunes" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -469,6 +472,7 @@
       ciz();
     })();
   </script>
+  <script type="module" src="/ortak/dil.js"></script>
   <script type="module" src="/app/app.js"></script>
   <script type="module" src="/app/zarif.js"></script>
   <script type="module" src="/app/kabuk.js"></script>

@@ -292,3 +292,5 @@
 :root.hareket-az :is(.ks-gorsel, .ks-govde > *) { animation: none; }
 :root.hareket-az .karsilama.gidiyor { transition: none; }
 @media (prefers-reduced-motion: reduce) { :is(.ks-gorsel, .ks-govde > *) { animation: none; } .karsilama.gidiyor { transition: none; } }
+/* Uygulamada dil seçimi Profilim → Ayarlar'da; üst çubukta yinelenmez. */
+.kabuk .ust-bar .dil-dugme { display: none; }
