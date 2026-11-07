@@ -93,8 +93,6 @@
 .kh-eylemler { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .8rem; }
 .kh-eylemler .dugme { flex: 1 1 auto; width: auto; min-height: 44px; padding-inline: 1rem; }
 .kh-eylemler .dugme:not(.ikincil) { background: var(--ana); color: var(--ana-metin); }
-.kh-kap .leaflet-control-attribution { font-size: .68rem; line-height: 1; }
-.kh-kap .leaflet-control-attribution a { display: inline-block; min-height: 24px; padding: 6px 3px; }
 :root.kontrast :is(.kh-kart, .kh-arac, .kh-liste) { border: 1px solid #fff; }
 @media (max-width: 1039px) { .harita-bolum { order: 2; } }
 
@@ -173,13 +171,10 @@
 .kh-harita .maplibregl-ctrl-attrib { font-size: .68rem; }
 .kh-harita .maplibregl-ctrl-attrib a { color: var(--vurgu); }
 
-/* ---------- Sayfa içi haritalar: tek parmakla kaydırınca "iki parmakla kaydır" ipucu (harita.js ikiParmakla) ---------- */
-.harita-ipucu {
-  position: absolute; inset: 0; z-index: 900; display: grid; place-items: center; padding: 1rem; pointer-events: none;
-  background: rgba(0, 0, 0, .45); color: #fff; font: 600 .95rem var(--yazi-sistem); text-align: center; opacity: 0; transition: opacity .2s ease-out;
-}
-.harita-ipucu.gorunur { opacity: 1; }
-:root.hareket-az .harita-ipucu { transition: none; }
+/* ---------- Sayfa içi haritalar (harita.js haritaAc, gomulu): tek parmakla kaydırınca "iki parmakla kaydır" ipucu ---------- */
+.maplibregl-cooperative-gesture-screen { font: 600 .95rem var(--yazi-sistem); background: rgba(0, 0, 0, .45); }
+:root.hareket-az .maplibregl-cooperative-gesture-screen { transition: none; }
+.ep-isaret { width: 16px; height: 16px; border-radius: 50%; background: #0b7a66; border: 3px solid #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
 .kh-yukleniyor {
   position: absolute; inset: 0; z-index: 400; display: grid; place-items: center; margin: 0;
   color: var(--soluk); font: 600 .95rem var(--yazi-sistem); background: var(--yuzey-2); pointer-events: none;

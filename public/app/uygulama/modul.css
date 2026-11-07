@@ -37,8 +37,8 @@
 
 /* ---------- Haritalar: parmakla gezilir; +/- düğmeleri yerine iki parmakla yakınlaştırma ---------- */
 .kabuk .modul-ekrani .s-harita { height: 56vh; border: 0; border-radius: 24px; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .45); }
-.kabuk .modul-ekrani .leaflet-control-zoom { display: none; }
-.kabuk .modul-ekrani .leaflet-control-attribution { max-width: 70%; font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 8px 0 0 0; }
+.kabuk .modul-ekrani :is(.maplibregl-ctrl-zoom-in, .maplibregl-ctrl-zoom-out) { display: none; }
+.kabuk .modul-ekrani .maplibregl-ctrl-attrib { font-size: .62rem; }
 
 /* ---------- Taşma yok: modülün uzun adları, geniş görselleri ve tabloları ekrana sığar ---------- */
 .kabuk .modul-ekrani :is(.s-sutun, .s-kart, .s-eser, .s-liste-ogesi, .s-liste-metin) { min-width: 0; }

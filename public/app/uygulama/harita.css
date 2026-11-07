@@ -10,9 +10,7 @@
 :root.kabuk[data-sekme="kesif"] .ana-ekran { min-height: 0; }
 .kabuk .harita-bolum .kh-kap { height: calc(100dvh - var(--ust) - var(--alt)); border-radius: 0; box-shadow: none; background: var(--zemin-2); }
 .kabuk .kh-harita { background: var(--zemin-2); }
-.kabuk .kh-kap .leaflet-control-zoom { display: none; }
-.kabuk .kh-kap .leaflet-control-attribution { margin: 0 .4rem calc(.4rem) 0; border-radius: 8px; background: var(--malzeme); color: var(--soluk); }
-.kabuk .kh-kap .leaflet-control-attribution a { color: var(--vurgu); }
+.kabuk .kh-kap .maplibregl-ctrl-attrib { background: var(--malzeme); color: var(--soluk); }
 
 /* Üstte yüzen araç çubuğu: il seçimi, liste, yakınımdakiler; sığmazsa yana kayar (sayfa değil, yalnızca çubuk). */
 .kabuk .kh-araclar {

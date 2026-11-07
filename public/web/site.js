@@ -346,42 +346,32 @@ $("#daha-fazla").addEventListener("click", () => {
   $("#eser-duvari").children[ilkYeni]?.querySelector("a")?.focus();
 });
 
-// ---------- 5. Harita (Leaflet, görünür olunca yüklenir) ----------
+// ---------- 5. Harita (uygulamanın ortak haritası: /app/harita.js, görünür olunca yüklenir) ----------
 const TUR_RENK = { cami: "#167a54", mescit: "#2e7d4f", turbe: "#5b2a6e", kulliye: "#1f3a93", hamam: "#157f7d", han: "#b0832a", medrese: "#c0352b", tekke: "#8a6420" };
 const turRengi = (t) => TUR_RENK[t] ?? "#6b6658";
-let leaflet = null;
-function leafletYukle() {
-  leaflet ??= new Promise((tamam, hata) => {
-    document.head.append(el("link", { rel: "stylesheet", href: "/vendor/leaflet/leaflet.css" }));
-    const s = el("script", { src: "/vendor/leaflet/leaflet.js" });
-    s.onload = () => tamam(window.L); s.onerror = hata;
-    document.head.append(s);
-  });
-  return leaflet;
-}
-function haritaKur(kap, eserler, { yakinlik } = {}) {
-  return leafletYukle().then((L) => {
-    kap.replaceChildren();
-    const h = L.map(kap, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(h);
-    const sinirlar = [];
-    for (const e of eserler) {
-      if (!e.konum?.lat) continue;
-      const nokta = [e.konum.lat, e.konum.lng];
-      sinirlar.push(nokta);
-      const m = L.circleMarker(nokta, { radius: 7, weight: 2, color: "#fff", fillColor: turRengi(e.tur), fillOpacity: 0.95 }).addTo(h);
-      const icerik = el("div", { sinif: "hb" },
-        e.fotograflar?.[0] ? el("img", { src: e.fotograflar[0], alt: "" }) : null,
-        el("strong", { metin: e.ad }), el("span", { metin: kunye(e) }),
-        el("a", { href: eserAdresi(e.id), metin: "Eser sayfası →" }));
-      m.bindPopup(icerik, { maxWidth: 240 });
-      m.bindTooltip(e.ad);
-    }
-    if (yakinlik && sinirlar.length === 1) h.setView(sinirlar[0], yakinlik);
-    else if (sinirlar.length) h.fitBounds(sinirlar, { padding: [30, 30], maxZoom: 15 });
-    else h.setView([40.1836, 29.0625], 12);
-    return h;
-  });
+async function haritaKur(kap, eserler, { yakinlik } = {}) {
+  const { haritaAc, isaretKoy } = await import("/app/harita.js");
+  kap.replaceChildren();
+  const noktalar = eserler.filter((e) => e.konum?.lat).map((e) => [e, [Number(e.konum.lng), Number(e.konum.lat)]]);
+  const tek = yakinlik && noktalar.length === 1;
+  const h = await haritaAc(kap, { gomulu: true, merkez: tek ? noktalar[0][1] : [29.0625, 40.1836], zoom: tek ? yakinlik - 1 : 11, pitch: tek ? 45 : 0 });
+  const ml = window.maplibregl;
+  for (const [e, nokta] of noktalar) {
+    const oge = el("div", { sinif: "hn" });
+    oge.style.setProperty("--renk", turRengi(e.tur));
+    const icerik = el("div", { sinif: "hb" },
+      e.fotograflar?.[0] ? el("img", { src: e.fotograflar[0], alt: "" }) : null,
+      el("strong", { metin: e.ad }), el("span", { metin: kunye(e) }),
+      el("a", { href: eserAdresi(e.id), metin: "Eser sayfası →" }));
+    const acilir = new ml.Popup({ maxWidth: "240px", offset: 12 }).setDOMContent(icerik);
+    isaretKoy(h, nokta, oge, { ad: e.ad, onSec: () => acilir.setLngLat(nokta).addTo(h) });
+  }
+  if (!tek && noktalar.length) {
+    const s = new ml.LngLatBounds();
+    for (const [, n] of noktalar) s.extend(n);
+    h.fitBounds(s, { padding: 30, maxZoom: 14, duration: 0 });
+  }
+  return h;
 }
 function haritaBolumu() {
   const kap = $("#harita-alan");
@@ -491,7 +481,7 @@ function eserSayfasi(id) {
       el("h2", { id: "es-benzer-baslik", metin: `Diğer ${turAdi(e.tur).toLocaleLowerCase("tr")} eserleri` }),
       el("ul", { sinif: "eser-satiri" }, benzer.map(eserTasi))) : null,
   ].filter(Boolean));
-  if (haritaKap) haritaKur(haritaKap, [e], { yakinlik: 16 }).catch(() => haritaKap.remove());
+  if (haritaKap) haritaKur(haritaKap, [e], { yakinlik: 16 }).catch((h) => { console.warn("Harita açılamadı:", h.message); haritaKap.remove(); });
 }
 
 // ---------- Yönlendirme ----------
