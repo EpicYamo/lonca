@@ -193,3 +193,13 @@ export function hesapGirdisiDogrula(veri, { kayit = false } = {}) {
   if (kayit && veri.rol != null && !ROLLER.includes(veri.rol)) hatalar.push(`rol: ${ROLLER.join(" | ")}`);
   return hatalar;
 }
+
+/** Şifre değiştirme gövdesi: { eskiSifre?, yeniSifre }. */
+export function sifreDegisimiDogrula(veri) {
+  if (!veri || typeof veri !== "object" || Array.isArray(veri)) return ["gövde bir nesne olmalı"];
+  const hatalar = [];
+  if (typeof veri.yeniSifre !== "string" || veri.yeniSifre.length < 8) hatalar.push("Yeni şifre en az 8 karakter olmalı");
+  else if (veri.yeniSifre.length > 200) hatalar.push("Şifre en çok 200 karakter olabilir");
+  if (veri.eskiSifre != null && (typeof veri.eskiSifre !== "string" || veri.eskiSifre.length > 200)) hatalar.push("Mevcut şifre geçersiz");
+  return hatalar;
+}

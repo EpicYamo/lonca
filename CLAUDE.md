@@ -20,7 +20,7 @@ Kullanıcı Türkçe yazar; yanıtlar Türkçe olsun.
 - **İnsan onayı:** kalfa ve dalış kalfası yalnızca taslak üretir (`durum: "bekliyor"`); yayın editör onayıyla olur (`"onayli"`).
 - **Modül sözleşmesi** `sdk/lonca-sdk.d.ts`'dedir. Modül yalnızca `@lonca/sdk` import eder, ağa/DOM'a erişemez, `sahne.ayarla` zorunlu, en çok 2000 satır. SDK'ya düğüm/ekran eklersen `.d.ts`, `sdk/lonca-sdk.js`, `public/app/sahne.js` ve `server/kalfa.js` denetimini birlikte güncelle.
 - **Girdi doğrulaması sunucuda** (`server/dogrulama.js`). Yeni bir alan/uç nokta eklerken doğrulamasını ve testini de ekle.
-- **Yetki** (`server/uygulama.js`): `editorGerekli` (onay, yayın, içerik) = yönetici şifresi (`x-yonetici-sifre`) ya da editör hesabı; `ustaGerekli` (kalfa, modül gönderme) = usta/editör hesabı; model ayarları yalnızca yönetici şifresiyle. Hesap jetonu `Authorization: Bearer` başlığında; rol her istekte `data/kullanicilar.json`'dan okunur (`server/hesap.js`, `server/guvenlik.js`).
+- **Yetki** (`server/uygulama.js`): `editorGerekli` (onay, yayın, içerik ve eser düzenleme, dalış, model ayarları) = yönetici şifresi (`x-yonetici-sifre`) ya da admin (rol `editor`) hesabı; `ustaGerekli` (kalfa, modül gönderme, Studio listelerini salt okunur görme) = usta/admin hesabı. Kayıt olan herkes usta olur (rol seçilmez); admin hesapları `ILK_KULLANICILAR`'dan gelir. Şifresini ilk kez belirlememiş hesap (`sifreDegismeli`) hiçbir yetki almaz. Studio'nun tamamı giriş kapısının arkasındadır; arayüzde admin'e özel öğeler `.yalniz-admin` sınıfı taşır. Hesap jetonu `Authorization: Bearer` başlığında; rol her istekte `data/kullanicilar.json`'dan okunur (`server/hesap.js`, `server/guvenlik.js`).
 - **Adlandırma Türkçe.** Değişken, fonksiyon, dosya ve JSON alanları ASCII Türkçe (`eserler`, `yuzyil`, `tarihce`, `kalfaHazirla`, `dalis-kalfasi.js`); kullanıcıya görünen metin düzgün Türkçe (ç, ğ, ı, ö, ş, ü). Kod yorumları Türkçe.
 - **Derleme adımı yok.** Saf ES modülleri (`"type": "module"`), Node ≥ 20.19, tarayıcı tarafı doğrudan `public/`'ten sunulur. TypeScript yalnızca kalfanın tip denetimi için kullanılır. Yeni bağımlılık eklemeden önce gerçekten gerekli mi düşün.
 - **Dosya alanları:**
@@ -70,9 +70,10 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `KALFA_SAHTE=1` | Kalfayı hazır şablonla çalıştır (çevrimdışı) |
 | `KALFA_SINIR` | IP başına 10 dakikadaki kalfa isteği sınırı |
 | `KALFA_ZAMAN_ASIMI_SN` | Kalfanın sağlayıcıya giden tek isteğinin zaman aşımı (varsayılan 150 sn) |
-| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz). Doluysa atölye usta/editör hesabı ister; editör kaydının davet anahtarı da budur |
+| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz). Doluysa Studio'nun tamamı hesap ister; "Yönetici şifresiyle gir" yolu da budur |
 | `OTURUM_ANAHTARI` | Hesap jetonlarını imzalar; boşsa `data/.oturum-anahtari`'na üretilir |
 | `HESAP_SINIR` | IP başına 10 dakikadaki kayıt/giriş denemesi sınırı |
+| `ILK_SIFRE`, `ILK_KULLANICILAR` | Hazır admin (rol `editor`) hesapları (varsayılan `arda,ibrahim,sevilay`): yalnızca eksik olanlar bu ilk şifreyle açılır; ilk girişte yeni şifre belirlenmeden yetki yok (`PUT /api/hesap/sifre`) |
 | `GOOGLE_HARITA_ANAHTARI` | Google harita + gerçek 3B; boşsa OpenStreetMap, 3B kapalı |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |

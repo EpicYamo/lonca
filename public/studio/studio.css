@@ -949,3 +949,24 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
 .model-pencere .durum:empty { display: none; }
 .model-pencere form > * { flex-shrink: 0; }
 .model-pencere form > .model-listesi { flex: 1 1 auto; }
+
+/* ---------- Giriş kapısı: oturum yokken Studio'nun yerine ---------- */
+.giris-kapisi {
+  position: fixed; inset: 0; z-index: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 8px; padding: max(48px, 9vh) 16px 16px; text-align: center;
+  background: radial-gradient(120% 70% at 50% 0%, var(--vurgu-zemin), transparent 70%), var(--zemin);
+}
+.giris-kapisi[hidden] { display: none; }
+.kapi-marka { display: flex; align-items: center; gap: 10px; }
+.kapi-marka .amblem, .kapi-marka .amblem svg { width: 40px; height: 40px; }
+.kapi-ad { font: 400 1.7rem/1 var(--yazi-baslik); color: var(--baslik); letter-spacing: .01em; }
+.kapi-ad span { color: var(--vurgu); }
+.kapi-slogan { margin: 0; color: var(--soluk); font-size: .95rem; }
+body.kapali { display: block; }
+body.kapali > :not(dialog, .giris-kapisi, svg) { display: none !important; }
+body.kapali .giris::backdrop { background: transparent; backdrop-filter: none; }
+body.kapali .giris { margin: auto; border-radius: 18px; border-bottom: 1px solid var(--cizgi-guclu); }
+@media (max-height: 640px) { .giris-kapisi { padding-top: 20px; } }
+/* Usta hesabı Studio'yu görür ama düzenleyemez: admin işlemleri gizlenir. */
+body:not(.admin) .yalniz-admin { display: none !important; }
+@media (max-width: 720px) { body.kapali .giris { width: calc(100vw - 32px); max-width: 460px; padding: 20px 16px; } }
