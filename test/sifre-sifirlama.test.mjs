@@ -56,7 +56,7 @@ test("hazır admin hesabı sıfırlamayla ilk şifre zorunluluğundan çıkar", 
   const g = (await t.istek("POST", "/api/hesap/giris", { govde: { kimlik: "sevilay", sifre: "ilk-sifre" } })).json();
   await t.istek("PUT", "/api/hesap/profil", { basliklar: { authorization: `Bearer ${g.jeton}` }, govde: { eposta: "sevilay@ornek.test" } });
   await t.app.inject({ method: "POST", url: "/api/hesap/sifre-sifirla/iste", headers: { host: "localhost" }, payload: { eposta: "sevilay@ornek.test" } });
-  const y = await t.istek("POST", "/api/hesap/sifre-sifirla", { govde: { jeton: jetonu(gelen[0]), yeniSifre: "sevilayin-sifresi", yeniSifreTekrar: "sevilayin-sifresi" } });
+  const y = await t.istek("POST", "/api/hesap/sifre-sifirla", { govde: { jeton: jetonu(gelen.find((m) => m.konu === "Lonca şifre sıfırlama")), yeniSifre: "sevilayin-sifresi", yeniSifreTekrar: "sevilayin-sifresi" } });
   assert.equal(y.json().hesap.rol, "editor");
   assert.equal(y.json().hesap.sifreDegismeli, false);
 });

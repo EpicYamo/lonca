@@ -18,7 +18,8 @@ const KOD_OMRU = 5 * 60_000;
 const ozet = (s) => createHash("sha256").update(String(s)).digest("hex");
 const ACIK_UCLAR = new Set(["/api/merhaba", "/api/eslestir", "/api/hesap/kayit", "/api/hesap/giris",
   "/api/hesap/google/baslat", "/api/hesap/google/donus", "/api/hesap/google/takas",
-  "/api/hesap/sifre-sifirla/iste", "/api/hesap/sifre-sifirla"]);
+  "/api/hesap/sifre-sifirla/iste", "/api/hesap/sifre-sifirla",
+  "/api/hesap/eposta-dogrula", "/api/hesap/eposta-dogrula/yeniden"]);
 
 function cerezOku(req, ad) {
   for (const parca of String(req.headers.cookie ?? "").split(";")) {
