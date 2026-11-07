@@ -329,25 +329,35 @@
     // klavyenin kapladığı yükseklik --klavye olarak CSS'e verilir (alttan sayfalar ve sayfa sonu bu kadar yukarı çıkar).
     // Küçülme klavye olayından önce de sonra da gelebildiği için olaylar arası fark değil, ekran boyuyla kıyas kullanılır;
     // yoksa klavye iki kez düşülür, form ekranın üstüne itilir ve yazılan alan görünmez.
-    let klavyeAcik = false, klavyeBoyu = 0;
+    // Yazarken Android sık sık "resize" gönderebilir (öneri şeridi açılıp kapanır): her birinde CSS değişkenini yeniden
+    // yazmak ve alanı kaydırmak yazmayı yavaşlatır. Bu yüzden değer yalnızca değişince yazılır, resize toplanıp bir kez
+    // işlenir ve alan yalnızca pencere yüksekliği gerçekten değiştiyse görünür yere getirilir.
+    let klavyeAcik = false, klavyeBoyu = 0, sonPay = -1, sonYukseklik = innerHeight, resizeZamani = 0;
+    const payYaz = (pay) => { if (pay === sonPay) return; sonPay = pay; kok.style.setProperty("--klavye", `${pay}px`); };
     const klavyePayi = () => {
       if (!klavyeBoyu) return;
       const ekran = Math.max(innerHeight, Math.round(screen.height || 0));
       const kuculme = ekran - innerHeight; // durum ve gezinme çubukları da dahil; klavye kadar değilse WebView küçülmemiştir
-      kok.style.setProperty("--klavye", `${kuculme >= klavyeBoyu * 0.6 ? 0 : klavyeBoyu}px`);
+      payYaz(kuculme >= klavyeBoyu * 0.6 ? 0 : klavyeBoyu);
     };
     addEventListener("resize", () => {
       if (!klavyeAcik || !klavyeBoyu) return;
-      klavyePayi();
-      window.loncaKabuk?.odagiGoster?.();
+      clearTimeout(resizeZamani);
+      resizeZamani = setTimeout(() => {
+        if (!klavyeAcik || innerHeight === sonYukseklik) return;
+        sonYukseklik = innerHeight;
+        klavyePayi();
+        window.loncaKabuk?.odagiGoster?.();
+      }, 120);
     });
     sessiz(P.Keyboard?.addListener("keyboardWillShow", () => { klavyeAcik = true; kok.classList.add("klavye-acik"); }));
     sessiz(P.Keyboard?.addListener("keyboardDidShow", (b) => {
       klavyeBoyu = Math.max(1, Math.round(Number(b?.keyboardHeight) || 0));
+      sonYukseklik = innerHeight;
       klavyePayi();
       window.loncaKabuk?.odagiGoster?.();
     }));
-    sessiz(P.Keyboard?.addListener("keyboardWillHide", () => { klavyeAcik = false; klavyeBoyu = 0; kok.classList.remove("klavye-acik"); kok.style.setProperty("--klavye", "0px"); }));
+    sessiz(P.Keyboard?.addListener("keyboardWillHide", () => { klavyeAcik = false; klavyeBoyu = 0; clearTimeout(resizeZamani); kok.classList.remove("klavye-acik"); payYaz(0); }));
 
     // Dalış ve başarımlar: DOM'u izleyerek (uygulama koduna dokunmadan) native tepki ver.
     let durakGozcu = null, bekliyor = false;
