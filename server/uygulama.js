@@ -108,9 +108,14 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "leaflet", "dist"), prefix: "/vendor/leaflet/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
-  // Kök adres doğrudan vatandaş uygulamasının ana sayfasıdır (yönlendirme yok); sayfadaki bütün yollar mutlak.
-  app.get("/", (_, rep) => rep.sendFile("index.html", path.join(kok, "public", "app")));
-  app.get("/app", (_, rep) => rep.redirect("/app/"));
+  // Web sitesi kökte: / doğrudan ana sayfa (sayfadaki bütün yollar mutlak). "App" artık yalnızca Android uygulaması;
+  // eski /app adresleri sorgusuyla birlikte köke yönlenir. Studio önizlemesi (/app/?onizleme) aynı sayfayı çerçevede açar.
+  const anaSayfa = (rep) => rep.sendFile("index.html", path.join(kok, "public", "app"));
+  const sorgu = (req) => { const i = req.url.indexOf("?"); return i < 0 ? "" : req.url.slice(i); };
+  app.get("/", (_, rep) => anaSayfa(rep));
+  app.get("/app", (req, rep) => rep.redirect(`/${sorgu(req)}`, 301));
+  app.get("/app/", (req, rep) => (req.query?.onizleme != null ? anaSayfa(rep) : rep.redirect(`/${sorgu(req)}`, 301)));
+  app.get("/app/index.html", (req, rep) => (req.query?.onizleme != null ? anaSayfa(rep) : rep.redirect(`/${sorgu(req)}`, 301)));
   app.get("/studio", (_, rep) => rep.redirect("/studio/"));
 
   app.get("/api/ayarlar", async () => ({
@@ -471,13 +476,19 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       if (e !== gununEseri && !secki.includes(e)) secki.push(e);
     }
     const moduller = (await modulDosyasi.oku()).filter((m) => m.durum === "onayli");
+    // Vitrindeki kartlar aynı fotoğrafı tekrarlamasın: aynı kapak eserini seçen ikinci modül eserin sıradaki
+    // fotoğrafını, o da yoksa havuzdan kullanılmamış bir eserin fotoğrafını alır.
+    const kullanilan = new Set();
+    const bosFoto = (e) => e?.fotograflar?.find((f) => !kullanilan.has(f));
     const kapaklar = Object.fromEntries(moduller.map((m) => {
       const secilen = m.kapakEser && eserler.find((e) => e.id === m.kapakEser && e.fotograflar?.length);
-      if (secilen) return [m.id, { foto: secilen.fotograflar[0], eser: secilen.ad }];
       const uygun = havuz.filter((e) => !m.ikon || m.ikon === "genel" || e.tur === m.ikon);
       const liste = uygun.length ? uygun : havuz;
-      const e = liste[sabitSayi(m.id) % Math.max(1, liste.length)];
-      return [m.id, e ? { foto: e.fotograflar[0], eser: e.ad } : null];
+      const bas = sabitSayi(m.id) % Math.max(1, liste.length);
+      const aday = bosFoto(secilen) ? secilen : [...liste.slice(bas), ...liste.slice(0, bas)].find(bosFoto) ?? secilen ?? liste[bas];
+      const foto = bosFoto(aday) ?? aday?.fotograflar?.[0];
+      if (foto) kullanilan.add(foto);
+      return [m.id, aday && foto ? { foto, eser: aday.ad } : null];
     }));
     return {
       sayilar: { eser: eserler.length, fotografli: havuz.length, konumlu: eserler.filter((e) => e.konum).length, ilce: new Set(eserler.map((e) => e.ilce).filter(Boolean)).size },
@@ -636,7 +647,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   });
   app.get("/m/:anahtar", async (req, rep) => {
     const { anahtar } = req.params;
-    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/app/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/app/");
+    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/");
   });
   // Android App Links doğrulaması: ANDROID_IMZA_SHA256 (APK imza sertifikasının SHA-256 parmak izleri, virgülle) doluysa yayımlanır.
   const imzalar = String(ortam.ANDROID_IMZA_SHA256 ?? "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(x));

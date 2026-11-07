@@ -610,7 +610,9 @@ async function anaEkran({ gecisli = false } = {}) {
     ul.replaceChildren(el("li", { className: "bos", textContent: `Uygulamalar yüklenemedi: ${h.message}. Bağlantını kontrol edip sayfayı yenile.` }));
   }
   vitrinCiz();
-  if (!profil.profilOku() && !hesapJetonuOku() && !ONIZLEME && !karsilamaGosterildi) karsilamaAc();
+  // Web sitesinde giriş hiçbir zaman zorunlu değil: karşılama yalnızca Android uygulamasında; web'de üst çubukta "Giriş yap" var.
+  const webSitesi = document.documentElement.classList.contains("web-sekmeli") && !document.documentElement.classList.contains("kabuk");
+  if (!webSitesi && !profil.profilOku() && !hesapJetonuOku() && !ONIZLEME && !karsilamaGosterildi) karsilamaAc();
 }
 
 // ---------- Karşılama: giriş yap / hesap oluştur / hesap açmadan devam et ----------
@@ -1321,3 +1323,11 @@ if (ONIZLEME) {
 }
 
 export { TUR_ADI };
+
+// Web sitesinin üst çubuğu ve profil menüsü (web.js) hesap işlemlerini buradan çağırır; mantık tek yerde kalır.
+window.loncaHesap = {
+  get kullanici() { return hesapKullanici; },
+  ac: (kip) => hesapPenceresiAc(kip),
+  cikis: () => oturumuKapat(),
+  profil: () => profil.profilBilgi(),
+};
