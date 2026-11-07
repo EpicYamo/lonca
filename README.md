@@ -62,6 +62,7 @@ Everything works without any configuration:
 | `OTURUM_ANAHTARI` | Signs Studio account tokens; generated into `data/.oturum-anahtari` when empty |
 | `HESAP_SINIR` | Sign-up / login attempts allowed per IP in ten minutes |
 | `ILK_SIFRE`, `ILK_KULLANICILAR` | Ready-made admin (role `editor`) accounts (default `arda,ibrahim,sevilay`) created with the initial password; each must set a new password on first login |
+| `GOOGLE_ISTEMCI_KIMLIGI`, `GOOGLE_ISTEMCI_SIRRI` | "Google ile devam et" on the web app, Studio and Android app (one Web OAuth client; redirect URI `https://<host>/api/hesap/google/donus`). A Google e-mail that is already registered signs into that account; otherwise a new usta account is created. Empty = button hidden. `GOOGLE_DONUS_ADRESI` optionally fixes the redirect URI |
 | `LONCA_API_ANAHTARI` | API key: when set, every `/api` request needs the `x-lonca-anahtar` header (or a paired device key / browser login) |
 
 To try it on a phone, connect to the same Wi-Fi and open

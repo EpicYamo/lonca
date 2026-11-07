@@ -1,6 +1,7 @@
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { hareketAzalt } from "/ortak/animasyon.js";
 import { loncaLogo } from "/ortak/logo.js";
+import { googleAcikMi, googleIleBaslat, googleDonusuOku, googleKodTakas, GOOGLE_SVG } from "/ortak/google-giris.js";
 
 const $ = (s) => document.querySelector(s);
 const el = (etiket, ozellik = {}, ...cocuk) => {
@@ -388,6 +389,15 @@ function hesapPenceresiAc({ kip = "giris", kapi = false } = {}) {
     $("#hesap-baslik-metin").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
     $("#hesap-gonder").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
     $("#hesap-kayit-notu").hidden = !kayit;
+    // Kayıtta kullanıcı adı + e-posta + şifre tekrarı; girişte kullanıcı adı ya da e-posta.
+    $("#hesap-kimlik-etiket").textContent = kayit ? "Kullanıcı adı" : "Kullanıcı adı ya da e-posta";
+    $("#hesap-kimlik").maxLength = kayit ? 32 : 254;
+    if (kayit) Object.assign($("#hesap-kimlik"), { pattern: "[a-z0-9_.\\-]{3,32}", title: "3-32 karakter: küçük harf, rakam ya da . _ -" });
+    else { $("#hesap-kimlik").removeAttribute("pattern"); $("#hesap-kimlik").removeAttribute("title"); }
+    for (const [alan, girdi] of [["#hesap-eposta-alan", "#hesap-eposta"], ["#hesap-sifre2-alan", "#hesap-sifre2"]]) {
+      $(alan).hidden = !kayit;
+      $(girdi).required = kayit;
+    }
     $("#hesap-sifre").autocomplete = kayit ? "new-password" : "current-password";
     // En az 8 karakter yalnızca yeni hesapta; hazır hesapların ilk şifresi daha kısa olabilir.
     if (kayit) $("#hesap-sifre").minLength = 8; else $("#hesap-sifre").removeAttribute("minlength");
@@ -397,6 +407,7 @@ function hesapPenceresiAc({ kip = "giris", kapi = false } = {}) {
   };
   $("#hesap-hata").textContent = "";
   $("#hesap-sifre").value = "";
+  $("#hesap-sifre2").value = "";
   uygula();
   const kipSec = (e) => { const b = e.target.closest("[data-hesap-kip]"); if (b) { simdiki = b.dataset.hesapKip; $("#hesap-hata").textContent = ""; uygula(); } };
   const iptal = (e) => { if (kapi) e.preventDefault(); };
@@ -411,6 +422,10 @@ function hesapPenceresiAc({ kip = "giris", kapi = false } = {}) {
     e.preventDefault();
     const kayit = simdiki === "kayit";
     const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
+    if (kayit) {
+      Object.assign(govde, { eposta: $("#hesap-eposta").value.trim(), sifreTekrar: $("#hesap-sifre2").value });
+      if (govde.sifre !== govde.sifreTekrar) { $("#hesap-hata").textContent = "Şifreler eşleşmiyor; iki alana da aynı şifreyi yaz."; $("#hesap-sifre2").focus(); return; }
+    }
     $("#hesap-gonder").disabled = true;
     $("#hesap-hata").textContent = "";
     try {
@@ -445,14 +460,16 @@ function hesapPenceresiAc({ kip = "giris", kapi = false } = {}) {
   });
 }
 // Şifre değiştirme. zorunlu: ilk girişte; pencere kapatılamaz, yalnızca kaydet ya da çıkış.
-function sifrePenceresiAc({ zorunlu = false } = {}) {
+function sifrePenceresiAc({ zorunlu = false, ilk = false } = {}) {
   const d = $("#sifre-pencere"), f = $("#sifre-formu");
+  // ilk: Google'la açılmış, şifresi olmayan hesap; eski şifre sorulmaz.
+  const eskisiz = zorunlu || ilk;
   $("#sifre-aciklama").textContent = zorunlu
     ? `Hoş geldin, ${hesap.kimlik}. Bu ilk girişin; devam etmek için kendi şifreni belirle.`
-    : "Mevcut şifreni ve yeni şifreni yaz.";
+    : ilk ? "Hesabına şifre ekle; Google'ın yanında kullanıcı adın ya da e-postanla da girebilirsin." : "Mevcut şifreni ve yeni şifreni yaz.";
   $("#sifre-kimlik").value = hesap.kimlik;
-  $("#sifre-eski-etiketi").hidden = zorunlu;
-  $("#sifre-eski").required = !zorunlu;
+  $("#sifre-eski-etiketi").hidden = eskisiz;
+  $("#sifre-eski").required = !eskisiz;
   $("#sifre-vazgec").hidden = zorunlu;
   $("#sifre-cikis").hidden = !zorunlu;
   for (const g of ["#sifre-eski", "#sifre-yeni", "#sifre-tekrar"]) $(g).value = "";
@@ -468,7 +485,7 @@ function sifrePenceresiAc({ zorunlu = false } = {}) {
     try {
       const y = await fetch("/api/hesap/sifre", {
         method: "PUT", headers: { "content-type": "application/json", ...hesapBasligi() },
-        body: JSON.stringify(zorunlu ? { yeniSifre } : { eskiSifre: $("#sifre-eski").value, yeniSifre }),
+        body: JSON.stringify(eskisiz ? { yeniSifre } : { eskiSifre: $("#sifre-eski").value, yeniSifre }),
       });
       const veri = await y.json().catch(() => ({}));
       if (!y.ok) { $("#sifre-hata").textContent = veri.hata ?? `İşlem başarısız (${y.status})`; return; }
@@ -480,7 +497,7 @@ function sifrePenceresiAc({ zorunlu = false } = {}) {
   d.addEventListener("cancel", iptal);
   f.addEventListener("submit", gonder);
   d.showModal();
-  (zorunlu ? $("#sifre-yeni") : $("#sifre-eski")).focus();
+  (eskisiz ? $("#sifre-yeni") : $("#sifre-eski")).focus();
   return new Promise((coz) => {
     d.addEventListener("close", () => {
       d.removeEventListener("cancel", iptal);
@@ -536,14 +553,40 @@ $("#hesap-d").addEventListener("click", () => {
   if (!hesap) return hesapPenceresiAc().then((t) => { if (t) { sayfayiYenile(); oturumlariBaslat(); } });
   $("#hesap-kart-ad").textContent = `${hesap.kimlik} · ${ROL_ADI[hesap.rol] ?? hesap.rol}`;
   $("#hesap-kart-rol").textContent = ROL_ACIKLAMA[hesap.rol] ?? "";
-  const k = $("#hesap-kart");
+  hesapKartiAc();
+});
+// Hesap kartı: e-posta ekleme/değiştirme (Google girişiyle bağlamak için), şifre, çıkış.
+// Google'a bağlı hesabın e-postası Google'dan gelir, değiştirilemez; şifresi hiç yoksa "Şifre belirle" olur.
+function hesapKartiAc() {
+  const k = $("#hesap-kart"), girdi = $("#hesap-kart-eposta");
+  girdi.value = hesap.eposta ?? "";
+  girdi.readOnly = !!hesap.google;
+  $("#hesap-kart-eposta-kaydet").hidden = !!hesap.google;
+  $("#hesap-kart-eposta-not").textContent = hesap.google ? "Bu hesap Google hesabına bağlı." : "Aynı e-postayla \"Google ile devam et\" dersen bu hesaba girersin.";
+  $("#hesap-kart-hata").textContent = "";
+  k.querySelector('button[value="sifre"]').textContent = hesap.sifreVar === false ? "Şifre belirle" : "Şifreyi değiştir";
+  const gonder = async (e) => {
+    if (e.submitter?.value !== "eposta") return;
+    e.preventDefault();
+    try {
+      const y = await fetch("/api/hesap/profil", { method: "PUT", headers: { "content-type": "application/json", ...hesapBasligi() }, body: JSON.stringify({ eposta: girdi.value.trim() }) });
+      const veri = await y.json().catch(() => ({}));
+      if (!y.ok) { $("#hesap-kart-hata").textContent = veri.hata ?? `İşlem başarısız (${y.status})`; return; }
+      hesap = veri;
+      $("#hesap-kart-hata").textContent = "";
+      bildirim("E-posta kaydedildi.");
+    } catch { $("#hesap-kart-hata").textContent = "Sunucuya ulaşılamadı."; }
+  };
+  const f = k.querySelector("form");
+  f.addEventListener("submit", gonder);
   k.addEventListener("close", () => {
+    f.removeEventListener("submit", gonder);
     if (k.returnValue === "cikis") hesapCikis();
-    else if (k.returnValue === "sifre") sifrePenceresiAc();
+    else if (k.returnValue === "sifre") sifrePenceresiAc({ ilk: hesap.sifreVar === false });
   }, { once: true });
   k.returnValue = "";
   k.showModal();
-});
+}
 $("#kilit-giris").addEventListener("click", () => hesapPenceresiAc({ kip: "giris" }).then((t) => { if (t) oturumlariBaslat(); }));
 $("#kilit-kayit").addEventListener("click", () => hesapPenceresiAc({ kip: "kayit" }).then((t) => { if (t) oturumlariBaslat(); }));
 
@@ -1633,10 +1676,28 @@ function modelPenceresiniAc(alan) {
 $("#model").addEventListener("click", () => modelPenceresiniAc("kalfaModeli"));
 $("#kalfa-ayar-d").addEventListener("click", () => modelPenceresiniAc(kip === "dalis" ? "dalisMetinModelleri" : "kalfaModeli"));
 
+// ---------- Google ile giriş (public/ortak/google-giris.js) ----------
+// Sunucuda ayar yoksa düğme gizli. Studio sayfası Google'a gidip /studio/#google-kod=… ile döner; kod jetona çevrilir.
+$("#hesap-google-g").innerHTML = GOOGLE_SVG;
+$("#hesap-google").addEventListener("click", () => googleIleBaslat({ donus: "/studio/" }).catch((h) => { $("#hesap-hata").textContent = h.message; }));
+googleAcikMi().then((acik) => { $("#hesap-google-kap").hidden = !acik; });
+async function googleDonusunuIsle() {
+  const d = googleDonusuOku();
+  if (!d) return;
+  if (d.hata) { bildirim(d.hata); return; }
+  try {
+    const veri = await googleKodTakas(d.kod);
+    jetonYaz(veri.jeton);
+    hesap = veri.hesap;
+    bildirim(`Hoş geldin, ${hesap.kimlik}.`);
+  } catch (h) { bildirim(h.message); }
+}
+
 editoruGuncelle();
 fetch("/api/ayarlar").then((y) => y.json()).then(async (a) => {
   yonetimSifreli = !!a.yonetim?.sifreli;
   hesapGerekli = !!a.hesap?.gerekli;
+  await googleDonusunuIsle();
   if (hesapGerekli) await hesabiYukle();
   yetkiGuncelle();
   // Oturum yoksa (ya da ilk şifre değiştirilmemişse) Studio'nun yerine giriş kapısı.

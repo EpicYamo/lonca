@@ -10,6 +10,7 @@ import { modulSurumu } from "/ortak/arama.js";
 import * as raf from "./modullerim.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
 import { kesifHaritasiKur } from "./kesif-haritasi.js";
+import { googleAcikMi, googleIleBaslat, googleDonusuOku, uygulamaDonusunuDinle, googleKodTakas } from "/ortak/google-giris.js";
 
 const $ = (s) => document.querySelector(s);
 export const el = (etiket, ozellik = {}, ...cocuklar) => {
@@ -876,6 +877,16 @@ function hesapPencereGuncelle() {
     dugme.setAttribute("aria-checked", String(secili));
   }
   $("#hesap-kayit-notu").hidden = !kayit;
+  // Kayıtta kullanıcı adı + e-posta + şifre tekrarı; girişte kullanıcı adı ya da e-posta.
+  const kimlik = $("#hesap-kimlik");
+  $("#hesap-kimlik-etiket").textContent = kayit ? "Kullanıcı adı" : "Kullanıcı adı ya da e-posta";
+  $("#hesap-kimlik-ipucu").hidden = !kayit;
+  kimlik.maxLength = kayit ? 32 : 254;
+  if (kayit) kimlik.pattern = "[a-zA-Z0-9_.\\-]{3,32}"; else kimlik.removeAttribute("pattern");
+  for (const [alan, girdi] of [["#hesap-eposta-alan", "#hesap-eposta"], ["#hesap-sifre2-alan", "#hesap-sifre2"]]) {
+    $(alan).hidden = !kayit;
+    $(girdi).required = kayit;
+  }
   $("#hesap-baslik").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
   $("#hesap-gonder").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
   $("#hesap-sifre").autocomplete = kayit ? "new-password" : "current-password";
@@ -935,19 +946,15 @@ $("#hesap-formu").addEventListener("submit", async (e) => {
   $("#hesap-hata").hidden = true;
   const kayit = hesapKipi === "kayit";
   const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
+  if (kayit) Object.assign(govde, { eposta: $("#hesap-eposta").value.trim(), sifreTekrar: $("#hesap-sifre2").value });
   try {
+    if (kayit && govde.sifre !== govde.sifreTekrar) throw new Error("Şifreler eşleşmiyor; iki alana da aynı şifreyi yaz.");
     const yanit = await fetch(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde),
     });
     const sonuc = await yanit.json().catch(() => ({}));
     if (!yanit.ok) throw new Error(sonuc.hata ?? `İstek başarısız (${yanit.status})`);
-    localStorage.setItem(HESAP_JETON_ANAHTARI, sonuc.jeton);
-    try { await hesapOturumuYukle(sonuc.hesap); }
-    catch {
-      hesapKullanici = sonuc.hesap;
-      profilCipiGuncelle();
-      if (!$("#profil-ekrani").hidden) profilEkrani();
-    }
+    await jetonlaOturumAc(sonuc);
     hesapPenceresiKapat(true);
     bildir(kayit ? "Hesabın oluşturuldu. Profilin hesabına bağlandı." : `Hoş geldin, ${hesapKullanici.kimlik}.`);
   } catch (h) {
@@ -958,7 +965,42 @@ $("#hesap-formu").addEventListener("submit", async (e) => {
     dugme.disabled = false;
   }
 });
-hesapDurumunuYukle();
+async function jetonlaOturumAc(sonuc) {
+  localStorage.setItem(HESAP_JETON_ANAHTARI, sonuc.jeton);
+  try { await hesapOturumuYukle(sonuc.hesap); }
+  catch {
+    hesapKullanici = sonuc.hesap;
+    profilCipiGuncelle();
+    if (!$("#profil-ekrani").hidden) profilEkrani();
+  }
+}
+
+// ---------- Google ile giriş (public/ortak/google-giris.js) ----------
+// Sunucuda ayar yoksa düğmeler gizli kalır. Web'de sayfa Google'a gidip döner; uygulamada akış Custom Tab'da açılır.
+async function googleSonucuIsle({ kod, hata }) {
+  if (hata) { bildir(hata, { sure: 5000 }); return; }
+  try {
+    const sonuc = await googleKodTakas(kod);
+    await jetonlaOturumAc(sonuc);
+    if (!$("#hesap-penceresi").hidden) hesapPenceresiKapat(true);
+    if (!$("#karsilama").hidden) karsilamaKapat();
+    bildir(`Hoş geldin, ${hesapKullanici.kimlik}.`);
+  } catch (h) { bildir(h.message, { sure: 5000 }); }
+}
+async function googleBaslat() {
+  try { await googleIleBaslat({ donus: location.pathname.startsWith("/app") ? "/app/" : "/" }); }
+  catch (h) { bildir(h.message, { sure: 5000 }); }
+}
+$("#ks-google").addEventListener("click", googleBaslat);
+$("#hesap-google").addEventListener("click", googleBaslat);
+googleAcikMi().then((acik) => { $("#ks-google").hidden = !acik; $("#hesap-google-kap").hidden = !acik; });
+uygulamaDonusunuDinle(googleSonucuIsle);
+const googleDonusu = googleDonusuOku();
+if (googleDonusu) {
+  // Google'dan dönen sayfada karşılama yeniden açılmasın.
+  karsilamaGosterildi = true;
+  googleSonucuIsle(googleDonusu);
+} else hesapDurumunuYukle();
 
 function profilEkrani() {
   const p = profil.profilBilgi();

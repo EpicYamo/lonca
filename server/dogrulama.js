@@ -183,13 +183,24 @@ const KULLANICI_ADI = /^[a-z0-9_.-]{3,32}$/;
 export const kullaniciAdiDuzelt = (k) => String(k ?? "").toLocaleLowerCase("tr").trim();
 export const kullaniciAdiGecerli = (k) => typeof k === "string" && KULLANICI_ADI.test(kullaniciAdiDuzelt(k));
 
-/** Kayıt ve giriş gövdesi. Şifrenin üst sınırı scrypt'e dev girdi verilmesini önler. */
+// E-posta: kaba ama yeterli biçim denetimi; küçük harfe çevrilip saklanır (tekillik bununla denetlenir).
+const EPOSTA = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
+export const epostaDuzelt = (e) => String(e ?? "").trim().toLowerCase();
+export const epostaGecerli = (e) => typeof e === "string" && e.length <= 254 && EPOSTA.test(epostaDuzelt(e));
+
+/**
+ * Kayıt ve giriş gövdesi. Şifrenin üst sınırı scrypt'e dev girdi verilmesini önler.
+ * Kayıt: { kimlik, eposta, sifre, sifreTekrar }. Giriş: { kimlik, sifre }; kimlik kullanıcı adı ya da e-posta olabilir.
+ */
 export function hesapGirdisiDogrula(veri, { kayit = false } = {}) {
   const hatalar = [];
   if (!veri || typeof veri !== "object" || Array.isArray(veri)) return ["gövde bir nesne olmalı"];
-  if (!kullaniciAdiGecerli(veri.kimlik)) hatalar.push("Kullanıcı adı 3-32 karakter olmalı: küçük harf, rakam ya da . _ -");
+  const epostaylaGiris = !kayit && typeof veri.kimlik === "string" && veri.kimlik.includes("@");
+  if (epostaylaGiris ? !epostaGecerli(veri.kimlik) : !kullaniciAdiGecerli(veri.kimlik)) hatalar.push("Kullanıcı adı 3-32 karakter olmalı: küçük harf, rakam ya da . _ -");
+  if (kayit && !epostaGecerli(veri.eposta)) hatalar.push("Geçerli bir e-posta adresi yaz");
   if (typeof veri.sifre !== "string" || veri.sifre.length > 200) hatalar.push("Şifre en çok 200 karakter olabilir");
   else if (kayit && veri.sifre.length < 8) hatalar.push("Şifre en az 8 karakter olmalı");
+  else if (kayit && veri.sifreTekrar !== veri.sifre) hatalar.push("Şifreler eşleşmiyor");
   if (kayit && veri.rol != null && !ROLLER.includes(veri.rol)) hatalar.push(`rol: ${ROLLER.join(" | ")}`);
   return hatalar;
 }

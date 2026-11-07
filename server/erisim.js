@@ -16,7 +16,8 @@ const BASLIK = "x-lonca-anahtar";
 const CEREZ = "lonca_anahtar";
 const KOD_OMRU = 5 * 60_000;
 const ozet = (s) => createHash("sha256").update(String(s)).digest("hex");
-const ACIK_UCLAR = new Set(["/api/merhaba", "/api/eslestir", "/api/hesap/kayit", "/api/hesap/giris"]);
+const ACIK_UCLAR = new Set(["/api/merhaba", "/api/eslestir", "/api/hesap/kayit", "/api/hesap/giris",
+  "/api/hesap/google/baslat", "/api/hesap/google/donus", "/api/hesap/google/takas"]);
 
 function cerezOku(req, ad) {
   for (const parca of String(req.headers.cookie ?? "").split(";")) {

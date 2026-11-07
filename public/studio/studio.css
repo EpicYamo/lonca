@@ -676,6 +676,14 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
 .rol-secenek:has(input:checked) { border-color: var(--vurgu-cizgi); background: var(--vurgu-zemin); }
 .rol-secenek:has(input:focus-visible) { outline: 2px solid var(--vurgu); outline-offset: 2px; }
 .hesap-pencere .eylemler .metin-d { margin-left: auto; }
+/* Google ile devam et (ayar yoksa gizli) ve "ya da" ayırıcısı. */
+.hesap-google { display: grid; gap: 10px; margin-top: 14px; }
+.hesap-google[hidden] { display: none; }
+.google-dugme { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 40px; }
+.google-g, .google-g svg { display: block; width: 18px; height: 18px; }
+.hesap-ya-da { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--soluk); font-size: .78rem; }
+.hesap-ya-da::before, .hesap-ya-da::after { content: ""; flex: 1; height: 1px; background: var(--cizgi); }
+.giris label[hidden] { display: none; }
 
 .kilit-karti {
   display: grid; justify-items: start; gap: 8px; margin: 0 12px 12px; padding: 18px;

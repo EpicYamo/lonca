@@ -3,13 +3,13 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { deneySunucusu, KOK } from "./yardimci.mjs";
+import { deneySunucusu, kayitGovdesi, KOK } from "./yardimci.mjs";
 
 let s;
 before(async () => { s = await deneySunucusu(); });
 after(async () => { await s.app.close(); });
 
-const kaydol = async (govde) => (await s.istek("POST", "/api/hesap/kayit", { govde })).json();
+const kaydol = async (govde) => (await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi(govde) })).json();
 const yetki = (jeton) => ({ authorization: `Bearer ${jeton}` });
 // Kayıt herkesi usta yapar; admin (editör) ve vatandaş hesapları yönetici şifresiyle rol değiştirerek hazırlanır.
 const rolluAc = async (kimlik, rol) => {
@@ -19,7 +19,7 @@ const rolluAc = async (kimlik, rol) => {
 };
 
 test("kayıt olan usta olur ve jetonla kendi bilgisine ulaşır", async () => {
-  const kayit = await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "su.gungor", sifre: "cokgizli" } });
+  const kayit = await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "su.gungor", sifre: "cokgizli" }) });
   assert.equal(kayit.statusCode, 201);
   const gov = kayit.json();
   assert.equal(gov.hesap.rol, "usta");
@@ -49,14 +49,14 @@ test("jetonsuz, bozuk ya da değiştirilmiş jeton reddedilir", async () => {
 });
 
 test("geçersiz kullanıcı adı ve kısa şifre reddedilir", async () => {
-  assert.equal((await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "a", sifre: "sifresifre" } })).statusCode, 400);
-  assert.equal((await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "kisa-sifre", sifre: "123" } })).statusCode, 400);
-  assert.equal((await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "uzun-sifre", sifre: "x".repeat(500) } })).statusCode, 400);
+  assert.equal((await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "a", sifre: "sifresifre" }) })).statusCode, 400);
+  assert.equal((await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "kisa-sifre", sifre: "123" }) })).statusCode, 400);
+  assert.equal((await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "uzun-sifre", sifre: "x".repeat(500) }) })).statusCode, 400);
 });
 
 test("aynı kullanıcı adıyla ikinci kayıt reddedilir", async () => {
   await kaydol({ kimlik: "tekrar", sifre: "sifre123" });
-  const y = await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "Tekrar", sifre: "baskasifre" } });
+  const y = await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "Tekrar", sifre: "baskasifre" }) });
   assert.equal(y.statusCode, 409);
 });
 
@@ -70,7 +70,7 @@ test("yanlış şifreyle ya da olmayan hesapla giriş reddedilir, doğrusuyla ka
 });
 
 test("kayıtta rol seçilemez: editör isteyen de, davet anahtarı veren de usta olur", async () => {
-  const y = await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "sahte-editor", sifre: "sifresifre", rol: "editor", editorAnahtari: "gizli-sifre" } });
+  const y = await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "sahte-editor", sifre: "sifresifre", rol: "editor", editorAnahtari: "gizli-sifre" }) });
   assert.equal(y.statusCode, 201);
   assert.equal(y.json().hesap.rol, "usta");
 });

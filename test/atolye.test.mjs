@@ -3,7 +3,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { deneySunucusu } from "./yardimci.mjs";
+import { deneySunucusu, kayitGovdesi } from "./yardimci.mjs";
 import { atolyeKur } from "../server/atolye.js";
 import { atolyeTaslakDogrula } from "../server/dogrulama.js";
 
@@ -17,7 +17,7 @@ test("atölye oturumları usta ya da editör hesabı ister", async () => {
   assert.equal((await s.istek("GET", "/api/atolye/oturumlar")).statusCode, 401);
   assert.equal((await s.istek("POST", "/api/atolye/oturumlar", { govde: {} })).statusCode, 401);
   // Kayıt olan usta olur; vatandaş rolü yönetici şifresiyle verilir.
-  const vatandas = (await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "atolye-vatandas", sifre: "sifresifre" } })).json();
+  const vatandas = (await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "atolye-vatandas", sifre: "sifresifre" }) })).json();
   await s.istek("PUT", `/api/hesap/${vatandas.hesap.id}/rol`, { yonetici: true, govde: { rol: "vatandas" } });
   const y = await s.istek("GET", "/api/atolye/oturumlar", { basliklar: { authorization: `Bearer ${vatandas.jeton}` } });
   assert.equal(y.statusCode, 401);
@@ -122,7 +122,7 @@ test("taslak kaydedilir, doğrulanır; oturum silinebilir", async () => {
 
 test("her kullanıcı yalnızca kendi oturumlarını görür; hesapsız yönetici ayrı tutulur", async () => {
   const o = await yeniOturum();
-  const baska = (await s.istek("POST", "/api/hesap/kayit", { govde: { kimlik: "baska-usta", sifre: "sifresifre", rol: "usta" } })).json();
+  const baska = (await s.istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "baska-usta", sifre: "sifresifre", rol: "usta" }) })).json();
   const baskaBaslik = { authorization: `Bearer ${baska.jeton}` };
   assert.equal((await s.istek("GET", `/api/atolye/oturumlar/${o.id}`, { basliklar: baskaBaslik })).statusCode, 404);
   assert.equal((await s.istek("GET", "/api/atolye/oturumlar", { basliklar: baskaBaslik })).json().oturumlar.length, 0);

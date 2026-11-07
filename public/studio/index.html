@@ -375,8 +375,14 @@
         <button type="button" role="radio" aria-checked="true" data-hesap-kip="giris" class="secili">Giriş yap</button>
         <button type="button" role="radio" aria-checked="false" data-hesap-kip="kayit">Hesap oluştur</button>
       </div>
-      <label>Kullanıcı adı <input id="hesap-kimlik" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required pattern="[a-z0-9_.\-]{3,32}" title="3-32 karakter: küçük harf, rakam ya da . _ -" placeholder="su.gungor"></label>
+      <div class="hesap-google" id="hesap-google-kap" hidden>
+        <button type="button" class="ikincil google-dugme" id="hesap-google"><span class="google-g" id="hesap-google-g" aria-hidden="true"></span>Google ile devam et</button>
+        <p class="hesap-ya-da" aria-hidden="true"><span>ya da</span></p>
+      </div>
+      <label><span id="hesap-kimlik-etiket">Kullanıcı adı ya da e-posta</span> <input id="hesap-kimlik" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="254" placeholder="su.gungor"></label>
+      <label id="hesap-eposta-alan" hidden>E-posta <input id="hesap-eposta" name="eposta" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="ornek@eposta.com"></label>
       <label>Şifre <input id="hesap-sifre" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter"></label>
+      <label id="hesap-sifre2-alan" hidden>Şifre (tekrar) <input id="hesap-sifre2" name="sifreTekrar" type="password" autocomplete="new-password" minlength="8" maxlength="200" placeholder="Şifreyi yeniden yaz"></label>
       <p class="aciklama" id="hesap-kayit-notu" hidden>Yeni hesaplar usta olur: kalfayla modül yazar, onaya gönderir ve Studio'daki verileri görür. Onay ve düzenleme admin hesaplarındadır.</p>
       <p id="hesap-hata" class="durum kotu" role="alert"></p>
       <div class="eylemler">
@@ -417,7 +423,10 @@
     <form method="dialog">
       <h2 class="pencere-h" id="hesap-kart-h"><svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-kart-ad"></span></h2>
       <p class="aciklama" id="hesap-kart-rol"></p>
-      <div class="eylemler"><button class="ikincil" value="sifre">Şifreyi değiştir</button><button class="tehlike" value="cikis">Çıkış yap</button><button class="ikincil" value="kapat">Kapat</button></div>
+      <label>E-posta <input id="hesap-kart-eposta" type="email" autocomplete="email" maxlength="254" placeholder="ornek@eposta.com"></label>
+      <p class="aciklama" id="hesap-kart-eposta-not">Aynı e-postayla "Google ile devam et" dersen bu hesaba girersin.</p>
+      <p id="hesap-kart-hata" class="durum kotu" role="alert"></p>
+      <div class="eylemler"><button class="birincil" value="eposta" id="hesap-kart-eposta-kaydet">E-postayı kaydet</button><button class="ikincil" value="sifre" formnovalidate>Şifreyi değiştir</button><button class="tehlike" value="cikis" formnovalidate>Çıkış yap</button><button class="ikincil" value="kapat" formnovalidate>Kapat</button></div>
     </form>
   </dialog>
 

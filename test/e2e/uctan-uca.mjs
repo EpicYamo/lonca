@@ -36,7 +36,9 @@ try {
   assert.ok(await studio.isVisible("#giris-kapisi"), "girişsiz Studio kapıda beklemeli");
   await studio.click("[data-hesap-kip=kayit]");
   await studio.fill("#hesap-kimlik", "e2e-usta");
+  await studio.fill("#hesap-eposta", "e2e-usta@ornek.test");
   await studio.fill("#hesap-sifre", "e2e-usta-sifre");
+  await studio.fill("#hesap-sifre2", "e2e-usta-sifre");
   await studio.click("#hesap-gonder");
   await studio.waitForSelector("#giris-kapisi", { state: "hidden" });
   await studio.waitForSelector("#atolye-kilit", { state: "hidden" });
@@ -109,7 +111,9 @@ try {
   await tel.waitForSelector("#profil-ekrani:not([hidden])");
   await tel.getByRole("button", { name: "Hesap oluştur", exact: true }).click();
   await tel.fill("#hesap-kimlik", "e2e-gezgin");
+  await tel.fill("#hesap-eposta", "e2e-gezgin@ornek.test");
   await tel.fill("#hesap-sifre", "e2e-gezgin-sifre");
+  await tel.fill("#hesap-sifre2", "e2e-gezgin-sifre");
   await tel.click("#hesap-gonder");
   await tel.waitForSelector(".hesap-kart >> text=@e2e-gezgin");
   const tasinanPuan = await tel.evaluate(() => JSON.parse(localStorage.getItem("lonca.profil")).puan);
@@ -118,11 +122,11 @@ try {
 
   await tel.locator(".hesap-kart").getByRole("button", { name: "Oturumu kapat" }).click();
   await tel.locator(".hesap-kart").getByRole("button", { name: "Giriş yap" }).click();
-  await tel.fill("#hesap-kimlik", "e2e-gezgin");
+  await tel.fill("#hesap-kimlik", "e2e-gezgin@ornek.test");
   await tel.fill("#hesap-sifre", "e2e-gezgin-sifre");
   await tel.click("#hesap-gonder");
   await tel.waitForSelector(".hesap-kart >> text=@e2e-gezgin");
-  adim("App hesabıyla tekrar giriş yapıldı");
+  adim("App hesabıyla e-postayla tekrar giriş yapıldı");
 
   assert.deepEqual(hatalar, [], "sayfa hatası olmamalı");
   console.log("\nUçtan uca senaryo başarılı.");

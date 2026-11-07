@@ -11,6 +11,7 @@ import { modelTaramasiKur, saglikEkle } from "./model-tarama.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
+import { googleGirisKur } from "./google-giris.js";
 import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
 import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
@@ -33,7 +34,7 @@ function mesafe(a, b) {
 
 /**
  */
-export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = process.env, gunluk = true }) {
+export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = process.env, gunluk = true, googleFetch }) {
   const MODUL_DIZINI = path.join(veri, "moduller");
   const YUKLENEN = path.join(veri, "yuklenen");
   const eserDosyasi = jsonDosya(path.join(veri, "eserler.json"), { eserler: [] });
@@ -94,6 +95,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   // Atölye (kalfa + modül gönderme) ve Studio listelerini salt okunur görme: usta ya da editör hesabı.
   const ustaGerekli = async (req, rep) => { if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Atölyeyi kullanmak için usta ya da editör hesabıyla giriş yapmalısın" }); };
   const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
+  const google = googleGirisKur({ ortam, fetch: googleFetch });
   // Atölye oturumları (kalfa sohbeti + modül taslağı) kullanıcı başına saklanır; hesapsız yönetici "yonetici" altında.
   const atolye = atolyeKur(path.join(veri, "atolye"));
   const atolyeSahibi = async (req) => (await oturumSahibi(req))?.id ?? "yonetici";
@@ -116,7 +118,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     harita: googleAnahtari ? { saglayici: "google", anahtar: googleAnahtari } : { saglayici: "osm" },
     uc: { google: !!googleAnahtari, anahtar: googleAnahtari || undefined },
     yonetim: { sifreli: yetki.sifreli },
-    hesap: { gerekli: yetki.sifreli },
+    hesap: { gerekli: yetki.sifreli, google: google.etkin },
   }));
   app.get("/api/yonetici", async (req, rep) => (yoneticiMi(req) ? { tamam: true } : rep.code(401).send({ hata: "şifre yanlış" })));
 
@@ -126,14 +128,14 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const hatalar = hesapGirdisiDogrula(req.body, { kayit: true });
     if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
     // Kayıt olan herkes usta olur (rol seçilmez). Admin (editör) hesapları yalnızca ILK_KULLANICILAR'dan ya da rol değişimiyle gelir.
-    const { kimlik, sifre } = req.body;
-    const r = await hesaplar.kayitOl({ kimlik, sifre, rol: "usta" });
+    const { kimlik, eposta, sifre } = req.body;
+    const r = await hesaplar.kayitOl({ kimlik, eposta, sifre, rol: "usta" });
     if (r.hata) return rep.code(409).send({ hata: r.hata });
     return rep.code(201).send(jetonVer(r.hesap));
   });
   app.post("/api/hesap/giris", { preHandler: hesapSiniri }, async (req, rep) => {
     const hatalar = hesapGirdisiDogrula(req.body);
-    if (hatalar.length) return rep.code(401).send({ hata: "Kullanıcı adı ya da şifre yanlış." });
+    if (hatalar.length) return rep.code(401).send({ hata: "Kullanıcı adı, e-posta ya da şifre yanlış." });
     const r = await hesaplar.girisYap(req.body);
     if (r.hata) return rep.code(401).send({ hata: r.hata });
     return jetonVer(r.hesap);
@@ -145,7 +147,78 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.put("/api/hesap/profil", async (req, rep) => {
     const h = await oturumSahibi(req);
     if (!h) return rep.code(401).send({ hata: "Giriş yapılmamış" });
+    if (req.body?.eposta != null) {
+      const r = await hesaplar.epostaAyarla(h.id, req.body.eposta);
+      if (r.hata) return rep.code(r.kod).send({ hata: r.hata });
+    }
     return hesaplar.disaAcik(await hesaplar.profilGuncelle(h.id, req.body ?? {}));
+  });
+
+  // ---------- Google ile giriş (server/google-giris.js) ----------
+  // baslat → Google → donus → tek kullanımlık kod → takas (jeton). Jeton adres çubuğuna hiç girmez; tarayıcıya/uygulamaya
+  // yalnızca 5 dakikalık, tek kullanımlık bir kod gider. "durum" (state) imzalıdır ve tarayıcıdaki çerezle eşleşmelidir.
+  const GOOGLE_DONUSLERI = new Set(["/", "/app/", "/studio/"]);
+  const UYGULAMA_SEMASI = "com.kozmos.lonca";
+  const DURUM_CEREZI = "lonca_google_durum";
+  const googleKodlari = new Map();
+  const googleSiniri = hizSiniri({ adet: Number(ortam.HESAP_SINIR ?? 20), pencereMs: 10 * 60_000, mesaj: "Çok fazla giriş denemesi; biraz sonra tekrar dene." });
+  const cerezOku = (req, ad) => {
+    for (const parca of String(req.headers.cookie ?? "").split(";")) {
+      const i = parca.indexOf("=");
+      if (i > 0 && parca.slice(0, i).trim() === ad) return parca.slice(i + 1).trim();
+    }
+    return null;
+  };
+  const htmlKacis = (x) => String(x).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  // Uygulamaya dönüş: Custom Tab'da açılan sayfa uygulamanın kendi adresine (com.kozmos.lonca://google) geçer.
+  const uygulamayaDon = (rep, sorgu) => {
+    const hedef = `${UYGULAMA_SEMASI}://google?${new URLSearchParams(sorgu)}`;
+    return rep.type("text/html; charset=utf-8").header("cache-control", "no-store").send(`<!doctype html><html lang="tr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=${htmlKacis(hedef)}"><title>Lonca</title>
+<style>body{font:16px system-ui,sans-serif;display:grid;place-items:center;min-height:90vh;margin:0;text-align:center;padding:16px}a{display:inline-block;margin-top:12px;padding:12px 20px;border-radius:12px;background:#1f4e9c;color:#fff;text-decoration:none}</style></head>
+<body><div><p>${sorgu.hata ? htmlKacis(sorgu.hata) : "Giriş tamamlandı."}</p><a href="${htmlKacis(hedef)}">Lonca uygulamasına dön</a></div></body></html>`);
+  };
+
+  app.get("/api/hesap/google/baslat", { preHandler: googleSiniri }, async (req, rep) => {
+    if (!google.etkin) return rep.code(404).send({ hata: "Google ile giriş bu sunucuda açık değil." });
+    const istemci = req.query?.istemci === "uygulama" ? "uygulama" : "web";
+    const donus = GOOGLE_DONUSLERI.has(req.query?.donus) ? req.query.donus : "/";
+    const nonce = randomBytes(16).toString("hex");
+    const durum = oturum.jetonUret({ id: "google-durum", n: nonce, d: donus, i: istemci }, 10 * 60_000);
+    const guvenli = req.protocol === "https" ? "; Secure" : "";
+    rep.header("set-cookie", `${DURUM_CEREZI}=${nonce}; Path=/api/hesap/google; HttpOnly; SameSite=Lax; Max-Age=600${guvenli}`);
+    return rep.header("cache-control", "no-store").redirect(google.yetkiAdresi({ durum, donus: google.donusAdresi(req) }));
+  });
+
+  app.get("/api/hesap/google/donus", { preHandler: googleSiniri }, async (req, rep) => {
+    const q = req.query ?? {};
+    const durum = oturum.jetonCoz(typeof q.state === "string" ? q.state : "");
+    const gecerli = durum?.id === "google-durum" && typeof durum.n === "string" && cerezOku(req, DURUM_CEREZI) === durum.n;
+    rep.header("set-cookie", `${DURUM_CEREZI}=; Path=/api/hesap/google; HttpOnly; SameSite=Lax; Max-Age=0`);
+    rep.header("cache-control", "no-store");
+    const istemci = durum?.i === "uygulama" ? "uygulama" : "web";
+    const donus = GOOGLE_DONUSLERI.has(durum?.d) ? durum.d : "/";
+    const bitir = (sorgu) => (istemci === "uygulama" ? uygulamayaDon(rep, sorgu) : rep.redirect(`${donus}#${new URLSearchParams({ [sorgu.kod ? "google-kod" : "google-hata"]: sorgu.kod ?? sorgu.hata })}`));
+    if (!google.etkin) return bitir({ hata: "Google ile giriş bu sunucuda açık değil." });
+    if (!gecerli) return bitir({ hata: "Giriş oturumu zaman aşımına uğradı; yeniden dene." });
+    if (typeof q.error === "string" || typeof q.code !== "string") return bitir({ hata: q.error === "access_denied" ? "Google girişi iptal edildi." : "Google girişi tamamlanamadı." });
+    const kimlik = await google.kodTakas({ kod: q.code, donus: google.donusAdresi(req) });
+    if (kimlik.hata) return bitir({ hata: kimlik.hata });
+    const r = await hesaplar.googleIleGiris(kimlik);
+    if (r.hata) return bitir({ hata: r.hata });
+    const simdi = Date.now();
+    for (const [k, v] of googleKodlari) if (v.bitis < simdi) googleKodlari.delete(k);
+    const kod = randomBytes(24).toString("base64url");
+    googleKodlari.set(kod, { id: r.hesap.id, bitis: simdi + 5 * 60_000 });
+    return bitir({ kod });
+  });
+
+  app.post("/api/hesap/google/takas", { preHandler: hesapSiniri }, async (req, rep) => {
+    const kod = req.body?.kod;
+    const kayit = typeof kod === "string" ? googleKodlari.get(kod) : null;
+    if (kayit) googleKodlari.delete(kod);
+    const h = kayit && kayit.bitis > Date.now() ? await hesaplar.idIle(kayit.id) : null;
+    return h ? jetonVer(h) : rep.code(401).send({ hata: "Giriş kodu geçersiz ya da süresi doldu; yeniden dene." });
   });
   app.put("/api/hesap/sifre", { preHandler: hesapSiniri }, async (req, rep) => {
     const h = await oturumSahibi(req);
