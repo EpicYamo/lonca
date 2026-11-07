@@ -2,21 +2,23 @@
 //  - Açılış ekranı: Android'in kendi açılış görselinden (aynı logo) devralır, veriler gelince solarak kapanır.
 //  - İlk açılışta kaydırmalı tanıtım (3 sayfa, noktalar, Atla/İleri/Başla); sonra karşılama (giriş) ekranı.
 //  - Üst uygulama çubuğu: sayfanın adı + sağda simge eylemleri (Ara, Davet kodu, tema, erişilebilirlik).
-//  - Alt gezinme: Ana sayfa · Keşfet · Modüller · Profilim. Her sekme kendi kaydırma konumunu hatırlar;
+//  - Alt gezinme: Ana sayfa · Keşfet (modüller + eserler) · Harita · Profilim. Her sekme kendi kaydırma konumunu hatırlar;
 //    Android geri tuşu geldiğin sekmeye, bıraktığın yere döner. Modülden dönünce de aynı yere gelinir.
 //  - Tam ekran arama sayfası, alttan açılan davet kodu sayfası, sağdan kayan tam ekran eser sayfası.
 //  - Dokunma dalgası (Material ripple) ve hafif titreşim.
 // Web'de yalnızca ?kabuk ile açılır (deneme için). app.js'e dokunmaz: profil ve ana ekran geçişleri onun kendi
 // düğmeleriyle (#profil-cip, #profil-geri) yapılır, böylece veri yükleme ve hesap mantığı tek yerde kalır.
 import { loncaLogo } from "/ortak/logo.js";
+import { kesfetKur } from "/app/uygulama/kesfet.js";
 
 const kok = document.documentElement;
 if (kok.classList.contains("lonca-native")) kok.classList.add("kabuk");
 const etkin = kok.classList.contains("kabuk") && !new URLSearchParams(location.search).has("onizleme");
 
 const $ = (s) => document.querySelector(s);
-const SEKMELER = ["ana", "kesif", "moduller", "profil"];
-const BASLIK = { ana: "Lonca", kesif: "Keşfet", moduller: "Modüller", profil: "Profilim" };
+// Alt gezinme sırası: Ana sayfa · Keşfet (modüller ve eserler, data-sekme="moduller") · Harita (data-sekme="kesif") · Profilim.
+const SEKMELER = ["ana", "moduller", "kesif", "profil"];
+const BASLIK = { ana: "Lonca", kesif: "Harita", moduller: "Keşfet", profil: "Profilim" };
 const hareketAz = () => kok.classList.contains("hareket-az") || matchMedia("(prefers-reduced-motion: reduce)").matches;
 const titret = (tur = "secim") => window.loncaMobil?.titret?.(tur);
 const depoOku = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
@@ -419,6 +421,7 @@ function kur() {
   perdeyiKur();
   ustEylemleriKur();
   cubukBoylariniIzle();
+  kesfetKur();
   for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.addEventListener("animationend", (o) => { if (o.target === k) k.classList.remove("sayfa-gir", "ileri", "geri"); });
   eserSayfasiKur();
   dalgaKur();

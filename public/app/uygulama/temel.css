@@ -117,7 +117,7 @@
 .kabuk :is(.ayar-dugme, .kabuk-ikon) svg { width: 22px; height: 22px; }
 .kabuk :is(.ayar-dugme, .kabuk-ikon):focus-visible { outline: 2px solid var(--vurgu); outline-offset: -4px; }
 /* Arama Keşfet ve Modüller'de (Ana sayfada kutu var); davet kodu yalnızca Modüller'de. */
-.kabuk #kabuk-davet, :root.kabuk:is([data-sekme="ana"], [data-sekme="profil"]) #kabuk-ara { display: none; }
+.kabuk #kabuk-davet, :root.kabuk:is([data-sekme="ana"], [data-sekme="profil"], [data-sekme="moduller"]) #kabuk-ara { display: none; }
 :root.kabuk[data-sekme="moduller"] #kabuk-davet { display: grid; }
 
 /* İçerik iki sabit çubuğun arasında kayar. */
