@@ -31,6 +31,17 @@ try {
   const studio = await (await tarayici.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
   studio.on("pageerror", (e) => hatalar.push(`Studio: ${e.message}`));
   await studio.goto(`${ADRES}/studio/`);
+  await studio.route("**/api/dalis-kalfasi", (rota) => rota.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ hata: "E2E dalış isteği" }) }));
+  await studio.click('.kip button[data-kip="dalis"]');
+  await studio.waitForFunction(() => !document.querySelector("#dalis-oneriler").hidden);
+  await studio.locator("#dalis-oneriler button").first().click();
+  await studio.waitForFunction(() => document.querySelector("#dalis-oneriler").hidden);
+  await studio.waitForFunction(() => !document.querySelector("#gonder").disabled);
+  await studio.click('.kip button[data-kip="modul"]');
+  await studio.click('.kip button[data-kip="dalis"]');
+  assert.equal(await studio.locator("#dalis-oneriler").isVisible(), false);
+  await studio.click('.kip button[data-kip="modul"]');
+  adim("dalış önerileri yalnızca sohbete başlamadan önce görünür");
   await studio.fill("#istek", "Bursa hanları için süreli bir oyun");
   await studio.press("#istek", "Enter");
   await studio.waitForFunction(() => document.querySelector("#kod").value.includes("sahne.ayarla"), null, { timeout: 15000 });

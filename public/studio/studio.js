@@ -106,9 +106,12 @@ function kipSec(yeni) {
   }
   $("#kip-not").textContent = KIP[kip].not;
   $("#istek").placeholder = KIP[kip].ipucu;
+  onerileriGuncelle();
+}
+function onerileriGuncelle() {
   const ilk = $("#mesajlar").children.length <= 1;
   $("#oneriler").hidden = kip !== "modul" || !ilk;
-  $("#dalis-oneriler").hidden = kip !== "dalis";
+  $("#dalis-oneriler").hidden = kip !== "dalis" || !ilk;
 }
 document.querySelectorAll(".kip button").forEach((b) => b.addEventListener("click", () => kipSec(b.dataset.kip)));
 $("#dalis-oneriler").addEventListener("click", (e) => { if (e.target.matches("button")) gonder(e.target.textContent); });
@@ -116,6 +119,7 @@ $("#dalis-oneriler").addEventListener("click", (e) => { if (e.target.matches("bu
 const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 async function dalisGonder(metin) {
   mesajEkle("usta", metin);
+  onerileriGuncelle();
   $("#istek").value = "";
   $("#gonder").disabled = true;
   const cubuk = el("div", { className: "dalis-cubuk" }, el("span", { style: "width:3%" }));
@@ -179,8 +183,8 @@ async function gonder(metin) {
   if (kip === "dalis") return dalisGonder(metin);
   sohbet.push({ rol: "usta", metin });
   mesajEkle("usta", metin);
+  onerileriGuncelle();
   $("#istek").value = "";
-  $("#oneriler").hidden = true;
   $("#gonder").disabled = true;
   const yaziyor = el("li", { className: "mesaj kalfa" },
     el("div", { className: "yaziyor" }, el("i"), el("i"), el("i"), el("span", { textContent: "Kalfa çalışıyor: veriye bakıyor, yazıyor, denetliyor" })));
