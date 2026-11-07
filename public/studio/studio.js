@@ -1081,7 +1081,62 @@ const MODEL_ALANLARI = {
   dalisMetinModelleri: { tur: "metin", coklu: true, ipucu: "Dalış planı ve fotoğraf tanıma için. Sırayla denenir: ilki yanıt vermezse ikincisine geçilir (en çok 5)." },
   dalisGorselModelleri: { tur: "gorsel", coklu: true, ipucu: "Dalış karelerini üreten görsel modeller. Sırayla denenir (en çok 5). \"sohbet:\" önekliler sohbet üzerinden görsel üretir." },
 };
-const modelDurumu = { modeller: [], secili: null, taslak: {}, alan: "kalfaModeli", yukleniyor: false };
+const modelDurumu = { modeller: [], secili: null, taslak: {}, alan: "kalfaModeli", yukleniyor: false, tarama: null };
+
+// Kalfa taraması (/api/kalfa/modeller/tara): her metin modeline gerçek bir kalfa isteği gider. Modül kalfası
+// sekmesinde yalnızca taramada çalışan (doğrulamadan geçen modül üreten) modeller listelenir.
+const saniye = (ms) => `${Math.max(1, Math.round(ms / 1000))} sn`;
+function saglikEtiketi(m) {
+  const s = m.saglik;
+  if (!s) return null;
+  if (modelDurumu.tarama?.ilerleme?.suren?.includes(m.deger)) return { sinif: "suruyor", metin: "sınanıyor…", baslik: "Kalfa isteği sürüyor" };
+  const tarih = s.tarih ? new Date(s.tarih).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" }) : "";
+  if (s.durum === "calisiyor") return { sinif: "iyi", metin: `✓ çalışıyor · ${saniye(s.sure)}`, baslik: `Kalfa testi ${tarih}: ${saniye(s.sure)}, ${s.deneme ?? "?"} deneme, ${s.satir ?? "?"} satır` };
+  if (s.durum === "hata") return { sinif: "kotu", metin: `✗ ${s.hata}`, baslik: `Kalfa testi ${tarih}: ${s.hata}` };
+  return { sinif: "", metin: "denenmedi", baslik: "Bu model henüz kalfa testinden geçmedi" };
+}
+const saglikSirasi = (m) => (m.saglik?.durum === "calisiyor" ? 0 : m.saglik?.durum === "hata" ? 2 : 1);
+
+let taramaZamanlayici = null;
+function taramaGoster() {
+  const t = modelDurumu.tarama, yazi = $("#model-tarama"), d = $("#model-tara");
+  d.disabled = !!t?.calisiyor;
+  d.textContent = t?.calisiyor ? "Test sürüyor…" : "Modelleri test et";
+  if (t?.calisiyor && t.ilerleme) {
+    const { biten, toplam, suren } = t.ilerleme;
+    yazi.textContent = `Kalfa testi sürüyor: ${biten}/${toplam} model bitti${suren.length ? ` · şu an: ${suren.join(", ")}` : ""}. Pencereyi kapatabilirsin; test arka planda sürer.`;
+  } else if (t?.guncelleme) {
+    const calisan = modelDurumu.modeller.filter((m) => m.saglik?.durum === "calisiyor").length;
+    const denenen = modelDurumu.modeller.filter((m) => m.saglik && m.saglik.durum !== "denenmedi").length;
+    yazi.textContent = `Son kalfa testi ${new Date(t.guncelleme).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}: ${denenen} modelden ${calisan} tanesi modül üretebildi.`;
+  } else yazi.textContent = "";
+}
+async function taramaYokla() {
+  clearTimeout(taramaZamanlayici);
+  try {
+    const t = await yApi("/api/kalfa/modeller/tara");
+    // Biten modellerin sonucunu listeye işle (sunucu sıralaması bir sonraki yüklemede gelir).
+    for (const m of modelDurumu.modeller) if (m.tur === "metin" && t.sonuclar[m.deger]) m.saglik = t.sonuclar[m.deger];
+    modelDurumu.tarama = { calisiyor: t.calisiyor, ilerleme: t.ilerleme, guncelleme: t.guncelleme };
+    taramaGoster(); modelCiz();
+    if (t.calisiyor) taramaZamanlayici = setTimeout(taramaYokla, 4000);
+    else if ($("#kalfa-ayarlari").open) modelleriYukle();
+  } catch (h) {
+    const durum = $("#model-durum"); durum.className = "durum kotu"; durum.textContent = h.message;
+  }
+}
+$("#model-tara").addEventListener("click", async () => {
+  const durum = $("#model-durum");
+  durum.className = "durum"; durum.textContent = "";
+  try {
+    const t = await yApi("/api/kalfa/modeller/tara", { method: "POST", govde: {} });
+    modelDurumu.tarama = { ...modelDurumu.tarama, calisiyor: true, ilerleme: t.ilerleme };
+    taramaGoster(); modelCiz();
+    taramaZamanlayici = setTimeout(taramaYokla, 2000);
+  } catch (h) {
+    durum.className = "durum kotu"; durum.textContent = h.message;
+  }
+});
 
 function fiyatYazisi(f) {
   if (!f) return "";
@@ -1109,6 +1164,8 @@ async function modelleriYukle({ yenile = false } = {}) {
     modelDurumu.modeller = v.modeller;
     modelDurumu.secili = v.secili;
     modelDurumu.taslak = modelTaslagi(v.secili);
+    modelDurumu.tarama = v.tarama ?? null;
+    if (v.tarama?.calisiyor && !taramaZamanlayici) taramaZamanlayici = setTimeout(taramaYokla, 4000);
     const sahipler = [...new Set(v.modeller.map((m) => m.sahip).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
     const sec = $("#model-sahip"), onceki = sec.value;
     sec.replaceChildren(el("option", { value: "", textContent: "Tüm sağlayıcılar" }), ...sahipler.map((x) => el("option", { value: x, textContent: x })));
@@ -1121,6 +1178,7 @@ async function modelleriYukle({ yenile = false } = {}) {
     durum.className = "durum kotu"; durum.textContent = h.message;
   } finally {
     modelDurumu.yukleniyor = false;
+    taramaGoster();
     modelCiz();
   }
 }
@@ -1159,12 +1217,25 @@ function modelCiz() {
   kutu.hidden = !secimler.length;
 
   const ara = $("#model-ara").value.trim().toLocaleLowerCase("tr"), sahip = $("#model-sahip").value;
-  const uygun = modeller.filter((m) => m.tur === tanim.tur && (!sahip || m.sahip === sahip) && (!ara || m.deger.toLowerCase().includes(ara) || (m.sahip ?? "").includes(ara)));
+  const etkin = new Set(tanim.coklu ? secili?.[alan] ?? [] : [secili?.[alan]]);
+  // Modül kalfası: yalnızca kalfa testinde çalışan modeller (ve şu an seçili/etkin olan, durumu ne olursa olsun).
+  const yalnizCalisan = alan === "kalfaModeli";
+  const gorunur = (m) => !yalnizCalisan || m.saglik?.durum === "calisiyor" || etkin.has(m.deger) || secimler.includes(m.deger);
+  const uygun = modeller
+    .filter((m) => m.tur === tanim.tur && gorunur(m) && (!sahip || m.sahip === sahip) && (!ara || m.deger.toLowerCase().includes(ara) || (m.sahip ?? "").includes(ara)))
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => saglikSirasi(a.m) - saglikSirasi(b.m) || (saglikSirasi(a.m) === 0 ? a.m.saglik.sure - b.m.saglik.sure : 0) || a.i - b.i)
+    .map(({ m }) => m);
   const liste = $("#model-listesi");
   if (!modeller.length) { liste.replaceChildren(); return; }
-  if (!uygun.length) { liste.replaceChildren(el("li", { className: "aciklama model-bos", textContent: "Aramaya uyan model yok." })); return; }
-  const etkin = new Set(tanim.coklu ? secili?.[alan] ?? [] : [secili?.[alan]]);
-  liste.replaceChildren(...uygun.map((m) => {
+  const calisanYok = yalnizCalisan && !modeller.some((m) => m.tur === "metin" && m.saglik?.durum === "calisiyor");
+  const not = calisanYok
+    ? el("li", { className: "aciklama model-bos", textContent: modelDurumu.tarama?.guncelleme
+      ? "Son kalfa testinde modül üretebilen model çıkmadı; şimdilik varsayılan model gösteriliyor. Daha sonra yeniden test et."
+      : "Henüz kalfa testi yapılmadı; şimdilik varsayılan model gösteriliyor. Çalışan modelleri görmek için \"Modelleri test et\"." })
+    : null;
+  if (!uygun.length) { liste.replaceChildren(not ?? el("li", { className: "aciklama model-bos", textContent: "Aramaya uyan model yok." })); return; }
+  liste.replaceChildren(...(not ? [not] : []), ...uygun.map((m) => {
     const secilmis = secimler.includes(m.deger);
     const girdi = el("input", { type: tanim.coklu ? "checkbox" : "radio", name: "model-sec", value: m.deger, checked: secilmis });
     girdi.addEventListener("change", () => modelSec(m.deger, girdi.checked));
@@ -1173,6 +1244,8 @@ function modelCiz() {
       el("span", { className: "model-ad mono", textContent: m.deger }),
       etkin.has(m.deger) ? el("span", { className: "model-etkin", textContent: "şu an etkin" }) : null,
       el("span", { className: "model-ek", textContent: ek, title: "Sağlayıcı · bağlam penceresi · UstaGPT fiyatı (giriş / çıkış)" }));
+    const saglik = m.tur === "metin" ? saglikEtiketi(m) : null;
+    if (saglik) satir.append(el("span", { className: `model-saglik ${saglik.sinif}`, textContent: saglik.metin, title: saglik.baslik }));
     return el("li", { className: secilmis ? "secili" : "" }, satir);
   }));
 }

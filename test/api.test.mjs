@@ -223,16 +223,16 @@ test("kalfa kaynağı: kalfanın yazdığı kod 'kalfa', elle değiştirilen 'el
   }] } }] }), { headers: { "content-type": "application/json" } });
   const k = await deneySunucusu({ KALFA_SAHTE: "0", KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "deneme-model" });
   try {
-    const y = await k.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "bir oyun yap" }] } });
+    const y = await k.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "bir oyun yap" }] }, usta: true });
     assert.equal(y.statusCode, 200);
     assert.equal(y.json().model, "deneme-model");
 
-    let m = (await k.istek("POST", "/api/moduller", { govde: { id: "kalfa-avi", ad: "Kalfa Avı", kod } })).json();
+    let m = (await k.istek("POST", "/api/moduller", { govde: { id: "kalfa-avi", ad: "Kalfa Avı", kod }, usta: true })).json();
     assert.equal(m.kaynak.tur, "kalfa");
     assert.equal(m.kaynak.model, "deneme-model");
     assert.ok(m.kaynak.uretim);
 
-    m = (await k.istek("POST", "/api/moduller", { govde: { id: "elle-avi", ad: "Elle Avı", kod: `${kod}\n// elle eklendi\n` } })).json();
+    m = (await k.istek("POST", "/api/moduller", { govde: { id: "elle-avi", ad: "Elle Avı", kod: `${kod}\n// elle eklendi\n` }, usta: true })).json();
     assert.equal(m.kaynak.tur, "elle");
 
     // Yayına alınınca kaynak uygulamanın gördüğü listede de durur.
@@ -246,10 +246,10 @@ test("kalfa kaynağı: kalfanın yazdığı kod 'kalfa', elle değiştirilen 'el
 });
 
 test("sahte kalfanın şablonu 'sahte' olarak işaretlenir", async () => {
-  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması" }] } });
+  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması" }] }, usta: true });
   const sonuc = y.json();
   assert.equal(sonuc.model, "sahte");
-  const m = (await s.istek("POST", "/api/moduller", { govde: { id: "sahte-deneme", ad: "Sahte", kod: sonuc.kod } })).json();
+  const m = (await s.istek("POST", "/api/moduller", { govde: { id: "sahte-deneme", ad: "Sahte", kod: sonuc.kod }, usta: true })).json();
   assert.equal(m.kaynak.tur, "kalfa");
   assert.equal(m.kaynak.sahte, true);
   await s.istek("DELETE", "/api/moduller/sahte-deneme", { yonetici: true });

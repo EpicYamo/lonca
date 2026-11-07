@@ -731,7 +731,15 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
 .model-satir input { grid-row: 1 / span 2; width: 16px; height: 16px; margin: 0; accent-color: var(--vurgu); }
 .model-ad { font-size: .84rem; font-weight: 600; overflow-wrap: anywhere; }
 .model-etkin { grid-column: 3; grid-row: 1; padding: .05rem .5rem; border-radius: 99px; border: 1px solid var(--vurgu-cizgi); color: var(--vurgu); font: 600 .68rem var(--yazi-govde); white-space: nowrap; }
-.model-ek { grid-column: 2 / span 2; font-size: .74rem; color: var(--sonuk); font-family: var(--yazi-kod); }
+.model-ek { grid-column: 2; font-size: .74rem; color: var(--sonuk); font-family: var(--yazi-kod); }
+/* Kalfa taramasının sonucu: çalışıyor / hata / denenmedi / sınanıyor */
+.model-saglik { grid-column: 3; grid-row: 2; justify-self: end; max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 .7rem var(--yazi-govde); color: var(--sonuk); }
+.model-saglik.iyi { color: var(--vurgu); }
+.model-saglik.kotu { color: var(--hata); }
+.model-saglik.suruyor { color: var(--uyari); }
+.model-tara-d { flex: none; min-height: 32px; padding: 0 .75rem; font-size: .8rem; }
+.model-tarama { margin: 0; }
+.model-tarama:empty { display: none; }
 .model-bos { padding: 18px; text-align: center; }
 .model-pencere .eylemler { margin-top: 4px; }
 .model-pencere .durum { flex: none; min-height: 0; }

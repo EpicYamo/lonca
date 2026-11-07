@@ -14,9 +14,11 @@ import path from "node:path";
 export const AYAR_DOSYASI = Symbol("kalfa-ayar-dosyasi");
 const VARSAYILAN_DOSYA = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "data", "kalfa-ayarlari.json");
 
-// Varsayılanlar UstaGPT /models listesinde bulunan modellerden seçildi.
+// Varsayılanlar UstaGPT /models listesinde bulunan modellerden seçildi. Modül kalfası için gerçek kalfa
+// taramasında (araclar/kalfa-model-tara.mjs) en hızlı ve tutarlı çalışan model. Dalış metin modelleri fotoğraf da
+// okur; deepseek-v4-flash görsel girdiyi kabul etmediği için orada kullanılmaz.
 export const VARSAYILAN = Object.freeze({
-  kalfaModeli: "gemini-3.8-flash",
+  kalfaModeli: "deepseek-v4-flash",
   dalisGorselModelleri: ["sohbet:gemini-3.1-flash-image", "nano-banana-2"],
   dalisMetinModelleri: ["gemini-3.5-flash", "gpt-6.1-sol"],
 });

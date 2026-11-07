@@ -7,11 +7,12 @@ import path from "node:path";
 import { kalfaHazirla } from "./kalfa.js";
 import { AYAR_DOSYASI, etkinSecim, modelKatalogu } from "./kalfa-ayarlari.js";
 import { dalisKalfasiKur } from "./dalis-kalfasi.js";
+import { modelTaramasiKur, saglikEkle } from "./model-tarama.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, oneriEkiDogrula, hesapGirdisiDogrula, ROLLER } from "./dogrulama.js";
+import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, ROLLER } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -52,6 +53,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
 
   const kalfa = kalfaHazirla({ kok, eserler, ortam });
+  // Kalfa modellerinin sağlık taraması (çalışma verisi; Studio'daki "Modelleri test et").
+  const modelTaramasi = modelTaramasiKur({ kalfa, dosya: jsonDosya(path.join(veri, "kalfa-model-durumu.json"), { sonuclar: {} }) });
   const DALIS_DIZINI = path.join(veri, "dalislar");
   const dalisKalfasi = dalisKalfasiKur({ kok, eserler, dalisDizini: DALIS_DIZINI, ortam });
   const yetki = yetkiKur(ortam.YONETICI_SIFRE);
@@ -660,10 +663,31 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.get("/api/kalfa/modeller", { preHandler: yoneticiGerekli }, async (req, rep) => {
     try {
       const { modeller, zaman } = await modelKatalogum.liste({ yenile: req.query?.yenile === "1" });
-      return { modeller, guncelleme: new Date(zaman).toISOString(), secili: secimGoster() };
+      const tarama = await modelTaramasi.durum();
+      return {
+        modeller: saglikEkle(modeller, tarama.sonuclar), guncelleme: new Date(zaman).toISOString(), secili: secimGoster(),
+        tarama: { calisiyor: tarama.calisiyor, ilerleme: tarama.ilerleme, guncelleme: tarama.guncelleme },
+      };
     } catch (h) {
       return rep.code(h.kod ?? 502).send({ hata: h.message, secili: secimGoster() });
     }
+  });
+  // Model taraması: her metin modeline gerçek bir kalfa isteği gönderir (dakikalar sürer; Studio GET ile izler).
+  app.get("/api/kalfa/modeller/tara", { preHandler: yoneticiGerekli }, async () => modelTaramasi.durum());
+  app.post("/api/kalfa/modeller/tara", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const bicim = kalfaTaramaDogrula(req.body);
+    if (bicim.hatalar.length) return rep.code(400).send({ hata: bicim.hatalar[0], ayrintilar: bicim.hatalar });
+    if (!kalfa.ustagpt) return rep.code(409).send({ hata: "Modül kalfası UstaGPT'ye bağlı değil (sahte mod ya da başka bir uç nokta); tarama yalnızca UstaGPT modelleri için yapılır" });
+    if (modelTaramasi.calisiyor) return rep.code(409).send({ hata: "Bir model taraması zaten sürüyor", ...(await modelTaramasi.durum()) });
+    let modeller;
+    try { ({ modeller } = await modelKatalogum.liste()); }
+    catch (h) { return rep.code(h.kod ?? 502).send({ hata: h.message }); }
+    const { hatalar, liste } = kalfaTaramaDogrula(req.body, modeller);
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const hedef = liste ?? modeller.filter((m) => m.tur === "metin").map((m) => m.deger);
+    const { ilerleme } = modelTaramasi.baslat(hedef);
+    req.log.info({ adet: hedef.length }, "kalfa model taraması başladı");
+    return rep.code(202).send({ calisiyor: true, ilerleme });
   });
   app.put("/api/kalfa/ayarlar", { preHandler: yoneticiGerekli }, async (req, rep) => {
     const bicim = kalfaAyarDogrula(req.body);
@@ -703,5 +727,5 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return govde;
   });
 
-  return { app, kalfa, dalisKalfasi, yetki, erisim, eserler };
+  return { app, kalfa, dalisKalfasi, modelTaramasi, yetki, erisim, eserler };
 }
