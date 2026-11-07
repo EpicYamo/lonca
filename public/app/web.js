@@ -14,7 +14,7 @@ const BASLIK = { ana: "Lonca", kesif: "Keşfet · Lonca", moduller: "Modüller �
 const hareketAz = () => kok.classList.contains("hareket-az") || matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function kur() {
-  if (kok.classList.contains("kabuk") || kok.classList.contains("lonca-native") || ONIZLEME) { kok.classList.remove("web-sekmeli"); $("#web-gezinme")?.remove(); return; }
+  if (kok.classList.contains("kabuk") || kok.classList.contains("lonca-native") || kok.classList.contains("gomulu") || ONIZLEME) { kok.classList.remove("web-sekmeli"); $("#web-gezinme")?.remove(); return; }
   kok.classList.add("web-sekmeli");
   // Web'de ana sayfa uygulamaları da gösterir (vitrin); Modüller sayfasında süzgeç ve sıralamayla tam liste.
   document.querySelector(".uygulamalar")?.setAttribute("data-sekme", "ana moduller");

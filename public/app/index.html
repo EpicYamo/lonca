@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#f5f5f7">
-  <script>try { if (window.Capacitor?.isNativePlatform?.() || /[?&]kabuk(=|&|$)/.test(location.search)) document.documentElement.classList.add("kabuk"); else if (!/[?&]onizleme/.test(location.search)) document.documentElement.classList.add("web-sekmeli"); } catch {}</script>
+  <script>try { if (window.Capacitor?.isNativePlatform?.() || /[?&]kabuk(=|&|$)/.test(location.search)) document.documentElement.classList.add("kabuk"); else if (/[?&]gomulu(=|&|$)/.test(location.search)) document.documentElement.classList.add("gomulu"); else if (!/[?&]onizleme/.test(location.search)) document.documentElement.classList.add("web-sekmeli"); } catch {}</script>
   <script>try { if (localStorage.getItem("lonca.tema") === "koyu") { document.documentElement.dataset.tema = "koyu"; document.querySelector('meta[name="theme-color"]').content = "#000000"; } } catch {}</script>
   <script>try { if (localStorage.getItem("lonca.dil") === "en") { document.documentElement.lang = "en"; document.documentElement.classList.add("dil-bekle"); setTimeout(() => document.documentElement.classList.remove("dil-bekle"), 1500); } } catch {}</script>
   <style>.dil-bekle body { visibility: hidden; }</style>

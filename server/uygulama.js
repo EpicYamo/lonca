@@ -117,14 +117,18 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false, setHeaders: yenidenDogrula });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "leaflet", "dist"), prefix: "/vendor/leaflet/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
-  // Web sitesi kökte: / doğrudan ana sayfa (sayfadaki bütün yollar mutlak). "App" artık yalnızca Android uygulaması;
-  // eski /app adresleri sorgusuyla birlikte köke yönlenir. Studio önizlemesi (/app/?onizleme) aynı sayfayı çerçevede açar.
-  const anaSayfa = (rep) => rep.sendFile("index.html", path.join(kok, "public", "app"));
-  const sorgu = (req) => { const i = req.url.indexOf("?"); return i < 0 ? "" : req.url.slice(i); };
-  app.get("/", (_, rep) => anaSayfa(rep));
-  app.get("/app", (req, rep) => rep.redirect(`/${sorgu(req)}`, 301));
-  app.get("/app/", (req, rep) => (req.query?.onizleme != null ? anaSayfa(rep) : rep.redirect(`/${sorgu(req)}`, 301)));
-  app.get("/app/index.html", (req, rep) => (req.query?.onizleme != null ? anaSayfa(rep) : rep.redirect(`/${sorgu(req)}`, 301)));
+  // Web sitesi kökte (public/web/), Android uygulamasından ayrı. Uygulama sayfası (public/app/) /app/ adresinde kalır:
+  // modüller orada çalışır (sitenin "Modülü aç" bağlantısı /app/?modul=<id>&gomulu=1), Studio önizlemesi (/app/?onizleme)
+  // ve paylaşım bağlantıları (/m/<anahtar> → /app/?modul=) de oradadır. Eski kök paylaşım adresleri (/?modul=, /?eser=)
+  // önceki 301 yönlendirmeleri tarayıcıda önbellekte kalmış olabileceğinden yönlendirilmez, uygulama doğrudan açılır.
+  const uygulamaSayfasi = (rep) => rep.sendFile("index.html", path.join(kok, "public", "app"));
+  const webSitesi = (rep) => rep.sendFile("index.html", path.join(kok, "public", "web"));
+  app.get("/", (req, rep) => (req.query?.modul != null || req.query?.eser != null ? uygulamaSayfasi(rep) : webSitesi(rep)));
+  app.get("/app", (req, rep) => { const i = req.url.indexOf("?"); return rep.redirect(`/app/${i < 0 ? "" : req.url.slice(i)}`, 302); });
+  app.get("/app/", (_, rep) => uygulamaSayfasi(rep));
+  app.get("/app/index.html", (_, rep) => uygulamaSayfasi(rep));
+  app.get("/web", (_, rep) => rep.redirect("/", 302));
+  app.get("/web/", (_, rep) => rep.redirect("/", 302));
   app.get("/studio", (_, rep) => rep.redirect("/studio/"));
 
   app.get("/api/ayarlar", async () => ({
@@ -806,7 +810,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   });
   app.get("/m/:anahtar", async (req, rep) => {
     const { anahtar } = req.params;
-    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/");
+    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/app/?modul=${encodeURIComponent(anahtar)}&gomulu=1`) : rep.redirect("/");
   });
   // Android App Links doğrulaması: ANDROID_IMZA_SHA256 (APK imza sertifikasının SHA-256 parmak izleri, virgülle) doluysa yayımlanır.
   const imzalar = String(ortam.ANDROID_IMZA_SHA256 ?? "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(x));

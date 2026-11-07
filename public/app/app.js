@@ -22,6 +22,9 @@ export const el = (etiket, ozellik = {}, ...cocuklar) => {
 };
 
 const ONIZLEME = new URLSearchParams(location.search).has("onizleme");
+// Web sitesinden açılan modül oynatıcısı (/app/?modul=<id>&gomulu=1): ana ekran gösterilmez, modül kapanınca siteye dönülür.
+const GOMULU = document.documentElement.classList.contains("gomulu");
+const siteyeDon = () => { if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back(); else location.href = "/"; };
 const HESAP_JETON_ANAHTARI = "lonca.studio.hesap";
 const PROFIL_HESAP_ANAHTARI = "lonca.profil.hesap";
 let hesapKullanici = null;
@@ -613,7 +616,7 @@ async function anaEkran({ gecisli = false } = {}) {
   vitrinCiz();
   // Web sitesinde giriş hiçbir zaman zorunlu değil: karşılama yalnızca Android uygulamasında; web'de üst çubukta "Giriş yap" var.
   const webSitesi = document.documentElement.classList.contains("web-sekmeli") && !document.documentElement.classList.contains("kabuk");
-  if (!webSitesi && !profil.profilOku() && !hesapJetonuOku() && !ONIZLEME && !karsilamaGosterildi) karsilamaAc();
+  if (!webSitesi && !GOMULU && !profil.profilOku() && !hesapJetonuOku() && !ONIZLEME && !karsilamaGosterildi) karsilamaAc();
 }
 
 // ---------- Karşılama: giriş yap / hesap oluştur / hesap açmadan devam et ----------
@@ -719,12 +722,13 @@ function modulBitti(m, hata) {
   katman.kapat();
   const kap = sahneyeKoy(el("div", { className: `panel ${hata ? "hata" : "bitis"}` },
     el("p", { className: "panel-metin", textContent: hata ? `Modül bir hatayla durdu: ${hata.message}` : `${m.ad} bitti.` })));
-  const don = el("button", { className: "dugme", textContent: "Modüllere dön" });
-  don.addEventListener("click", () => anaEkran({ gecisli: true }), { once: true });
+  const don = el("button", { className: "dugme", textContent: GOMULU ? "Siteye dön" : "Modüllere dön" });
+  don.addEventListener("click", () => (GOMULU ? siteyeDon() : anaEkran({ gecisli: true })), { once: true });
   kap.append(don);
 }
 
 $("#geri").addEventListener("click", () => {
+  if (GOMULU) { calisan?.iptal.abort(); siteyeDon(); return; }
   katman.temizle?.();
   katman.kullaniciKapatti = null;
   document.title = "Lonca";

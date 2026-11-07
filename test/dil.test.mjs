@@ -44,7 +44,7 @@ test("yüzyıl ve çoğul işlevleri doğru İngilizce üretir", () => {
 // index.html'lerdeki sabit Türkçe metinler (etiket içi metin ve erişilebilirlik öznitelikleri) sözlükte olmalı;
 // yoksa İngilizce arayüzde Türkçe kalırlar.
 const ATLA = new Set(["Bursa Vakıf Eserleri Envanteri".toLowerCase()]);
-for (const dosya of ["public/app/index.html", "public/studio/index.html"]) {
+for (const dosya of ["public/app/index.html", "public/studio/index.html", "public/web/index.html"]) {
   test(`${dosya}: sabit arayüz metinlerinin İngilizcesi var`, async () => {
     let html = await readFile(new URL(`../${dosya}`, import.meta.url), "utf8");
     html = html.replace(/<script[\s\S]*?<\/script>/g, "").replace(/<style[\s\S]*?<\/style>/g, "")
