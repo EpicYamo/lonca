@@ -36,7 +36,7 @@
 .kabuk .sekme.secili { font-weight: 800; }
 
 /* ---------- Haritalar: parmakla gezilir; +/- düğmeleri yerine iki parmakla yakınlaştırma ---------- */
-.kabuk .modul-ekrani .s-harita { height: 56vh; border: 0; border-radius: 24px; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .45); touch-action: none; }
+.kabuk .modul-ekrani .s-harita { height: 56vh; border: 0; border-radius: 24px; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .45); }
 .kabuk .modul-ekrani .leaflet-control-zoom { display: none; }
 .kabuk .modul-ekrani .leaflet-control-attribution { max-width: 70%; font-size: .62rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-radius: 8px 0 0 0; }
 
@@ -47,3 +47,15 @@
 
 :root.hareket-az.kabuk .modul-ekrani :is(.s-dugme, .s-eser, .s-ikon-dugme) { transition: none; }
 :root.kontrast.kabuk .modul-ekrani :is(.s-kart, .s-eser, .s-liste-ogesi, .s-istatistik) { box-shadow: none; border: 1px solid #fff; }
+
+/* ---------- Açılış sayfası ekrana tam sığar ----------
+   Yalnızca kapaktan oluşan modül açılışı (Eser Keşfi, Bursa Pusulası, Payitaht, Sisli Atlas…) uygulama çubuğunun altını
+   tam doldurur: altta modül zemini (krem şerit) kalmaz, sayfa kaymaz, düğmeler yerinde durur. Modülün alt sekmeleri
+   görünmüyorsa onlar için bırakılan pay da kalkar. */
+.kabuk .modul-ekrani:has(#sekme-cubugu[hidden]) .sahne:has(> .s-kok-tam > .s-kapak:only-child, > .s-kok-tam > .s-sutun:only-child > .s-kapak:only-child) { padding-bottom: 0; }
+.kabuk .modul-ekrani .s-kok-tam:has(> .s-kapak:only-child, > .s-sutun:only-child > .s-kapak:only-child) { padding-bottom: 0; }
+.kabuk .modul-ekrani :is(.s-kok-tam > .s-kapak:only-child, .s-kok-tam > .s-sutun:only-child > .s-kapak:only-child) {
+  min-height: calc(100vh - 56px - env(safe-area-inset-top)); min-height: calc(100dvh - 56px - env(safe-area-inset-top)); margin-bottom: 0;
+}
+/* Dalış gibi çubuksuz tam ekran modülde kapak bütün ekranı alır. */
+.kabuk .modul-ekrani:has(.s-dalis-sahne) :is(.s-kok-tam > .s-kapak:only-child, .s-kok-tam > .s-sutun:only-child > .s-kapak:only-child) { min-height: 100dvh; }

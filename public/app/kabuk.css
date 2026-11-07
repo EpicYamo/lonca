@@ -172,3 +172,15 @@
 .kh-harita .maplibregl-ctrl-group button { width: 44px; height: 44px; }
 .kh-harita .maplibregl-ctrl-attrib { font-size: .68rem; }
 .kh-harita .maplibregl-ctrl-attrib a { color: var(--vurgu); }
+
+/* ---------- Sayfa içi haritalar: tek parmakla kaydırınca "iki parmakla kaydır" ipucu (harita.js ikiParmakla) ---------- */
+.harita-ipucu {
+  position: absolute; inset: 0; z-index: 900; display: grid; place-items: center; padding: 1rem; pointer-events: none;
+  background: rgba(0, 0, 0, .45); color: #fff; font: 600 .95rem var(--yazi-sistem); text-align: center; opacity: 0; transition: opacity .2s ease-out;
+}
+.harita-ipucu.gorunur { opacity: 1; }
+:root.hareket-az .harita-ipucu { transition: none; }
+.kh-yukleniyor {
+  position: absolute; inset: 0; z-index: 400; display: grid; place-items: center; margin: 0;
+  color: var(--soluk); font: 600 .95rem var(--yazi-sistem); background: var(--yuzey-2); pointer-events: none;
+}

@@ -1,7 +1,7 @@
 // Eser sayfası (#eser-penceresi): fotoğraflar + tam ekran galeri, TR/EN metin, mini harita ve "yaklaşık konum" notu,
 // kaynaklı tarihsel bağlar ve yakındaki eserler, "Dalışı var" rozeti, paylaş.
 import { TUR_ADI } from "./ekranlar.js";
-import { leafletYukle, karoKatmani, bagTuruAdi } from "./harita.js";
+import { leafletYukle, karoKatmani, bagTuruAdi, ikiParmakla } from "./harita.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { dilAl } from "/ortak/dil.js";
 
@@ -96,6 +96,7 @@ export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi
       if (harita !== h) return;
       kutu.classList.toggle("harita-koyu-tema", !!karo._koyu && document.documentElement.dataset.tema === "koyu");
       karo.addTo(h);
+      ikiParmakla(h, kutu);
       const nokta = [Number(k.lat), Number(k.lng)];
       h.setView(nokta, k.yaklasik ? 15 : 17);
       if (k.yaklasik) L.circle(nokta, { radius: 180, color: "#0b7a66", weight: 2, dashArray: "6 6", fillOpacity: 0.08 }).addTo(h);

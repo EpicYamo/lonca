@@ -44,6 +44,29 @@ export async function karoKatmani(L, { tema = "otomatik" } = {}) {
 }
 export const koyuTemaMi = () => document.documentElement.dataset.tema === "koyu" || document.documentElement.classList.contains("kontrast");
 
+// Sayfanın içindeki haritalar (eser sayfası, modül haritaları) dokunmatik ekranda iki parmakla gezilir: tek parmak
+// sayfayı kaydırır, iki parmak haritayı kaydırıp yakınlaştırır (Leaflet'in iki parmak hareketi orta noktayla kaydırır).
+// Tek parmakla haritaya dokununca kısa bir ipucu çıkar. Fareyle (masaüstü) sürükleme aynen çalışır.
+export function ikiParmakla(harita, kutu) {
+  if (!matchMedia("(pointer: coarse)").matches) return;
+  harita.dragging.disable();
+  if (harita.tap) harita.tap.disable?.();
+  let ipucu = null, zaman = null;
+  kutu.addEventListener("touchmove", (o) => {
+    if (o.touches.length !== 1) { ipucu?.classList.remove("gorunur"); return; }
+    if (!ipucu) {
+      ipucu = document.createElement("div");
+      ipucu.className = "harita-ipucu";
+      ipucu.setAttribute("aria-hidden", "true");
+      ipucu.textContent = "Haritayı iki parmakla kaydır";
+      kutu.append(ipucu);
+    }
+    ipucu.classList.add("gorunur");
+    clearTimeout(zaman);
+    zaman = setTimeout(() => ipucu?.classList.remove("gorunur"), 1300);
+  }, { passive: true });
+}
+
 let leafletYukleniyor = null;
 export function leafletYukle() {
   leafletYukleniyor ??= new Promise((coz, reddet) => {
@@ -84,6 +107,7 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
   const karo = await karoKatmani(L, { tema: "koyu" });
   kutu.style.background = "#0e0e0e";
   karo.addTo(harita);
+  ikiParmakla(harita, kutu);
   const BAG_PANE = "baglanti-pane";
   harita.createPane(BAG_PANE);
   const bagPane = harita.getPane(BAG_PANE);
