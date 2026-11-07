@@ -858,7 +858,7 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
   try {
     const s = await yApi("/api/moduller", { method: "POST", govde });
     if (s.durum === "ozel") {
-      durumYaz("iyi", `“${s.ad}” özel olarak kaydedildi (${kaynakMetni(s.kaynak)}). Uygulamada listelenmez; bağlantıyı paylaştığın herkes açabilir.`);
+      durumYaz("iyi", `“${s.ad}” özel olarak kaydedildi (${kaynakMetni(s.kaynak)}). Uygulamada listelenmez; bağlantıyı ya da davet kodunu paylaştığın herkes açabilir.`);
       $("#durum").append(el("div", { className: "durum-eylem" }, ...paylasimDugmeleri(s)));
       return;
     }
@@ -894,17 +894,38 @@ function kaynakMetni(k) {
 // Paylaşım bağlantısı: özel modülde tahmin edilemez anahtar, yayındaki modülde kimlik. Android'de uygulamayı açar.
 const paylasimAdresi = (m) => `${location.origin}/m/${encodeURIComponent(m.durum === "ozel" ? m.paylasim : m.id)}`;
 const paylasilabilir = (m) => m.durum === "onayli" || (m.durum === "ozel" && m.paylasim);
+function kopyalaDugmesi(etiket, deger, baslik) {
+  const b = el("button", { type: "button", className: "ikincil kucuk-d", textContent: etiket, title: deger });
+  b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(deger); b.textContent = "Kopyalandı"; }
+    catch { window.prompt(baslik, deger); }
+    setTimeout(() => { b.textContent = etiket; }, 2000);
+  });
+  return b;
+}
+// Asıl paylaşım yolu: cihazın paylaşım menüsü (Android'de WhatsApp vb.); yoksa bağlantı panoya kopyalanır.
+function paylasDugmesi(m, adres) {
+  const b = el("button", { type: "button", className: "birincil kucuk-d", title: adres });
+  b.replaceChildren("Paylaş");
+  b.addEventListener("click", async () => {
+    const metin = m.durum === "ozel" && m.davetKodu ? `Lonca'da “${m.ad}” modülünü aç. Uygulamada davet kodu: ${m.davetKodu}` : `Lonca'da “${m.ad}” modülünü aç.`;
+    if (navigator.share) {
+      try { await navigator.share({ title: m.ad, text: metin, url: adres }); return; }
+      catch (h) { if (h?.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(adres); b.textContent = "Bağlantı kopyalandı"; }
+    catch { window.prompt("Paylaşım bağlantısı", adres); }
+    setTimeout(() => b.replaceChildren("Paylaş"), 2000);
+  });
+  return b;
+}
 function paylasimDugmeleri(m) {
   if (!paylasilabilir(m)) return [];
   const adres = paylasimAdresi(m);
-  const kopyala = el("button", { type: "button", className: "ikincil kucuk-d", textContent: "Bağlantıyı kopyala", title: adres });
-  kopyala.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(adres); kopyala.textContent = "Kopyalandı"; }
-    catch { window.prompt("Paylaşım bağlantısı", adres); }
-    setTimeout(() => { kopyala.textContent = "Bağlantıyı kopyala"; }, 2000);
-  });
   const ac = el("a", { className: "ikincil kucuk-d dugme-bag", href: adres, target: "_blank", rel: "noopener", textContent: "Aç" });
-  return [kopyala, ac];
+  // Özel modül uygulamada ve webde "Davet koduyla eriş" alanına yazılan kısa kodla da açılır.
+  const davet = m.durum === "ozel" && m.davetKodu ? [kopyalaDugmesi(`Davet kodu: ${m.davetKodu}`, m.davetKodu, "Davet kodu")] : [];
+  return [paylasDugmesi(m, adres), kopyalaDugmesi("Bağlantıyı kopyala", adres, "Paylaşım bağlantısı"), ...davet, ac];
 }
 const DURUM_ADI = { bekliyor: "Onay bekliyor", onayli: "Yayında", ozel: "Özel", kaldirildi: "Yayından kaldırıldı", arsiv: "Arşivde", reddedildi: "Reddedildi" };
 const EYLEMLER = {

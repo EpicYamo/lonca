@@ -1,4 +1,5 @@
 
+
 export const ESER_TURLERI = ["cami", "mescit", "medrese", "han", "hamam", "cesme", "turbe", "kulliye", "imaret",
   "kopru", "tekke", "hazire", "carsi", "kutuphane", "sivil", "diger"];
 
@@ -236,3 +237,19 @@ export const modulGorunurlukDogrula = (g) =>
   g == null || MODUL_GORUNURLUKLERI.includes(g) ? null : `gorunurluk: ${MODUL_GORUNURLUKLERI.join(" | ")}`;
 // Paylaşım bağlantısındaki anahtar: modül kimliği ya da base64url anahtar.
 export const paylasimAnahtariGecerli = (a) => typeof a === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(a);
+
+// Davet kodu: karıştırılan harfler (0/O, 1/I/L) olmadan 8 karakter, "ABCD-EFGH" biçiminde gösterilir.
+const DAVET_ABECESI = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+// Bu dosya Android paketinde tarayıcıda da yüklenir (mobil/hazirla.mjs); node:crypto yerine Web Crypto.
+// 31 karakterlik abecede 256 % 31 sapması küçük; reddederek düzgün dağılım sağlanır.
+const rastgeleSayi = (n) => { const b = new Uint8Array(1); do globalThis.crypto.getRandomValues(b); while (b[0] >= 256 - (256 % n)); return b[0] % n; };
+export function davetKoduUret(rastgele = rastgeleSayi) {
+  let k = "";
+  for (let i = 0; i < 8; i++) k += DAVET_ABECESI[rastgele(DAVET_ABECESI.length)];
+  return `${k.slice(0, 4)}-${k.slice(4)}`;
+}
+// Kullanıcının yazdığını kanonik biçime çevirir (küçük harf, boşluk, tire serbest); geçersizse null.
+export function davetKoduCoz(girdi) {
+  const k = String(girdi ?? "").toUpperCase().replace(/[\s-]/g, "");
+  return k.length === 8 && [...k].every((c) => DAVET_ABECESI.includes(c)) ? `${k.slice(0, 4)}-${k.slice(4)}` : null;
+}

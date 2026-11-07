@@ -13,7 +13,7 @@ import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
 import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
-import { modulGorunurlukDogrula, paylasimAnahtariGecerli, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
+import { modulGorunurlukDogrula, paylasimAnahtariGecerli, davetKoduUret, davetKoduCoz, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -554,6 +554,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       sahip: sahip ?? onceki?.sahip ?? undefined,
       // Özel modülün bağlantısı tahmin edilemez bir anahtar taşır; herkese açık modülün bağlantısı kimliğidir.
       paylasim: ozel ? onceki?.paylasim ?? randomBytes(12).toString("base64url") : onceki?.paylasim,
+      // Elle yazılabilen kısa davet kodu (ABCD-EFGH): uygulamada ve webde "Davet kodu" alanına girilir.
+      davetKodu: ozel ? onceki?.davetKodu ?? yeniDavetKodu(liste) : onceki?.davetKodu,
       durum: ozel ? "ozel" : canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
       ...(canliKalsin ? { yayin: simdi } : {}),
     };
@@ -580,7 +582,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const m = liste.find((x) => x.id === id);
     if (!m) return null;
     m.durum = durum;
-    if (durum === "ozel") m.paylasim ??= randomBytes(12).toString("base64url");
+    if (durum === "ozel") { m.paylasim ??= randomBytes(12).toString("base64url"); m.davetKodu ??= yeniDavetKodu(liste); }
     m.guncelleme = new Date().toISOString();
     if (durum === "onayli") m.yayin = m.guncelleme;
     await modulDosyasi.yaz(liste);
@@ -612,16 +614,21 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   async function paylasilanModul(anahtar) {
     if (!paylasimAnahtariGecerli(anahtar)) return null;
     const liste = await modulDosyasi.oku();
+    const davet = davetKoduCoz(anahtar);
     return liste.find((m) => m.durum === "ozel" && m.paylasim === anahtar)
+      ?? (davet && liste.find((m) => m.durum === "ozel" && m.davetKodu === davet))
       ?? liste.find((m) => m.durum === "onayli" && m.id === anahtar) ?? null;
   }
+  const yeniDavetKodu = (liste) => { let k; do k = davetKoduUret(); while (liste.some((m) => m.davetKodu === k)); return k; };
   const paylasimOzeti = (m) => ({ id: m.id, ad: m.ad, aciklama: m.aciklama, izinler: m.izinler, renk: m.renk, ikon: m.ikon, kategori: m.kategori, durum: m.durum });
-  app.get("/api/paylasim/:anahtar", async (req, rep) => {
+  // Davet kodu kısa olduğundan tahmin denemelerine karşı IP başına sınır.
+  const paylasimSiniri = hizSiniri({ adet: Number(ortam.PAYLASIM_SINIR ?? 120), pencereMs: 10 * 60_000, mesaj: "Çok fazla deneme; biraz sonra tekrar dene." });
+  app.get("/api/paylasim/:anahtar", { preHandler: paylasimSiniri }, async (req, rep) => {
     const m = await paylasilanModul(req.params.anahtar);
     rep.header("cache-control", "no-store");
     return m ? paylasimOzeti(m) : rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
   });
-  app.get("/api/paylasim/:anahtar/kod", async (req, rep) => {
+  app.get("/api/paylasim/:anahtar/kod", { preHandler: paylasimSiniri }, async (req, rep) => {
     const m = await paylasilanModul(req.params.anahtar);
     if (!m) return rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
     const kod = await readFile(path.join(MODUL_DIZINI, `${m.id}.js`), "utf8");
