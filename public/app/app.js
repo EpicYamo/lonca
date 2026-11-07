@@ -766,7 +766,7 @@ function hesapPencereGuncelle() {
     dugme.classList.toggle("secili", secili);
     dugme.setAttribute("aria-checked", String(secili));
   }
-  $("#hesap-kayit-alanlari").hidden = !kayit;
+  $("#hesap-kayit-notu").hidden = !kayit;
   $("#hesap-baslik").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
   $("#hesap-gonder").textContent = kayit ? "Hesap oluştur" : "Giriş yap";
   $("#hesap-sifre").autocomplete = kayit ? "new-password" : "current-password";
@@ -816,7 +816,6 @@ $("#hesap-formu").addEventListener("submit", async (e) => {
   $("#hesap-hata").hidden = true;
   const kayit = hesapKipi === "kayit";
   const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
-  if (kayit) govde.rol = $("#hesap-formu").elements.rol.value;
   try {
     const yanit = await fetch(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde),
