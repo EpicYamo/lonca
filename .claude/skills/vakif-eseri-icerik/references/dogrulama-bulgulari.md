@@ -7,8 +7,7 @@ Güven: **Kesin** = kaynak metniyle gösterildi. **Güçlü** = yaygın akademik
 ## Dalışlar
 
 ### Yeşil Türbe (`bursa-yesil-turbe`, kalfa, bekliyor)
-1. **Kesin, veri.** Envanter metnindeki kitabede PDF bozukluğu: `!ehîdis` → `şehîdis`, `i!rîn` → `işrîn` (`data/eserler.json`, aşağıdaki eser kayıtları maddesine bakın).
-2. Düzeltildi: `d1` 1421 kartı envanterdeki ifadeyle yeniden yazıldı (mimar ayrı V kartında), `k2` "İznik çiniciliğinin şaheser örnekleri" cümlesi çıkarıldı. Kalan kartlar kaynaklarıyla uyumlu.
+1. Düzeltildi: `d1` 1421 kartı envanterdeki ifadeyle yeniden yazıldı (mimar ayrı V kartında), `k2` "İznik çiniciliğinin şaheser örnekleri" cümlesi çıkarıldı. Kitabedeki PDF bozukluğu (`!ehîdis`, `i!rîn`) `data/eserler.json`'da düzeltildi. Kalan kartlar kaynaklarıyla uyumlu.
 
 ### Emir Sultan Külliyesi (`bursa-emir-sultan-kulliyesi`, kalfa, onaylı)
 1. Düzeltildi: hedef Vikipedi koordinatına (40.18111, 29.08111) taşındı ve uydu kareleri yeniden üretildi (eski hedef yaklaşık 770 m kuzeydeydi). Kaynaksız ve sahte yazılı "Kufi Hat Levhası" kolu çıkarıldı. Şadırvan kolu Vikipedi "Emir Sultan Camii" maddesine bağlandı (avlunun ortasında şadırvan).
@@ -23,10 +22,9 @@ Güven: **Kesin** = kaynak metniyle gösterildi. **Güçlü** = yaygın akademik
 Kartlar kaynaklarıyla uyumlu. Şehzade Mustafa'nın V kartları "Muradiye Külliyesi" maddesinden; denetimde bu başlık kullanılmalı (betikte tanımlı).
 
 ## Eser kayıtları (`data/eserler.json`)
-1. **Kesin.** PDF çıkarım bozukluğu olan 5 kayıt (9 sözcük): `bursa-hidirlik-nilufer-hatun-camii` (!erîf), `bursa-kanberler-sitti-hatun-camii` (vakfetmi!tir, !artla, ba!ka, deği!tirirse, düzenlenmi!tir), `bursa-hz-uftade-tekkesi` (!eyi), `bursa-yesil-turbe` (!ehîdis, i!rîn). `!` → ş.
-2. **Kesin.** `edirne-selimiye-camii` tarihçesi: "2000'de UNESCO tarafından Dünya Mirası listesine dahil edilen … 2011'de ise Dünya Mirası olarak tescil edildi". Vikipedi'den alınmış ama yanıltıcı: 2000'deki geçici listedir, Dünya Mirası Listesi'ne giriş 28 Haziran 2011'dir (aynı madde ileride bunu söylüyor). Ayrıca son cümle ("Mimar Sinan'ın 80 yaşında … zirvesi kabul edilir") metnin başındaki bilgiyi tekrar ediyor; sonradan eklenmiş.
-3. **Bilgi.** 187 kaydın 66'sında `yuzyil: null` (kural gereği: yapım tarihi yok). 49 kayıt konumlu, bunların 27'si yaklaşık.
-4. **Ad.** Projede kitap "Bursa Vakıf Eserleri Envanteri" diye anılıyor; yayın sayfasında "Bursa Vakıf Eserleri Kitabı", kapakta "Bursa Vakıf Eserleri / Foundation Buildings of Bursa". Kaynak satırları tutarlı olduğu için değiştirmek gerekmiyor, ama dışarıya yazarken kitabın kendi adını kullan.
+1. **Bilgi.** 187 kaydın 66'sında `yuzyil: null` (kural gereği: yapım tarihi yok). 153 kayıt konumlu, bunların 131'i yaklaşık (Bursa'da 130/165; konum_kaynagi `openstreetmap` olanlar OSM'de adıyla bulunup mahallesi kaydın adresiyle karşılaştırıldı, sokak ya da köy düzeyinde olanlar da var). Konumsuz 35 Bursa eseri OSM'de güvenle bulunamadı; elle girilmeli.
+2. **Açık.** Birçok kaydın `adres` alanı boş, ama adres `tarihce.tr`'nin ilk cümlesinde duruyor; oradan doldurulabilir.
+3. **Ad.** Projede kitap "Bursa Vakıf Eserleri Envanteri" diye anılıyor; yayın sayfasında "Bursa Vakıf Eserleri Kitabı", kapakta "Bursa Vakıf Eserleri / Foundation Buildings of Bursa". Kaynak satırları tutarlı olduğu için değiştirmek gerekmiyor, ama dışarıya yazarken kitabın kendi adını kullan.
 
 ## İlişkiler (`data/eser-iliskileri.json`)
 1. **Kesin, kaynaksız birleştirme.** `bursa-koza-izmir-kizlaragasi` (tur: `ticaret`): "Bursa ipeği İzmir limanı üzerinden Akdeniz'e ulaşırdı." Bu cümle iki kaynakta da yok; iki ayrı bilgiden üretilmiş bir iddia. Öneri: cümleyi çıkar ya da bunu söyleyen bir kaynak bul.

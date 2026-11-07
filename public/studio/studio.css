@@ -620,6 +620,10 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
 .foto-birak.ustunde { border-color: var(--vurgu); background: var(--vurgu-zemin); color: var(--vurgu); }
 .foto-birak b { color: var(--vurgu); }
 .form-eylemler { padding-top: 14px; border-top: 1px solid var(--cizgi); }
+.oneri-kutusu { margin: 14px 0 0; padding: 12px 14px 14px; border: 1px solid var(--uyari-cizgi); border-radius: var(--r-l); }
+.oneri-kutusu legend { padding: 0 6px; font-weight: 600; }
+.oneri-kutusu .aciklama { margin: 0 0 10px; }
+.oneri-kaynak { margin: 0; font-size: .85em; color: var(--soluk); }
 .form-eylemler .durum { flex-basis: 100%; order: 5; }
 .bos-durum { display: grid; place-items: center; gap: .6rem; min-height: 260px; padding: 24px; text-align: center; border: 1px dashed var(--cizgi-guclu); border-radius: var(--r-l); color: var(--sonuk); }
 

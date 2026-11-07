@@ -20,7 +20,7 @@ const metin = (x) => (x == null ? "" : String(x));
 export function ekranYontemleri({ el, sahneyeKoy, seslendir, ilerlemeAyarla, rozetKaydet, onizleme, duzeltmeAc }) {
   const temizlikler = new Set();
   function hataBildir(eser) {
-    const d = el("button", { className: "hata-bildir", type: "button", textContent: "Bir hata mı gördün? Bildir" });
+    const d = el("button", { className: "hata-bildir", type: "button", textContent: onizleme ? "Bu eserde eksik var, düzenle" : "Bir hata mı gördün? Bildir" });
     d.addEventListener("click", () => duzeltmeAc(eser));
     return d;
   }

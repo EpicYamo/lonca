@@ -1,0 +1,3 @@
+# gitleaks'in geçmişte bulduğu ve artık geçerli olmayan (iptal edilmiş) anahtarlar.
+# Yeni bir satır eklemeden önce anahtarın iptal edildiğinden emin ol; yalnızca parmak izi yazılır, değer asla.
+d0f1d3a15174e59c62f26a32f2e303f49e321784:.env.example:generic-api-key:10
