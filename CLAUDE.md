@@ -37,6 +37,7 @@ npm run dev               # node --watch server/index.js → http://localhost:30
 npm start                 # izlemesiz
 npm test                  # node --test "test/*.test.mjs" (API, doğrulama, kalfa denetimi)
 npm run test:e2e          # Playwright ile uçtan uca senaryo (test/e2e/uctan-uca.mjs)
+npm run test:erisim       # axe + Playwright erişilebilirlik taraması (uygulama, 4 modül, dalış; klavye, 1.5× yazı, sesli okuma)
 npm run konum             # eser koordinatı bul (-- --dene yalnızca yazdırır)
 npm run vendor            # gerçek 3B kütüphanesini esbuild ile yeniden paketle
 node araclar/dalis-uret.mjs araclar/dalis/<eser>.json   # elle dalış karelerini üret

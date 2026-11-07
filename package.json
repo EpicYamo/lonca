@@ -9,6 +9,7 @@
     "start": "node server/index.js",
     "test": "node --test \"test/*.test.mjs\"",
     "test:e2e": "node test/e2e/uctan-uca.mjs",
+    "test:erisim": "node test/e2e/erisilebilirlik.mjs",
     "vendor": "esbuild araclar/vendor/uc-karolar.js --bundle --format=esm --minify --external:three --external:'three/*' --legal-comments=eof --outfile=public/vendor-yerel/uc-karolar.js",
     "konum": "node araclar/konum-bul.mjs"
   },
@@ -38,6 +39,7 @@
     "@capacitor/assets": "^4.0.0",
     "@capacitor/cli": "^8.6.0",
     "3d-tiles-renderer": "^0.5.3",
+    "axe-core": "^4.14.0",
     "esbuild": "^0.25.12",
     "playwright": "^1.56.0"
   }

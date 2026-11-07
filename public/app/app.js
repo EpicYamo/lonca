@@ -236,7 +236,8 @@ function yontemlerOlustur(modul) {
         uygulamaModu = true;
         document.body.classList.add("uygulama-modu");
         katman.kapat();
-        sahneApi.ciz(agac);
+        // "Ekranı sesli oku" açıksa yeni görünümün başlığı ve ilk paragrafı okunur (ekranda yazanın aynısı).
+        if (sahneApi.ciz(agac)?.yeni) seslendir([...$("#sahne").querySelectorAll(".s-ust-metin strong, .s-kapak-baslik, .s-kapak-alt, .s-afis-baslik, .s-baslik, .s-metin")].slice(0, 3).map((d) => d.textContent.trim()).filter(Boolean).join(". ").slice(0, 400));
         acilisBitir();
       },
       "sahne.bildir": async (m) => bildir(m),
@@ -314,7 +315,6 @@ async function vitrinCiz() {
         el("span", { className: "gunun-ozet", textContent: g.ozet }),
         el("span", { className: "gunun-devam", textContent: `Devamını oku · ${g.fotoSayisi} fotoğraf →` })));
     $("#gunun-karti").onclick = () => eserPenceresi(g.id);
-    $("#gunun-karti").setAttribute("aria-label", `Günün eseri: ${g.ad}. Devamını oku`);
   }
   $("#secki").replaceChildren(...v.secki.map((e) => {
     const foto = el("span", { className: "secki-foto" });
@@ -419,9 +419,8 @@ function oneCikanlariCiz(kapaklar) {
         el("span", { className: "oc-ad", textContent: m.ad }),
         el("span", { className: "oc-aciklama", textContent: m.aciklama }),
         el("span", { className: "oc-alt" }, uygulamaIkonu(m, "kucuk"),
-          el("span", { className: "oc-alt-metin" }, el("strong", { textContent: m.ad }), el("span", { textContent: kapak?.eser ? `Kapak: ${kapak.eser}` : "Lonca uygulaması" })),
-          el("span", { className: "ac-pill", textContent: "AÇ" }))));
-    b.setAttribute("aria-label", `${m.ad}: ${m.aciklama}. Aç`);
+          el("span", { className: "oc-alt-metin", ariaHidden: "true" }, el("strong", { textContent: m.ad }), el("span", { textContent: kapak?.eser ? `Kapak: ${kapak.eser}` : "Lonca uygulaması" })),
+          el("span", { className: "ac-pill", ariaHidden: "true", textContent: "AÇ" }))));
     b.addEventListener("click", () => moduluAc(m, b));
     const li = el("li", {}, b);
     li.style.setProperty("--i", String(i));
@@ -453,7 +452,6 @@ function uygulamalariCiz() {
         el("span", { className: "us-aciklama", textContent: m.aciklama }),
         basarimCubugu(m)),
       el("span", { className: "ac-pill", ariaHidden: "true", textContent: "AÇ" }));
-    b.setAttribute("aria-label", `${m.ad}, ${KATEGORI_ADI[kategoriBul(m)]}. ${m.aciklama}`);
     b.addEventListener("click", () => moduluAc(m, b));
     const li = el("li", {}, b);
     li.style.setProperty("--i", String(i));
@@ -628,6 +626,8 @@ function tanismaKapat(kaydet) {
   const renk = document.querySelector('input[name="renk"]:checked')?.value ?? "kobalt";
   profil.profilKaydet({ ad: kaydet ? $("#tanisma-ad").value : (profil.profilOku()?.ad ?? "Gezgin"), renk });
   $("#tanisma").hidden = true;
+  // Odak gizlenen formda kalmasın; klavye ve ekran okuyucu ana içerikten devam eder.
+  if (document.activeElement?.closest("#tanisma") || document.activeElement === document.body) $("#uygulamalar-baslik").focus({ preventScroll: true });
   profilCipiGuncelle();
   if (!$("#profil-ekrani").hidden) profilEkrani();
 }
