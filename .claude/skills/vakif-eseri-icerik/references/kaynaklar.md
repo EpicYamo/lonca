@@ -32,12 +32,12 @@ Sayfa bilinmiyorsa en azından cilt. Konya ve Hatay için aynı kalıp: `Vakıf 
 - PDF çıkarımında Türkçe harfler bozulabilir (`!` → ş, `%` → Ş/İ, `/f_i` → fi bağı). İçe aktarma sonrası `grep -n '[!%]' ` ile tara.
 
 ## 2. Türkçe Vikipedi ("V")
-- Bursa dışındaki 22 kayıt ve dalış kartlarının bir kısmı buradan (CC BY-SA 4.0). Kayıtta madde URL'si `kaynak` alanında durur.
+- Dalış kartlarının bir kısmı buradan (CC BY-SA 4.0). Vikipedi'den yeni eser kaydı eklenmez; Bursa dışından eklenmiş 22 Vikipedi kaydı Kasım 2026'da kaldırıldı.
 - Kalfa maddeyi adla arar ve en iyi eşleşen başlığı seçer (`server/dalis-kalfasi.js → vikipedi()`); yanlış madde gelme riski var, başlığı doğrula.
 - Vikipedi ikincil kaynaktır: üstünlük iddiaları ("en geniş", "ilk") ve atıflar (mimar, çini ustası) çoğu zaman kaynaksızdır. Bunları kart yaparken "…olarak anılır / …olduğu sanılır" diye yumuşat ya da envanterle karşılaştır.
 
 ## 3. Görsel kaynaklar
-- Bursa fotoğrafları kitaplardan çıkarıldı (`araclar/foto-cikar.py`), öteki şehirler Wikimedia Commons'tan (yerel kopya, CC BY-SA).
+- Eser fotoğrafları kitaplardan çıkarıldı (`araclar/foto-cikar.py`).
 - Uydu: Esri World Imagery. Uygulamada "Uydu: Esri World Imagery" yazar.
 - Yapay zekâ görüntüleri yalnızca dalışlarda ve her zaman etiketli.
 
