@@ -75,6 +75,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `HESAP_SINIR` | IP başına 10 dakikadaki kayıt/giriş denemesi sınırı |
 | `ILK_SIFRE`, `ILK_KULLANICILAR` | Hazır admin (rol `editor`) hesapları (varsayılan `arda,ibrahim,sevilay`): yalnızca eksik olanlar bu ilk şifreyle açılır; ilk girişte yeni şifre belirlenmeden yetki yok (`PUT /api/hesap/sifre`) |
 | `GOOGLE_HARITA_ANAHTARI` | Google harita + gerçek 3B; boşsa OpenStreetMap, 3B kapalı |
+| `ANDROID_IMZA_SHA256` | APK imza sertifikasının SHA-256 parmak izi; doluysa `/.well-known/assetlinks.json` yayımlanır ve `/m/<anahtar>` paylaşım bağlantıları Android'de uygulamayı açar |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |
 | `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Birincil sağlayıcı (UstaGPT, OpenAI uyumlu): `KALFA_API_URL` / `DALIS_API_URL` boşsa iki kalfa da bunu kullanır. Modeller Studio'da seçilir (`data/kalfa-ayarlari.json`, `.env` modellerini geçersiz kılar) |
@@ -85,13 +86,14 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 
 ## Mimari
 
-- **Sunucu** (Fastify): `server/index.js` → `server/uygulama.js` (tüm rotalar), `kalfa.js` (modül kalfası: `eser_ara` / `modul_yaz` araçları, kurallar + TS tip denetimi, en çok 3 deneme), `dalis-kalfasi.js` + `dalis-uretim.js` (dalış ajanı ve görüntü üretimi), `dogrulama.js`, `guvenlik.js`, `depo.js` (JSON dosya deposu).
+- **Sunucu** (Fastify): `server/index.js` → `server/uygulama.js` (tüm rotalar), `kalfa.js` (modül kalfası: önce sohbet eder (`yanit_ver`), kodu usta herhangi bir biçimde isteyince yazar (`modul_yaz`; niyeti model okur, sunucu yalnızca düz soruda kodu reddeder: `insaIzniVar`); bilgi bankası araçları `eser_ara` / `eser_bilgisi`; yanıtta kaynaklar + öneri düğmeleri; kurallar + TS tip denetimi, en çok 3 deneme), `dalis-kalfasi.js` + `dalis-uretim.js` (dalış ajanı ve görüntü üretimi), `dogrulama.js`, `guvenlik.js`, `depo.js` (JSON dosya deposu).
 - **Başlıca API'ler:** `/api/eserler` (+`/yakin`, `/:id`, tamlık filtreleri), `/api/eser-iliskileri`, `/api/eser-oneriler`, `/api/eser-gecmisi`, `/api/moduller`, `/api/kalfa`, `/api/dalislar`, `/api/dalis-kalfasi`, `/api/medya`, `/api/hesap` (kayıt, giriş, ben, profil, rol), `/api/atolye/oturumlar` (Studio kalfa sohbeti + modül taslağı, kullanıcı başına; `server/atolye.js`).
 - **SDK** (`sdk/`): `lonca-sdk.js` modül iframe'inde çalışır; `lonca-sdk.d.ts` sözleşme; `ornekler/` kalfanın öğrendiği örnekler (`hanlar-rehberi.js`, `yuzyil-avi.js`).
 - **Uygulama** (`public/app/`): modül sandbox iframe'de çalışır (`calistirici.js`), arayüz ağacını `sahne.js` çizer; `ekranlar.js`, `harita.js` (Leaflet), `uc-gercek.js` (Google 3D Tiles), `dalis.js` (dalış oynatıcı), `profil.js`.
 - **Studio** (`public/studio/`): Atölye (kalfa | kod | önizleme), Modüller, İçerik, Dalışlar.
 - **Veri** (`data/`): `eserler.json` (eser kayıtları), `eser-iliskileri.json` (kaynaklı tarihsel bağlar), `moduller/` (`index.json` + modül JS), `dalislar/` (dalış tanımları). Medya `public/medya/`.
-- **Durumlar:** modül ve dalış `bekliyor` → `onayli`; ayrıca `kaldirildi`, `arsiv`, `reddedildi`.
+- **Durumlar:** modül ve dalış `bekliyor` → `onayli`; ayrıca `kaldirildi`, `arsiv`, `reddedildi`. Usta modülü özel kaydederse `ozel`: onay kuyruğuna girmez, uygulamada listelenmez, yalnızca paylaşım bağlantısıyla açılır.
+- **Paylaşım:** `/m/<anahtar>` → `/app/?modul=<anahtar>` (`public/app/paylasim.js`); anahtar özel modülde `paylasim` alanı, yayındaki modülde kimlik. API: `GET /api/paylasim/:anahtar` (+`/kod`). Android'de App Links + `lonca://m/<anahtar>` (`public/mobil/kopru.js`).
 - **Mobil:** Capacitor (`capacitor.config.json`, `webDir: mobil/www`), `public/mobil/` köprü ve yerel API.
 
 Ayrıntılı anlatım için `README.md`.

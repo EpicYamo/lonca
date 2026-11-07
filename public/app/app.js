@@ -10,6 +10,7 @@ import { modulSurumu } from "/ortak/arama.js";
 import * as raf from "./modullerim.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
 import { kesifHaritasiKur } from "./kesif-haritasi.js";
+import { paylasimiDinle } from "./paylasim.js";
 import { t, dilSecimi } from "/ortak/dil.js";
 
 const $ = (s) => document.querySelector(s);
@@ -672,7 +673,8 @@ function acilisBitir() {
 
 let calisan = null; // { modul, iptal, sahneApi }
 async function moduluAc(m, karo) {
-  if (!ONIZLEME) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
+  // Paylaşım bağlantısıyla açılan modül rafa eklenmez (özel modül uygulama listesinde yoktur).
+  if (!ONIZLEME && !m.kodYolu) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
   depo.yaz("lonca.son-modul", { id: m.id, zaman: Date.now() });
   calisan?.iptal.abort();
   const iptal = new AbortController();
@@ -697,7 +699,7 @@ async function moduluAc(m, karo) {
   if (desen && !g) desen.style.viewTransitionName = "";
 
   try {
-    const [yanit] = await Promise.all([api(`/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
+    const [yanit] = await Promise.all([api(m.kodYolu ?? `/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
     $("#acilis").style.viewTransitionName = "";
     await modulCalistir(await yanit.text(), yontemlerOlustur(m), { iptal: iptal.signal });
     if (bu !== calisan) return;
@@ -1314,6 +1316,8 @@ if (ONIZLEME) {
   // Paylaşılan bağlantı: /app/?eser=<id> eser sayfasını açar.
   const paylasilan = new URLSearchParams(location.search).get("eser");
   if (paylasilan && /^[a-z0-9-]{1,80}$/.test(paylasilan)) eserPenceresi(paylasilan);
+  // Paylaşılan modül: /m/<anahtar> → /app/?modul=<anahtar>; Android'de uygulama bağlantısı.
+  paylasimiDinle({ ac: (m) => moduluAc(m), hata: (mesaj) => bildir(mesaj, { tur: "hata", sure: 4000 }) });
 }
 
 export { TUR_ADI };

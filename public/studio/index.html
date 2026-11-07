@@ -69,7 +69,7 @@
       <svg class="ik" aria-hidden="true"><use href="#i-atolye"/></svg><span class="sekme-ad">Atölye</span>
     </button>
     <button class="sekme-d" data-sayfa="moduller">
-      <svg class="ik" aria-hidden="true"><use href="#i-moduller"/></svg><span class="sekme-ad">Modüller</span><span class="sayac" id="sayac-modul" hidden></span>
+      <svg class="ik" aria-hidden="true"><use href="#i-moduller"/></svg><span class="sekme-ad">Modüller</span><span class="sayac yalniz-admin" id="sayac-modul" hidden></span>
     </button>
     <button class="sekme-d" data-sayfa="icerik">
       <svg class="ik" aria-hidden="true"><use href="#i-icerik"/></svg><span class="sekme-ad">İçerik</span><span class="sayac" id="sayac-oneri" hidden></span>
@@ -96,7 +96,7 @@
         <h2 id="sohbet-baslik" class="panel-baslik"><svg class="ik" aria-hidden="true"><use href="#i-sohbet"/></svg>Kalfa</h2>
         <div class="kip" role="radiogroup" aria-label="Kalfa ne hazırlasın?">
           <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
-          <button type="button" role="radio" aria-checked="false" data-kip="dalis" class="yalniz-admin">Dalış</button>
+          <button type="button" role="radio" aria-checked="false" data-kip="dalis">Dalış</button>
         </div>
         <button id="sohbetler-d" type="button" class="ikon-d" aria-label="Geçmiş sohbetler" title="Geçmiş sohbetler">
           <svg class="ik" aria-hidden="true"><use href="#i-gecmis"/></svg>
@@ -110,7 +110,7 @@
       </div>
       <ol id="mesajlar" class="mesajlar" aria-live="polite">
         <li class="mesaj kalfa">
-          <p>Hoş geldin usta. Vakıf eserleriyle ilgili bir fikir anlat; modülünü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
+          <p>Hoş geldin usta. Vakıf eserlerini ya da yapmak istediğin modülü konuşalım: sorularını bilgi bankasından ve SDK'dan yanıtlarım. Hazır olduğunda yazmamı iste (“yap”, “hazırla”, “başlayalım”, “şunu da ekle”…); modülü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
         </li>
       </ol>
       <div class="kilit-karti" id="atolye-kilit" hidden>
@@ -135,9 +135,9 @@
         </div>
         <form id="sohbet-formu" class="sohbet-formu">
           <label for="istek" class="gizli">Kalfaya mesaj</label>
-          <textarea id="istek" rows="2" placeholder="Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
+          <textarea id="istek" rows="2" placeholder="Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
           <div class="besteci-alt">
-            <span class="kip-not" id="kip-not">Fikrini mini uygulamaya çevirir</span>
+            <span class="kip-not" id="kip-not">Soru sor, fikrini konuş; yazmasını isteyince mini uygulamaya çevirir</span>
             <button id="gonder" class="birincil gonder-d" aria-label="Gönder">
               <svg class="ik" aria-hidden="true"><use href="#i-gonder"/></svg>
             </button>
@@ -178,6 +178,11 @@
             <select id="kategori">
               <option value="">Otomatik</option><option value="rehber">Rehber</option><option value="oyun">Oyun</option>
               <option value="gezi">Gezi</option><option value="ogren">Öğren</option>
+            </select>
+          </label>
+          <label>Görünürlük
+            <select id="gorunurluk" title="Herkese açık modül onaydan geçip uygulamada yayımlanır; özel modül yalnızca bağlantısını paylaştığın kişilerce açılır">
+              <option value="herkes">Herkese açık</option><option value="ozel">Özel (bağlantıyla)</option>
             </select>
           </label>
           <label class="genis">Açıklama <input id="aciklama" placeholder="Uygulamada görünecek tek cümle"></label>
@@ -223,7 +228,7 @@
     <div class="sayfa-baslik">
       <div>
         <h2 class="sayfa-h">Modüller</h2>
-        <p class="aciklama">Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür.</p>
+        <p class="aciklama" id="moduller-aciklama">Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür.</p>
       </div>
     </div>
     <div class="suzgec" id="modul-suzgec" role="group" aria-label="Duruma göre süz"></div>

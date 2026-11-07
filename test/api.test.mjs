@@ -259,7 +259,7 @@ test("kalfa kaynağı: kalfanın yazdığı kod 'kalfa', elle değiştirilen 'el
 });
 
 test("sahte kalfanın şablonu 'sahte' olarak işaretlenir", async () => {
-  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması" }] }, usta: true });
+  const y = await s.istek("POST", "/api/kalfa", { govde: { sohbet: [{ rol: "usta", metin: "cami yarışması yap" }] }, usta: true });
   const sonuc = y.json();
   assert.equal(sonuc.model, "sahte");
   const m = (await s.istek("POST", "/api/moduller", { govde: { id: "sahte-deneme", ad: "Sahte", kod: sonuc.kod }, usta: true })).json();
@@ -313,4 +313,15 @@ test("vitrin il listesini, dalış özeti kareleri olmadan döner", async () => 
   assert.deepEqual(ozet.map((d) => d.eser), ["bursa-ulucami"]);
   assert.ok(!("kareler" in ozet[0]));
   assert.ok((await s.istek("GET", "/api/dalislar")).json()[0].kareler.length > 0);
+});
+
+test("assetlinks.json yalnızca ANDROID_IMZA_SHA256 doluysa yayımlanır", async () => {
+  assert.equal((await s.istek("GET", "/.well-known/assetlinks.json")).statusCode, 404);
+  const imza = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, "0")).join(":");
+  const d = await deneySunucusu({ ANDROID_IMZA_SHA256: `${imza}, bozuk` });
+  const y = await d.istek("GET", "/.well-known/assetlinks.json");
+  assert.equal(y.statusCode, 200);
+  assert.equal(y.json()[0].target.package_name, "com.kozmos.lonca");
+  assert.deepEqual(y.json()[0].target.sha256_cert_fingerprints, [imza.toUpperCase()]);
+  await d.app.close();
 });

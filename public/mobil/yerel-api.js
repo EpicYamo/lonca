@@ -95,6 +95,14 @@ export async function yanitla(url) {
     const y = await fetch(`/mobil/anlik/moduller/${m[1]}.js`);
     return new Response(await y.text(), { status: 200, headers: { "content-type": "text/javascript; charset=utf-8" } });
   }
+  // Çevrimdışı paylaşım: yalnızca paketteki (yayındaki) modüller kimlikleriyle açılır; özel modül sunucu ister.
+  if ((m = yol.match(/^\/api\/paylasim\/([a-z0-9-]{1,64})(\/kod)?$/))) {
+    const modul = v.moduller.find((x) => x.id === m[1]);
+    if (!modul) return json({ hata: "Bu modül çevrimdışıyken açılamıyor. Lonca sunucusuna bağlanınca açılır." }, 503);
+    if (!m[2]) return json(modul);
+    const y = await fetch(`/mobil/anlik/moduller/${m[1]}.js`);
+    return new Response(await y.text(), { status: 200, headers: { "content-type": "text/javascript; charset=utf-8" } });
+  }
   if (yol === "/api/dalislar") return json(q.ozet === "1" ? v.dalislar.map((d) => ({ eser: d.eser, ozet: d.ozet ?? null, durum: d.durum })) : v.dalislar);
   return json({ hata: "Bu bölüm çevrimdışıyken kullanılamıyor. Lonca sunucusuna bağlanınca açılır." }, 503);
 }

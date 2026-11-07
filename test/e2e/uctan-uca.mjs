@@ -41,8 +41,15 @@ try {
   await studio.waitForSelector("#giris-kapisi", { state: "hidden" });
   await studio.waitForSelector("#atolye-kilit", { state: "hidden" });
   adim("usta hesabı açıldı, Studio açıldı");
+  // İlk mesaj bir fikir: kalfa sohbet eder, kod yazmaz; yanıtın altında yeni öneri düğmeleri çıkar.
   await studio.fill("#istek", "Bursa hanları için süreli bir oyun");
   await studio.press("#istek", "Enter");
+  await studio.waitForSelector("#oneriler:not([hidden]) >> text=Bursa hanları için süreli bir oyun yap");
+  assert.equal(await studio.inputValue("#kod"), "", "kalfa istenmeden kod yazmamalı");
+  adim("kalfa önce sohbet etti, öneri düğmeleri yenilendi");
+  // Usta dalış kipini de görür
+  assert.ok(await studio.isVisible(".kip button[data-kip=dalis]"), "usta Dalış kipini görmeli");
+  await studio.click("#oneriler >> text=Bursa hanları için süreli bir oyun yap");
   await studio.waitForFunction(() => document.querySelector("#kod").value.includes("sahne.ayarla"), null, { timeout: 15000 });
   await studio.frameLocator("#cerceve").locator(".s-kapak").waitFor({ timeout: 10000 });
   adim("kalfa modülü yazdı, önizlemede kapak açıldı");
