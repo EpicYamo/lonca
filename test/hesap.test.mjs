@@ -165,6 +165,49 @@ test("onay kuyruğunu yalnızca admin görür; usta yalnızca kendi modüllerini
   assert.equal((await kodOku(diger.jeton)).statusCode, 403);
 });
 
+test("özel modül onay kuyruğuna girmez, yalnızca paylaşım bağlantısıyla açılır", async () => {
+  const kod = await readFile(path.join(KOK, "sdk", "ornekler", "yuzyil-avi.js"), "utf8");
+  const usta = await kaydol({ kimlik: "paylasim-usta", sifre: "sifresifre" });
+  const diger = await kaydol({ kimlik: "paylasim-diger", sifre: "sifresifre" });
+  const gonder = (govde) => s.istek("POST", "/api/moduller", { basliklar: yetki(usta.jeton), govde: { ad: govde.id, kod, ...govde } });
+
+  assert.equal((await gonder({ id: "paylasim-hatali", gorunurluk: "gizli" })).statusCode, 400);
+  const ozel = (await gonder({ id: "paylasim-ozel", gorunurluk: "ozel" })).json();
+  assert.equal(ozel.durum, "ozel");
+  assert.match(ozel.paylasim, /^[A-Za-z0-9_-]{16}$/);
+
+  // Uygulamada listelenmez, kimlikle kodu okunamaz.
+  assert.ok(!(await s.istek("GET", "/api/moduller")).json().some((m) => m.id === "paylasim-ozel"));
+  assert.equal((await s.istek("GET", "/api/moduller/paylasim-ozel/kod")).statusCode, 403);
+  assert.equal((await s.istek("GET", "/api/moduller/paylasim-ozel/kod", { basliklar: yetki(diger.jeton) })).statusCode, 403);
+  assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).statusCode, 404);
+
+  // Bağlantıyı bilen herkes (hesapsız) açar.
+  const ozet = await s.istek("GET", `/api/paylasim/${ozel.paylasim}`);
+  assert.equal(ozet.statusCode, 200);
+  assert.equal(ozet.json().id, "paylasim-ozel");
+  assert.equal(ozet.json().sahip, undefined);
+  const kodYaniti = await s.istek("GET", `/api/paylasim/${ozel.paylasim}/kod`);
+  assert.equal(kodYaniti.statusCode, 200);
+  assert.equal(kodYaniti.body, kod);
+  const yonlen = await s.istek("GET", `/m/${ozel.paylasim}`);
+  assert.equal(yonlen.statusCode, 302);
+  assert.equal(yonlen.headers.location, `/app/?modul=${ozel.paylasim}`);
+
+  // Yeniden kaydedince anahtar değişmez; herkese açığa çevrilince onay bekler ve özel bağlantı kapanır.
+  assert.equal((await gonder({ id: "paylasim-ozel", gorunurluk: "ozel" })).json().paylasim, ozel.paylasim);
+  const acik = (await gonder({ id: "paylasim-ozel", gorunurluk: "herkes" })).json();
+  assert.equal(acik.durum, "bekliyor");
+  assert.equal((await s.istek("GET", `/api/paylasim/${ozel.paylasim}`)).statusCode, 404);
+  assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).statusCode, 404);
+
+  // Onaylanan herkese açık modül kimliğiyle paylaşılır.
+  assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { usta: true })).statusCode, 401);
+  const editor = await rolluAc("paylasim-editor", "editor");
+  assert.equal((await s.istek("POST", "/api/moduller/paylasim-ozel/onayla", { basliklar: yetki(editor.jeton) })).statusCode, 200);
+  assert.equal((await s.istek("GET", "/api/paylasim/paylasim-ozel")).json().durum, "onayli");
+});
+
 test("cihazdaki profil yalnızca sunucuda veri yokken taşınır, üzerine yazmaz", async () => {
   const { jeton } = await kaydol({ kimlik: "tasima-testi", sifre: "sifresifre" });
   const ilk = await s.istek("POST", "/api/hesap/tasi", { basliklar: yetki(jeton), govde: { profil: { ad: "Cihaz Profili", puan: 120 }, basarimlar: { "modul-1": { "basarim-a": true } } } });

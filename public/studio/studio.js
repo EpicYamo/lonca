@@ -753,6 +753,9 @@ function durumYaz(tur, metin, ayrintilar = [], hedef = "#durum") {
   if (ayrintilar.length) d.append(el("ul", {}, ...ayrintilar.map((a) => el("li", { textContent: a }))));
 }
 
+// Özel modül onaya gitmez: düğme ne yapacağını söylesin.
+function gonderDugmesiniYaz() { $("#onaya-gonder").textContent = $("#gorunurluk").value === "ozel" ? "Kaydet ve paylaş" : "Onaya gönder"; }
+$("#gorunurluk").addEventListener("change", gonderDugmesiniYaz);
 $("#onaya-gonder").addEventListener("click", async (olay) => {
   const kod = $("#kod").value;
   const dugme = olay.currentTarget;
@@ -772,16 +775,22 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
   const govde = {
     id: $("#id").value.trim(), ad: $("#ad").value.trim(), aciklama: $("#aciklama").value.trim(),
     renk: $("#renk").value || undefined, ikon: $("#ikon").value || undefined, kategori: $("#kategori").value || undefined,
-    izinler: /eserler\.yakindaki/.test(kod) ? ["konum"] : [], kod,
+    izinler: /eserler\.yakindaki/.test(kod) ? ["konum"] : [], kod, gorunurluk: $("#gorunurluk").value,
   };
   try {
     const s = await yApi("/api/moduller", { method: "POST", govde });
+    if (s.durum === "ozel") {
+      durumYaz("iyi", `“${s.ad}” özel olarak kaydedildi (${kaynakMetni(s.kaynak)}). Uygulamada listelenmez; bağlantıyı paylaştığın herkes açabilir.`);
+      $("#durum").append(el("div", { className: "durum-eylem" }, ...paylasimDugmeleri(s)));
+      return;
+    }
     if (s.durum === "onayli") {
       durumYaz("iyi", `“${s.ad}” güncellendi ve yayında kaldı (${kaynakMetni(s.kaynak)}). Uygulama birkaç saniye içinde yeni sürümü görür.`);
+      $("#durum").append(el("div", { className: "durum-eylem" }, ...paylasimDugmeleri(s)));
       sayaclariGuncelle(); durumCubugu();
       return;
     }
-    durumYaz("iyi", `“${s.ad}” onaya gönderildi (${kaynakMetni(s.kaynak)}). ${yoneticiMi() ? "Yayınlayınca" : "Admin onaylayınca"} uygulamada hemen görünür.`);
+    durumYaz("iyi", `“${s.ad}” onaya gönderildi (${kaynakMetni(s.kaynak)}). ${yoneticiMi() ? "Yayınlayınca" : "Admin onaylayınca"} uygulamada hemen görünür; paylaşım bağlantısı da o zaman açılır.`);
     const yayinla = el("button", { type: "button", className: "birincil kucuk-d", textContent: "Şimdi yayınla" });
     const listeyeGit = el("button", { type: "button", className: "ikincil kucuk-d", textContent: "Modüllerde gör" });
     yayinla.addEventListener("click", async () => {
@@ -804,10 +813,26 @@ function kaynakMetni(k) {
   if (k?.tur === "elle") return "elle yazıldı/düzenlendi";
   return "kaynak kaydı yok";
 }
-const DURUM_ADI = { bekliyor: "Onay bekliyor", onayli: "Yayında", kaldirildi: "Yayından kaldırıldı", arsiv: "Arşivde", reddedildi: "Reddedildi" };
+// Paylaşım bağlantısı: özel modülde tahmin edilemez anahtar, yayındaki modülde kimlik. Android'de uygulamayı açar.
+const paylasimAdresi = (m) => `${location.origin}/m/${encodeURIComponent(m.durum === "ozel" ? m.paylasim : m.id)}`;
+const paylasilabilir = (m) => m.durum === "onayli" || (m.durum === "ozel" && m.paylasim);
+function paylasimDugmeleri(m) {
+  if (!paylasilabilir(m)) return [];
+  const adres = paylasimAdresi(m);
+  const kopyala = el("button", { type: "button", className: "ikincil kucuk-d", textContent: "Bağlantıyı kopyala", title: adres });
+  kopyala.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(adres); kopyala.textContent = "Kopyalandı"; }
+    catch { window.prompt("Paylaşım bağlantısı", adres); }
+    setTimeout(() => { kopyala.textContent = "Bağlantıyı kopyala"; }, 2000);
+  });
+  const ac = el("a", { className: "ikincil kucuk-d dugme-bag", href: adres, target: "_blank", rel: "noopener", textContent: "Aç" });
+  return [kopyala, ac];
+}
+const DURUM_ADI = { bekliyor: "Onay bekliyor", onayli: "Yayında", ozel: "Özel", kaldirildi: "Yayından kaldırıldı", arsiv: "Arşivde", reddedildi: "Reddedildi" };
 const EYLEMLER = {
   bekliyor: [["Atölyede aç", "ac", "ikincil"], ["Yayınla", "onayli", "birincil"], ["Reddet", "reddedildi", "ikincil"], ["Sil", "sil", "tehlike"]],
   onayli: [["Atölyede aç", "ac", "ikincil"], ["Yayından kaldır", "kaldirildi", "ikincil"], ["Arşivle", "arsiv", "ikincil"]],
+  ozel: [["Atölyede aç", "ac", "ikincil"], ["Arşivle", "arsiv", "ikincil"], ["Sil", "sil", "tehlike"]],
   kaldirildi: [["Atölyede aç", "ac", "ikincil"], ["Yeniden yayınla", "onayli", "birincil"], ["Arşivle", "arsiv", "ikincil"], ["Sil", "sil", "tehlike"]],
   arsiv: [["Arşivden çıkar", "kaldirildi", "ikincil"], ["Sil", "sil", "tehlike"]],
   reddedildi: [["Atölyede aç", "ac", "ikincil"], ["Yeniden değerlendir", "bekliyor", "ikincil"], ["Sil", "sil", "tehlike"]],
@@ -862,7 +887,7 @@ async function modulleriListele() {
         el("span", { className: `kaynak-etiket${m.kaynak?.tur === "kalfa" && !m.kaynak.sahte ? " kalfa" : ""}`, textContent: kaynakMetni(m.kaynak),
           title: m.kaynak?.uretim ? `Kalfa üretimi: ${tarihYaz(m.kaynak.uretim)}` : "" })),
       el("span", { className: `etiket ${m.durum}`, textContent: DURUM_ADI[m.durum] ?? m.durum }),
-      eylemler);
+      (eylemler.prepend(...paylasimDugmeleri(m)), eylemler));
   }));
 }
 
@@ -907,6 +932,7 @@ async function atolyedeAc(m) {
   sayfaAc("atolye");
   $("#kod").value = kod; $("#ad").value = m.ad; $("#id").value = m.id; $("#aciklama").value = m.aciklama ?? "";
   $("#renk").value = m.renk ?? ""; $("#ikon").value = m.ikon ?? ""; $("#kategori").value = m.kategori ?? "";
+  $("#gorunurluk").value = m.durum === "ozel" ? "ozel" : "herkes"; gonderDugmesiniYaz();
   editoruGuncelle();
   taslakDegisti();
   durumYaz("iyi", `“${m.ad}” atölyede açıldı (${DURUM_ADI[m.durum]}). Değiştirip yeniden onaya gönderebilirsin.`);

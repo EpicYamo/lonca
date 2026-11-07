@@ -13,7 +13,7 @@ import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
 import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
+import { modulGorunurlukDogrula, paylasimAnahtariGecerli, eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -21,7 +21,8 @@ const MAKS_FOTO = 6 * 1024 * 1024;
 const RENKLER = ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"];
 const IKONLAR = ["cami", "han", "hamam", "medrese", "cesme", "turbe", "genel"];
 export const KATEGORILER = ["rehber", "oyun", "gezi", "ogren"];
-export const MODUL_DURUMLARI = ["bekliyor", "onayli", "kaldirildi", "arsiv", "reddedildi"];
+// "ozel": ustanın yalnızca paylaşım bağlantısıyla açılan modülü; uygulamada listelenmez, onay kuyruğuna girmez.
+export const MODUL_DURUMLARI = ["bekliyor", "onayli", "ozel", "kaldirildi", "arsiv", "reddedildi"];
 const kimlikGecerli = (id) => typeof id === "string" && /^[a-z0-9-]{1,64}$/.test(id);
 
 function mesafe(a, b) {
@@ -527,6 +528,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (typeof kod !== "string" || kod.length > MAKS_KOD) return rep.code(400).send({ hata: `kod gerekli (en fazla ${MAKS_KOD} karakter)` });
     const hatalar = kalfa.dogrula(kod);
     if (hatalar.length) return rep.code(400).send({ hata: "Modül doğrulamadan geçmedi", ayrintilar: hatalar });
+    const gorunurlukHatasi = modulGorunurlukDogrula(req.body.gorunurluk);
+    if (gorunurlukHatasi) return rep.code(400).send({ hata: gorunurlukHatasi });
+    const ozel = req.body.gorunurluk === "ozel";
 
     const liste = await modulDosyasi.oku();
     const onceki = liste.find((m) => m.id === id);
@@ -537,7 +541,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (onceki?.sahip && sahip !== onceki.sahip && !editor) return rep.code(409).send({ hata: "Bu kimlikte başka bir ustanın taslağı var; başka bir id seç" });
     // Yayındaki bir modülü editör (ya da yönetici) düzenlerse yayında kalır: kaydeden kişi zaten onay yetkilisi,
     // uygulamadan kaybolup yeniden onay beklemesin. Yeni modüller ve usta gönderimleri her zaman onay bekler.
-    const canliKalsin = editor && onceki?.durum === "onayli";
+    const canliKalsin = !ozel && editor && onceki?.durum === "onayli";
     const simdi = new Date().toISOString();
     const kayit = {
       id, ad: ad.trim().slice(0, 60), aciklama: String(aciklama).slice(0, 200),
@@ -547,7 +551,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       kategori: KATEGORILER.includes(kategori) ? kategori : undefined,
       kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
       sahip: sahip ?? onceki?.sahip ?? undefined,
-      durum: canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
+      // Özel modülün bağlantısı tahmin edilemez bir anahtar taşır; herkese açık modülün bağlantısı kimliğidir.
+      paylasim: ozel ? onceki?.paylasim ?? randomBytes(12).toString("base64url") : onceki?.paylasim,
+      durum: ozel ? "ozel" : canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
       ...(canliKalsin ? { yayin: simdi } : {}),
     };
     const kaynak = kaynakBul(kod, onceki);
@@ -573,6 +579,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const m = liste.find((x) => x.id === id);
     if (!m) return null;
     m.durum = durum;
+    if (durum === "ozel") m.paylasim ??= randomBytes(12).toString("base64url");
     m.guncelleme = new Date().toISOString();
     if (durum === "onayli") m.yayin = m.guncelleme;
     await modulDosyasi.yaz(liste);
@@ -596,6 +603,39 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     await modulDosyasi.yaz(liste);
     await rm(path.join(MODUL_DIZINI, `${id}.js`), { force: true });
     return { silindi: id };
+  });
+
+  // ---------- Paylaşım bağlantısı ----------
+  // /m/<anahtar>: özel modülde paylaşım anahtarı, yayındaki modülde kimlik. Tarayıcı web uygulamasında açar;
+  // Android'de uygulama yüklüyse aynı bağlantı (App Links) uygulamayı açar.
+  async function paylasilanModul(anahtar) {
+    if (!paylasimAnahtariGecerli(anahtar)) return null;
+    const liste = await modulDosyasi.oku();
+    return liste.find((m) => m.durum === "ozel" && m.paylasim === anahtar)
+      ?? liste.find((m) => m.durum === "onayli" && m.id === anahtar) ?? null;
+  }
+  const paylasimOzeti = (m) => ({ id: m.id, ad: m.ad, aciklama: m.aciklama, izinler: m.izinler, renk: m.renk, ikon: m.ikon, kategori: m.kategori, durum: m.durum });
+  app.get("/api/paylasim/:anahtar", async (req, rep) => {
+    const m = await paylasilanModul(req.params.anahtar);
+    rep.header("cache-control", "no-store");
+    return m ? paylasimOzeti(m) : rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
+  });
+  app.get("/api/paylasim/:anahtar/kod", async (req, rep) => {
+    const m = await paylasilanModul(req.params.anahtar);
+    if (!m) return rep.code(404).send({ hata: "Bu bağlantıda bir modül yok ya da artık paylaşılmıyor." });
+    const kod = await readFile(path.join(MODUL_DIZINI, `${m.id}.js`), "utf8");
+    return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
+  });
+  app.get("/m/:anahtar", async (req, rep) => {
+    const { anahtar } = req.params;
+    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/app/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/app/");
+  });
+  // Android App Links doğrulaması: ANDROID_IMZA_SHA256 (APK imza sertifikasının SHA-256 parmak izleri, virgülle) doluysa yayımlanır.
+  const imzalar = String(ortam.ANDROID_IMZA_SHA256 ?? "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(x));
+  app.get("/.well-known/assetlinks.json", async (_, rep) => {
+    if (!imzalar.length) return rep.code(404).send({ hata: "ANDROID_IMZA_SHA256 tanımlı değil" });
+    return [{ relation: ["delegate_permission/common.handle_all_urls"],
+      target: { namespace: "android_app", package_name: "com.kozmos.lonca", sha256_cert_fingerprints: imzalar } }];
   });
 
   // ---------- Dalışlar (uydudan içine kaydırmalı geziler) ----------

@@ -75,6 +75,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `HESAP_SINIR` | IP başına 10 dakikadaki kayıt/giriş denemesi sınırı |
 | `ILK_SIFRE`, `ILK_KULLANICILAR` | Hazır admin (rol `editor`) hesapları (varsayılan `arda,ibrahim,sevilay`): yalnızca eksik olanlar bu ilk şifreyle açılır; ilk girişte yeni şifre belirlenmeden yetki yok (`PUT /api/hesap/sifre`) |
 | `GOOGLE_HARITA_ANAHTARI` | Google harita + gerçek 3B; boşsa OpenStreetMap, 3B kapalı |
+| `ANDROID_IMZA_SHA256` | APK imza sertifikasının SHA-256 parmak izi; doluysa `/.well-known/assetlinks.json` yayımlanır ve `/m/<anahtar>` paylaşım bağlantıları Android'de uygulamayı açar |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |
 | `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Birincil sağlayıcı (UstaGPT, OpenAI uyumlu): `KALFA_API_URL` / `DALIS_API_URL` boşsa iki kalfa da bunu kullanır. Modeller Studio'da seçilir (`data/kalfa-ayarlari.json`, `.env` modellerini geçersiz kılar) |
@@ -91,7 +92,8 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 - **Uygulama** (`public/app/`): modül sandbox iframe'de çalışır (`calistirici.js`), arayüz ağacını `sahne.js` çizer; `ekranlar.js`, `harita.js` (Leaflet), `uc-gercek.js` (Google 3D Tiles), `dalis.js` (dalış oynatıcı), `profil.js`.
 - **Studio** (`public/studio/`): Atölye (kalfa | kod | önizleme), Modüller, İçerik, Dalışlar.
 - **Veri** (`data/`): `eserler.json` (eser kayıtları), `eser-iliskileri.json` (kaynaklı tarihsel bağlar), `moduller/` (`index.json` + modül JS), `dalislar/` (dalış tanımları). Medya `public/medya/`.
-- **Durumlar:** modül ve dalış `bekliyor` → `onayli`; ayrıca `kaldirildi`, `arsiv`, `reddedildi`.
+- **Durumlar:** modül ve dalış `bekliyor` → `onayli`; ayrıca `kaldirildi`, `arsiv`, `reddedildi`. Usta modülü özel kaydederse `ozel`: onay kuyruğuna girmez, uygulamada listelenmez, yalnızca paylaşım bağlantısıyla açılır.
+- **Paylaşım:** `/m/<anahtar>` → `/app/?modul=<anahtar>` (`public/app/paylasim.js`); anahtar özel modülde `paylasim` alanı, yayındaki modülde kimlik. API: `GET /api/paylasim/:anahtar` (+`/kod`). Android'de App Links + `lonca://m/<anahtar>` (`public/mobil/kopru.js`).
 - **Mobil:** Capacitor (`capacitor.config.json`, `webDir: mobil/www`), `public/mobil/` köprü ve yerel API.
 
 Ayrıntılı anlatım için `README.md`.
