@@ -58,6 +58,8 @@ Everything works without any configuration:
 | `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
 | `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
 | `KALFA_SINIR` | Journeyman requests allowed per IP in ten minutes |
+| `OTURUM_ANAHTARI` | Signs Studio account tokens; generated into `data/.oturum-anahtari` when empty |
+| `HESAP_SINIR` | Sign-up / login attempts allowed per IP in ten minutes |
 | `LONCA_API_ANAHTARI` | API key: when set, every `/api` request needs the `x-lonca-anahtar` header (or a paired device key / browser login) |
 
 To try it on a phone, connect to the same Wi-Fi and open
