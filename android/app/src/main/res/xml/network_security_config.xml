@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Aynı Wi-Fi'deki Lonca sunucusu (npm run dev / Docker) düz HTTP ile çalışır; yerel ağ adreslerine izin ver. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -18,3 +18,8 @@ data/moduller/eski/
 
 # Eşleşen cihazların anahtar özetleri (her makinede ayrı)
 data/cihazlar.json
+
+# Android uygulaması (./apk.sh ile üretilir)
+mobil/www/
+mobil/anahtar/
+dist/
