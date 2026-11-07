@@ -51,14 +51,14 @@ export const BAG_RENK = {
 };
 const BAG_ADI = {
   kulliye: "Aynı külliye", bani: "Aynı bani", mimar: "Aynı mimar", vakif: "Vakıf bağı",
-  aile: "Hanedan / aile", ticaret: "Ticaret ağı", metin: "Metinde anılıyor", komsu: "Tarihî komşuluk", tipoloji: "Mimari gelenek",
+  aile: "Hanedan / aile", ticaret: "Ticaret ağı", metin: "Envanterde birlikte anılıyor", komsu: "Tarihî komşuluk", tipoloji: "Mimari benzerlik",
 };
 export const bagTuruAdi = (tur) => BAG_ADI[tur] ?? "Tarihsel bağ";
 
 const konumlu = (liste) => (Array.isArray(liste) ? liste : []).slice(0, 200)
   .filter((e) => Number.isFinite(Number(e?.konum?.lat)) && Number.isFinite(Number(e?.konum?.lng)));
 
-export async function haritaKur(kutu, { eserler, rota = false, secili = null, baglantilar = [], hayaletBaglantilar = [], sis = null, etiketler = [], odak = null, onSec }) {
+export async function haritaKur(kutu, { eserler, rota = false, secili = null, baglantilar = [], hayaletBaglantilar = [], sis = null, etiketler = [], odak = null, onSec, onBagSec }) {
   const L = await leafletYukle();
   await baglaninca(kutu);
   kutu.style.position = "relative";
@@ -69,8 +69,9 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
   const BAG_PANE = "baglanti-pane";
   harita.createPane(BAG_PANE);
   const bagPane = harita.getPane(BAG_PANE);
-  bagPane.style.zIndex = "655";
-  bagPane.style.pointerEvents = "none";
+  // Bağlar eser düğümlerinin altında kalmalı; aksi hâlde tıklanabilir çizgi pinleri örter.
+  bagPane.style.zIndex = "450";
+  bagPane.style.pointerEvents = onBagSec ? "auto" : "none";
   const ETIKET_PANE = "sehir-etiket-pane";
   harita.createPane(ETIKET_PANE);
   const etiketPane = harita.getPane(ETIKET_PANE);
@@ -259,7 +260,7 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
     if (Array.isArray(yeniHayalet)) hayaletListesi = yeniHayalet;
     if (Array.isArray(yeniEtiketler)) etiketListesi = yeniEtiketler;
     const imza = liste.map((e) => e.id).join("|") + (r ? "#r" : "") + "#"
-      + bagListesi.map((b) => `${b.a}-${b.b}-${b.tur ?? ""}`).join(",") + "#"
+      + bagListesi.map((b) => `${b.id ?? ""}-${b.a}-${b.b}-${b.tur ?? ""}-${b.baslik ?? b.etiket ?? ""}`).join(",") + "#"
       + hayaletListesi.map((b) => `${b.a?.lat}-${b.a?.lng}-${b.b?.lat}-${b.b?.lng}`).join(",") + "#"
       + etiketListesi.map((e) => `${e.metin}-${e.alt ?? ""}`).join(",");
     if (imza === imzaOnceki) return;
@@ -325,13 +326,20 @@ export async function haritaKur(kutu, { eserler, rota = false, secili = null, ba
       const hatCizgi = L.polyline(hat, { color: "#ffffff", weight: 10, opacity: 0.12, interactive: false, lineCap: "round", pane: BAG_PANE }).addTo(cizgiKatmani);
       const cizgi = L.polyline(hat, {
         color: BAG_RENK[bag.tur] ?? BAG_RENK.komsu,
-        weight: 3.2,
-        opacity: 0.9,
+        weight: bag.id && onBagSec ? 5 : 3.2,
+        opacity: 0.82,
         dashArray: bag.tur === "komsu" || bag.tur === "metin" ? "6 8" : null,
-        interactive: false,
+        interactive: !!(bag.id && onBagSec),
+        bubblingMouseEvents: false,
         pane: BAG_PANE,
-        className: "bag-cizgi",
+        className: `bag-cizgi${bag.id && onBagSec ? " bag-cizgi-tiklanabilir" : ""}`,
       }).addTo(cizgiKatmani);
+      if (bag.id && onBagSec) {
+        cizgi.on("click", () => onBagSec(bag));
+        const ipucu = document.createElement("span");
+        ipucu.textContent = String(bag.baslik || bag.etiket || "Tarihsel bağ");
+        cizgi.bindTooltip?.(ipucu, { sticky: true, direction: "top", opacity: 0.95 });
+      }
       cizgi._bag = bag;
       cizgi._hat = hatCizgi;
       cizgiler.push(cizgi);

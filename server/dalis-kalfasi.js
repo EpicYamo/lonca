@@ -31,15 +31,17 @@ export const DALIS_SISTEM = `Sen Lonca platformunun "dalış kalfası"sın. Bir 
 1. Uydu inişi: platform kendisi yapar (Dünya → şehir → eser).
 2. Dış duraklar: eserin gerçek fotoğraflarından 1–3 tanesi, uzaktan yakına sıralı (önce hava/uzak, sonra cephe).
 3. Giriş (isteğe bağlı): son dış fotoğrafın ortasından kapıya/eşiğe yaklaşan bir canlandırma karesi.
-4. Merkez: eserin içini (ya da avlusunu) gösteren GENİŞ bir canlandırma karesi. Kollardaki bütün ayrıntılar bu karede birbirinden ayrı ve açıkça görünmeli.
-5. Kollar: 2–${MAKS_KOL} ayrıntı (şadırvan, minber, mihrap, kitabe, çini, sanduka, revak, mescit…). Kamera merkezden her birine dalar, anlatır, merkeze geri çekilir ve sıradakine gider. Kaynaklarda hakkında bilgi bulunan ayrıntıları seç.
+4. Merkez: eserin içini (ya da avlusunu) gösteren GENİŞ bir canlandırma karesi. Yalnızca gerçek fotoğrafların desteklediği planı ve öğeleri kullan; referansta olmayan yeni mimari ayrıntı ekleme.
+5. Kollar: 0–${MAKS_KOL} ayrıntı. Yalnızca hem kaynak metninde açıkça geçen hem de gerçek fotoğrafta seçilebilir olan ayrıntıları seç. Kaynakta desteklenmiyorsa kol üretme; az ama doğru durak, çok ama uydurma duraktan iyidir. Her kol için kaynakta aynen geçen kısa bir "kanıt" alıntısı ver.
 6. Çıkış: platform kendisi yapar (gökyüzüne yükseliş).
 
 # Bilgi kartları (bakışlar)
-Her durakta 1–4 kart. Kart: { "u": üst etiket (en çok 20 harf), "b": başlık (en çok 45 harf), "m": metin (en çok 230 harf, sıcak ve sade Türkçe), "k": kaynak, "nerede": isteğe bağlı, kartın okla göstereceği şeyin İngilizce kısa tarifi ("the carved wooden pulpit") }.
-- "k" ZORUNLU: "E" = ENVANTER metninden, "V" = VİKİPEDİ metninden, "G" = kaynak gerektirmeyen genel kavram açıklaması (ör. "mukarnas nedir"). E ve V kartlarındaki her ad, tarih, sayı ve kişi ilgili metinde AYNEN geçmeli. Bilgi UYDURMA; metinde olmayan bir şeyi E/V diye yazma. Emin değilsen o kartı yazma.
-- Ad, tarih ve kim yaptırdı / kim yaptı bilgisi kaynaklarda varsa mutlaka bir yerde ver.
-- "nerede" yalnızca o karede gerçekten görünecek bir şey için yazılır.
+- Her durakta en çok 3 kart. Kart: { "u": üst etiket (en çok 20 harf), "b": başlık (en çok 45 harf), "m": metin (en çok 230 harf, sıcak ve sade Türkçe), "k": kaynak ("E" veya "V"), "kanit": ilgili kaynaktan aynen kopyalanmış 20–100 harflik kısa parça, "nerede": isteğe bağlı, gerçek fotoğrafta görülebilen şeyin İngilizce kısa tarifi }.
+- "E" yalnızca ENVANTER, "V" yalnızca VİKİPEDİ. Her kartta "kanit" ZORUNLU; alıntı ilgili kaynakta kelimesi kelimesine bulunmalı. Karttaki ad, kişi ve sayılar bu alıntıyla desteklenmeli. Kaynakta açıkça bulunmayan bilgi, çıkarım veya efsaneyi yazma; emin değilsen kartı çıkar.
+- "G" yalnızca vakıf, vakfiye, bani, külliye, imaret, kitabe, mihrap, minber, mahfil, şadırvan, revak, kubbe, kasnak, mukarnas, taç kapı, kavsara, söve, şebeke, çini, türbe, sanduka, hazire, han, bedesten, medrese, darüşşifa, tekke ve zaviye gibi genel kavramları tanımlamak için kullanılabilir. Platform tanımı uygular; G kartına tarih, kişi, sayı ya da bu esere özgü iddia koyma.
+- "nerede" yalnızca verilen GERÇEK fotoğrafta açıkça görünen bir şey için yazılır. YZ ile üretilmiş karede sonradan uydurulan ayrıntıyı kanıt gibi anlatma.
+- Kaynakta varsa bani, mimar, yapım tarihi, vakfın hizmeti/gelir bağı, onarım veya dönüşüm ve bugünkü kullanım bilgilerini kısa kartlara dağıt; özellikle bani, tarih ve vakıf boyutunu atlama. Kaynakta yoksa ekleme.
+- İnsan hikâyesi varsa kaynağın ölçülü dilinde aktar; ölüm, savaş veya dinî bilgiyi dramatize etme.
 
 # Görüntü istemleri (İngilizce)
 - "onek": bütün görüntülere eklenecek tarz cümlesi: "Photorealistic, high-resolution documentary architectural photograph of the <eserin İngilizce adı/tarifi> in <şehir>, Turkey (<yüzyıl> century). Natural light, crisp detail. No people, no text, no captions, no watermark."
@@ -55,7 +57,7 @@ Her durakta 1–4 kart. Kart: { "u": üst etiket (en çok 20 harf), "b": başlı
   "dis": [ { "foto": 1, "baslik": "...", "yazi": "alt|ust", "genislet": "...", "bakislar": [ ... ] } ],
   "giris": { "istem": "...", "baslik": "...", "bakislar": [ ... ] } | null,
   "merkez": { "istem": "...", "foto": null | iç mekân fotoğrafının numarası, "baslik": "...", "bakislar": [ ... ] },
-  "kollar": [ { "baslik": "...", "aranacak": "...", "istem": "...", "bakislar": [ ... ] } ]
+  "kollar": [ { "baslik": "...", "aranacak": "...", "istem": "...", "k": "E|V", "kanit": "kaynakta aynen geçen kısa alıntı", "bakislar": [ ... ] } ]
 }
 "yazi": görüntünün alt kısmı önemliyse "ust" (kart üstte durur).
 
@@ -144,11 +146,106 @@ async function konumBul(yol, nesneler, ortam, gunluk = () => {}) {
   return sonuc;
 }
 
-function bakislariTemizle(liste, izinliKaynak) {
-  return (Array.isArray(liste) ? liste : []).slice(0, 4).map((b) => ({
-    u: kisalt(b?.u, 24), b: kisalt(b?.b, 60), m: kisalt(b?.m, 300),
-    k: izinliKaynak.has(b?.k) ? b.k : "G", nerede: b?.nerede ? kisalt(b.nerede, 120) : undefined,
-  })).filter((b) => b.m && (b.k !== "V" || izinliKaynak.has("V")));
+const GENEL_BILGI = new Map([
+  ["kubbe", "Yapının üstünü örten yarım küre biçimli örtü."],
+  ["vakif", "Bir mülkün gelirinin, sahibinin mülkiyetinden çıkarılarak kalıcı biçimde bir hayır işine ayrılması; bu düzenle kurulan kurum."],
+  ["vakfiye", "Vakfın kuruluş belgesi: vakfedilen mülkleri, gelirin nereye harcanacağını ve görevlileri yazar."],
+  ["bani", "Bir yapıyı yaptıran kişi (mimar değil)."],
+  ["mutevelli", "Vakfı vakfiyeye göre yöneten görevli."],
+  ["kulliye", "Cami çevresinde medrese, imaret, hamam, türbe gibi yapılardan oluşan, aynı vakıfla yaşayan yapı topluluğu."],
+  ["imaret", "Külliyede yoksullara, öğrencilere ve yolculara yemek dağıtılan aşevi."],
+  ["kitabe", "Yapının üzerindeki, çoğu zaman yapım tarihini ve baniyi bildiren yazıt."],
+  ["mihrap", "Kıble yönünü gösteren duvar nişi."],
+  ["minber", "İmamın cuma ve bayram hutbesini okuduğu, merdivenli yüksek kürsü."],
+  ["vaaz kursusu", "Vaizin oturarak vaaz verdiği kürsü."],
+  ["mahfil", "Cami içinde yükseltilmiş, belli bir topluluğa ayrılmış bölüm (müezzin mahfili, hünkâr mahfili)."],
+  ["son cemaat yeri", "Caminin girişindeki revaklı bölüm; geç kalanların namaz kıldığı yer."],
+  ["sadirvan", "Abdest almak için çevresinde musluklar bulunan su yapısı."],
+  ["revak", "Sütun ya da ayaklara oturan kemerlerle önü açık, üstü örtülü galeri."],
+  ["avlu", "Yapının ortasındaki ya da önündeki açık alan."],
+  ["kasnak", "Kubbenin oturduğu silindirik ya da çokgen gövde."],
+  ["pandantif", "Kare bir mekândan yuvarlak kubbeye geçişi sağlayan öğe."],
+  ["tromp", "Kare bir mekândan yuvarlak kubbeye geçişi sağlayan öğe."],
+  ["turk ucgeni", "Kare bir mekândan yuvarlak kubbeye geçişi sağlayan öğe."],
+  ["mukarnas", "Kademeli, peteği andıran nişlerden oluşan süsleme; taç kapı ve başlıklarda görülür."],
+  ["tac kapi", "Anıtsal yapılarda yüksek, bezemeli giriş cephesi."],
+  ["kavsara", "Taç kapının üst kısmındaki yarım kubbe ya da mukarnaslı niş."],
+  ["sove", "Kapı ve pencere boşluğunu çevreleyen çerçeve."],
+  ["sebeke", "Pencerelerdeki demir ya da taş kafes."],
+  ["almasik duvar", "Taş ve tuğla sıralarının dönüşümlü örüldüğü duvar tekniği."],
+  ["kundekari", "Çivi ve tutkal kullanmadan, geometrik parçaları birbirine geçirerek yapılan ahşap işçiliği."],
+  ["cini", "Sırlı, desenli seramik kaplama."],
+  ["renkli sir", "Renklerin birbirine karışmaması için aralarına ayırıcı bir madde çekilerek yapılan çini tekniği."],
+  ["cuerda seca", "Renklerin birbirine karışmaması için aralarına ayırıcı bir madde çekilerek yapılan çini tekniği."],
+  ["sulus", "Hat yazı türü: iri ve anıtsal."],
+  ["talik", "Hat yazı türü: eğik ve akıcı."],
+  ["turbe", "Önemli bir kişinin mezarının üzerine yapılan anıtsal yapı."],
+  ["sanduka", "Mezarın üzerindeki sandık biçimli anıtsal üst yapı."],
+  ["hazire", "Cami ya da türbe çevresindeki çevrili mezarlık."],
+  ["han", "Tüccarların konakladığı, mallarını sakladığı ve ticaret yaptığı, çoğunlukla avlulu yapı."],
+  ["bedesten", "Değerli malların saklanıp satıldığı, kalın duvarlı, kubbeli çarşı yapısı."],
+  ["medrese", "Yükseköğretim kurumu; avlu çevresinde öğrenci odaları ve dershaneden oluşur."],
+  ["darussifa", "Hastane."],
+  ["tekke", "Bir tarikatın toplandığı, yolcuları da ağırlayan yapı."],
+  ["zaviye", "Bir tarikatın toplandığı, yolcuları da ağırlayan yapı."],
+]);
+
+const rakamlar = (s) => [...String(s ?? "").matchAll(/\d+(?:[.,]\d+)?/g)].map((x) => x[0].replace(",", "."));
+const SAYI_SOZ = new Set("bir iki üç dört beş altı yedi sekiz dokuz on yirmi otuz kırk elli altmış yetmiş seksen doksan yüz bin".split(" ").map(katla));
+const BUYUK_HARF_ISTISNA = new Set("Bu Bir Burada Buradan Şimdi Her İçeride Gezi Ama Ancak Böylece Ayrıca İki Üç Dört Beş Altı Yedi Sekiz Dokuz On Yirmi Kırk Yüz Bin Kare Kıble Hat İslam Kur'an".split(" "));
+
+function olgular(metin) {
+  const sayilar = rakamlar(metin);
+  const sozler = katla(metin).split(/[^a-z0-9]+/).filter((kelime) => SAYI_SOZ.has(kelime));
+  const adlar = [];
+  for (const cumle of String(metin ?? "").split(/(?<=[.!?:;"“”])\s+/)) {
+    for (const [i, kelime] of cumle.split(/\s+/).entries()) {
+      const temiz = kelime.replace(/^[“"(«]+|[”")»,.;:!?]+$/g, "");
+      if (i === 0 || !/^[A-ZÇĞİÖŞÜÂÎÛ]/.test(temiz) || BUYUK_HARF_ISTISNA.has(temiz)) continue;
+      adlar.push(temiz.split(/['’]/)[0]);
+    }
+  }
+  return { sayilar, sozler, adlar: [...new Set(adlar)].filter((ad) => ad.length > 2) };
+}
+
+function ifadeGeciyor(metin, ifade) {
+  const kaynak = katla(metin), aranan = katla(ifade);
+  if (kaynak.includes(aranan)) return true;
+  const govde = aranan.slice(0, Math.max(4, aranan.length - 3));
+  return govde.length >= 4 && kaynak.includes(govde);
+}
+
+function iddialarAlintidaMi(baslik, metin, kanit) {
+  const m = olgular(metin), b = olgular(baslik);
+  const alintiMetni = katla(kanit);
+  return [
+    ...m.sayilar, ...b.sayilar,
+  ].every((sayi) => alintiMetni.includes(katla(sayi)))
+    && [...m.sozler, ...b.sozler].every((sayi) => alintiMetni.split(/[^a-z0-9]+/).includes(sayi))
+    && m.adlar.every((ad) => ifadeGeciyor(kanit, ad));
+}
+
+export function kaynakKaniti(kaynak, kanit, kaynakMetinleri = {}) {
+  if (kaynak !== "E" && kaynak !== "V") return false;
+  const alinti = katla(kisalt(kanit, 100));
+  const metin = katla(kaynakMetinleri[kaynak]);
+  return alinti.length >= 20 && !!metin && metin.includes(alinti);
+}
+
+export function bakislariTemizle(liste, izinliKaynak, kaynakMetinleri = {}) {
+  return (Array.isArray(liste) ? liste : []).slice(0, 4).flatMap((ham) => {
+    const k = ham?.k;
+    if (!izinliKaynak.has(k)) return [];
+    if (k === "G") {
+      const sozluk = GENEL_BILGI.get(katla(ham?.b));
+      return sozluk ? [{ u: kisalt(ham?.u, 24), b: kisalt(ham?.b, 60), m: sozluk, k: "G" }] : [];
+    }
+    if (!kaynakKaniti(k, ham?.kanit, kaynakMetinleri)) return [];
+    const metin = kisalt(ham?.m, 300), baslik = kisalt(ham?.b, 60);
+    const alinti = kisalt(ham?.kanit, 100);
+    if (!metin || !iddialarAlintidaMi(baslik, metin, alinti)) return [];
+    return [{ u: kisalt(ham?.u, 24), b: baslik, m: metin, k, nerede: ham?.nerede ? kisalt(ham.nerede, 120) : undefined }];
+  });
 }
 
 // Dalış üretimi dış araçlara dayanır (ffmpeg/ffprobe kırpma ve ölçek için, python3 + Pillow karo dikme için).
@@ -265,7 +362,7 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
       try {
         planYanit = await dalisSohbet({ ortam, sistem: DALIS_SISTEM, metin: istem, maks: 16000, zamanAsimi: 240_000, modeller: [model] });
         const aday = jsonCikar(planYanit.metin);
-        if (aday?.merkez?.istem && Array.isArray(aday?.kollar) && aday.kollar.some((k) => k?.aranacak && k?.istem)) { plan = aday; break; }
+        if (aday?.merkez?.istem && Array.isArray(aday?.kollar)) { plan = aday; break; }
         yaz(is, `  ${model} planı eksik/çözülemedi: ${kisalt(planYanit.metin, 220)}`);
       } catch (h) {
         yaz(is, `  ${model} plan veremedi: ${kisalt(h.message, 160)}`);
@@ -273,9 +370,19 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     }
     if (!plan) throw new Error("Kalfa geçerli bir plan üretemedi (günlüğe bak)");
     const izinli = new Set(["E", "G", ...(viki ? ["V"] : [])]);
-    const dis = (Array.isArray(plan.dis) ? plan.dis : []).filter((d) => Number.isInteger(d?.foto) && d.foto >= 1 && d.foto <= fotolar.length).slice(0, 3);
-    if (!dis.length) dis.push({ foto: 1, baslik: eser.ad, bakislar: [] });
-    const kollar = plan.kollar.filter((k) => k?.aranacak && k?.istem).slice(0, MAKS_KOL);
+    const kaynakMetinleri = { E: envanter, V: viki?.metin ?? "" };
+    const dis = (Array.isArray(plan.dis) ? plan.dis : [])
+      .filter((d) => Number.isInteger(d?.foto) && d.foto >= 1 && d.foto <= fotolar.length && ["hava", "dis"].includes(fotoBilgi[d.foto - 1]?.tur))
+      .sort((a, b) => (fotoBilgi[a.foto - 1].tur === "hava" ? 0 : 1) - (fotoBilgi[b.foto - 1].tur === "hava" ? 0 : 1))
+      .slice(0, 3);
+    if (!dis.length) {
+      const foto = fotoBilgi.find((f) => f.tur !== "ic" && f.tur !== "detay") ?? fotoBilgi[0];
+      dis.push({ foto: foto.no, baslik: "Envanter fotoğrafı", bakislar: [], genislet: false });
+      yaz(is, "  Dış görünüş olarak doğrulanmış fotoğraf yok; ayrıntı iddiası olmadan kaynak fotoğraf kullanılacak");
+    }
+    const adayKollar = plan.kollar.filter((k) => k?.aranacak && k?.istem).slice(0, MAKS_KOL);
+    const kollar = adayKollar.filter((k) => kaynakKaniti(k.k, k.kanit, kaynakMetinleri));
+    if (kollar.length < adayKollar.length) yaz(is, `  ${adayKollar.length - kollar.length} ayrıntı kaynakta doğrulanamadığı için çıkarıldı`);
     yaz(is, `Plan (${planYanit.model}): ${dis.length} dış durak, ${plan.giris?.istem ? "giriş, " : ""}merkez ve ${kollar.length} kol: ${kollar.map((k) => kisalt(k.baslik, 30)).join(", ")}`);
 
     const u = dalisUretici({ kok, eser: eser.id, onek: kisalt(plan.onek, 400), ortam, gunluk: (m) => yaz(is, m.trim()) });
@@ -293,27 +400,30 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
         const ad = `d${i + 1}`, kaynak = fotolar[d.foto - 1];
         const netlestir = u.genislik(u.yerel(kaynak)) < 1000;
         let r;
-        try { r = await u.gercekKare({ ad, kaynak, genislet: true, netlestir, genisletIstem: kisalt(d.genislet, 400) }); }
+        const genislet = d.genislet !== false;
+        try { r = await u.gercekKare({ ad, kaynak, genislet, netlestir, genisletIstem: kisalt(d.genislet, 400) }); }
         catch (h) { yaz(is, `  ${ad}: genişletilemedi (${kisalt(h.message, 80)}), fotoğraf kırpılarak kullanılıyor`); r = await u.gercekKare({ ad, kaynak }); }
-        kareler.push({ g: ad, t: r.yz ? "yeniden-cizim" : netlestir ? "netlestirilmis" : "genisletilmis", p: CAPRAZ,
-          b: kisalt(d.baslik, 60), y: d.yazi === "ust" ? "ust" : undefined, k: bakislariTemizle(d.bakislar, izinli) });
+        kareler.push({ g: ad, t: r.yz ? "yeniden-cizim" : netlestir ? "netlestirilmis" : genislet ? "genisletilmis" : "gercek", p: CAPRAZ,
+           b: kisalt(d.baslik, 60), y: d.yazi === "ust" ? "ust" : undefined, k: bakislariTemizle(d.bakislar, izinli, kaynakMetinleri) });
       }
       // 4c. Giriş
       if (plan.giris?.istem) try {
         const kirp = [0.3, 0.35, 0.4];
         await u.uretilenKare({ ad: "g1", uret: { ref: [{ kare: kareler.at(-1).g, kirp }], istem: `Vertical photo continuing the reference: ${kisalt(plan.giris.istem, 900)}` } });
         kareler.at(-1).p = kirp;
-        kareler.push({ g: "g1", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.giris.baslik, 60), k: bakislariTemizle(plan.giris.bakislar, izinli) });
+         kareler.push({ g: "g1", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.giris.baslik, 60), k: bakislariTemizle(plan.giris.bakislar, izinli, kaynakMetinleri) });
       } catch { yaz(is, "  Giriş karesi üretilemedi, atlandı"); }
       // 4d. Merkez
       yaz(is, "Merkez karesi üretiliyor…");
-      const icFoto = Number.isInteger(plan.merkez.foto) && fotolar[plan.merkez.foto - 1];
+      const icFotoNo = Number.isInteger(plan.merkez.foto) ? plan.merkez.foto : 0;
+      const icFoto = fotoBilgi.find((f) => f.no === icFotoNo && f.tur === "ic") ? fotolar[icFotoNo - 1] : null;
+      if (icFotoNo && !icFoto) yaz(is, "  Merkez için seçilen fotoğraf iç mekân olarak doğrulanmadı; gerçek dış fotoğraf referans alınacak");
       await u.uretilenKare({ ad: "m", uret: { ref: [icFoto || u.kareYolu(kareler.at(-1).g).replace(path.join(kok, "public"), "")], istem: `Vertical wide photo. ${kisalt(plan.merkez.istem, 1400)}` } });
 
       // 5. Kollar: merkezde yerlerini bul, kırpımdan yakın çekim üret
       yaz(is, "Merkezde ayrıntıların yeri bulunuyor…", 5);
       let kutular = [];
-      for (let deneme = 1; deneme <= 2 && !kutular.length; deneme++) {
+      for (let deneme = 1; kollar.length > 0 && deneme <= 2 && !kutular.length; deneme++) {
         kutular = await konumBul(u.kareYolu("m"), kollar.map((k, i) => ({ ad: `kol${i}`, tarif: k.aranacak })), ortam, (m) => yaz(is, m))
           .catch((h) => { yaz(is, `  Yer bulma denemesi ${deneme} başarısız: ${kisalt(h.message, 80)}`); return []; });
       }
@@ -329,23 +439,26 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
           bulunan.push({ kol, ad: `k${i + 1}`, kirp });
         } catch (h) { yaz(is, `  "${kisalt(kol.baslik, 30)}" üretilemedi, atlandı`); }
       }
-      if (!bulunan.length) throw new Error("Merkez karede hiçbir ayrıntı bulunamadı");
+      if (kollar.length && !bulunan.length) yaz(is, "  Ayrıntılar gerçek görselde doğrulanamadı; uydurma yakın çekim yerine merkez karesiyle devam ediliyor");
 
-      const merkezBakis = bakislariTemizle(plan.merkez.bakislar, izinli);
-      merkezBakis.push({ u: "Gezi", b: `Buradan ${bulunan.length} yere gideceğiz`, m: `${bulunan.map((x) => kisalt(x.kol.baslik, 30)).join(", ")}; her birinden sonra buraya döneceğiz.`, k: "" });
+      const merkezBakis = bakislariTemizle(plan.merkez.bakislar, izinli, kaynakMetinleri);
+      if (bulunan.length) merkezBakis.push({ u: "Gezi", b: `${bulunan.length} doğrulanmış ayrıntı`, m: `${bulunan.map((x) => kisalt(x.kol.baslik, 30)).join(", ")}; her birinden sonra bu noktaya döneceğiz.`, k: "" });
+      else merkezBakis.push({ u: "Kaynak notu", b: "Burada duruyoruz", m: "Bu eserin kaynaklarında fotoğraftaki ayrıntılarla güvenle eşleştirilebilecek başka bir öğe bulunmadı.", k: "" });
       kareler.at(-1).p = CAPRAZ;
-      bulunan.forEach((b, i) => {
-        kareler.push({ g: "m", t: "canlandirma", p: b.kirp, b: i === 0 ? kisalt(plan.merkez.baslik, 60) || "İçeride" : `Şimdi: ${kisalt(b.kol.baslik, 45)}`, k: i === 0 ? merkezBakis : undefined });
-        const kb = bakislariTemizle(b.kol.bakislar, izinli);
-        if (kb[0] && !kb[0].nerede) kb[0].n = [0.5, 0.5];
-        kareler.push({ g: b.ad, t: "canlandirma", c: b.kirp, b: kisalt(b.kol.baslik, 60), k: kb });
-      });
-      kareler.push({ g: "m", t: "canlandirma", p: CAPRAZ, b: "" });
+      if (bulunan.length) {
+        bulunan.forEach((b, i) => {
+          kareler.push({ g: "m", t: "canlandirma", p: b.kirp, b: i === 0 ? kisalt(plan.merkez.baslik, 60) || "İçeride" : `Şimdi: ${kisalt(b.kol.baslik, 45)}`, k: i === 0 ? merkezBakis : undefined });
+          const kb = bakislariTemizle(b.kol.bakislar, izinli, kaynakMetinleri);
+          if (kb[0] && !kb[0].nerede) kb[0].n = [0.5, 0.5];
+          kareler.push({ g: b.ad, t: "canlandirma", c: b.kirp, b: kisalt(b.kol.baslik, 60), k: kb });
+        });
+        kareler.push({ g: "m", t: "canlandirma", p: CAPRAZ, b: "" });
+      } else kareler.push({ g: "m", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.merkez.baslik, 60) || "Eserin merkezinde", k: merkezBakis });
 
       // 6. İşaretler: "nerede" verilen kartların noktaları
       yaz(is, "Bilgi kartlarının okları yerleştiriliyor…", 6);
       for (const kare of kareler) {
-        const istenen = (kare.k ?? []).map((b, j) => ({ b, j })).filter(({ b }) => b.nerede);
+        const istenen = (kare.k ?? []).map((b, j) => ({ b, j })).filter(({ b }) => b.nerede && kare.t !== "canlandirma");
         if (!istenen.length) continue;
         const bulunanlar = await konumBul(u.kareYolu(kare.g), istenen.map(({ b, j }) => ({ ad: `n${j}`, tarif: b.nerede })), ortam).catch(() => []);
         for (const { b, j } of istenen) {

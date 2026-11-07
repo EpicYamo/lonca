@@ -130,7 +130,7 @@ export default async function basla() {
           { tip: "baslik", metin: acik.eser.ad, boyut: 2 },
           { tip: "fotograflar", eser: acik.eser },
           ...(acik.iliskiler.length ? [{ tip: "graf", id: "bag", merkez: acik.eser,
-            iliskiler: acik.iliskiler.slice(0, 8).map((i) => ({ eser: i.diger, tur: i.tur, baslik: i.baslik })) }] : []),
+            iliskiler: acik.iliskiler.slice(0, 8).map((i) => ({ eser: i.diger, tur: i.tur, baslik: i.baslik, aciklama: i.aciklama, kaynak: i.kaynak })) }] : []),
           { tip: "metin", metin: `Kaynaklar: ${acik.eser.kaynak ?? "Vakıf Katılım"}; Türkçe Vikipedi (CC BY-SA); uydu görüntüsü Esri World Imagery.`, soluk: true },
           { tip: "satir", hizala: "yay", cocuklar: [
             ...(acik.uc ? [{ tip: "dugme", id: "uc", metin: "Gerçek 3B", ikon: "kup", tur: "ikincil" }] : []),
@@ -160,6 +160,10 @@ export default async function basla() {
       continue;
     } else if (olay.id === "hata" && acik) {
       await ekran.duzeltme(acik.eser);
+      continue;
+    } else if (olay.id.startsWith("eser:") && acik) {
+      const eser = await eserler.getir(olay.id.slice(5)).catch(() => null);
+      if (eser) await ekran.kart(eser);
       continue;
     } else continue;
     await sahne.ciz(acik ? dalis() : lobi());

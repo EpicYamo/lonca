@@ -65,8 +65,8 @@ declare module "@lonca/sdk" {
   }
   /** Tek eser için bağ listesi: diğer eser ve bağın yönü eklenir. */
   export interface IliskiDetay extends Iliski { diger: Eser | null; yon: "a" | "b"; }
-  /** Haritada çizilecek bağ. Uçlardan biri haritadaki eserlerde yoksa çizilmez. */
-  export interface HaritaBaglantisi { a: string; b: string; tur?: IliskiTuru | (string & {}); etiket?: string; }
+  /** Haritada çizilecek kaynaklı bağ. id verilirse çizgiye dokununca bag olayı gönderilir; bu çizgi bir rota değildir. */
+  export interface HaritaBaglantisi { id?: string; a: string; b: string; tur?: IliskiTuru | (string & {}); etiket?: string; baslik?: string; aciklama?: string; kaynak?: string; }
   /** Sis perdesinin açık kalan alanı (metre yarıçaplı daire). */
   export interface SisAlani { lat: number; lng: number; yaricap: number; }
   /** Haritada şehir/alan etiketi. */
@@ -167,7 +167,7 @@ declare module "@lonca/sdk" {
     | { tip: "harita"; id: string; eserler: Eser[]; rota?: boolean; secili?: string;
         baglantilar?: HaritaBaglantisi[]; hayaletBaglantilar?: HayaletBaglanti[]; sis?: { acik: SisAlani[]; opaklik?: number; minPiksel?: number };
         etiketler?: HaritaEtiketi[]; odak?: { lat: number; lng: number; zoom?: number } } // pin → { tur:"dokun", id, eser }
-    | { tip: "graf"; id?: string; merkez: Eser; iliskiler: { eser: Eser; tur?: IliskiTuru | (string & {}); baslik?: string }[] } // düğüm → { tur:"dokun", id, eser }
+    | { tip: "graf"; id?: string; merkez: Eser; iliskiler: { eser: Eser; tur?: IliskiTuru | (string & {}); baslik?: string; aciklama?: string; kaynak?: string }[] } // kaynaklı bağ açıklamaları ve künyeleri; düğüm → { tur:"dokun", id, eser }
     | { tip: "rozet"; ad: string; aciklama?: string; kazanildi: boolean }
     | { tip: "dalis"; id?: string; etiket?: string; kareler: DalisKaresi[]; cocuklar?: Dugum[] } // kaydırdıkça eserin içine giren tam ekran sahne; cocuklar sahnenin bitiminde gösterilir
     | { tip: "ayrac" }

@@ -270,7 +270,7 @@
    "tur": "bani",
    "baslik": "Aynı bani: II. Murad",
    "aciklama": "Bursa Muradiye Külliyesi 1426'da, Edirne Üç Şerefeli Cami ise 1437-1447 arasında Sultan II. Murad tarafından yaptırılmıştır. İki yapı da II. Murad'ın imar programının parçasıdır.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 115; Vikipedi, Üç Şerefeli Cami"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 115; Vikipedi, Üç Şerefeli Cami"
   },
   {
    "id": "bursa-yesil-edirne-eski",
@@ -279,7 +279,7 @@
    "tur": "bani",
    "baslik": "Çelebi Mehmed dönemi",
    "aciklama": "Edirne Eski Cami, Süleyman Çelebi'nin başlattığı inşayı 1414'te tamamlayan I. Mehmed (Çelebi Mehmed) dönemine aittir. Bursa Yeşil Külliyesi de onun eseridir.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 337; Vikipedi, Eski Cami"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 337; Vikipedi, Eski Cami"
   },
   {
    "id": "bursa-yildirim-kutahya-ulu",
@@ -288,7 +288,7 @@
    "tur": "bani",
    "baslik": "Aynı bani: Yıldırım Bayezid",
    "aciklama": "Kütahya Ulu Camii, Yıldırım Bayezid'in Kütahya valiliği sırasında başlatılmış; Bursa Yıldırım Külliyesi ise onun tarafından 1391-1395 arasında yaptırılmıştır.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 415; Vikipedi, Kütahya Ulu Camii"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 415; Vikipedi, Kütahya Ulu Camii"
   },
   {
    "id": "bursa-koza-edirne-bayezid",
@@ -297,7 +297,7 @@
    "tur": "bani",
    "baslik": "Aynı bani: II. Bayezid",
    "aciklama": "Koza Hanı 1491'de II. Bayezid'in İstanbul'daki külliyesine gelir sağlamak için; Edirne II. Bayezid Külliyesi ise 1484-1488 arasında aynı sultan tarafından yaptırılmıştır.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15; Vikipedi, II. Bayezid Külliyesi"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15; Vikipedi, II. Bayezid Külliyesi"
   },
   {
    "id": "bursa-fidan-istanbul-mahmud",
@@ -306,7 +306,7 @@
    "tur": "vakif",
    "baslik": "İstanbul'daki külliyeye vakıf han",
    "aciklama": "Fidan Hanı, Fatih Sultan Mehmed'in sadrazamı Mahmud Paşa'nın İstanbul'daki külliyesine gelir sağlamak üzere vakfedilmiştir. Han bu yüzden Mahmud Paşa Hanı olarak da anılır.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 25; Vikipedi, Mahmud Paşa Camii"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 25; Vikipedi, Mahmud Paşa Camii"
   },
   {
    "id": "bursa-osman-bilecik-ertugrul",
@@ -315,16 +315,7 @@
    "tur": "aile",
    "baslik": "Baba-oğul hanedan türbeleri",
    "aciklama": "Ertuğrul Gazi, Osman Gazi'nin babasıdır. Söğüt'teki türbesi ile Bursa'daki Osman Gazi Türbesi, Osmanlı hanedanının kuruluş hafızasını birlikte taşır.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 235; Vikipedi, Ertuğrul Gazi Türbesi"
-  },
-  {
-   "id": "bursa-koza-izmir-kizlaragasi",
-   "a": "bursa-koza-hani",
-   "b": "izmir-kizlaragasi-hani",
-   "tur": "ticaret",
-   "baslik": "Osmanlı ipek ve han ticaret ağı",
-   "aciklama": "Bursa Koza Hanı ipek üretim ve ticaretinin, İzmir Kızlarağası Hanı ise liman kentinin ticari ağının merkezlerindendir. İki yapı da avlulu Osmanlı han geleneğini sürdürür; Bursa ipeği İzmir limanı üzerinden Akdeniz'e ulaşırdı.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 15; Vikipedi, Kızlarağası Hanı"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 235; Vikipedi, Ertuğrul Gazi Türbesi"
   },
   {
    "id": "bursa-ulucami-edirne-eski",
@@ -333,7 +324,7 @@
    "tur": "tipoloji",
    "baslik": "Çok kubbeli ulucami geleneği",
    "aciklama": "Bursa Ulucami ve Edirne Eski Cami, erken Osmanlı'nın çok kubbeli ulucami planını temsil eden iki büyük örnektir.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37; Vikipedi, Eski Cami"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37; Vikipedi, Eski Cami"
   },
   {
    "id": "bursa-ulucami-kutahya-ulu",
@@ -342,7 +333,7 @@
    "tur": "tipoloji",
    "baslik": "Ulucami formu",
    "aciklama": "İki yapı da aynı çok kubbeli ulucami geleneğine bağlıdır; Kütahya Ulu Camii Yıldırım Bayezid dönemine uzanır.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37; Vikipedi, Kütahya Ulu Camii"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 1, s. 37; Vikipedi, Kütahya Ulu Camii"
   },
   {
    "id": "bursa-yildirim-medrese-konya-karatay",
@@ -351,7 +342,7 @@
    "tur": "tipoloji",
    "baslik": "Anadolu medrese geleneği",
    "aciklama": "Bursa Yıldırım Medresesi ve Konya Karatay Medresesi, Anadolu'daki kubbeli avlulu medrese geleneğinin farklı yüzyıllardaki örnekleridir.",
-   "kaynak": "Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 439; Vikipedi, Karatay Medresesi"
+   "kaynak": "Vakıf Katılım, Bursa Vakıf Eserleri Envanteri, Cilt 2, s. 439; Vikipedi, Karatay Medresesi"
   },
   {
    "id": "istanbul-suleymaniye-edirne-selimiye",

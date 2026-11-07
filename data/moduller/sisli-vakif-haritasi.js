@@ -192,14 +192,21 @@ export default async function basla() {
 
   function gorunenBaglar() {
     const idler = new Set(gorunenler().map((e) => e.id));
+    // "Metinde anılıyor" ve tipoloji bir kaynaklı karşılaştırmadır; coğrafi
+    // bağlantı gibi çizilmesin. İkisini eser ayrıntısındaki bağ ağında tutuyoruz.
+    const haritaBaglari = new Set(["kulliye", "bani", "mimar", "vakif", "aile", "ticaret", "komsu"]);
     return iliskiler
-      .filter((i) => idler.has(i.a) && idler.has(i.b))
-      .map((i) => ({ a: i.a, b: i.b, tur: i.tur, etiket: i.baslik }));
+      .filter((i) => haritaBaglari.has(i.tur) && idler.has(i.a) && idler.has(i.b))
+      .map((i) => ({ id: i.id, a: i.a, b: i.b, tur: i.tur, etiket: i.baslik, baslik: i.baslik, aciklama: i.aciklama, kaynak: i.kaynak }));
   }
 
   function sehirBaglari() {
     const ciftler = new Map();
-    for (const i of iliskiler) {
+    // Şehirler arası ağda yalnızca açık ve nedensel bağlar yer alır. Benzer mimari,
+    // aynı metinde anılma ya da komşuluk iki şehri tarihsel bir ağa bağlamaz.
+    const gucluBaglar = new Set(["bani", "mimar", "vakif", "aile", "ticaret"]);
+    const oncelik = { vakif: 0, bani: 1, mimar: 2, aile: 3, ticaret: 4 };
+    for (const i of [...iliskiler].filter((x) => gucluBaglar.has(x.tur)).sort((a, b) => (oncelik[a.tur] ?? 9) - (oncelik[b.tur] ?? 9) || a.id.localeCompare(b.id))) {
       const a = bul(i.a), b = bul(i.b);
       if (!a || !b || a.il === b.il) continue;
       const ca = sehirBul(sehirId(a.il)), cb = sehirBul(sehirId(b.il));
@@ -401,7 +408,7 @@ export default async function basla() {
           { tip: "istatistik", deger: baglar.length, etiket: "Görünen bağ", ikon: "bilgi" },
         ] },
         { tip: "ilerleme", deger: durum.gezilen.size, toplam: yerli.length, etiket: "Atlasın sisini arala" },
-        { tip: "metin", metin: "Noktalar eserleri gösterir; küme işaretine dokununca harita yakınlaşır. Şehir etiketleri karanlıkta kalır, keşfettiğin şehir ışıklanır. Çizgiler yalnızca envanterde açıkça belirtilen tarihsel bağlardır.", soluk: true },
+        { tip: "metin", metin: "Noktalar eserleri gösterir; küme işaretine dokununca harita yakınlaşır. Şehirler arası çizgiler yalnızca ortak bani, mimar, vakıf, hanedan veya ticaret kaydına dayanır; bir yol ya da seyahat rotası değildir. Çizgiye dokunup kaynaklı açıklamayı aç.", soluk: true },
         { tip: "satir", hizala: "yay", cocuklar: [
           { tip: "dugme", id: "arala", metin: "Sisi arala (1 mühür)", ikon: "pusula", tur: "ana", devre_disi: durum.muhur < 1 },
           { tip: "dugme", id: "sehirler", metin: "Şehirler", ikon: "harita", tur: "ikincil" },
@@ -411,7 +418,7 @@ export default async function basla() {
           { tip: "dugme", id: "baglar", metin: "Bağlar", ikon: "bilgi", tur: "ikincil" },
         ] },
         { tip: "baslik", metin: "Bağ renkleri", boyut: 3 },
-        { tip: "cipler", ogeler: ["Altın: külliye", "Yeşil: vakıf", "Mavi: mimar", "Mor: bani", "Turuncu: hanedan", "Pembe: ticaret", "Kesikli: metin / komşuluk"] },
+        { tip: "cipler", ogeler: ["Altın: külliye", "Yeşil: vakıf", "Mavi: mimar", "Mor: bani", "Turuncu: hanedan", "Pembe: ticaret", "Kesikli: tarihî komşuluk"] },
       ],
     };
   }
@@ -471,7 +478,7 @@ export default async function basla() {
         { tip: "metin", metin: `Kaynak: ${eser.kaynak}`, soluk: true },
         { tip: "baslik", metin: "Tarihsel bağlar", boyut: 2 },
         baglar.length
-          ? { tip: "graf", id: "eser-graf", merkez: eser, iliskiler: baglar.slice(0, 8).map((b) => ({ eser: b.diger, tur: b.tur, baslik: b.baslik })) }
+          ? { tip: "graf", id: "eser-graf", merkez: eser, iliskiler: baglar.slice(0, 8).map((b) => ({ eser: b.diger, tur: b.tur, baslik: b.baslik, aciklama: b.aciklama, kaynak: b.kaynak })) }
           : { tip: "metin", metin: "Bu eser için küratörlü bir tarihsel bağ kaydı yok. Bağ uydurmuyoruz; yalnızca kaynaklı ilişkileri gösteriyoruz.", soluk: true },
         baglar.length
           ? { tip: "liste", ogeler: baglar.map((b) => ({ id: `bag:${b.id}`, metin: b.diger.ad, alt: `${bagTuruAdi(b.tur)} · ${b.baslik}`, ikon: "bilgi", sag: b.diger.konum ? "haritada" : "konum yok" })) }
@@ -531,7 +538,7 @@ export default async function basla() {
         { tip: "baslik", metin: "1. Şehirleri ışıklandır", boyut: 2 },
         { tip: "metin", metin: "Atlas karanlık başlar. Bursa'daki bir esere dokunduğunda Bursa aydınlanır. Şehirler arası bir bağdan başka bir şehre geçtiğinde o şehir de açılır. Mühürle kilitli bir şehri de aralayabilirsin." },
         { tip: "baslik", metin: "2. Bağları oku", boyut: 2 },
-        { tip: "metin", metin: "Haritadaki eğriler tarihsel bağlardır: altın külliye, yeşil vakıf, mavi mimar, mor bani, turuncu hanedan, pembe ticaret. Kesikli çizgiler envanterde açıkça anılan metin ve komşuluk bağlarıdır." },
+        { tip: "metin", metin: "Haritadaki çizgiler kaynaklı bağları gösterir; yol veya rota değildir. Altın külliye, yeşil vakıf, mavi mimar, mor bani, turuncu hanedan, pembe ticaret. Kesikli çizgi tarihî komşuluktur. Metinde birlikte anılma ve mimari benzerlik haritada çizilmez; yalnızca eserlerin bağ ağında açıklanır. Çizgiye dokunup kaynağı aç." },
         { tip: "baslik", metin: "3. Bağ ağını incele", boyut: 2 },
         { tip: "metin", metin: "Bir eserin detayında merkezdeki eserden çıkan düğümler bağlı eserlerdir; birine dokununca o esere geçersin. Altta her bağın kısa açıklaması ve kaynağı bulunur." },
         { tip: "baslik", metin: "4. Tüm ağa bak", boyut: 2 },
