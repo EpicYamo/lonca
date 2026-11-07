@@ -207,6 +207,7 @@ async function gonder(metin) {
     });
     if (s.deneme > 1) adimlar.push([`Denetimde hata buldu, ${s.deneme}. denemede düzeltti`, "duzeltme"]);
     adimlar.push(["SDK tip denetiminden geçti"]);
+    if (s.model) adimlar.push([s.model === "sahte" ? "Sahte kalfa: yapay zekâ bağlı değil, hazır şablon" : `Kodu yazan model: ${s.model}`]);
     sohbet.push({ rol: "kalfa", metin: s.aciklama_ustaya });
     mesajEkle("kalfa", s.aciklama_ustaya, { adimlar });
 
@@ -342,7 +343,7 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
   };
   try {
     const s = await yApi("/api/moduller", { method: "POST", govde });
-    durumYaz("iyi", `“${s.ad}” onaya gönderildi. Yayınlayınca uygulamada hemen görünür.`);
+    durumYaz("iyi", `“${s.ad}” onaya gönderildi (${kaynakMetni(s.kaynak)}). Yayınlayınca uygulamada hemen görünür.`);
     const yayinla = el("button", { type: "button", className: "birincil kucuk-d", textContent: "Şimdi yayınla" });
     const listeyeGit = el("button", { type: "button", className: "ikincil kucuk-d", textContent: "Modüllerde gör" });
     yayinla.addEventListener("click", async () => {
@@ -359,6 +360,12 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
   } catch (h) { durumYaz("kotu", h.message, h.ayrintilar); }
 });
 
+// Modülün kaynağı sunucuda belirlenir: kod kalfanın ürettiğiyle birebir aynıysa "kalfa", değilse "elle".
+function kaynakMetni(k) {
+  if (k?.tur === "kalfa") return k.sahte ? "sahte kalfa şablonu" : `kalfa yazdı · ${k.model}`;
+  if (k?.tur === "elle") return "elle yazıldı/düzenlendi";
+  return "kaynak kaydı yok";
+}
 const DURUM_ADI = { bekliyor: "Onay bekliyor", onayli: "Yayında", kaldirildi: "Yayından kaldırıldı", arsiv: "Arşivde", reddedildi: "Reddedildi" };
 const EYLEMLER = {
   bekliyor: [["Atölyede aç", "ac", "ikincil"], ["Yayınla", "onayli", "birincil"], ["Reddet", "reddedildi", "ikincil"], ["Sil", "sil", "tehlike"]],
@@ -408,7 +415,9 @@ async function modulleriListele() {
       karo,
       el("div", { className: "modul-bilgi" },
         el("span", { className: "ad", textContent: m.ad }),
-        el("span", { className: "alt", textContent: `${m.id} · ${tarihYaz(m.guncelleme)}${m.aciklama ? ` · ${m.aciklama}` : ""}` })),
+        el("span", { className: "alt", textContent: `${m.id} · ${tarihYaz(m.guncelleme)}${m.aciklama ? ` · ${m.aciklama}` : ""}` }),
+        el("span", { className: `kaynak-etiket${m.kaynak?.tur === "kalfa" && !m.kaynak.sahte ? " kalfa" : ""}`, textContent: kaynakMetni(m.kaynak),
+          title: m.kaynak?.uretim ? `Kalfa üretimi: ${tarihYaz(m.kaynak.uretim)}` : "" })),
       el("span", { className: `etiket ${m.durum}`, textContent: DURUM_ADI[m.durum] ?? m.durum }),
       eylemler);
   }));

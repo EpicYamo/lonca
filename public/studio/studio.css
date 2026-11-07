@@ -505,6 +505,9 @@ input:invalid:not(:placeholder-shown) { border-color: var(--hata-cizgi); }
 .etiket.onayli { border-color: var(--vurgu-cizgi); color: var(--vurgu); background: var(--vurgu-zemin); }
 .etiket.kaldirildi, .etiket.arsiv { border-color: var(--cizgi-guclu); color: var(--soluk); background: transparent; }
 .etiket.reddedildi { border-color: var(--hata-cizgi); color: var(--hata); background: var(--hata-zemin); }
+.kaynak-etiket { color: var(--soluk); font: 600 .72rem var(--yazi-govde); }
+.kaynak-etiket.kalfa { color: var(--vurgu); }
+.kaynak-etiket.kalfa::before { content: "✦ "; }
 
 /* ---------- İçerik ---------- */
 .icerik { display: grid; grid-template-columns: minmax(320px, .8fr) minmax(0, 1.9fr); gap: 16px; align-items: start; align-content: start; }

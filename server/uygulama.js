@@ -2,7 +2,7 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import path from "node:path";
 import { kalfaHazirla } from "./kalfa.js";
 import { AYAR_DOSYASI, etkinSecim, modelKatalogu } from "./kalfa-ayarlari.js";
@@ -447,6 +447,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
       durum: "bekliyor", olusturma: onceki?.olusturma ?? new Date().toISOString(), guncelleme: new Date().toISOString(),
     };
+    const kaynak = kaynakBul(kod, onceki);
+    kayit.kaynak = { ...kaynak, ozet: kodOzeti(kod) };
     const i = liste.findIndex((m) => m.id === id);
     if (i >= 0) liste[i] = kayit; else liste.push(kayit);
     await mkdir(MODUL_DIZINI, { recursive: true });
@@ -555,6 +557,23 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc };
   });
 
+  // Kalfanın ürettiği kodlar: sha256 özeti → { model, tarih }. POST /api/moduller gelen kodu burada bulursa
+  // kayda kaynak: { tur: "kalfa", … } yazar; böylece "bu modülü kalfa yazdı" bilgisi istemcinin beyanına değil
+  // sunucunun kendi kaydına dayanır. Studio'da elle değiştirilen kod "elle" sayılır.
+  const kalfaUretimleri = new Map();
+  const kodOzeti = (kod) => createHash("sha256").update(String(kod).replace(/\r\n/g, "\n")).digest("hex");
+  function kalfaUretiminiKaydet(sonuc) {
+    kalfaUretimleri.set(kodOzeti(sonuc.kod), { model: sonuc.model ?? kalfa.model, sahte: sonuc.model === "sahte", tarih: new Date().toISOString() });
+    while (kalfaUretimleri.size > 200) kalfaUretimleri.delete(kalfaUretimleri.keys().next().value);
+  }
+  function kaynakBul(kod, onceki) {
+    const uretim = kalfaUretimleri.get(kodOzeti(kod));
+    if (uretim) return { tur: "kalfa", model: uretim.model, ...(uretim.sahte && { sahte: true }), uretim: uretim.tarih };
+    // Aynı kod yeniden gönderildiyse (ör. sunucu yeniden başladıktan sonra) önceki kaynak korunur.
+    if (onceki?.kaynak?.ozet === kodOzeti(kod)) return onceki.kaynak;
+    return { tur: "elle" };
+  }
+
   app.get("/api/kalfa", async () => ({ model: kalfa.model, sahte: kalfa.sahte }));
 
   // Kalfa modelleri: UstaGPT'nin model listesi (sunucu çağırır, anahtar tarayıcıya gitmez) ve şu anki seçim.
@@ -589,7 +608,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (!gecerli) return rep.code(400).send({ hata: "sohbet: en fazla 30 mesaj, son mesaj ustadan" });
     if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
     try {
-      return await kalfa.calistir(sohbet, kod || undefined);
+      const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+      kalfaUretiminiKaydet(sonuc);
+      return sonuc;
     } catch (h) {
       req.log.error(h);
       return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });

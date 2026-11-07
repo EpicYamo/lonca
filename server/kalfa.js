@@ -134,7 +134,7 @@ ${ornekOyun}
 
   async function calistir(sohbet, mevcutKod) {
     const saglayici = saglayiciAl();
-    if (saglayici.tur === "sahte") return sahteYanit(sohbet, ornekOyun);
+    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun), model: "sahte" };
     const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar });
 
     const konusma = sohbet.map((m) => ({ ...m }));
@@ -168,6 +168,7 @@ ${ornekOyun}
           sonuclar.push({ id: c.id, hata: true, icerik: `Bilinmeyen araç: ${c.ad}` });
         }
       }
+      // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
       if (teslim) return { ...teslim, deneme, aramalar, model: saglayici.model };
       sonuclariBildir(sonuclar);
     }
