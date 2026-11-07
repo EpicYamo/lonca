@@ -313,6 +313,7 @@
     <form method="dialog" id="model-formu">
       <div class="model-ust">
         <h2 class="pencere-h" id="model-pencere-h"><svg class="ik" aria-hidden="true"><use href="#i-ayar"/></svg>Kalfa modelleri</h2>
+        <button id="model-tara" type="button" class="ikincil model-tara-d" title="Her metin modeline gerçek bir kalfa isteği gönderir; dakikalar sürebilir">Modelleri test et</button>
         <button id="model-yenile" type="button" class="ikon-d" aria-label="Model listesini UstaGPT'den yenile" title="Listeyi yenile">
           <svg class="ik" aria-hidden="true"><use href="#i-yenile"/></svg>
         </button>
@@ -324,6 +325,7 @@
         <button type="button" role="tab" data-alan="dalisGorselModelleri" aria-selected="false">Dalış · görsel</button>
       </div>
       <p class="aciklama model-ipucu" id="model-ipucu"></p>
+      <p class="aciklama kucuk-yazi model-tarama" id="model-tarama" role="status" aria-live="polite"></p>
       <ol class="model-secili" id="model-secili" aria-label="Seçili modeller (deneme sırası)"></ol>
       <div class="model-suzgec">
         <input id="model-ara" class="arama" type="search" placeholder="Model ara… (ör. gpt, gemini, claude)" aria-label="Model ara" autocomplete="off" spellcheck="false">

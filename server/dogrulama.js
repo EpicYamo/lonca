@@ -119,6 +119,28 @@ export const KALFA_AYAR_ALANLARI = ["kalfaModeli", "dalisGorselModelleri", "dali
 const MODEL_ADI = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,99}$/;
 
 /**
+ * POST /api/kalfa/modeller/tara gövdesi: {} (tüm metin modelleri) ya da { modeller: ["ad", …] } (1–100 metin modeli).
+ * modeller verilirse adlar UstaGPT listesindeki metin modelleriyle karşılaştırılır.
+ */
+export function kalfaTaramaDogrula(veri, modeller = null) {
+  const hatalar = [];
+  if (veri == null) veri = {};
+  if (typeof veri !== "object" || Array.isArray(veri)) return { hatalar: ["tarama verisi bir nesne olmalı"], liste: null };
+  const bilinmeyen = Object.keys(veri).filter((k) => k !== "modeller");
+  if (bilinmeyen.length) hatalar.push(`bilinmeyen alan: ${bilinmeyen.slice(0, 3).join(", ")}`);
+  if (veri.modeller == null) return { hatalar, liste: null };
+  const l = veri.modeller;
+  if (!Array.isArray(l) || l.length < 1 || l.length > 100) { hatalar.push("modeller 1–100 modelden oluşan bir liste olmalı"); return { hatalar, liste: null }; }
+  if (!l.every((m) => metinMi(m) && MODEL_ADI.test(m))) { hatalar.push("modeller yalnızca geçerli model adları içermeli"); return { hatalar, liste: null }; }
+  if (new Set(l).size !== l.length) hatalar.push("modeller aynı modeli iki kez içeremez");
+  if (modeller) {
+    const metinler = new Set(modeller.filter((m) => m.tur === "metin").map((m) => m.deger));
+    for (const m of l) if (!metinler.has(m)) hatalar.push(`${m}: UstaGPT listesinde böyle bir metin modeli yok`);
+  }
+  return { hatalar, liste: [...l] };
+}
+
+/**
  * PUT /api/kalfa/ayarlar gövdesi. Her alan isteğe bağlıdır; null alanı siler (.env / varsayılan geçerli olur).
  * modeller verilirse her seçim o listede ve doğru türde olmalı (metin / görsel).
  * @returns {{ hatalar: string[], ayar: object }} ayar: yalnızca gönderilen alanlar

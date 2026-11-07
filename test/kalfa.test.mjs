@@ -61,3 +61,36 @@ export default async function basla() {
   assert.ok(kalfa.dogrula(kod).some((h) => h.includes("yardimci")));
   assert.deepEqual(kalfa.dogrula(kod.replace('const yardimci = () => "merhaba";', 'function yardimci() { return "merhaba"; }')), []);
 });
+
+test("let x = null; iç fonksiyonda atanan değişkenin never daraltması modülü reddetmez", () => {
+  const kod = `import { sahne } from "@lonca/sdk";
+export default async function basla() {
+  let oyun = null;
+  await sahne.ayarla({ baslik: "Deneme", tema: { zemin: "acik", renk: "firuze", yazi: "sans" } });
+  await sahne.ciz({ tip: "metin", metin: "x" });
+  for await (const olay of sahne.olaylar()) {
+    if (olay.tur === "dokun") oyunuKur();
+    if (oyun && !oyun.cevap) oyun.sira++;
+  }
+  function oyunuKur() { oyun = { sira: 0, cevap: null }; }
+}`;
+  assert.deepEqual(kalfa.dogrula(kod), []);
+  assert.ok(kalfa.dogrula(kod.replace("sahne.ciz(", "sahne.cizz(")).length, "gerçek tip hataları yine yakalanır");
+});
+
+test("sağlayıcı yanıt vermezse istek zaman aşımıyla anlaşılır biçimde biter", async () => {
+  const asilFetch = globalThis.fetch;
+  globalThis.fetch = (_url, { signal }) => new Promise((_, red) => signal.addEventListener("abort", () => red(signal.reason)));
+  try {
+    const k = kalfaHazirla({ kok: KOK, eserler: [], ortam: { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "m", KALFA_ZAMAN_ASIMI_SN: "0.05" } });
+    await assert.rejects(k.calistir([{ rol: "usta", metin: "oyun" }]), /zaman aşımı/);
+    // Dışarıdan iptal (model taraması) kendi gerekçesiyle biter; seçenekteki model istekte kullanılır.
+    let istenenModel;
+    globalThis.fetch = (_url, { signal, body }) => { istenenModel = JSON.parse(body).model; return new Promise((_, red) => signal.addEventListener("abort", () => red(signal.reason))); };
+    const iptal = new AbortController();
+    const is = k.calistir([{ rol: "usta", metin: "oyun" }], undefined, { model: "baska-model", sinyal: iptal.signal });
+    iptal.abort(new Error("durduruldu"));
+    await assert.rejects(is, /durduruldu/);
+    assert.equal(istenenModel, "baska-model");
+  } finally { globalThis.fetch = asilFetch; }
+});

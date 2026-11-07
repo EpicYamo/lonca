@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import { readFile, writeFile, mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { deneySunucusu } from "./yardimci.mjs";
+import { deneySunucusu, KOK } from "./yardimci.mjs";
 import { kalfaSaglayicisi, dalisSaglayicisi, modelleriSiniflandir, AYAR_DOSYASI, VARSAYILAN } from "../server/kalfa-ayarlari.js";
-import { kalfaAyarDogrula } from "../server/dogrulama.js";
+import { kalfaAyarDogrula, kalfaTaramaDogrula } from "../server/dogrulama.js";
+import { modelDene, saglikEkle, hataOzeti } from "../server/model-tarama.js";
 
 // UstaGPT /models yanıtının gerçek şekli (anahtarsız örnek)
 const MODELLER = {
@@ -27,7 +28,7 @@ let cagrilar = [], fetchYaniti;
 before(() => {
   globalThis.fetch = async (url, secenek = {}) => {
     cagrilar.push({ url: String(url), yetki: secenek.headers?.authorization });
-    return fetchYaniti();
+    return fetchYaniti(String(url), secenek);
   };
 });
 after(() => { globalThis.fetch = gercekFetch; });
@@ -147,5 +148,114 @@ test("UstaGPT tanımlı değilse ya da hata verirse anlaşılır yanıt döner",
     const y = await s.istek("GET", "/api/kalfa/modeller", { yonetici: true });
     assert.equal(y.statusCode, 502);
     assert.match(y.json().hata, /401/);
+  } finally { await s.app.close(); }
+});
+
+// ---------- Kalfa model taraması ----------
+
+// modul_yaz araç çağrısı içeren bir OpenAI uyumlu yanıt (gerçek kalfa yolunu çalıştırır).
+const modulYaniti = (kod) => new Response(JSON.stringify({ choices: [{ message: { content: "", tool_calls: [{
+  id: "c1", type: "function", function: { name: "modul_yaz", arguments: JSON.stringify({ id: "tarama-deneme", ad: "Tarama", aciklama: "Deneme", kod, aciklama_ustaya: "Hazır." }) },
+}] } }] }), { status: 200, headers: { "content-type": "application/json" } });
+
+test("modelDene: çalışan, hata veren ve zaman aşımına uğrayan model", async () => {
+  const simdi = () => new Date("2026-11-07T10:00:00Z");
+  const iyi = await modelDene({ calistir: async () => ({ kod: "a\nb\nc", deneme: 2 }) }, "m1", { simdi });
+  assert.deepEqual({ ...iyi, sure: 0 }, { durum: "calisiyor", sure: 0, deneme: 2, satir: 3, tarih: "2026-11-07T10:00:00.000Z" });
+
+  const kotu = await modelDene({ calistir: async () => { throw Object.assign(new Error("Yapay zekâ sağlayıcısı hata verdi (503): Internal server error"), { durumKodu: 503 }); } }, "m2");
+  assert.equal(kotu.durum, "hata");
+  assert.equal(kotu.hata, "503 · Internal server error");
+
+  // Kalfa iptal sinyaline uyar; modelin toplam süresi dolunca tarama beklemez.
+  const takili = { calistir: (_s, _k, { sinyal }) => new Promise((_, red) => sinyal.addEventListener("abort", () => red(sinyal.reason))) };
+  const z = await modelDene(takili, "m3", { zamanAsimiMs: 30 });
+  assert.equal(z.durum, "hata");
+  assert.match(z.hata, /zaman aşımı/);
+
+  assert.match(hataOzeti(Object.assign(new Error("Kalfa geçerli bir modül üretemedi"), { ayrintilar: ["satır 3: x"] })), /^doğrulama: satır 3/);
+  assert.match(hataOzeti(Object.assign(new Error("kota"), { durumKodu: 429 })), /^429/);
+});
+
+test("sağlık bilgisi: çalışanlar hızlıdan yavaşa üstte, hata verenler en altta; görsel modeller dokunulmaz", () => {
+  const modeller = modelleriSiniflandir(MODELLER);
+  const l = saglikEkle(modeller, {
+    "gemini-3.8-flash": { durum: "hata", hata: "503" },
+    "gpt-6.1-sol": { durum: "calisiyor", sure: 9000 },
+    "gemini-3.5-flash": { durum: "calisiyor", sure: 4000 },
+  });
+  const metin = l.filter((m) => m.tur === "metin");
+  assert.deepEqual(metin.map((m) => m.deger), ["gemini-3.5-flash", "gpt-6.1-sol", "gemini-3.8-flash"]);
+  assert.equal(metin[2].saglik.durum, "hata");
+  assert.ok(l.filter((m) => m.tur === "gorsel").every((m) => !("saglik" in m)));
+  assert.equal(saglikEkle(modeller).find((m) => m.deger === "gpt-6.1-sol").saglik.durum, "denenmedi");
+});
+
+test("tarama doğrulaması: boş gövde, liste biçimi ve listede bulunma", () => {
+  const modeller = modelleriSiniflandir(MODELLER);
+  assert.deepEqual(kalfaTaramaDogrula({}), { hatalar: [], liste: null });
+  assert.deepEqual(kalfaTaramaDogrula(undefined), { hatalar: [], liste: null });
+  assert.deepEqual(kalfaTaramaDogrula({ modeller: ["gpt-6.1-sol"] }, modeller), { hatalar: [], liste: ["gpt-6.1-sol"] });
+  assert.ok(kalfaTaramaDogrula({ modeller: ["nano-banana-2"] }, modeller).hatalar.length, "görsel model kalfayla sınanmaz");
+  assert.ok(kalfaTaramaDogrula({ modeller: [] }).hatalar.length);
+  assert.ok(kalfaTaramaDogrula({ modeller: "gpt-6.1-sol" }).hatalar.length);
+  assert.ok(kalfaTaramaDogrula({ modeller: ["a", "a"] }).hatalar.length);
+  assert.ok(kalfaTaramaDogrula({ modeller: ["<script>"] }).hatalar.length);
+  assert.ok(kalfaTaramaDogrula({ baska: 1 }).hatalar.length);
+  assert.ok(kalfaTaramaDogrula([]).hatalar.length);
+});
+
+test("POST /api/kalfa/modeller/tara gerçek kalfa yolunu çalıştırır, sonucu kaydeder ve listeye işler", async () => {
+  const kod = await readFile(path.join(KOK, "sdk", "ornekler", "hanlar-rehberi.js"), "utf8");
+  const modellerIstek = [];
+  fetchYaniti = (url, secenek) => {
+    if (url.endsWith("/models")) return new Response(JSON.stringify(MODELLER), { status: 200 });
+    const model = JSON.parse(secenek.body).model;
+    modellerIstek.push(model);
+    return model === "gpt-6.1-sol" ? modulYaniti(kod) : new Response(JSON.stringify({ error: { message: "Internal server error" } }), { status: 503 });
+  };
+  const sahte = await deneySunucusu({ KALFA_SAHTE: "1" });
+  try {
+    const y = await sahte.istek("POST", "/api/kalfa/modeller/tara", { govde: {}, yonetici: true });
+    assert.equal(y.statusCode, 409, "sahte kalfada tarama yapılmaz");
+  } finally { await sahte.app.close(); }
+
+  const s = await deneySunucusu({ ...USTA, KALFA_SAHTE: "" });
+  try {
+    assert.equal((await s.istek("POST", "/api/kalfa/modeller/tara", { govde: {} })).statusCode, 401);
+    assert.equal((await s.istek("GET", "/api/kalfa/modeller/tara")).statusCode, 401);
+    assert.equal((await s.istek("POST", "/api/kalfa/modeller/tara", { govde: { modeller: ["yok-model"] }, yonetici: true })).statusCode, 400);
+    assert.equal((await s.istek("POST", "/api/kalfa/modeller/tara", { govde: { modeller: 5 }, yonetici: true })).statusCode, 400);
+
+    const y = await s.istek("POST", "/api/kalfa/modeller/tara", { govde: { modeller: ["gpt-6.1-sol", "gemini-3.8-flash"] }, yonetici: true });
+    assert.equal(y.statusCode, 202);
+    assert.equal(y.json().ilerleme.toplam, 2);
+    assert.equal((await s.istek("POST", "/api/kalfa/modeller/tara", { govde: {}, yonetici: true })).statusCode, 409, "aynı anda tek tarama");
+
+    // 503 veren model kalfanın yeniden denemelerini (3 sn + 6 sn) bekler; bitene kadar yokla.
+    let durum;
+    for (let i = 0; i < 150; i++) {
+      durum = (await s.istek("GET", "/api/kalfa/modeller/tara", { yonetici: true })).json();
+      if (!durum.calisiyor) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    assert.equal(durum.calisiyor, false);
+    assert.equal(durum.sonuclar["gpt-6.1-sol"].durum, "calisiyor");
+    assert.equal(durum.sonuclar["gpt-6.1-sol"].deneme, 1);
+    assert.equal(durum.sonuclar["gemini-3.8-flash"].durum, "hata");
+    assert.match(durum.sonuclar["gemini-3.8-flash"].hata, /^503/);
+    assert.equal(modellerIstek.filter((m) => m === "gemini-3.8-flash").length, 3, "503'te iki kez yeniden denenir");
+
+    const kayit = JSON.parse(await readFile(path.join(s.veri, "kalfa-model-durumu.json"), "utf8"));
+    assert.equal(kayit.sonuclar["gpt-6.1-sol"].durum, "calisiyor");
+
+    const liste = (await s.istek("GET", "/api/kalfa/modeller", { yonetici: true })).json();
+    const metin = liste.modeller.filter((m) => m.tur === "metin");
+    assert.equal(metin[0].deger, "gpt-6.1-sol", "çalışan model üstte");
+    assert.equal(metin.at(-1).deger, "gemini-3.8-flash", "hata veren en altta");
+    assert.equal(metin.find((m) => m.deger === "gemini-3.5-flash").saglik.durum, "denenmedi");
+    assert.equal(liste.tarama.calisiyor, false);
+    assert.ok(!JSON.stringify(liste).includes("deneme-anahtari"));
+    assert.equal(s.kalfa.model, VARSAYILAN.kalfaModeli, "tarama seçili modeli değiştirmez");
   } finally { await s.app.close(); }
 });

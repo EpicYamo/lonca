@@ -43,6 +43,7 @@ npm run lint              # ESLint
 npm run format:check      # Prettier (yalnızca .prettierignore dışındaki dosyalar)
 npm run denetle           # veri, modül sözleşmesi ve depoya girmemesi gereken dosyalar
 npm run konum             # eser koordinatı bul (-- --dene yalnızca yazdırır)
+node araclar/kalfa-model-tara.mjs [model…]            # UstaGPT modellerini gerçek kalfa isteğiyle sına → data/kalfa-model-durumu.json
 npm run vendor            # gerçek 3B kütüphanesini esbuild ile yeniden paketle
 node araclar/dalis-uret.mjs araclar/dalis/<eser>.json   # elle dalış karelerini üret
 node araclar/dalis-modul.mjs <eser-id> …                # dalış tanımını data/dalislar/'a yaz
@@ -67,6 +68,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `ANTHROPIC_API_KEY` | `KALFA_SAGLAYICI=anthropic` için |
 | `KALFA_SAHTE=1` | Kalfayı hazır şablonla çalıştır (çevrimdışı) |
 | `KALFA_SINIR` | IP başına 10 dakikadaki kalfa isteği sınırı |
+| `KALFA_ZAMAN_ASIMI_SN` | Kalfanın sağlayıcıya giden tek isteğinin zaman aşımı (varsayılan 150 sn) |
 | `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz) |
 | `GOOGLE_HARITA_ANAHTARI` | Google harita + gerçek 3B; boşsa OpenStreetMap, 3B kapalı |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
