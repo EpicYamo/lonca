@@ -12,8 +12,14 @@ const MAKS_DENEME = 3;
 const MAKS_ADIM = 8;     
 const MAKS_SATIR = 2000;
 
-function saglayiciSec(e = process.env) {
-  if (e.KALFA_SAHTE === "1") return { tur: "sahte" };
+function saglayiciSec(ortam = process.env) {
+  if (ortam.KALFA_SAHTE === "1") return { tur: "sahte" };
+  // KALFA_* tanımlı değilse dalış kalfasıyla aynı UstaGPT (OpenAI uyumlu) uç noktası kullanılır;
+  // böylece yalnızca USTAGPT_* dolu bir .env'de modül kalfası sessizce sahte kipe düşmez.
+  const e = { ...ortam };
+  if (!e.KALFA_SAGLAYICI && !e.ANTHROPIC_API_KEY && !e.KALFA_API_URL && e.USTAGPT_BASE_URL && e.USTAGPT_API_KEY) {
+    Object.assign(e, { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: e.USTAGPT_BASE_URL, KALFA_API_ANAHTARI: e.USTAGPT_API_KEY, KALFA_MODEL: e.KALFA_MODEL || "gemini-3.8-flash" });
+  }
   const secilen = e.KALFA_SAGLAYICI || (e.ANTHROPIC_API_KEY ? "anthropic" : e.KALFA_API_URL ? "openai-uyumlu" : "sahte");
   if (secilen === "anthropic") {
     if (!e.ANTHROPIC_API_KEY) throw new Error("KALFA_SAGLAYICI=anthropic için ANTHROPIC_API_KEY gerekli");
@@ -251,6 +257,12 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
 
       let y = await gonder();
       let hataGovdesi = y.ok ? "" : await y.text();
+      // Geçici sağlayıcı hataları (5xx) için kısa beklemeyle iki kez daha dene.
+      for (let deneme = 1; deneme <= 2 && !y.ok && y.status >= 500; deneme++) {
+        await new Promise((r) => setTimeout(r, 3000 * deneme));
+        y = await gonder();
+        hataGovdesi = y.ok ? "" : await y.text();
+      }
       // Bazı modeller (ör. düşünen DeepSeek) tool_choice: "required" kabul etmez.
       // "auto" de reddedilirse istekten alanı tamamen çıkarıp bir kez daha dene.
       if (!y.ok && y.status === 400 && govde.tool_choice && /tool_choice/i.test(hataGovdesi)) {

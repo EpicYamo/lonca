@@ -18,6 +18,7 @@
 import { writeFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { dalisUretici, dalisSohbet, dalisAyarlari } from "./dalis-uretim.js";
 
 const UYDU_DUZEYLERI = [6, 9, 12, 14, 16, 18];
@@ -150,6 +151,18 @@ function bakislariTemizle(liste, izinliKaynak) {
   })).filter((b) => b.m && (b.k !== "V" || izinliKaynak.has("V")));
 }
 
+// Dalış üretimi dış araçlara dayanır (ffmpeg/ffprobe kırpma ve ölçek için, python3 + Pillow karo dikme için).
+// Biri eksikse iş dakikalar sonra "spawnSync ffprobe ENOENT" ile düşmesin diye en başta denetlenir.
+const ARACLAR = [
+  ["ffmpeg", ["-version"], "ffmpeg (macOS: brew install ffmpeg · Ubuntu: sudo apt install ffmpeg · Windows: winget install Gyan.FFmpeg)"],
+  ["ffprobe", ["-version"], "ffprobe (ffmpeg ile birlikte kurulur)"],
+  ["python3", ["-c", "import PIL"], "python3 ve Pillow (pip3 install Pillow)"],
+];
+export function eksikAraclar() {
+  return ARACLAR.filter(([komut, arg]) => { try { execFileSync(komut, arg, { stdio: "ignore", timeout: 15_000 }); return false; } catch { return true; } })
+    .map(([, , tarif]) => tarif);
+}
+
 export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "data", "dalislar"), ortam = process.env }) {
   const isler = new Map();
   let etkin = null;
@@ -157,6 +170,8 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
 
   function baslat({ istek = "", eserId = null, uzerineYaz = false }) {
     if (!hazir()) throw Object.assign(new Error("Dalış kalfası için .env'de DALIS_API_URL ve DALIS_API_ANAHTARI gerekli"), { kod: 503 });
+    const eksik = eksikAraclar();
+    if (eksik.length) throw Object.assign(new Error(`Dalış kalfası için bu bilgisayarda şu araçlar eksik: ${eksik.join("; ")}. Kurup sunucuyu yeniden başlat.`), { kod: 503 });
     if (etkin) throw Object.assign(new Error("Kalfa şu an başka bir dalış hazırlıyor; bitince tekrar dene"), { kod: 409 });
     if (eserId && !eserler.some((e) => e.id === eserId)) throw Object.assign(new Error("eser bulunamadı"), { kod: 404 });
     if (!eserId && !String(istek).trim()) throw Object.assign(new Error("Kalfaya ne istediğini yaz"), { kod: 400 });
