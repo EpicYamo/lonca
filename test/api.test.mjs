@@ -68,6 +68,16 @@ test("modül yaşam döngüsü: onay → yayın → kaldırma → arşiv → sil
 
   assert.equal((await s.istek("POST", "/api/moduller", { usta: true, govde: { id: "yuzyil-avi", ad: "Ele geçirme", kod } })).statusCode, 409);
 
+  // Editör yayındaki modülü düzenlerse modül yayından düşmez, yeni kod hemen canlıya gider.
+  const surum = (await s.istek("GET", "/api/moduller/surum")).json().surum;
+  const yeniKod = `${kod}\n// düzenlendi\n`;
+  y = await s.istek("POST", "/api/moduller", { yonetici: true, govde: { id: "yuzyil-avi", ad: "Yüzyıl Avı 2", kod: yeniKod } });
+  assert.equal(y.statusCode, 201);
+  assert.equal(y.json().durum, "onayli");
+  assert.equal((await s.istek("GET", "/api/moduller")).json()[0].ad, "Yüzyıl Avı 2");
+  assert.equal((await s.istek("GET", "/api/moduller/yuzyil-avi/kod")).body, yeniKod);
+  assert.notEqual((await s.istek("GET", "/api/moduller/surum")).json().surum, surum, "uygulamanın yoklaması değişikliği görmeli");
+
   for (const durum of ["kaldirildi", "arsiv"]) {
     y = await s.istek("POST", "/api/moduller/yuzyil-avi/durum", { govde: { durum }, yonetici: true });
     assert.equal(y.json().durum, durum);
