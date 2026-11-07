@@ -7,15 +7,12 @@ Güven: **Kesin** = kaynak metniyle gösterildi. **Güçlü** = yaygın akademik
 ## Dalışlar
 
 ### Yeşil Türbe (`bursa-yesil-turbe`, kalfa, bekliyor)
-1. **Kesin, E/V çelişkisi.** `d1` "BANİ VE MİMAR": "Mehmet Çelebi tarafından 1421 yılında yaptırılmıştır" (V). Envanter: "inşasına ne zaman başlandığı kesin olarak bilinmemektedir… yerinin Çelebi Mehmed'in sağlığında belirlendiği… yapının ise onun vefatından sonra tamamlandığı kabul edilmektedir." Öneri: "Yeri Çelebi Mehmed'in sağlığında belirlendi; türbe onun 1421'deki ölümünden sonra tamamlandı." (Ölüm yılı envanter kitabesinde hicrî 824 olarak geçer: "erbâîn ve işrîn ve semâne mi'e".)
-2. **Güçlü.** `k2` "MİHRAP": "Buradaki çiniler İznik çiniciliğinin şaheser örnekleri" (V; Vikipedi gerçekten böyle yazıyor). Yeşil Külliye çinileri akademik yazında genellikle Tebrizli ustalar ("Ustâdân-ı Tebriz") ve renkli sır tekniğiyle ilişkilendirilir; "İznik" ataması tartışmalıdır. Öneri: bu cümleyi çıkar ya da "kaynaklarda … diye anılır" diye yumuşat.
-3. **Kesin, veri.** Envanter metnindeki kitabede PDF bozukluğu: `!ehîdis` → `şehîdis`, `i!rîn` → `işrîn`.
-4. Kalan kartlar (9 sanduka, Daya Hatun, sekizgen plan, Türk üçgeni, kırk gün) kaynaklarıyla uyumlu.
+1. **Kesin, veri.** Envanter metnindeki kitabede PDF bozukluğu: `!ehîdis` → `şehîdis`, `i!rîn` → `işrîn` (`data/eserler.json`, aşağıdaki eser kayıtları maddesine bakın).
+2. Düzeltildi: `d1` 1421 kartı envanterdeki ifadeyle yeniden yazıldı (mimar ayrı V kartında), `k2` "İznik çiniciliğinin şaheser örnekleri" cümlesi çıkarıldı. Kalan kartlar kaynaklarıyla uyumlu.
 
-### Emir Sultan Külliyesi (`bursa-emir-sultan-kulliyesi`, kalfa, bekliyor; başka bir iş akışında üretiliyor)
-1. **Kesin.** Kollardan "Ahşap Avlu Şadırvanı" ve "Kufi Hat Levhası"nın envanter metninde hiç karşılığı yok (metinde şadırvan, levha, kufi geçmiyor); iki kol da yalnızca G kartıyla anlatılıyor. Kural: kaynakta hakkında bilgi olmayan ayrıntı kol yapılmaz. Ayrıca hat levhası yapay zekâ ile üretilirse sahte yazı çıkar.
-2. **Açık.** Vikipedi başlığı denetimde bulunamadı; V kartı yok, sorun değil.
-3. Envanter kartları (28 tasdik imzası, Hundi Hatun, Edremit-Havran gelirleri) metinle uyumlu; vakıf boyutunu iyi anlatıyor.
+### Emir Sultan Külliyesi (`bursa-emir-sultan-kulliyesi`, kalfa, onaylı)
+1. Düzeltildi: hedef Vikipedi koordinatına (40.18111, 29.08111) taşındı ve uydu kareleri yeniden üretildi (eski hedef yaklaşık 770 m kuzeydeydi). Kaynaksız ve sahte yazılı "Kufi Hat Levhası" kolu çıkarıldı. Şadırvan kolu Vikipedi "Emir Sultan Camii" maddesine bağlandı (avlunun ortasında şadırvan).
+2. **Açık.** `k1` türbe kapısı canlandırmasının alınlığında yapay zekânın ürettiği okunmaz yazı var; görüntü yeniden üretilirken yazısız istenmeli.
 
 ### Bursa Ulucami (`bursa-ulucami`, el, onaylı)
 1. **Açık.** `k1` "Türkiye'de iç cemaat yeri en geniş camidir" (V). Vikipedi'de aynen geçiyor ama kaynaksız bir üstünlük iddiası. Öneri: "…en geniş camilerden biri olarak anılır".
