@@ -3,7 +3,7 @@
 // Ustanın serbest isteğiyle çalışır ("Ulu Cami'nin minberini ve şadırvanını anlatan bir dalış yap").
 // Adımlar (her biri Studio'da canlı izlenir):
 //   0. İstek       isteğe uyan eser adayları yerelde puanlanır, dil modeli doğru eseri ve odağı seçer
-//   1. Kaynaklar   eser kaydı (Vakıf envanteri) + Türkçe Vikipedi metni ve koordinatı
+//   1. Kaynaklar   eser kaydı (Vakıf envanteri); Türkçe Vikipedi yalnızca DALIS_VIKIPEDI=1 ise
 //   2. Fotoğraflar görsel model eserin fotoğraflarını tanır (hava / dış / iç / detay)
 //   3. Plan        dil modeli, aşağıdaki DALIS_SISTEM istemiyle geziyi planlar: dış duraklar, giriş, merkez,
 //                  kollar (ayrıntılar) ve her durağın kaynaklı bilgi kartları
@@ -306,7 +306,7 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     let eser = eserId ? eserler.find((e) => e.id === eserId) : null;
     if (eser && !is.istek) { is.eser = eser.id; is.ad = eser.ad; return { eser, odak: "" }; }
     const aday = eser ? [eser] : adaylar(eserler, is.istek);
-    if (!aday.length) throw new Error("İstekte adı geçen bir eser bulunamadı (yalnızca fotoğrafı olan eserler için dalış yapılabilir). Eserin adını yaz.");
+    if (!aday.length) throw new Error("Bu istek bilgi bankamızdaki bir vakıf eserine uymuyor (dalış yalnızca veritabanımızdaki, fotoğrafı olan eserler için yapılır). Aşağıdaki önerilerden birini seçebilir ya da bilgi bankasındaki bir eserin adını yazabilirsin. Nasıl devam edelim?");
     yaz(is, `Adaylar: ${aday.slice(0, 6).map((e) => e.ad).join(", ")}${aday.length > 6 ? "…" : ""}`);
     const { metin, model } = await dalisSohbet({
       ortam, sistem: ISTEK_SISTEM, maks: 800,
@@ -314,7 +314,7 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     });
     const j = jsonCikar(metin);
     eser = aday.find((e) => e.id === j?.eser) ?? null;
-    if (!eser) throw new Error(kisalt(j?.neden, 300) || "İstekteki eser anlaşılamadı; eserin adını yaz.");
+    if (!eser) throw new Error(`${kisalt(j?.neden, 300) || "İstekteki eser bilgi bankamızda bulunamadı."} Aşağıdaki önerilerden birini seçebilir ya da bilgi bankasındaki bir eserin adını yazabilirsin. Nasıl devam edelim?`);
     is.eser = eser.id; is.ad = eser.ad;
     yaz(is, `Eser: ${eser.ad} (${eser.il}) — ${kisalt(j?.neden, 160)} [${model}]`);
     if (j?.odak) yaz(is, `Odak: ${kisalt(j.odak, 300)}`);
@@ -323,9 +323,11 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
 
   async function calistir(is, eser, not, tanimYolu) {
     // 1. Kaynaklar
-    yaz(is, "Kaynaklar toplanıyor: eser kaydı ve Vikipedi…", 1);
-    const viki = await vikipedi(eser).catch(() => null);
-    yaz(is, viki ? `Vikipedi: "${viki.baslik}" (${viki.metin.length} harf)` : "Vikipedi'de uygun madde bulunamadı; yalnızca envanter kullanılacak.");
+    // Kalfa yalnızca bilgi bankamızla çalışır: Vikipedi varsayılan olarak kapalı (DALIS_VIKIPEDI=1 ile açılır).
+    const vikiAcik = ortam.DALIS_VIKIPEDI === "1";
+    yaz(is, vikiAcik ? "Kaynaklar toplanıyor: eser kaydı ve Vikipedi…" : "Kaynak: bilgi bankasındaki eser kaydı (envanter)", 1);
+    const viki = vikiAcik ? await vikipedi(eser).catch(() => null) : null;
+    if (vikiAcik) yaz(is, viki ? `Vikipedi: "${viki.baslik}" (${viki.metin.length} harf)` : "Vikipedi'de uygun madde bulunamadı; yalnızca envanter kullanılacak.");
     let hedef = null;
     if (viki?.konum && (!eser.konum || mesafe(viki.konum, eser.konum) < 20_000)) hedef = viki.konum;
     else if (eser.konum) hedef = { lat: eser.konum.lat, lng: eser.konum.lng };
