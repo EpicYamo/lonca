@@ -176,3 +176,52 @@ test("sağlayıcı yanıt vermezse istek zaman aşımıyla anlaşılır biçimde
     assert.equal(istenenModel, "baska-model");
   } finally { clearTimeout(beklet); globalThis.fetch = asilFetch; }
 });
+
+test("açılış önerileri bilgi bankasındaki eserlerden kurulur; İngilizcede İngilizce adlar kullanılır", async () => {
+  const { veridenOneriler } = await import("../server/kalfa.js");
+  const adlar = new Set(eserler.flatMap((e) => [e.ad, e.ad_en].filter(Boolean)));
+  const tr = veridenOneriler(eserler, { dil: "tr" });
+  assert.equal(tr.length, 3);
+  assert.ok(tr.some((o) => [...adlar].some((a) => o.includes(a))), "öneri bir eser adı içerir");
+  const en = veridenOneriler(eserler, { dil: "en" });
+  assert.match(en.join(" "), /treasure hunt|guide|Tell me/);
+  const s = await deneySunucusu();
+  assert.equal((await s.istek("GET", "/api/kalfa/oneriler")).statusCode, 401);
+  const y = (await s.istek("GET", "/api/kalfa/oneriler?dil=en", { usta: true })).json();
+  assert.equal(y.oneriler.length, 3);
+  assert.equal((await s.istek("POST", "/api/kalfa", { usta: true, govde: { sohbet: [{ rol: "usta", metin: "selam" }], dil: "fr" } })).statusCode, 400);
+  await s.app.close();
+});
+
+test("dil sezgisi: İngilizce yazılan ya da İngilizce istenen mesaj", async () => {
+  const { ingilizceMi } = await import("../server/kalfa.js");
+  for (const m of ["Make a quiz about the mosques of Bursa", "Can you build a treasure hunt for kids?", "bunu İngilizce yap", "in English please"]) assert.ok(ingilizceMi(m), m);
+  for (const m of ["Bursa camileri için bir yarışma", "Koza Han'ı kim yaptırdı?", "Ulucami", "bunu Türkçe yap, English değil"]) assert.ok(!ingilizceMi(m), m);
+});
+
+test("bilgi bankası araçları: tarihçede metin araması, İngilizce alanlar ve SDK araması; öneri yoksa ayrıca sorulur", async () => {
+  const asilFetch = globalThis.fetch;
+  const istekler = [];
+  const arac = (id, name, args) => ({ id, type: "function", function: { name, arguments: JSON.stringify(args) } });
+  const yanitlar = [
+    { tool_calls: [arac("1", "eser_ara", { metin: "Somuncu Baba" }), arac("2", "eser_bilgisi", { id: "bursa-ulucami" }), arac("3", "sdk_bilgisi", { konu: "basarim" })] },
+    { tool_calls: [arac("4", "yanit_ver", { metin: "Ulu Mosque…", kaynaklar: ["bursa-ulucami"] })] },
+    { tool_calls: [arac("5", "oneri_ver", { oneriler: ["Make it a quiz", "Tell me more about Ulucami", "Add a map"] })] },
+  ];
+  globalThis.fetch = async (_url, { body }) => {
+    istekler.push(JSON.parse(body));
+    return new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content: "", ...yanitlar[istekler.length - 1] } }] }), { status: 200 });
+  };
+  try {
+    const k = kalfaHazirla({ kok: KOK, eserler, ortam: { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "m" } });
+    const r = await k.calistir([{ rol: "usta", metin: "Tell me about the Ulu Mosque" }], undefined, { dil: "en" });
+    assert.equal(r.tur, "sohbet");
+    assert.deepEqual(r.oneriler, ["Make it a quiz", "Tell me more about Ulucami", "Add a map"], "öneriler ayrı yapay zekâ çağrısıyla geldi");
+    assert.match(istekler[0].messages.at(-1).content, /dili İngilizce/);
+    const sonuclar = Object.fromEntries(istekler[1].messages.filter((m) => m.role === "tool").map((m) => [m.tool_call_id, JSON.parse(m.content)]));
+    assert.ok(sonuclar["1"].eserler.some((e) => e.id === "bursa-ulucami" && /Somuncu Baba/.test(e.parca)), "tarihçede metin araması");
+    assert.ok(sonuclar["2"].tarihce_en && sonuclar["2"].ad_en, "eser_bilgisi İngilizce alanları verir");
+    assert.match(sonuclar["3"].tanimlar, /Basarim/);
+    assert.equal(istekler[2].tools[0].function.name, "oneri_ver");
+  } finally { globalThis.fetch = asilFetch; }
+});

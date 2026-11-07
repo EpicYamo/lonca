@@ -108,9 +108,14 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "leaflet", "dist"), prefix: "/vendor/leaflet/", decorateReply: false });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
-  // Kök adres doğrudan vatandaş uygulamasının ana sayfasıdır (yönlendirme yok); sayfadaki bütün yollar mutlak.
-  app.get("/", (_, rep) => rep.sendFile("index.html", path.join(kok, "public", "app")));
-  app.get("/app", (_, rep) => rep.redirect("/app/"));
+  // Web sitesi kökte: / doğrudan ana sayfa (sayfadaki bütün yollar mutlak). "App" artık yalnızca Android uygulaması;
+  // eski /app adresleri sorgusuyla birlikte köke yönlenir. Studio önizlemesi (/app/?onizleme) aynı sayfayı çerçevede açar.
+  const anaSayfa = (rep) => rep.sendFile("index.html", path.join(kok, "public", "app"));
+  const sorgu = (req) => { const i = req.url.indexOf("?"); return i < 0 ? "" : req.url.slice(i); };
+  app.get("/", (_, rep) => anaSayfa(rep));
+  app.get("/app", (req, rep) => rep.redirect(`/${sorgu(req)}`, 301));
+  app.get("/app/", (req, rep) => (req.query?.onizleme != null ? anaSayfa(rep) : rep.redirect(`/${sorgu(req)}`, 301)));
+  app.get("/app/index.html", (req, rep) => (req.query?.onizleme != null ? anaSayfa(rep) : rep.redirect(`/${sorgu(req)}`, 301)));
   app.get("/studio", (_, rep) => rep.redirect("/studio/"));
 
   app.get("/api/ayarlar", async () => ({
@@ -471,13 +476,19 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       if (e !== gununEseri && !secki.includes(e)) secki.push(e);
     }
     const moduller = (await modulDosyasi.oku()).filter((m) => m.durum === "onayli");
+    // Vitrindeki kartlar aynı fotoğrafı tekrarlamasın: aynı kapak eserini seçen ikinci modül eserin sıradaki
+    // fotoğrafını, o da yoksa havuzdan kullanılmamış bir eserin fotoğrafını alır.
+    const kullanilan = new Set();
+    const bosFoto = (e) => e?.fotograflar?.find((f) => !kullanilan.has(f));
     const kapaklar = Object.fromEntries(moduller.map((m) => {
       const secilen = m.kapakEser && eserler.find((e) => e.id === m.kapakEser && e.fotograflar?.length);
-      if (secilen) return [m.id, { foto: secilen.fotograflar[0], eser: secilen.ad }];
       const uygun = havuz.filter((e) => !m.ikon || m.ikon === "genel" || e.tur === m.ikon);
       const liste = uygun.length ? uygun : havuz;
-      const e = liste[sabitSayi(m.id) % Math.max(1, liste.length)];
-      return [m.id, e ? { foto: e.fotograflar[0], eser: e.ad } : null];
+      const bas = sabitSayi(m.id) % Math.max(1, liste.length);
+      const aday = bosFoto(secilen) ? secilen : [...liste.slice(bas), ...liste.slice(0, bas)].find(bosFoto) ?? secilen ?? liste[bas];
+      const foto = bosFoto(aday) ?? aday?.fotograflar?.[0];
+      if (foto) kullanilan.add(foto);
+      return [m.id, aday && foto ? { foto, eser: aday.ad } : null];
     }));
     return {
       sayilar: { eser: eserler.length, fotografli: havuz.length, konumlu: eserler.filter((e) => e.konum).length, ilce: new Set(eserler.map((e) => e.ilce).filter(Boolean)).size },
@@ -636,7 +647,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   });
   app.get("/m/:anahtar", async (req, rep) => {
     const { anahtar } = req.params;
-    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/app/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/app/");
+    return paylasimAnahtariGecerli(anahtar) ? rep.redirect(`/?modul=${encodeURIComponent(anahtar)}`) : rep.redirect("/");
   });
   // Android App Links doğrulaması: ANDROID_IMZA_SHA256 (APK imza sertifikasının SHA-256 parmak izleri, virgülle) doluysa yayımlanır.
   const imzalar = String(ortam.ANDROID_IMZA_SHA256 ?? "").split(",").map((x) => x.trim().toUpperCase()).filter((x) => /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(x));
@@ -835,18 +846,20 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   // Kalfa. "oturum" verilirse sohbet sunucudaki oturumdan kurulur ve yanıt (istemci beklemeyi bıraksa da) oturuma yazılır;
   // verilmezse eski biçim: sohbet istekle gelir, hiçbir şey saklanmaz.
+  // Boş sohbetteki örnek fikirler: her açılışta bilgi bankasındaki eserlerden yeniden kurulur (yapay zekâ çağrısı yok).
+  app.get("/api/kalfa/oneriler", { preHandler: ustaGerekli }, async (req) => ({ oneriler: kalfa.baslangicOnerileri(req.query.dil === "en" ? "en" : "tr") }));
   app.post("/api/kalfa", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
     if (req.body?.oturum != null) {
-      const { oturum, istek, kod } = req.body;
+      const { oturum, istek, kod, dil } = req.body;
       if (!atolyeKimligiGecerli(oturum)) return rep.code(400).send({ hata: "geçersiz oturum kimliği" });
-      const hatalar = atolyeIstekDogrula({ istek, kod });
+      const hatalar = atolyeIstekDogrula({ istek, kod, dil });
       if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
       const sahip = await atolyeSahibi(req);
       let sohbet;
       try { ({ sohbet } = await atolye.kalfaBaslat(sahip, oturum, { istek: istek.trim(), kod: kod ?? null })); }
       catch (h) { return atolyeHatasi(rep, h); }
       try {
-        const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+        const sonuc = await kalfa.calistir(sohbet, kod || undefined, { dil: dil ?? "tr" });
         if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
         await atolye.kalfaBitir(sahip, oturum, { sonuc });
         return sonuc;
@@ -856,14 +869,15 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
         return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });
       }
     }
-    const { sohbet, kod } = req.body ?? {};
+    const { sohbet, kod, dil } = req.body ?? {};
+    if (dil != null && dil !== "tr" && dil !== "en") return rep.code(400).send({ hata: "dil: tr | en" });
     const gecerli = Array.isArray(sohbet) && sohbet.length > 0 && sohbet.length <= 30 &&
       sohbet.every((m) => (m?.rol === "usta" || m?.rol === "kalfa") && typeof m.metin === "string" && m.metin.length <= 4000) &&
       sohbet.at(-1).rol === "usta";
     if (!gecerli) return rep.code(400).send({ hata: "sohbet: en fazla 30 mesaj, son mesaj ustadan" });
     if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
     try {
-      const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+      const sonuc = await kalfa.calistir(sohbet, kod || undefined, { dil: dil ?? "tr" });
       if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
       return sonuc;
     } catch (h) {

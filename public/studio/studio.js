@@ -54,10 +54,22 @@ $("#kod").addEventListener("keydown", (e) => {
   const t = e.target, b = t.selectionStart;
   t.setRangeText("  ", b, t.selectionEnd, "end");
   editoruGuncelle();
+  canliOnizle();
 });
+
+// Elle düzenleme canlı: yazma durunca (800 ms) modül önizlemede yerinde yeniden çalışır.
+let canliZamanlayici = 0;
+function canliOnizle() {
+  clearTimeout(canliZamanlayici);
+  canliZamanlayici = setTimeout(() => onizle({ yeniden: false, sessiz: true }), 800);
+}
+$("#kod").addEventListener("input", canliOnizle);
+$("#ad").addEventListener("input", canliOnizle);
+for (const s of ["#renk", "#ikon", "#kategori"]) $(s).addEventListener("change", canliOnizle);
 
 let akisNo = 0;
 async function kodAkit(kod) {
+  clearTimeout(canliZamanlayici);
   const kutu = $("#kod");
   const bu = ++akisNo;
   if (hareketAzalt()) { kutu.value = kod; editoruGuncelle(); return true; }
@@ -135,10 +147,18 @@ document.querySelectorAll(".kip button[data-kip]").forEach((b) => b.addEventList
 $("#dalis-oneriler").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) gonder(b.textContent); });
 
 // ---------- Öneri düğmeleri ----------
-// Modül kipinde kalfa her yanıtla 2–3 yeni öneri verir; boş sohbette index.html'deki örnek fikirler görünür.
+// Modül kipinde kalfa her yanıtla 2–3 yeni öneri verir (yanıt vermezse sunucu konuşmaya göre yapay zekâya ayrıca
+// sordurur). Boş sohbetteki örnek fikirler her açılışta bilgi bankasından kurulur; index.html'dekiler yalnızca yedektir.
 // Dalış kipinde öneriler sunucudan (bilgi bankasındaki eserlerden) gelir ve her dalış isteğinden sonra yenilenir.
 const ILK_ONERILER = [...document.querySelectorAll("#oneriler button")].map((b) => b.textContent);
 let kalfaOnerileri = null; // null: sohbet boş, örnek fikirler gösterilir
+let ilkOneriler = ILK_ONERILER;
+async function baslangicOnerileriniYukle() {
+  try {
+    const { oneriler } = await yApi(`/api/kalfa/oneriler?dil=${dilAl()}`, { yeniden: false });
+    if (oneriler?.length) { ilkOneriler = oneriler; onerileriGoster(); }
+  } catch { /* yedek örnekler kalır */ }
+}
 let dalisOnerisiYuklendi = false;
 const dalisIstenenler = [];
 const dalisOneriEserleri = new Map(); // öneri metni → eser kimliği (gönderilen öneri yeniden önerilmesin)
@@ -146,7 +166,7 @@ function oneriDugmeleri(kutu, metinler) {
   kutu.replaceChildren(...metinler.map((m) => el("button", { type: "button", textContent: m })));
 }
 function onerileriGoster() {
-  const liste = kalfaOnerileri ?? ILK_ONERILER;
+  const liste = kalfaOnerileri ?? ilkOneriler;
   oneriDugmeleri($("#oneriler"), liste);
   // Sohbet başladıktan sonra kalfanın kısa önerileri yan yana küçük düğmeler olarak durur (mesajlara yer kalsın).
   $("#oneriler").classList.toggle("kompakt", kalfaOnerileri !== null);
@@ -230,6 +250,7 @@ async function dalisGonder(metin) {
   $("#gonder").disabled = true;
   const kutu = dalisKutusu();
   const bu = oturumSurumu;
+  sahneDurum("Dalış kalfası çalışıyor…");
   try {
     const oturum = await oturumGerekli();
     const { is } = await yApi("/api/dalis-kalfasi", { method: "POST", govde: { istek: metin, oturum } });
@@ -241,7 +262,7 @@ async function dalisGonder(metin) {
     kutu.baslik.textContent = h.message;
     dalisOnerileriniYenile(); // istek başarısız olsa da öneriler yenilenir
   } finally {
-    if (bu === oturumSurumu) $("#gonder").disabled = false;
+    if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
     $("#istek").focus();
     sonaKaydir();
   }
@@ -252,7 +273,9 @@ async function dalisOnizle() {
   try {
     const kod = await (await fetch("/api/moduller/vakif-dalislari/kod")).text();
     bekleyen = { kod, ad: "Vakıf Dalışları", id: "vakif-dalislari", renk: "altin", ikon: "cami", kategori: "gezi" };
-    $("#cerceve").src = `/app/?onizleme=1&t=${Date.now()}`;
+    cerceveyiYenile();
+    sahneDurum(null);
+    document.dispatchEvent(new CustomEvent("studio:onizleme-hazir"));
   } catch (h) { mesajEkle("kalfa", `Önizleme açılamadı: ${h.message}`, { hata: true }); }
 }
 
@@ -281,13 +304,16 @@ const yaziyorEkle = (metin) => {
 // Kalfanın yazdığı modülü editöre akıtır ve önizler.
 async function taslagiAkit(t) {
   surumSakla("kalfa yazmadan önce");
-  if (!(await kodAkit(t.kod))) return;
+  sahneDurum("Kalfa modülü yazıyor…");
+  if (!(await kodAkit(t.kod))) { sahneDurum(null); return; }
   $("#ad").value = t.ad ?? ""; $("#id").value = t.id ?? ""; $("#aciklama").value = t.aciklama ?? "";
   $("#renk").value = t.renk ?? ""; $("#ikon").value = t.ikon ?? ""; $("#kategori").value = t.kategori ?? "";
   editoruGuncelle();
   taslakDegisti(); // kalfa beklenirken editörde yapılan bir değişiklik oturumdaki sonucu ezmiş olabilir
   durumYaz("iyi", "Modül hazır, önizlemede çalışıyor.");
   onizle();
+  sahneDurum(null);
+  document.dispatchEvent(new CustomEvent("studio:onizleme-hazir"));
 }
 
 async function gonder(metin) {
@@ -300,10 +326,11 @@ async function gonder(metin) {
   $("#gonder").disabled = true;
   const yaziyor = yaziyorEkle("Kalfa düşünüyor: bilgi bankasına ve SDK'ya bakıyor");
   const bu = oturumSurumu;
+  sahneDurum("Kalfa düşünüyor…");
   try {
     // İstek oturuma yazılır; sayfa bu sırada yenilense de kalfanın yanıtı sunucuda oturuma kaydedilir.
     const oturum = await oturumGerekli();
-    const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value } });
+    const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value, dil: dilAl() } });
     yaziyor.remove();
     if (bu !== oturumSurumu) return;
     kalfaOnerileriniAyarla(s.oneriler ?? []);
@@ -320,7 +347,7 @@ async function gonder(metin) {
     const ayrinti = h.ayrintilar?.length ? `\n• ${h.ayrintilar.join("\n• ")}` : "";
     mesajEkle("kalfa", h instanceof TypeError ? `Sunucuya ulaşılamadı: ${h.message}. Sunucunun çalıştığını kontrol et.` : `${h.message}${ayrinti}`, { hata: true });
   } finally {
-    if (bu === oturumSurumu) $("#gonder").disabled = false;
+    if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
     $("#istek").focus();
   }
 }
@@ -331,12 +358,26 @@ $("#istek").addEventListener("keydown", (e) => {
 });
 $("#oneriler").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) gonder(b.textContent); });
 
+// Önizleme kendiliğinden çalışır: kalfa modülü bitirince, oturum/modül açılınca ve elle düzenlemede (canliOnizle).
+// yeniden: çerçeveyi baştan yükle; false ise hazır çerçevede modül yerinde yeniden çalışır (app.js öncekini iptal eder).
+// sessiz: kod boşsa uyarı yazma, telefonu parlatma (yazarken her değişiklikte).
 let bekleyen = null;
-function onizle() {
-  const kod = $("#kod").value;
-  if (!kod.trim()) return durumYaz("kotu", "Önizlenecek kod yok. Kalfaya bir fikir anlat ya da kodu elle yaz.");
-  bekleyen = { kod, ad: $("#ad").value, id: $("#id").value, renk: $("#renk").value || undefined, ikon: $("#ikon").value || undefined, kategori: $("#kategori").value || undefined };
+let cerceveHazir = false; // çerçeve "onizleme-hazir" dedi; src değişince yeniden beklenir
+function cerceveyiYenile() {
+  cerceveHazir = false;
   $("#cerceve").src = `/app/?onizleme=1&t=${Date.now()}`;
+}
+function onizle({ yeniden = true, sessiz = false } = {}) {
+  clearTimeout(canliZamanlayici);
+  const kod = $("#kod").value;
+  if (!kod.trim()) {
+    if (!sessiz) durumYaz("kotu", "Önizlenecek kod yok. Kalfaya bir fikir anlat ya da kodu elle yaz.");
+    return;
+  }
+  bekleyen = { kod, ad: $("#ad").value, id: $("#id").value, renk: $("#renk").value || undefined, ikon: $("#ikon").value || undefined, kategori: $("#kategori").value || undefined };
+  if (!yeniden && cerceveHazir) $("#cerceve").contentWindow.postMessage({ tur: "onizle", ...bekleyen }, location.origin);
+  else cerceveyiYenile();
+  if (sessiz) return;
   const telefon = $(".telefon");
   telefon.classList.remove("parla");
   void telefon.offsetWidth;
@@ -344,12 +385,21 @@ function onizle() {
 }
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || e.source !== $("#cerceve").contentWindow) return;
-  if (e.data?.tur === "onizleme-hazir" && bekleyen) {
-    $("#cerceve").contentWindow.postMessage({ tur: "onizle", ...bekleyen }, location.origin);
+  if (e.data?.tur === "onizleme-hazir") {
+    cerceveHazir = true;
+    if (bekleyen) $("#cerceve").contentWindow.postMessage({ tur: "onizle", ...bekleyen }, location.origin);
   }
   if (e.data?.tur === "eser-duzenle" && typeof e.data.id === "string") eserDuzenlemeyeAc(e.data.id);
 });
-$("#onizle").addEventListener("click", onizle);
+$("#onizleme-yenile").addEventListener("click", () => onizle());
+
+// Kalfa çalışırken önizlemenin üstünde görünen durum (ekran okuyucuya da duyurulur).
+// Canlı bölge hep yerinde durur, yalnızca metni değişir; aria-busy telefonda (güncellenen içerik), bölgede değil.
+function sahneDurum(metin) {
+  $("#sahne").classList.toggle("calisiyor", !!metin);
+  if (metin) $(".telefon").setAttribute("aria-busy", "true"); else $(".telefon").removeAttribute("aria-busy");
+  $("#sahne-durum-metin").textContent = metin ?? "";
+}
 
 const SIFRE_ANAHTARI = "lonca.yonetici";
 const sifreOku = () => { try { return sessionStorage.getItem(SIFRE_ANAHTARI) ?? ""; } catch { return ""; } };
@@ -703,6 +753,7 @@ async function oturumuAc(id) {
   sonOturumYaz(o.id);
   taslakBekliyor = false;
   mesajlariTemizle();
+  sahneDurum(null);
   for (const m of o.mesajlar) {
     if (m.dalis) dalisIzle(m.dalis, dalisKutusu(), { geriYukleme: true, bu });
     else mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar });
@@ -723,6 +774,7 @@ async function kalfayiBekle(o, bu) {
   const yaziyor = yaziyorEkle("Kalfa hâlâ çalışıyor: sayfa yenilendi ama isteğin sunucuda sürüyor");
   const onceki = o.mesajlar.length;
   $("#gonder").disabled = true;
+  sahneDurum("Kalfa düşünüyor…");
   try {
     let son = o;
     do {
@@ -741,7 +793,7 @@ async function kalfayiBekle(o, bu) {
     yaziyor.remove();
     mesajEkle("kalfa", `Kalfanın durumu alınamadı: ${h.message}`, { hata: true });
   } finally {
-    if (bu === oturumSurumu) $("#gonder").disabled = false;
+    if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
   }
 }
 
@@ -756,7 +808,9 @@ async function yeniSohbet() {
   mesajlariTemizle();
   editoruDoldur();
   kalfaOnerileriniAyarla(null);
+  baslangicOnerileriniYukle();
   durumYaz("", "");
+  sahneDurum(null);
   $("#gonder").disabled = false;
   $("#istek").focus();
 }
@@ -764,6 +818,7 @@ async function yeniSohbet() {
 // Açılışta ve girişte: en son açık oturum (yoksa en yenisi) geri yüklenir. Kullanıcı "Yeni sohbet" dediyse boş başlar.
 async function oturumlariBaslat() {
   if (oturumId || !atolyeAcik()) return;
+  baslangicOnerileriniYukle();
   try {
     const { oturumlar } = await yApi("/api/atolye/oturumlar", { yeniden: false });
     const son = sonOturumOku();
@@ -777,9 +832,11 @@ function atolyeyiSifirla() {
   oturumId = null;
   taslakBekliyor = false;
   clearTimeout(taslakZamanlayici);
+  clearTimeout(canliZamanlayici);
   mesajlariTemizle();
   editoruDoldur();
   kalfaOnerileriniAyarla(null);
+  sahneDurum(null);
   $("#gonder").disabled = false;
 }
 
