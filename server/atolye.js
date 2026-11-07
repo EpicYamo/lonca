@@ -149,7 +149,13 @@ export function atolyeKur(dizin) {
           mesajEkle(o, { rol: "kalfa", metin: ayrintilar.length ? `${hata}\n• ${ayrintilar.join("\n• ")}` : hata, hata: true });
           return {};
         }
-        mesajEkle(o, { rol: "kalfa", metin: sonuc.aciklama_ustaya ?? "", ek: { aramalar: sonuc.aramalar ?? [], deneme: sonuc.deneme ?? 1, model: sonuc.model ?? null }, uretim: true });
+        const ek = { aramalar: sonuc.aramalar ?? [], model: sonuc.model ?? null, kaynaklar: sonuc.kaynaklar ?? null, oneriler: sonuc.oneriler ?? [] };
+        // Sohbet yanıtı (kod yazılmadı): yalnızca mesaj eklenir, taslak olduğu gibi kalır.
+        if (sonuc.tur === "sohbet") {
+          mesajEkle(o, { rol: "kalfa", metin: sonuc.metin ?? "", ek: { ...ek, tur: "sohbet" } });
+          return {};
+        }
+        mesajEkle(o, { rol: "kalfa", metin: sonuc.aciklama_ustaya ?? "", ek: { ...ek, tur: "modul", deneme: sonuc.deneme ?? 1 }, uretim: true });
         o.taslak = {
           kod: sonuc.kod, ad: sonuc.ad ?? "", id: sonuc.id ?? "", aciklama: sonuc.aciklama ?? "",
           renk: sonuc.renk ?? "", ikon: sonuc.ikon === "genel" ? "" : (sonuc.ikon ?? ""), kategori: sonuc.kategori ?? "",

@@ -120,12 +120,24 @@ test("admin (editör) her şeyi düzenler; usta Studio listelerini yalnızca gö
     ["DELETE", "/api/moduller/yok"],
     ["POST", "/api/eser-oneriler/yok/karar", { karar: "onayla" }],
     ["GET", "/api/eserler-disa-aktar"],
-    ["POST", "/api/dalis-kalfasi", {}],
+    ["POST", "/api/dalislar/yok/durum", { durum: "onayli" }],
     ["PUT", "/api/kalfa/ayarlar", {}],
     ["GET", "/api/kalfa/modeller"],
   ];
   for (const [yontem, yol, govde] of yazma) {
     assert.equal((await s.istek(yontem, yol, { govde, basliklar: yetki(usta.jeton) })).statusCode, 401, `usta ${yontem} ${yol}`);
+  }
+  // Dalış: usta da hazırlatabilir (yayın yine admin onayıyla); mevcut dalışın üzerine yazamaz; vatandaş hiç kullanamaz.
+  assert.equal((await s.istek("POST", "/api/dalis-kalfasi", { govde: {}, basliklar: yetki(vatandas.jeton) })).statusCode, 401);
+  assert.equal((await s.istek("POST", "/api/dalis-kalfasi", { govde: {}, basliklar: yetki(usta.jeton) })).statusCode, 400, "usta dalış kalfasına ulaşır");
+  assert.equal((await s.istek("POST", "/api/dalis-kalfasi", { govde: { eser: eserId, uzerineYaz: true }, basliklar: yetki(usta.jeton) })).statusCode, 403);
+  assert.equal((await s.istek("GET", "/api/dalis-kalfasi/oneriler", { basliklar: yetki(vatandas.jeton) })).statusCode, 401);
+  const { oneriler } = (await s.istek("GET", `/api/dalis-kalfasi/oneriler?haric=${eserId}`, { basliklar: yetki(usta.jeton) })).json();
+  assert.equal(oneriler.length, 3);
+  const eserAdlari = new Map((await s.istek("GET", "/api/eserler")).json().map((e) => [e.id, e.ad]));
+  for (const o of oneriler) {
+    assert.notEqual(o.eser, eserId, "haric verilen eser önerilmez");
+    assert.ok(o.metin.startsWith(eserAdlari.get(o.eser)), "öneri bilgi bankasındaki eser adıyla kurulur");
   }
   // Model ayarlarını artık admin hesabı da değiştirebilir (yalnızca yönetici şifresi değil).
   assert.notEqual((await s.istek("PUT", "/api/kalfa/ayarlar", { basliklar: yetki(editor.jeton), govde: {} })).statusCode, 401);

@@ -17,7 +17,49 @@ const MAKS_SATIR = 2000;
 // Studio'yu dakikalarca bekletmesin diye; 5xx'te yapılan yeniden denemelerin her biri ayrı sayılır.
 const ISTEK_ZAMAN_ASIMI_SN = 150;
 
-export function kalfaHazirla({ kok, eserler, ortam = process.env }) {
+// Ustanın son mesajı modülü yazdırmak/değiştirmek için açık bir istek mi? Kalfa varsayılan olarak sohbet eder;
+// modul_yaz yalnızca bu doğruysa kabul edilir (istem de aynısını söyler; bu, modelin aceleciliğine karşı ikinci kat).
+const INSA_KOKLERI = ["yap", "oluştur", "inşa", "kodla", "hazırla", "üret", "geliştir", "güncelle", "değiştir", "düzelt", "ekle",
+  "kaldır", "çıkar", "sil", "dönüştür", "çevir", "uygula", "başla", "devam", "evet", "tamam", "olur", "hadi", "haydi", "yaz",
+  "build", "make", "create"];
+export function insaIstegiMi(metin) {
+  const kelimeler = String(metin ?? "").toLocaleLowerCase("tr").split(/[^\p{L}]+/u).filter(Boolean);
+  return kelimeler.some((k) => {
+    if (k.startsWith("yapı") && !k.startsWith("yapıl") && !k.startsWith("yapıver")) return false; // yapı, yapıt (bina)
+    if (k.startsWith("yazı") || k.startsWith("inşaat")) return false; // yazı, yazıt, inşaat
+    return INSA_KOKLERI.some((kok) => k.startsWith(kok));
+  });
+}
+
+const MAKS_ONERI = 3;
+// Modelin önerdiği soru düğmeleri: kısa, tekrarsız, en çok üç.
+function onerileriTemizle(liste) {
+  if (!Array.isArray(liste)) return [];
+  const gorulen = new Set();
+  const sonuc = [];
+  for (const o of liste) {
+    if (typeof o !== "string") continue;
+    let t = o.replace(/\s+/g, " ").trim();
+    if (!t) continue;
+    if (t.length > 80) t = `${t.slice(0, 79)}…`;
+    const anahtar = t.toLocaleLowerCase("tr");
+    if (gorulen.has(anahtar)) continue;
+    gorulen.add(anahtar);
+    sonuc.push(t);
+    if (sonuc.length >= MAKS_ONERI) break;
+  }
+  return sonuc;
+}
+
+// Model öneri vermediyse (ör. araç çağırmadan düz metinle yanıtladıysa) düğmeler boş kalmasın.
+const YEDEK_ONERILER = {
+  sohbet: ["Tamam, bu fikri yap", "Hangi eserler var?", "SDK hangi ekranları sunuyor?"],
+  duzenle: ["Değişiklikleri yap", "Bu modül nasıl çalışıyor?", "Bir başarım ekle"],
+  modul: ["Bir başarım ekle", "Renkleri değiştir", "Bu modül nasıl çalışıyor?"],
+};
+const onerilerVeyaYedek = (liste, tur) => { const o = onerileriTemizle(liste); return o.length ? o : YEDEK_ONERILER[tur]; };
+
+export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
   const ornek = (ad) => readFileSync(path.join(kok, "sdk", "ornekler", `${ad}.js`), "utf8");
   const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi");
@@ -28,8 +70,16 @@ export function kalfaHazirla({ kok, eserler, ortam = process.env }) {
   saglayiciAl(); // yanlış yapılandırma sunucu açılırken fark edilsin
   const zamanAsimiMs = (Number(ortam.KALFA_ZAMAN_ASIMI_SN) > 0 ? Number(ortam.KALFA_ZAMAN_ASIMI_SN) : ISTEK_ZAMAN_ASIMI_SN) * 1000;
 
-  const sistem = `Sen Lonca platformunun "kalfa"sısın. Usta (kullanıcı) bir fikir anlatır; sen o fikri vakıf eserleri hakkında küçük bir Lonca modülüne dönüştürürsün. Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
+  const sistem = `Sen Lonca platformunun "kalfa"sısın. Usta (kullanıcı) seninle vakıf eserleri ve Lonca modülleri hakkında konuşur; istediğinde fikrini vakıf eserleri hakkında küçük bir Lonca modülüne dönüştürürsün. Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
 
+# Konuşma ve inşa
+- Varsayılan iş SOHBETTİR: soruları yanıtla, fikri birlikte geliştir, gerekirse bir iki netleştirici soru sor, modülün nasıl olacağını kısaca öner. Bunu yanit_ver aracıyla yap.
+- modul_yaz'ı YALNIZCA usta açıkça istediğinde çağır: "yap", "oluştur", "inşa et", "yaz", "kodla", "hazırla" dediğinde, mevcut modülde bir şeyi "değiştir / ekle / düzelt / kaldır" dediğinde ya da senin önerine "evet / tamam" dediğinde. Usta yalnızca bir fikir anlatıyorsa kod YAZMA: fikri konuş, planı 2–4 maddede anlat ve "Hazırsan “yap” yaz, modülü yazayım." de.
+- Eserlerle ilgili soruları BİLGİ BANKASINDAN yanıtla: önce eser_ara ile eseri bul, sonra eser_bilgisi ile kaydını (tarihçe, yüzyıl, kaynak, kaynaklı tarihsel bağlar) oku. Yalnızca bu araçların döndürdüğü bilgiyi söyle; bilgi bankasında yoksa "bilgi bankasında bu bilgi yok" de, tahmin yürütme. Genel kavramları (kubbe, revak, kitabe nedir) kendi cümlelerinle açıklayabilirsin; bunun genel bilgi olduğunu belirt.
+- SDK ve modül yapımıyla ilgili soruları aşağıdaki sözleşmeden yanıtla; sözleşmede olmayan bir özellik uydurma, yapılamıyorsa dürüstçe söyle.
+- Her yanıtta (yanit_ver ya da modul_yaz) "kaynaklar" alanına yanıtında bilgisini kullandığın eserlerin id'lerini, "sdk" alanına dayandığın SDK parçalarını yaz ("eserler.liste", "ekran.uc", düğüm tipi için yalnızca adı: "kapak"). "oneriler" alanına ustanın tek dokunuşla gönderebileceği 2–3 kısa soru ya da istek yaz: sohbetin şimdiki hâline uysun, ustanın ağzından yazılsın, en çok 80 harf; biri genelde modülü yaptırmak ya da geliştirmek olsun.
+
+# Modül kuralları (modul_yaz)
 - Tek bir JavaScript dosyası. Yalnızca şu satırla içe aktarma yapılır: import { ... } from "@lonca/sdk";
 - Dosya şunu dışa aktarır: export default async function basla() { ... }
 - Modül yalıtılmış bir ortamda çalışır: document, window, fetch, localStorage, setTimeout gibi tarayıcı API'leri YOKTUR. Her şey SDK ile yapılır (kalıcı veri için depo, puan için profil).
@@ -75,15 +125,17 @@ ${ornekUygulama}
 ${ornekOyun}
 \`\`\`
 
-- eser_ara: Veritabanında hangi eserlerin bulunduğunu öğrenmek için (il, tür ya da ad ile). Usta belirli eserlerden, bir ilçeden ya da "hangi eserler var" gibi bir şeyden söz ediyorsa ÖNCE bunu kullan. Sonuçlar yalnızca eser kimliklerini ve varlığını öğrenmen içindir: ekranda gösterilecek bilgiyi koda elle YAZMA, modül çalışırken eserler.getir / eserler.liste ile oku.
-- modul_yaz: Modülü teslim eder. Konuşmanın sonunda mutlaka bununla bitir.
+- eser_ara: Bilgi bankasında hangi eserlerin bulunduğunu öğrenmek için (il, tür ya da ad ile). Usta belirli eserlerden, bir ilçeden ya da "hangi eserler var" gibi bir şeyden söz ediyorsa ÖNCE bunu kullan. Modül yazarken sonuçlar yalnızca eser kimliklerini ve varlığını öğrenmen içindir: ekranda gösterilecek bilgiyi koda elle YAZMA, modül çalışırken eserler.getir / eserler.liste ile oku.
+- eser_bilgisi: Bir eserin bilgi bankasındaki tam kaydı (tarihçe, yüzyıl, adres, kaynak, kaynaklı tarihsel bağlar). Ustanın bir eserle ilgili sorusunu yanıtlarken kullan.
+- yanit_ver: Sohbet yanıtı (kod yok). Kod yazmadığın her turu bununla bitir.
+- modul_yaz: Modülü teslim eder; yalnızca usta açıkça istediğinde.
 
-"aciklama_ustaya" alanında ustaya modülün ne yaptığını 1–3 cümleyle anlat. İstediği bir şey SDK ile yapılamıyorsa bunu dürüstçe söyle ve yapabildiğin en yakın şeyi yap. Harita istenirse harita düğümünü (ya da ekran.harita) kullan.`;
+modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1–3 cümleyle anlat. İstediği bir şey SDK ile yapılamıyorsa bunu dürüstçe söyle ve yapabildiğin en yakın şeyi yap. Harita istenirse harita düğümünü (ya da ekran.harita) kullan.`;
 
   const araclar = [
     {
       ad: "modul_yaz",
-      aciklama: "Lonca modülünü (kod + kimlik bilgileri) teslim eder.",
+      aciklama: "Lonca modülünü (kod + kimlik bilgileri) teslim eder. Yalnızca usta modülü yazmanı/değiştirmeni açıkça istediğinde.",
       sema: {
         type: "object",
         properties: {
@@ -95,6 +147,9 @@ ${ornekOyun}
           renk: { type: "string", enum: ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"], description: "Çini karo rengi" },
           ikon: { type: "string", enum: ["cami", "han", "hamam", "medrese", "cesme", "turbe", "genel"], description: "Karodaki çizim" },
           kategori: { type: "string", enum: ["rehber", "oyun", "gezi", "ogren"], description: "Ana ekrandaki kategori: rehber (keşif/bilgi), oyun (yarışma), gezi (harita/rota), ogren (ders/sözlük)" },
+          kaynaklar: { type: "array", items: { type: "string" }, description: "Yanıtta bilgisi kullanılan eserlerin id'leri (eser_ara / eser_bilgisi sonuçlarından)" },
+          sdk: { type: "array", items: { type: "string" }, description: "Dayanılan SDK parçaları: \"eserler.liste\", \"ekran.uc\", düğüm tipi \"kapak\"…" },
+          oneriler: { type: "array", items: { type: "string" }, description: "Ustanın tıklayıp gönderebileceği 2–3 kısa soru/istek (en çok 80 harf)" },
         },
         required: ["id", "ad", "aciklama", "kod", "aciklama_ustaya"],
       },
@@ -113,6 +168,29 @@ ${ornekOyun}
         },
       },
     },
+    {
+      ad: "eser_bilgisi",
+      aciklama: "Bir eserin bilgi bankasındaki tam kaydını döndürür (salt okunur): tarihçe, yüzyıl, adres, kaynak ve kaynaklı tarihsel bağlar.",
+      sema: {
+        type: "object",
+        properties: { id: { type: "string", description: "Eser kimliği (eser_ara sonucundan)" } },
+        required: ["id"],
+      },
+    },
+    {
+      ad: "yanit_ver",
+      aciklama: "Ustaya sohbet yanıtı verir (kod yazmadan): soruyu yanıtlar, fikri tartışır, plan önerir.",
+      sema: {
+        type: "object",
+        properties: {
+          metin: { type: "string", description: "Ustaya sade Türkçe yanıt" },
+          kaynaklar: { type: "array", items: { type: "string" }, description: "Yanıtta bilgisi kullanılan eserlerin id'leri (eser_ara / eser_bilgisi sonuçlarından)" },
+          sdk: { type: "array", items: { type: "string" }, description: "Dayanılan SDK parçaları: \"eserler.liste\", \"ekran.uc\", düğüm tipi \"kapak\"…" },
+          oneriler: { type: "array", items: { type: "string" }, description: "Ustanın tıklayıp gönderebileceği 2–3 kısa soru/istek (en çok 80 harf)" },
+        },
+        required: ["metin"],
+      },
+    },
   ];
 
   const kucuk = (s) => String(s ?? "").toLocaleLowerCase("tr");
@@ -129,6 +207,39 @@ ${ornekOyun}
     };
   }
 
+  // Bilgi bankasından bir eserin kaydı: kalfanın soruları yanıtlarken okuduğu tek kaynak.
+  function eserBilgisi(g = {}) {
+    const e = eserler.find((x) => x.id === g.id);
+    if (!e) return null;
+    const baglar = iliskiler.filter((i) => i.a === e.id || i.b === e.id).slice(0, 20).map((i) => {
+      const diger = eserler.find((x) => x.id === (i.a === e.id ? i.b : i.a));
+      return { diger: diger ? { id: diger.id, ad: diger.ad, il: diger.il } : null, tur: i.tur, baslik: i.baslik, aciklama: i.aciklama, kaynak: i.kaynak };
+    });
+    return {
+      id: e.id, ad: e.ad, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil ?? null, adres: e.adres ?? null, konum: e.konum ?? null,
+      tarihce: String(e.tarihce?.tr ?? "").slice(0, 4000), kaynak: e.kaynak ?? null, fotografSayisi: e.fotograflar?.length ?? 0, iliskiler: baglar,
+    };
+  }
+
+  // Yanıtın dayandığı kaynaklar sunucuda kurulur: yalnızca araçların gerçekten döndürdüğü eserler ve sözleşmede bulunan SDK adları.
+  const SDK_ALANLARI = new Set(["eserler", "ekran", "sahne", "profil", "basarim", "depo", "dalislar"]);
+  function sdkAdiGecerli(ad) {
+    if (DUGUM_TIPLERI.has(ad)) return true;
+    const [alan, uye, fazla] = ad.split(".");
+    if (fazla !== undefined || !SDK_ALANLARI.has(alan)) return false;
+    if (uye === undefined) return true;
+    return /^[A-Za-z_$][\w$]*$/.test(uye) && new RegExp(`\\b${uye.replace(/\$/g, "\\$")}\\s*[(<?:]`).test(sdkTipleri);
+  }
+  function kaynaklariKur(girdi, izler) {
+    const anilan = Array.isArray(girdi?.kaynaklar) ? girdi.kaynaklar.filter((id) => typeof id === "string" && izler.gorulen.has(id)) : [];
+    const kimlikler = [...new Set(anilan.length ? anilan : izler.okunan)].slice(0, 8);
+    const eserKaynaklari = kimlikler.map((id) => eserler.find((e) => e.id === id)).filter(Boolean)
+      .map((e) => ({ id: e.id, ad: e.ad, il: e.il, kaynak: e.kaynak ?? null }));
+    const sdk = [...new Set((Array.isArray(girdi?.sdk) ? girdi.sdk : []).filter((a) => typeof a === "string").map((a) => a.trim().replace(/\(\)$/, "")))]
+      .filter(sdkAdiGecerli).slice(0, 10);
+    return { eserler: eserKaynaklari, sdk };
+  }
+
   //   baslat(konusma) → durum
   //   iste(durum) → { cagrilar: [{id, ad, girdi}], sonuclariBildir([{id, icerik, hata}]) }
   const adaptorler = {
@@ -137,33 +248,62 @@ ${ornekOyun}
   };
 
   // secenek.model: yalnızca bu istek için başka bir model (model taraması kullanır); secenek.sinyal: iptal.
-  async function calistir(sohbet, mevcutKod, { model, sinyal } = {}) {
+  // secenek.insa: usta açıkça istemiş sayılır (model taraması doğrudan modül yazdırır).
+  // Dönüş: modül yazıldıysa { tur: "modul", kod, … }; sohbet yanıtıysa { tur: "sohbet", metin, … }. İkisinde de kaynaklar ve oneriler.
+  async function calistir(sohbet, mevcutKod, { model, sinyal, insa = false } = {}) {
+    const insaIzni = insa || insaIstegiMi(sohbet.at(-1)?.metin);
     let saglayici = saglayiciAl();
-    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun), model: "sahte" };
+    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun, { insaIzni }), model: "sahte" };
     if (model) saglayici = { ...saglayici, model };
     const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar, sinyal, zamanAsimiMs });
 
     const konusma = sohbet.map((m) => ({ ...m }));
     if (mevcutKod) konusma.at(-1).metin += `\n\n(Studio'daki güncel modül kodu:)\n\`\`\`js\n${mevcutKod}\n\`\`\``;
+    if (insa) konusma.at(-1).metin += "\n\n(Usta modülü şimdi yazmanı istiyor: modul_yaz ile teslim et.)";
 
     const durum = adaptor.baslat(konusma);
     let sonHatalar = [], deneme = 0;
-    const aramalar = []; 
+    const aramalar = [];
+    const izler = { gorulen: new Set(), okunan: [] };
+    const sohbetYaniti = (girdi, metin) => ({
+      tur: "sohbet", metin, aramalar, kaynaklar: kaynaklariKur(girdi, izler), oneriler: onerilerVeyaYedek(girdi?.oneriler, mevcutKod ? "duzenle" : "sohbet"), model: saglayici.model,
+    });
 
     for (let adim = 1; adim <= MAKS_ADIM && deneme < MAKS_DENEME; adim++) {
-      const { cagrilar, sonuclariBildir } = await adaptor.iste(durum);
+      const { cagrilar, metin, sonuclariBildir } = await adaptor.iste(durum);
       if (!cagrilar.length) {
-        sonuclariBildir([{ id: null, icerik: "Yanıtını bir araç çağrısıyla ver (eser_ara ya da modul_yaz).", hata: true }]);
+        // Araç çağırmadan düz metinle yanıtlayan modeller: bu bir sohbet yanıtıdır.
+        if (metin?.trim()) return sohbetYaniti({}, metin.trim());
+        sonuclariBildir([{ id: null, icerik: "Yanıtını bir araç çağrısıyla ver (yanit_ver, eser_ara, eser_bilgisi ya da modul_yaz).", hata: true }]);
         continue;
       }
       const sonuclar = [];
-      let teslim = null;
+      let teslim = null, yanit = null;
       for (const c of cagrilar) {
         if (c.ad === "eser_ara") {
           const sonuc = eserAra(c.girdi);
           aramalar.push({ sorgu: c.girdi, bulunan: sonuc.toplam });
+          for (const e of sonuc.eserler) izler.gorulen.add(e.id);
           sonuclar.push({ id: c.id, icerik: JSON.stringify(sonuc) });
+        } else if (c.ad === "eser_bilgisi") {
+          const kayit = eserBilgisi(c.girdi);
+          if (kayit) {
+            izler.gorulen.add(kayit.id);
+            if (!izler.okunan.includes(kayit.id)) izler.okunan.push(kayit.id);
+            aramalar.push({ okunan: kayit.id, ad: kayit.ad });
+          }
+          sonuclar.push(kayit
+            ? { id: c.id, icerik: JSON.stringify(kayit) }
+            : { id: c.id, hata: true, icerik: `Bilgi bankasında "${c.girdi?.id ?? ""}" kimlikli eser yok; önce eser_ara ile ara.` });
+        } else if (c.ad === "yanit_ver") {
+          const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim() : "";
+          if (m) { yanit = sohbetYaniti(c.girdi, m); sonuclar.push({ id: c.id, icerik: "Yanıt iletildi." }); }
+          else sonuclar.push({ id: c.id, hata: true, icerik: "\"metin\" alanı boş" });
         } else if (c.ad === "modul_yaz") {
+          if (!insaIzni) {
+            sonuclar.push({ id: c.id, hata: true, icerik: "Usta henüz modülü yazmanı açıkça istemedi. Kod yazma: yanit_ver ile fikri konuş, planını kısaca anlat ve hazırsa “yap” yazmasını söyle." });
+            continue;
+          }
           deneme++;
           sonHatalar = modulDenetle(c.girdi, sdkTipleri);
           if (!sonHatalar.length) teslim = c.girdi;
@@ -175,10 +315,14 @@ ${ornekOyun}
         }
       }
       // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
-      if (teslim) return { ...teslim, deneme, aramalar, model: saglayici.model };
+      if (teslim) {
+        const { kaynaklar, sdk, oneriler, ...modul } = teslim;
+        return { ...modul, tur: "modul", deneme, aramalar, kaynaklar: kaynaklariKur({ kaynaklar, sdk }, izler), oneriler: onerilerVeyaYedek(oneriler, "modul"), model: saglayici.model };
+      }
+      if (yanit) return yanit;
       sonuclariBildir(sonuclar);
     }
-    const hata = new Error("Kalfa geçerli bir modül üretemedi");
+    const hata = new Error(deneme ? "Kalfa geçerli bir modül üretemedi" : "Kalfa bir yanıt üretemedi");
     hata.ayrintilar = sonHatalar;
     throw hata;
   }
@@ -295,6 +439,7 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar, sinyal, zamanAsimiMs 
       }
       return {
         cagrilar,
+        metin: typeof mesaj.content === "string" ? mesaj.content : "",
         sonuclariBildir(sonuclar) {
           durum.mesajlar.push({ role: "assistant", content: mesaj.content ?? "", ...(mesaj.tool_calls?.length && { tool_calls: mesaj.tool_calls }) });
           const metinler = [];
@@ -402,8 +547,21 @@ function tipDenetimi(kod, sdkTipleri) {
     });
 }
 
-function sahteYanit(sohbet, ornekOyun) {
-  const istek = (sohbet.at(-1)?.metin ?? "").toLocaleLowerCase("tr");
+function sahteYanit(sohbet, ornekOyun, { insaIzni = true } = {}) {
+  const ham = String(sohbet.at(-1)?.metin ?? "").replace(/\s+/g, " ").trim();
+  // Usta modülü açıkça istemediyse sahte kalfa da yalnızca sohbet eder.
+  if (!insaIzni) {
+    const fikir = ham.length > 60 ? `${ham.slice(0, 59)}…` : ham;
+    return {
+      tur: "sohbet",
+      metin: "(Sahte kalfa: yapay zekâ bağlı değil.) Fikrini konuşabiliriz: hangi eserler, kimin için, oyun mu rehber mi olsun? Hazır olduğunda “yap” yaz, modülü yazayım.",
+      aramalar: [],
+      kaynaklar: { eserler: [], sdk: [] },
+      oneriler: onerileriTemizle([`${fikir} yap`, "Hangi eserler var?", "Oyun mu rehber mi olsun?"]),
+    };
+  }
+  const istek = ham.toLocaleLowerCase("tr");
+  const sahteEk = { tur: "modul", kaynaklar: { eserler: [], sdk: ["sahne.ayarla", "sahne.ciz", "eserler.liste"] }, oneriler: ["Renkleri değiştir", "Bir başarım ekle", "Bu modül nasıl çalışıyor?"] };
   if (istek.includes("harita")) {
     const il = ["bursa", "izmir", "manisa"].find((x) => istek.includes(x));
     const ilAdi = { bursa: "Bursa", izmir: "İzmir", manisa: "Manisa" }[il] ?? null;
@@ -449,6 +607,7 @@ export default async function basla() {
       ikon: "genel",
       deneme: 1,
       aramalar: [],
+      ...sahteEk,
     };
   }
   const tur = ["han", "cami", "hamam", "medrese", "çeşme", "türbe"].find((t) => istek.includes(t));
@@ -469,5 +628,6 @@ export default async function basla() {
     ikon: turKod ?? "genel",
     deneme: 1,
     aramalar: [],
+    ...sahteEk,
   };
 }

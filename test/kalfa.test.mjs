@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import { kalfaHazirla } from "../server/kalfa.js";
+import { kalfaHazirla, insaIstegiMi } from "../server/kalfa.js";
 import { deneySunucusu, KOK } from "./yardimci.mjs";
 
 const { eserler } = JSON.parse(await readFile(path.join(KOK, "data", "eserler.json"), "utf8"));
@@ -35,9 +35,69 @@ test("uygulama olmayan (sahne.ayarla çağırmayan) modül reddedilir", () => {
 
 test("sahte kalfa her istek türü için geçerli bir modül üretir", async () => {
   for (const istek of ["bursa haritası", "hanlar için bir oyun", "Çocuklar için hanlarda hazine avı", "bir şey yap"]) {
-    const r = await kalfa.calistir([{ rol: "usta", metin: istek }]);
+    const r = await kalfa.calistir([{ rol: "usta", metin: istek }], undefined, { insa: true });
     assert.deepEqual(kalfa.dogrula(r.kod), [], istek);
   }
+});
+
+test("açık bir yapım isteği yoksa kalfa sohbet eder, kod yazmaz", async () => {
+  const r = await kalfa.calistir([{ rol: "usta", metin: "Çocuklar için hanlarda hazine avı" }]);
+  assert.equal(r.tur, "sohbet");
+  assert.equal(r.kod, undefined);
+  assert.ok(r.oneriler.length >= 2 && r.oneriler.length <= 3);
+  const m = await kalfa.calistir([{ rol: "usta", metin: "Çocuklar için hanlarda hazine avı" }, { rol: "kalfa", metin: "…" }, { rol: "usta", metin: "Tamam, yap" }]);
+  assert.equal(m.tur, "modul");
+  assert.deepEqual(kalfa.dogrula(m.kod), []);
+});
+
+test("yapım isteği sezgisi: yapı/yazı gibi adlar istek sayılmaz", () => {
+  for (const m of ["bunu yap", "Modülü oluştur", "inşa et", "kodla şunu", "renkleri değiştir", "bir başarım ekle", "evet", "tamam", "yazar mısın", "yapabilir misin"]) assert.ok(insaIstegiMi(m), m);
+  for (const m of ["Bu yapı ne zaman inşaat edildi?", "kitabedeki yazı ne diyor", "hanlarda hazine avı", "Ulucami'nin banisi kim?", "SDK'da harita var mı"]) assert.ok(!insaIstegiMi(m), m);
+});
+
+test("kalfa bilgi bankasından yanıtlar; kaynaklar yalnızca araçların döndürdüğü eserlerden kurulur", async () => {
+  const asilFetch = globalThis.fetch;
+  const istekler = [];
+  // Sahte sağlayıcı: önce eser_ara + eser_bilgisi, sonra izinsiz modul_yaz, en sonda yanit_ver.
+  const yanitlar = [
+    { tool_calls: [{ id: "1", type: "function", function: { name: "eser_ara", arguments: JSON.stringify({ ad: "Ulucami", il: "Bursa" }) } },
+      { id: "2", type: "function", function: { name: "eser_bilgisi", arguments: JSON.stringify({ id: "bursa-ulucami" }) } }] },
+    { tool_calls: [{ id: "3", type: "function", function: { name: "modul_yaz", arguments: JSON.stringify({ id: "x", ad: "x", aciklama: "x", kod: "x", aciklama_ustaya: "x" }) } }] },
+    { tool_calls: [{ id: "4", type: "function", function: { name: "yanit_ver", arguments: JSON.stringify({
+      metin: "Ulucami'nin açılışı 1399'da yapılmış.", kaynaklar: ["bursa-ulucami", "uydurma-eser"], sdk: ["eserler.getir", "eserler.uydurma", "kapak", "fetch"],
+      oneriler: ["Bunu bir yarışmaya çevir", "Bunu bir yarışmaya çevir", "Başka hangi camiler var?", "Fotoğrafları göster", "fazla"] }) } }] },
+  ];
+  globalThis.fetch = async (_url, { body }) => {
+    istekler.push(JSON.parse(body));
+    const mesaj = { role: "assistant", content: "", ...yanitlar[istekler.length - 1] };
+    return new Response(JSON.stringify({ choices: [{ message: mesaj }] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  try {
+    const iliskiler = JSON.parse(await readFile(path.join(KOK, "data", "eser-iliskileri.json"), "utf8")).iliskiler;
+    const k = kalfaHazirla({ kok: KOK, eserler, iliskiler, ortam: { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "m" } });
+    const r = await k.calistir([{ rol: "usta", metin: "Ulucami ne zaman açıldı?" }]);
+    assert.equal(r.tur, "sohbet");
+    assert.equal(r.metin, "Ulucami'nin açılışı 1399'da yapılmış.");
+    assert.deepEqual(r.kaynaklar.eserler.map((e) => e.id), ["bursa-ulucami"]);
+    assert.match(r.kaynaklar.eserler[0].kaynak, /Vakıf Katılım/);
+    assert.deepEqual(r.kaynaklar.sdk, ["eserler.getir", "kapak"]);
+    assert.deepEqual(r.oneriler, ["Bunu bir yarışmaya çevir", "Başka hangi camiler var?", "Fotoğrafları göster"]);
+    // eser_bilgisi tarihçeyi ve kaynağı verdi; izinsiz modul_yaz reddedildi.
+    const araclar = istekler[1].messages.filter((m) => m.role === "tool");
+    assert.match(araclar.find((m) => m.tool_call_id === "2").content, /Vakıf Katılım/);
+    assert.match(istekler[2].messages.find((m) => m.tool_call_id === "3").content, /açıkça istemedi/);
+  } finally { globalThis.fetch = asilFetch; }
+});
+
+test("araç çağırmadan düz metinle yanıtlayan model sohbet yanıtı sayılır", async () => {
+  const asilFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ choices: [{ message: { role: "assistant", content: "Merhaba usta!" } }] }), { status: 200 });
+  try {
+    const k = kalfaHazirla({ kok: KOK, eserler, ortam: { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "m" } });
+    const r = await k.calistir([{ rol: "usta", metin: "merhaba" }]);
+    assert.equal(r.tur, "sohbet");
+    assert.equal(r.metin, "Merhaba usta!");
+  } finally { globalThis.fetch = asilFetch; }
 });
 
 test("giriş yapmamış biri kalfayla konuşamaz", async () => {

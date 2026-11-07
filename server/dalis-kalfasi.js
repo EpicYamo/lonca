@@ -265,7 +265,9 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
   let etkin = null;
   const hazir = () => { const a = dalisAyarlari(ortam); return !!(a.api && a.anahtar); };
 
-  function baslat({ istek = "", eserId = null, uzerineYaz = false }) {
+  // korunanlar: üzerine yazılmayacak mevcut dalış durumları. Usta (admin olmayan) için "bekliyor" da korunur ki
+  // başkasının onay bekleyen dalışını ezemesin.
+  function baslat({ istek = "", eserId = null, uzerineYaz = false, korunanlar = ["onayli"] }) {
     if (!hazir()) throw Object.assign(new Error("Dalış kalfası için .env'de USTAGPT_BASE_URL ve USTAGPT_API_KEY (ya da DALIS_API_URL ve DALIS_API_ANAHTARI) gerekli"), { kod: 503 });
     const eksik = eksikAraclar();
     if (eksik.length) throw Object.assign(new Error(`Dalış kalfası için bu bilgisayarda şu araçlar eksik: ${eksik.join("; ")}. Kurup sunucuyu yeniden başlat.`), { kod: 503 });
@@ -278,8 +280,12 @@ export function dalisKalfasiKur({ kok, eserler, dalisDizini = path.join(kok, "da
     (async () => {
       const { eser, odak } = await istegiCoz(is, eserId);
       const tanimYolu = path.join(dalisDizini, `${eser.id}.json`);
-      if (existsSync(tanimYolu) && !uzerineYaz && JSON.parse(readFileSync(tanimYolu, "utf8")).durum === "onayli")
-        throw new Error(`${eser.ad} için yayında bir dalış var; yenisini yapmak için önce Dalışlar listesinden onu kaldır`);
+      const mevcut = existsSync(tanimYolu) ? JSON.parse(readFileSync(tanimYolu, "utf8")).durum : null;
+      if (mevcut && !uzerineYaz && korunanlar.includes(mevcut)) {
+        throw new Error(mevcut === "onayli"
+          ? `${eser.ad} için yayında bir dalış var; yenisini yapmak için önce Dalışlar listesinden onu kaldır`
+          : `${eser.ad} için onay bekleyen bir dalış var; admin onu inceleyince yenisini isteyebilirsin`);
+      }
       return calistir(is, eser, kisalt(odak, 1000), tanimYolu);
     })()
       .then((sonuc) => { is.durum = "bitti"; is.sonuc = sonuc; yaz(is, `Hazır: ${sonuc.kareSayisi} durak. Studio'da inceleyip onayla.`); })

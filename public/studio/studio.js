@@ -79,12 +79,33 @@ async function kodAkit(kod) {
 }
 
 const sonaKaydir = () => { const m = $("#mesajlar"); m.scrollTo({ top: m.scrollHeight, behavior: "smooth" }); };
-function mesajEkle(rol, metin, { adimlar = [], hata = false } = {}) {
+function mesajEkle(rol, metin, { adimlar = [], hata = false, kaynaklar = null } = {}) {
   const li = el("li", { className: `mesaj ${rol}${hata ? " hata" : ""}` }, el("p", { textContent: metin }));
+  const kutu = kaynakKutusu(kaynaklar);
+  if (kutu) li.append(kutu);
   if (adimlar.length) li.append(el("ul", { className: "adimlar" }, ...adimlar.map(([m, sinif], i) => el("li", { className: `adim ${sinif ?? ""}`, textContent: m, style: `--i:${i}` }))));
   $("#mesajlar").append(li);
   sonaKaydir();
   return li;
+}
+
+// Kalfanın yanıtının dayandığı kaynaklar: bilgi bankasındaki eser kayıtları (künyesiyle) ve SDK sözleşmesinin parçaları.
+// Sunucu bunları yalnızca araçların gerçekten döndürdüğü eserlerden ve sözleşmede bulunan adlardan kurar (server/kalfa.js).
+function kaynakKutusu(k) {
+  const eserler = k?.eserler ?? [], sdk = k?.sdk ?? [];
+  if (!eserler.length && !sdk.length) return null;
+  const kutu = el("details", { className: "kaynaklar" },
+    el("summary", { textContent: `Kaynaklar · ${[eserler.length && `${eserler.length} eser kaydı`, sdk.length && "SDK"].filter(Boolean).join(" + ")}` }));
+  if (eserler.length) {
+    kutu.append(el("p", { className: "kaynak-baslik", textContent: "Bilgi bankası" }), el("ul", { className: "kaynak-listesi" },
+      ...eserler.map((e) => {
+        const ac = el("button", { type: "button", className: "kaynak-eser", textContent: `${e.ad}${e.il ? ` (${e.il})` : ""}`, title: "Eser kaydını aç" });
+        ac.addEventListener("click", () => eserDuzenlemeyeAc(e.id));
+        return el("li", {}, ac, e.kaynak ? el("small", { textContent: e.kaynak }) : null);
+      })));
+  }
+  if (sdk.length) kutu.append(el("p", { className: "kaynak-baslik", textContent: "SDK sözleşmesi (@lonca/sdk)" }), el("p", { className: "kaynak-sdk" }, ...sdk.map((a) => el("code", { textContent: a }))));
+  return kutu;
 }
 
 // ---------- Kalfa kipi: Modül ya da Dalış ----------
@@ -92,7 +113,7 @@ function mesajEkle(rol, metin, { adimlar = [], hata = false } = {}) {
 // kaynakları toplar, geziyi planlar, kareleri üretir ve dalışı onay bekleyen olarak kaydeder.
 let kip = "modul";
 const KIP = {
-  modul: { not: "Fikrini mini uygulamaya çevirir", ipucu: "Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" },
+  modul: { not: "Soru sor, fikrini konuş; “yap” deyince mini uygulamaya çevirir", ipucu: "Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" },
   dalis: { not: "İsteğini uydudan eserin içine inen bir geziye çevirir (birkaç dakika sürer)", ipucu: "Hangi eser, neler anlatılsın? Örn. \"Ulu Cami'nin minberini ve şadırvanını anlatan bir dalış\"" },
 };
 function kipSec(yeni) {
@@ -104,12 +125,44 @@ function kipSec(yeni) {
   }
   $("#kip-not").textContent = KIP[kip].not;
   $("#istek").placeholder = KIP[kip].ipucu;
-  const ilk = $("#mesajlar").children.length <= 1;
-  $("#oneriler").hidden = kip !== "modul" || !ilk;
-  $("#dalis-oneriler").hidden = kip !== "dalis";
+  onerileriGoster();
+  if (kip === "dalis" && !dalisOnerisiYuklendi) dalisOnerileriniYenile();
 }
 document.querySelectorAll(".kip button[data-kip]").forEach((b) => b.addEventListener("click", () => kipSec(b.dataset.kip)));
-$("#dalis-oneriler").addEventListener("click", (e) => { if (e.target.matches("button")) gonder(e.target.textContent); });
+$("#dalis-oneriler").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) gonder(b.textContent); });
+
+// ---------- Öneri düğmeleri ----------
+// Modül kipinde kalfa her yanıtla 2–3 yeni öneri verir; boş sohbette index.html'deki örnek fikirler görünür.
+// Dalış kipinde öneriler sunucudan (bilgi bankasındaki eserlerden) gelir ve her dalış isteğinden sonra yenilenir.
+const ILK_ONERILER = [...document.querySelectorAll("#oneriler button")].map((b) => b.textContent);
+let kalfaOnerileri = null; // null: sohbet boş, örnek fikirler gösterilir
+let dalisOnerisiYuklendi = false;
+const dalisIstenenler = [];
+const dalisOneriEserleri = new Map(); // öneri metni → eser kimliği (gönderilen öneri yeniden önerilmesin)
+function oneriDugmeleri(kutu, metinler) {
+  kutu.replaceChildren(...metinler.map((m) => el("button", { type: "button", textContent: m })));
+}
+function onerileriGoster() {
+  const liste = kalfaOnerileri ?? ILK_ONERILER;
+  oneriDugmeleri($("#oneriler"), liste);
+  // Sohbet başladıktan sonra kalfanın kısa önerileri yan yana küçük düğmeler olarak durur (mesajlara yer kalsın).
+  $("#oneriler").classList.toggle("kompakt", kalfaOnerileri !== null);
+  $("#oneriler").hidden = kip !== "modul" || !liste.length;
+  $("#dalis-oneriler").hidden = kip !== "dalis" || !$("#dalis-oneriler").children.length;
+}
+function kalfaOnerileriniAyarla(liste) {
+  kalfaOnerileri = Array.isArray(liste) ? liste : null;
+  onerileriGoster();
+}
+async function dalisOnerileriniYenile() {
+  dalisOnerisiYuklendi = true;
+  try {
+    const { oneriler } = await yApi(`/api/dalis-kalfasi/oneriler?haric=${encodeURIComponent(dalisIstenenler.slice(-10).join(","))}`, { yeniden: false });
+    for (const o of oneriler) dalisOneriEserleri.set(o.metin, o.eser);
+    if (oneriler.length) oneriDugmeleri($("#dalis-oneriler"), oneriler.map((o) => o.metin));
+  } catch { dalisOnerisiYuklendi = false; /* öneriler alınamadı: eldekiler kalır */ }
+  onerileriGoster();
+}
 
 const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 function dalisKutusu() {
@@ -151,9 +204,12 @@ async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = fals
     return;
   }
   cubuk.firstChild.style.width = "100%";
-  baslik.textContent = `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; kartları kontrol edip yayınla.`;
+  baslik.textContent = yoneticiMi()
+    ? `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; kartları kontrol edip yayınla.`
+    : `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; admin kartları kontrol edip onaylayınca yayına girer.`;
+  if (!geriYukleme && durum.eser) { dalisIstenenler.push(durum.eser); dalisOnerileriniYenile(); }
   const onizleDugme = el("button", { type: "button", className: "ikincil", textContent: "Önizle" });
-  const yayinla = el("button", { type: "button", className: "birincil", textContent: "Yayınla" });
+  const yayinla = el("button", { type: "button", className: "birincil yalniz-admin", textContent: "Yayınla" });
   onizleDugme.addEventListener("click", () => dalisOnizle());
   yayinla.addEventListener("click", async () => {
     try {
@@ -165,6 +221,7 @@ async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = fals
   if (!geriYukleme) dalisOnizle();
 }
 async function dalisGonder(metin) {
+  if (dalisOneriEserleri.has(metin)) dalisIstenenler.push(dalisOneriEserleri.get(metin));
   mesajEkle("usta", metin);
   $("#istek").value = "";
   $("#gonder").disabled = true;
@@ -173,10 +230,13 @@ async function dalisGonder(metin) {
   try {
     const oturum = await oturumGerekli();
     const { is } = await yApi("/api/dalis-kalfasi", { method: "POST", govde: { istek: metin, oturum } });
+    dalisOnerileriniYenile(); // gönderilen öneri listede takılı kalmasın
     await dalisIzle(is, kutu, { bu });
+    return;
   } catch (h) {
     kutu.li.classList.add("hata");
     kutu.baslik.textContent = h.message;
+    dalisOnerileriniYenile(); // istek başarısız olsa da öneriler yenilenir
   } finally {
     if (bu === oturumSurumu) $("#gonder").disabled = false;
     $("#istek").focus();
@@ -194,11 +254,16 @@ async function dalisOnizle() {
 }
 
 // Kalfanın yanıtındaki iz (veri aramaları, deneme sayısı, model) sohbette adım listesi olarak gösterilir.
-function adimlarYap({ aramalar = [], deneme = 1, model = null } = {}) {
+function adimlarYap({ tur = "modul", aramalar = [], deneme = 1, model = null } = {}) {
   const adimlar = aramalar.map((a) => {
+    if (a.okunan) return [`Bilgi bankasından okudu: ${a.ad ?? a.okunan}`];
     const sorgu = Object.entries(a.sorgu ?? {}).map(([k, v]) => `${k} ${v}`).join(", ") || "tümü";
-    return [`Veriye baktı: ${sorgu} → ${a.bulunan} eser`];
+    return [`Bilgi bankasında aradı: ${sorgu} → ${a.bulunan} eser`];
   });
+  if (tur === "sohbet") {
+    if (model) adimlar.push([model === "sahte" ? "Sahte kalfa: yapay zekâ bağlı değil" : `Yanıtlayan model: ${model}`]);
+    return adimlar;
+  }
   if (deneme > 1) adimlar.push([`Denetimde hata buldu, ${deneme}. denemede düzeltti`, "duzeltme"]);
   adimlar.push(["SDK tip denetiminden geçti"]);
   if (model) adimlar.push([model === "sahte" ? "Sahte kalfa: yapay zekâ bağlı değil, hazır şablon" : `Kodu yazan model: ${model}`]);
@@ -230,7 +295,7 @@ async function gonder(metin) {
   $("#istek").value = "";
   $("#oneriler").hidden = true;
   $("#gonder").disabled = true;
-  const yaziyor = yaziyorEkle("Kalfa çalışıyor: veriye bakıyor, yazıyor, denetliyor");
+  const yaziyor = yaziyorEkle("Kalfa düşünüyor: bilgi bankasına ve SDK'ya bakıyor");
   const bu = oturumSurumu;
   try {
     // İstek oturuma yazılır; sayfa bu sırada yenilense de kalfanın yanıtı sunucuda oturuma kaydedilir.
@@ -238,11 +303,17 @@ async function gonder(metin) {
     const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value } });
     yaziyor.remove();
     if (bu !== oturumSurumu) return;
-    mesajEkle("kalfa", s.aciklama_ustaya, { adimlar: adimlarYap(s) });
+    kalfaOnerileriniAyarla(s.oneriler ?? []);
+    if (s.tur === "sohbet") {
+      mesajEkle("kalfa", s.metin, { adimlar: adimlarYap(s), kaynaklar: s.kaynaklar });
+      return;
+    }
+    mesajEkle("kalfa", s.aciklama_ustaya, { adimlar: adimlarYap(s), kaynaklar: s.kaynaklar });
     await taslagiAkit({ ...s, ikon: s.ikon === "genel" ? "" : s.ikon });
   } catch (h) {
     yaziyor.remove();
     if (bu !== oturumSurumu) return;
+    onerileriGoster();
     const ayrinti = h.ayrintilar?.length ? `\n• ${h.ayrintilar.join("\n• ")}` : "";
     mesajEkle("kalfa", h instanceof TypeError ? `Sunucuya ulaşılamadı: ${h.message}. Sunucunun çalıştığını kontrol et.` : `${h.message}${ayrinti}`, { hata: true });
   } finally {
@@ -255,7 +326,7 @@ $("#sohbet-formu").addEventListener("submit", (e) => { e.preventDefault(); gonde
 $("#istek").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); gonder($("#istek").value); }
 });
-$("#oneriler").addEventListener("click", (e) => { if (e.target.matches("button")) gonder(e.target.textContent); });
+$("#oneriler").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) gonder(b.textContent); });
 
 let bekleyen = null;
 function onizle() {
@@ -620,15 +691,18 @@ async function oturumuAc(id) {
   mesajlariTemizle();
   for (const m of o.mesajlar) {
     if (m.dalis) dalisIzle(m.dalis, dalisKutusu(), { geriYukleme: true, bu });
-    else mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata });
+    else mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar });
   }
-  $("#oneriler").hidden = kip !== "modul" || o.mesajlar.length > 0;
+  kalfaOnerileriniAyarla(o.mesajlar.length ? sonOneriler(o.mesajlar) : null);
   editoruDoldur(o.taslak ?? {});
   if (o.taslak?.kod?.trim()) onizle();
   durumYaz("", "");
   $("#gonder").disabled = false;
   if (o.bekleyen) kalfayiBekle(o, bu);
 }
+
+// Oturumdaki son kalfa yanıtının önerileri (eski kayıtlarda yoktur: boş liste).
+const sonOneriler = (mesajlar) => [...mesajlar].reverse().find((m) => m.rol === "kalfa" && !m.dalis)?.ek?.oneriler ?? [];
 
 // Sayfa kalfa çalışırken yenilendi: istek sunucuda sürüyor; bitince yanıt ve kod oturumdan alınır.
 async function kalfayiBekle(o, bu) {
@@ -645,7 +719,8 @@ async function kalfayiBekle(o, bu) {
     if (bu !== oturumSurumu) return;
     yaziyor.remove();
     const yeni = son.mesajlar.slice(onceki);
-    for (const m of yeni) mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata });
+    for (const m of yeni) mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar });
+    kalfaOnerileriniAyarla(sonOneriler(son.mesajlar));
     if (yeni.at(-1)?.uretim && son.taslak?.kod) await taslagiAkit(son.taslak);
   } catch (h) {
     if (bu !== oturumSurumu) return;
@@ -666,7 +741,7 @@ async function yeniSohbet() {
   taslakBekliyor = false;
   mesajlariTemizle();
   editoruDoldur();
-  $("#oneriler").hidden = kip !== "modul";
+  kalfaOnerileriniAyarla(null);
   durumYaz("", "");
   $("#gonder").disabled = false;
   $("#istek").focus();
@@ -690,7 +765,7 @@ function atolyeyiSifirla() {
   clearTimeout(taslakZamanlayici);
   mesajlariTemizle();
   editoruDoldur();
-  $("#oneriler").hidden = kip !== "modul";
+  kalfaOnerileriniAyarla(null);
   $("#gonder").disabled = false;
 }
 

@@ -93,7 +93,7 @@
         <h2 id="sohbet-baslik" class="panel-baslik"><svg class="ik" aria-hidden="true"><use href="#i-sohbet"/></svg>Kalfa</h2>
         <div class="kip" role="radiogroup" aria-label="Kalfa ne hazırlasın?">
           <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
-          <button type="button" role="radio" aria-checked="false" data-kip="dalis" class="yalniz-admin">Dalış</button>
+          <button type="button" role="radio" aria-checked="false" data-kip="dalis">Dalış</button>
         </div>
         <button id="sohbetler-d" type="button" class="ikon-d" aria-label="Geçmiş sohbetler" title="Geçmiş sohbetler">
           <svg class="ik" aria-hidden="true"><use href="#i-gecmis"/></svg>
@@ -107,7 +107,7 @@
       </div>
       <ol id="mesajlar" class="mesajlar" aria-live="polite">
         <li class="mesaj kalfa">
-          <p>Hoş geldin usta. Vakıf eserleriyle ilgili bir fikir anlat; modülünü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
+          <p>Hoş geldin usta. Vakıf eserlerini ya da yapmak istediğin modülü konuşalım: sorularını bilgi bankasından ve SDK'dan yanıtlarım. Hazır olduğunda “yap” de; modülü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
         </li>
       </ol>
       <div class="kilit-karti" id="atolye-kilit" hidden>
@@ -132,9 +132,9 @@
         </div>
         <form id="sohbet-formu" class="sohbet-formu">
           <label for="istek" class="gizli">Kalfaya mesaj</label>
-          <textarea id="istek" rows="2" placeholder="Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
+          <textarea id="istek" rows="2" placeholder="Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
           <div class="besteci-alt">
-            <span class="kip-not" id="kip-not">Fikrini mini uygulamaya çevirir</span>
+            <span class="kip-not" id="kip-not">Soru sor, fikrini konuş; “yap” deyince mini uygulamaya çevirir</span>
             <button id="gonder" class="birincil gonder-d" aria-label="Gönder">
               <svg class="ik" aria-hidden="true"><use href="#i-gonder"/></svg>
             </button>
