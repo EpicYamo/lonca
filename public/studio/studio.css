@@ -213,8 +213,7 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .nokta { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--sonuk); }
 .rozet.canli .nokta { background: var(--vurgu); box-shadow: 0 0 0 3px var(--odak); }
 .rozet.sahte .nokta { background: var(--uyari); }
-.rozet.yonetici { min-height: var(--dokunma); cursor: pointer; transition: border-color var(--sure-k), color var(--sure-k); }
-@media (hover: hover) { .rozet.yonetici:hover { border-color: var(--cizgi-guclu); color: var(--metin); } }
+.rozet.yonetici { min-height: var(--dokunma); }
 .rozet.yonetici.canli { color: var(--vurgu); border-color: var(--vurgu-cizgi); }
 .hesap-d .ik { width: 15px; height: 15px; }
 #hesap-ad { overflow: hidden; text-overflow: ellipsis; }

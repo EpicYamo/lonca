@@ -476,16 +476,14 @@ function sahneDurum(metin) {
   $("#sahne-durum-metin").textContent = metin ?? "";
 }
 
-const SIFRE_ANAHTARI = "lonca.yonetici";
-const sifreOku = () => { try { return sessionStorage.getItem(SIFRE_ANAHTARI) ?? ""; } catch { return ""; } };
 let yonetimSifreli = false;
-// Admin: geliştirme modu (şifre tanımlı değil), girilmiş yönetici şifresi ya da şifresini belirlemiş editör hesabı.
+// Admin: geliştirme modu (şifre tanımlı değil) ya da şifresini belirlemiş editör hesabı.
 // Sunucu her istekte rolü yeniden denetler; bu yalnızca arayüzde neyin gösterileceğini belirler.
-const yoneticiMi = () => !yonetimSifreli || !!sifreOku() || (hesap?.rol === "editor" && !hesap.sifreDegismeli);
+const yoneticiMi = () => !yonetimSifreli || (hesap?.rol === "editor" && !hesap.sifreDegismeli);
 
 async function yApi(yol, { method = "GET", govde, yeniden = true, basliklar = {} } = {}) {
   const y = await fetch(yol, {
-    method, headers: { ...(govde !== undefined ? { "content-type": "application/json" } : {}), "x-yonetici-sifre": sifreOku(), ...hesapBasligi(), ...basliklar },
+    method, headers: { ...(govde !== undefined ? { "content-type": "application/json" } : {}), ...hesapBasligi(), ...basliklar },
     body: govde !== undefined ? JSON.stringify(govde) : undefined,
   });
   if (y.status === 401 && yeniden && await oturumIste()) return yApi(yol, { method, govde, basliklar, yeniden: false });
@@ -494,32 +492,12 @@ async function yApi(yol, { method = "GET", govde, yeniden = true, basliklar = {}
   return veri;
 }
 
-function girisIste() {
-  const d = $("#giris");
-  $("#giris-hata").textContent = "";
-  $("#giris-sifre").value = "";
-  d.showModal();
-  return new Promise((coz) => {
-    d.addEventListener("close", async function kapandi() {
-      d.removeEventListener("close", kapandi);
-      if (d.returnValue !== "giris") return coz(false);
-      try { sessionStorage.setItem(SIFRE_ANAHTARI, $("#giris-sifre").value); } catch {}
-      const y = await fetch("/api/yonetici", { headers: { "x-yonetici-sifre": sifreOku() } });
-      yetkiGuncelle();
-      if (!y.ok) { try { sessionStorage.removeItem(SIFRE_ANAHTARI); } catch {} return coz(await girisIste()); }
-      coz(true);
-    });
-  });
-}
-function yoneticiRozeti(girildi) {
+// Geliştirme modu rozeti: YONETICI_SIFRE tanımlı değilken görünür; hesaplı Studio'da yetki hesap rozetindedir.
+function gelistirmeRozeti() {
   const r = $("#yonetici");
-  // Hesaplı Studio'da yetki hesap rozetinde görünür; bu rozet yalnızca yönetici şifresiyle girilince kalır.
-  r.hidden = hesapGerekli && !girildi;
-  r.classList.toggle("canli", girildi || !yonetimSifreli);
-  r.textContent = !yonetimSifreli ? "Geliştirme modu" : girildi ? "Yönetici ✓" : "Yönetici girişi";
-  r.title = !yonetimSifreli ? "YONETICI_SIFRE tanımlı değil: onay işlemleri şifresiz" : "";
+  r.hidden = yonetimSifreli;
+  r.title = "YONETICI_SIFRE tanımlı değil: onay işlemleri şifresiz";
 }
-$("#yonetici").addEventListener("click", () => { if (yonetimSifreli) girisIste().then(() => { yetkiGuncelle(); sayfayiYenile(); oturumlariBaslat(); }); });
 
 // ---------- Hesap (usta / admin) ----------
 // Sunucu yönetici şifresiyle çalışıyorsa Studio'nun tamamı hesap ister: kayıt olan usta, hazır hesaplar admin (rol: editor).
@@ -537,13 +515,13 @@ const jetonOku = () => { try { return localStorage.getItem(JETON_ANAHTARI) ?? ""
 const jetonYaz = (j) => { try { j ? localStorage.setItem(JETON_ANAHTARI, j) : localStorage.removeItem(JETON_ANAHTARI); } catch {} };
 function hesapBasligi() { const j = jetonOku(); return j ? { authorization: `Bearer ${j}` } : {}; }
 const studioHesabi = () => ["usta", "editor"].includes(hesap?.rol) && !hesap.sifreDegismeli;
-// Studio'ya girilmiş mi: geliştirme modu, şifresini belirlemiş usta/admin hesabı ya da yönetici şifresi.
-const oturumVar = () => !hesapGerekli || studioHesabi() || (yonetimSifreli && !!sifreOku());
+// Studio'ya girilmiş mi: geliştirme modu ya da şifresini belirlemiş usta/admin hesabı.
+const oturumVar = () => !hesapGerekli || studioHesabi();
 const atolyeAcik = oturumVar;
 // Rozetler, kilitler ve admin'e özel düğmeler (.yalniz-admin) tek yerden güncellenir.
 function yetkiGuncelle() {
   document.body.classList.toggle("admin", yoneticiMi());
-  yoneticiRozeti(!!sifreOku());
+  gelistirmeRozeti();
   hesapRozetiGuncelle();
   atolyeKilidiGuncelle();
 }
@@ -574,7 +552,7 @@ async function hesabiYukle() {
   } catch { /* sunucuya ulaşılamadı: jeton kalır, sonraki açılışta yeniden denenir */ }
 }
 
-// Giriş / kayıt penceresi. Başarılıysa true döner; "Yönetici şifresiyle gir" de geçerli bir yoldur.
+// Giriş / kayıt penceresi. Başarılıysa true döner.
 // kapi: Studio'nun giriş kapısı; pencere kapatılamaz (Vazgeç yok, Escape çalışmaz).
 // Kipler: giris · kayit · unuttum (e-postaya sıfırlama bağlantısı) · yenile (bağlantıdaki jetonla yeni şifre).
 let studioGoogleAcik = false, studioSifirlamaAcik = false, studioBekleyenEposta = null;
@@ -623,7 +601,6 @@ function hesapPenceresiAc({ kip = "giris", kapi = false, jeton = null } = {}) {
     // En az 8 karakter yalnızca yeni şifrede; hazır hesapların ilk şifresi daha kısa olabilir.
     if (giris) $("#hesap-sifre").removeAttribute("minlength"); else $("#hesap-sifre").minLength = 8;
     $("#hesap-sifre").placeholder = giris ? "" : "En az 8 karakter";
-    $("#hesap-yonetici").hidden = !yonetimSifreli || !giris;
     $("#hesap-vazgec").hidden = kapi;
     $("#hesap-bilgi").hidden = true;
     $("#hesap-yeniden").hidden = true;
@@ -642,11 +619,8 @@ function hesapPenceresiAc({ kip = "giris", kapi = false, jeton = null } = {}) {
   };
   const geriTik = () => { kipeGec("giris"); $("#hesap-kimlik").focus(); };
   const iptal = (e) => { if (kapi) e.preventDefault(); };
-  let yoneticiyle = false;
-  const yoneticiTik = () => { yoneticiyle = true; d.close("yonetici"); };
   d.addEventListener("click", kipSec);
   d.addEventListener("cancel", iptal);
-  $("#hesap-yonetici").addEventListener("click", yoneticiTik);
   $("#hesap-unuttum").addEventListener("click", unuttumTik);
   $("#hesap-girise-don").addEventListener("click", geriTik);
   const postala = async (yol, govde) => {
@@ -720,7 +694,6 @@ function hesapPenceresiAc({ kip = "giris", kapi = false, jeton = null } = {}) {
       d.removeEventListener("click", kipSec);
       d.removeEventListener("cancel", iptal);
       f.removeEventListener("submit", gonder);
-      $("#hesap-yonetici").removeEventListener("click", yoneticiTik);
       $("#hesap-unuttum").removeEventListener("click", unuttumTik);
       $("#hesap-girise-don").removeEventListener("click", geriTik);
       $("#hesap-yeniden").removeEventListener("click", yenidenTik);
@@ -728,7 +701,6 @@ function hesapPenceresiAc({ kip = "giris", kapi = false, jeton = null } = {}) {
       // İlk şifreyle giren hazır hesap, yeni şifresini belirlemeden devam edemez.
       if (tamam && hesap?.sifreDegismeli) tamam = await sifrePenceresiAc({ zorunlu: true });
       if (tamam) { yetkiGuncelle(); bildirim(`Hoş geldin, ${hesap.kimlik}.`); }
-      if (yoneticiyle) return coz(await girisIste());
       coz(tamam);
     }, { once: true });
   });
@@ -814,7 +786,8 @@ window.addEventListener("storage", async (olay) => {
 // 401 alan istekler için. Oturum düştüyse (jeton süresi doldu, hesap silindi) giriş kapısı açılır;
 // oturum sürüyorsa 401 yetki yokluğudur (ör. usta bir admin işlemi denedi): yeniden giriş sorulmaz.
 async function oturumIste() {
-  if (!hesapGerekli) { const sonuc = await girisIste(); yetkiGuncelle(); return sonuc; }
+  // Geliştirme modunda sunucu her şeye izin verir; 401 burada giriş ile çözülmez.
+  if (!hesapGerekli) return false;
   await hesabiYukle();
   yetkiGuncelle();
   if (oturumVar()) return false;
@@ -825,7 +798,6 @@ async function oturumIste() {
 function hesapCikis() {
   taslakKaydet({ sayfaKapaniyor: true });
   jetonYaz(""); hesap = null;
-  try { sessionStorage.removeItem(SIFRE_ANAHTARI); } catch {}
   atolyeyiSifirla();
   yetkiGuncelle();
   sayfaAc("atolye");
@@ -914,7 +886,7 @@ async function taslakKaydet({ sayfaKapaniyor = false } = {}) {
       if (!oturumId) return;
       fetch(`/api/atolye/oturumlar/${oturumId}/taslak`, {
         method: "PUT", keepalive: true, body: JSON.stringify(hal),
-        headers: { "content-type": "application/json", "x-yonetici-sifre": sifreOku(), ...hesapBasligi() },
+        headers: { "content-type": "application/json", ...hesapBasligi() },
       }).catch(() => {});
       return;
     }
@@ -1540,7 +1512,7 @@ $("#eser-vazgec").addEventListener("click", async () => {
 
 async function fotoGoster(img, yol) {
   if (!yol.startsWith("/medya/yuklenen/")) { img.src = yol; return; }
-  try { const y = await fetch(yol, { headers: { "x-yonetici-sifre": sifreOku(), ...hesapBasligi() } }); if (y.ok) img.src = URL.createObjectURL(await y.blob()); } catch {}
+  try { const y = await fetch(yol, { headers: hesapBasligi() }); if (y.ok) img.src = URL.createObjectURL(await y.blob()); } catch {}
 }
 
 async function fotolariDegistir(yeni, neden) {

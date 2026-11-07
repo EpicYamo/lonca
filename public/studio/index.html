@@ -62,7 +62,7 @@
     <button id="hesap-d" class="rozet yonetici hesap-d" type="button" hidden>
       <svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-ad">Giriş yap</span>
     </button>
-    <button id="yonetici" class="rozet yonetici" type="button" title="Yönetici girişi">Yönetici</button>
+    <span id="yonetici" class="rozet yonetici canli" hidden>Geliştirme modu</span>
   </header>
 
   <nav class="sekmeler" aria-label="Studio bölümleri">
@@ -403,7 +403,6 @@
         <button class="birincil" value="gonder" id="hesap-gonder">Giriş yap</button>
         <button class="ikincil" type="button" id="hesap-girise-don" hidden>Girişe dön</button>
         <button class="ikincil" value="iptal" formnovalidate id="hesap-vazgec">Vazgeç</button>
-        <button class="metin-d" type="button" id="hesap-yonetici">Yönetici şifresiyle gir</button>
       </div>
     </form>
   </dialog>
@@ -442,16 +441,6 @@
       <p class="aciklama" id="hesap-kart-eposta-not">Aynı e-postayla "Google ile devam et" dersen bu hesaba girersin.</p>
       <p id="hesap-kart-hata" class="durum kotu" role="alert"></p>
       <div class="eylemler"><button class="birincil" value="eposta" id="hesap-kart-eposta-kaydet">E-postayı kaydet</button><button class="ikincil" value="sifre" formnovalidate>Şifreyi değiştir</button><button class="tehlike" value="cikis" formnovalidate>Çıkış yap</button><button class="ikincil" value="kapat" formnovalidate>Kapat</button></div>
-    </form>
-  </dialog>
-
-  <dialog id="giris" class="giris">
-    <form method="dialog" id="giris-formu">
-      <h2 class="pencere-h"><svg class="ik" aria-hidden="true"><use href="#i-kalkan"/></svg>Yönetici girişi</h2>
-      <p class="aciklama">Onay, yayından kaldırma, silme ve içerik düzenleme için gerekli. Şifre sunucudaki .env dosyasında (YONETICI_SIFRE).</p>
-      <label>Şifre <input id="giris-sifre" type="password" autocomplete="current-password" required></label>
-      <p id="giris-hata" class="durum kotu" role="alert"></p>
-      <div class="eylemler"><button class="birincil" value="giris">Giriş</button><button class="ikincil" value="iptal" formnovalidate>Vazgeç</button></div>
     </form>
   </dialog>
 
