@@ -193,3 +193,29 @@ export function hesapGirdisiDogrula(veri, { kayit = false } = {}) {
   if (kayit && veri.rol != null && !ROLLER.includes(veri.rol)) hatalar.push(`rol: ${ROLLER.join(" | ")}`);
   return hatalar;
 }
+
+// Studio atölye oturumu (server/atolye.js): editördeki modül taslağı ve kalfaya giden istek.
+export const ATOLYE_TASLAK_ALANLARI = ["kod", "ad", "id", "aciklama", "renk", "ikon", "kategori"];
+export const ATOLYE_MAKS_KOD = 150_000;
+export const atolyeKimligiGecerli = (id) => typeof id === "string" && /^[a-f0-9]{12}$/.test(id);
+export function atolyeTaslakDogrula(veri) {
+  if (!veri || typeof veri !== "object" || Array.isArray(veri)) return { hatalar: ["taslak bir nesne olmalı"], taslak: null };
+  const hatalar = [], taslak = {};
+  const bilinmeyen = Object.keys(veri).filter((k) => !ATOLYE_TASLAK_ALANLARI.includes(k));
+  if (bilinmeyen.length) hatalar.push(`bilinmeyen alan: ${bilinmeyen.slice(0, 3).join(", ")}`);
+  for (const alan of ATOLYE_TASLAK_ALANLARI) {
+    const d = veri[alan] ?? "";
+    const sinir = alan === "kod" ? ATOLYE_MAKS_KOD : alan === "aciklama" ? 1000 : 200;
+    if (typeof d !== "string") hatalar.push(`${alan} metin olmalı`);
+    else if (d.length > sinir) hatalar.push(`${alan} en fazla ${sinir} karakter olabilir`);
+    else taslak[alan] = d;
+  }
+  return { hatalar, taslak: hatalar.length ? null : taslak };
+}
+export function atolyeIstekDogrula({ istek, kod } = {}) {
+  const hatalar = [];
+  if (typeof istek !== "string" || !istek.trim()) hatalar.push("istek: kalfaya ne istediğini yaz");
+  else if (istek.length > 4000) hatalar.push("istek en fazla 4000 karakter olabilir");
+  if (kod != null && (typeof kod !== "string" || kod.length > ATOLYE_MAKS_KOD)) hatalar.push("kod çok uzun");
+  return hatalar;
+}

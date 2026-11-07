@@ -291,6 +291,12 @@ and absent fields. The same filters are available over HTTP through
    submitted for approval goes through the same audit.
 5. History is never invented: every fact about a work (name, century, history,
    source, photo) is read from the data while the module runs.
+6. Studio keeps each master's conversations and the module on the workbench on
+   the server, per account (`/api/atolye/oturumlar`, stored in `data/atolye/`).
+   Reloading the page restores the last conversation, the code and the preview;
+   if the page is reloaded while the journeyman is still working, the server
+   writes the answer into the conversation and Studio picks it up. Past
+   conversations are listed under the history button in the Kalfa panel.
 
 ## Data
 
