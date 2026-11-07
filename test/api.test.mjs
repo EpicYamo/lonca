@@ -102,6 +102,21 @@ test("topluluk önerisi: hata bildirimi ve yeni eser onay kuyruğuna düşer, on
   assert.ok(dosya.eserler.some((e) => e.ad === "Deneme Çeşmesi"));
 });
 
+test("uzman düzenleme önerisi: kaynaksız reddedilir, onaylanana dek yayına girmez", async () => {
+  const eser = (await s.istek("GET", "/api/eserler")).json()[2];
+  const yol = "/api/eser-oneriler";
+  assert.equal((await s.istek("POST", yol, { govde: { tur: "duzenle", eserId: eser.id, veri: { adres: "Uzman eklemesi" } } })).statusCode, 400);
+  assert.equal((await s.istek("POST", yol, { govde: { tur: "duzenle", eserId: eser.id, veri: {}, kaynak: "Envanter, Cilt 1" } })).statusCode, 400);
+  const o = await s.istek("POST", yol, { govde: { tur: "duzenle", eserId: eser.id, veri: { adres: "Uzman eklemesi" }, kaynak: "Envanter, Cilt 1, s. 37", oneren: "Uzman" } });
+  assert.equal(o.statusCode, 201);
+  assert.notEqual((await s.istek("GET", `/api/eserler/${eser.id}`)).json().adres, "Uzman eklemesi");
+  const kayit = (await s.istek("GET", yol, { yonetici: true })).json().find((x) => x.id === o.json().id);
+  assert.equal(kayit.kaynak, "Envanter, Cilt 1, s. 37");
+  assert.equal(kayit.oneren, "Uzman");
+  assert.equal((await s.istek("POST", `${yol}/${kayit.id}/karar`, { govde: { karar: "onayla" }, yonetici: true })).statusCode, 200);
+  assert.equal((await s.istek("GET", `/api/eserler/${eser.id}`)).json().adres, "Uzman eklemesi");
+});
+
 test("yönetici eseri düzenler; geçersiz alanlar reddedilir", async () => {
   const eser = (await s.istek("GET", "/api/eserler")).json()[1];
   assert.equal((await s.istek("PUT", `/api/eserler/${eser.id}`, { govde: { yuzyil: 40 }, yonetici: true })).statusCode, 400);

@@ -62,6 +62,21 @@ export function eserDogrula(veri, { kismi = false } = {}) {
   return { hatalar, eser };
 }
 
+/**
+ * Uzman düzenleme önerisinin ek alanları. Düzenleme önerisi en az bir alanı değiştirmeli ve
+ * eklenen bilginin kaynağını (kitap, cilt, sayfa, kitabe, kurum…) taşımalı; öneren adı isteğe bağlı.
+ * @returns {{ hatalar: string[], kaynak: string | null, oneren: string | null }}
+ */
+export function oneriEkiDogrula(tur, govde = {}, temizVeri = null) {
+  const hatalar = [];
+  const kaynak = kirp(govde.kaynak, 240) || null, oneren = kirp(govde.oneren, 80) || null;
+  if (tur === "duzenle") {
+    if (!temizVeri || !Object.keys(temizVeri).length) hatalar.push("düzenleme önerisinde en az bir alan değişmeli");
+    if (!kaynak || kaynak.length < 3) hatalar.push("eklenen bilginin kaynağı zorunlu (ör. kitap, cilt, sayfa ya da kitabe)");
+  }
+  return { hatalar, kaynak, oneren };
+}
+
 export const TEMEL_ALANLAR = ["ad", "tur", "il", "ilce", "yuzyil", "konum", "adres", "tarihce"];
 export const EK_ALANLAR = ["fotograf", "ad_en", "tarihce_en"];
 const dolu = (x) => typeof x === "string" ? x.trim().length > 0 : x != null;
