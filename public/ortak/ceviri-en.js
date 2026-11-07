@@ -654,6 +654,8 @@ export const EN = {
   "✓ Doğrulanmış vakıf eseri": "✓ Verified foundation heritage site",
   "Doğrulanmış vakıf eseri içeriği": "Verified foundation heritage content",
   "Doğrulanmış vakıf eseri içeriği (Vakıf Katılım envanteri)": "Verified foundation heritage content (Vakıf Katılım inventory)",
+  "VAKIF KATILIM ESERİ": "VAKIF KATILIM HERITAGE",
+  "Vakıf Katılım eseri: kaynağı doğrulanmış": "Vakıf Katılım heritage: verified source",
   "Admin'e öneri gönder": "Send suggestion to admin",
   "Öneri admin'e gönderildi ✓": "Suggestion sent to admin ✓",
   "Bu eser zaten önerilmiş; admin'in listesinde bekliyor.": "This site was already suggested; it is waiting on the admin's list.",
