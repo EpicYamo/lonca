@@ -152,6 +152,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   const noktalar = el("nav", { className: "s-dalis-noktalar", ariaLabel: "Duraklar" },
     ...kareler.map((k, i) => {
       const d = el("button", { className: "s-dalis-nokta", ariaLabel: `${i + 1}. durak${k.baslik ? `: ${k.baslik}` : ""}` });
+      d.dataset.baslik = k.baslik ?? ""; // web oynatıcısı durak listesinde adı gösterir
       d.addEventListener("click", () => git(durmalar.find((x) => x >= duraklar[i]) ?? duraklar[i]));
       return d;
     }));
