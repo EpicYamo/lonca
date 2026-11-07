@@ -9,7 +9,7 @@
 // uygulamanın gördüğü yanıt sunucununkiyle birebir aynı kalır.
 //
 // Kullanım: node mobil/hazirla.mjs [--sunucu http://192.168.1.20:3000 ...] [--port 3000] [--anahtar API_ANAHTARI]
-//   [--genel https://kozmoz.42.fr]  internetteki sunucu (Nginx arkası); önce bu denenir
+//   [--genel https://kozmos.42.fr]  internetteki sunucu (Nginx arkası); önce bu denenir
 // (anahtar/genel verilmezse .env içindeki LONCA_API_ANAHTARI / LONCA_SUNUCU_URL kullanılır)
 import { cp, mkdir, rm, writeFile, readFile, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";

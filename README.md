@@ -98,7 +98,7 @@ container, whose port 3000 is no longer published.
 1. Point the domain's DNS `A` record (and `AAAA` if any) at the server's public IP.
    Open ports 80 and 443.
 2. In `.env`: `LONCA_EPOSTA=…` and a strong `LONCA_API_ANAHTARI`. The domain
-   defaults to the project's `kozmoz.42.fr`; set `LONCA_ALAN_ADI` to use another. Optional
+   defaults to the project's `kozmos.42.fr`; set `LONCA_ALAN_ADI` to use another. Optional
    `LONCA_YOL_ONEKI=/lonca` serves under
    `https://domain/lonca/` (the API works there; browser redirects of
    `/app`/`/studio` assume the root).
@@ -115,7 +115,7 @@ can start and answer the HTTP-01 challenge. Needs Docker Compose 2.24+.
 
 The Android app does not need the IP: the APK is built with the server's HTTPS
 origin (the DNS name; `./apk.sh` defaults `LONCA_SUNUCU_URL` to
-`https://kozmoz.42.fr`, `LONCA_SUNUCU_URL=yok` leaves it out), sends the API key in `x-lonca-anahtar`, and falls back
+`https://kozmos.42.fr`, `LONCA_SUNUCU_URL=yok` leaves it out), sends the API key in `x-lonca-anahtar`, and falls back
 to the bundled offline snapshot when the server cannot be reached.
 
 ## Commands

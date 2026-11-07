@@ -6,7 +6,7 @@
 #   ./apk.sh --kur       → derledikten sonra USB/kablosuz bağlı telefona adb ile kurar
 #
 # Ortam değişkenleri (isteğe bağlı):
-#   LONCA_SUNUCU_URL=https://kozmoz.42.fr   internetteki sunucu (varsayılan; .env'den de okunur); APK önce bunu dener.
+#   LONCA_SUNUCU_URL=https://kozmos.42.fr   internetteki sunucu (varsayılan; .env'den de okunur); APK önce bunu dener.
 #                                           "yok" verilirse genel sunucu gömülmez
 #   LONCA_SUNUCU=http://192.168.1.20:3000   ek yerel sunucu adresi (yoksa bu bilgisayarın IP'leri gömülür)
 #   PORT=3000                               sunucunun portu (ağ taraması da bu portta yapılır)
@@ -76,7 +76,7 @@ for ip in $IPLER; do
 done
 # Genel sunucu: ortam > .env > projenin alan adı. "yok" ise gömülmez.
 if [[ -z "${LONCA_SUNUCU_URL:-}" && -f .env ]]; then LONCA_SUNUCU_URL=$(sed -n 's/^LONCA_SUNUCU_URL=//p' .env | tail -n 1); fi
-LONCA_SUNUCU_URL="${LONCA_SUNUCU_URL:-https://kozmoz.42.fr}"
+LONCA_SUNUCU_URL="${LONCA_SUNUCU_URL:-https://kozmos.42.fr}"
 [[ "$LONCA_SUNUCU_URL" != yok ]] && SUNUCU_ARG+=(--genel "$LONCA_SUNUCU_URL")
 bilgi "Genel sunucu: $LONCA_SUNUCU_URL"
 ANAHTAR_ARG=()

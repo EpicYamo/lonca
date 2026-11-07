@@ -81,7 +81,7 @@
     if (!kalan) return coz(null);
     for (const s of sozler) s.then((a) => { if (a) coz(a); else if (--kalan === 0) coz(null); });
   });
-  // Bağlanma sırası: 1) APK'ya gömülü genel sunucu (internetteki alan adı, ör. https://kozmoz.42.fr)
+  // Bağlanma sırası: 1) APK'ya gömülü genel sunucu (internetteki alan adı, ör. https://kozmos.42.fr)
   // 2) son bağlanılan adres 3) derleyen bilgisayarın yerel IP'leri ve emülatör 4) /24 ağ taraması 5) paketteki veri.
   const GENEL = normalAdres(YAP.genel);
   const gorunen = (a) => String(a).replace(/^http:\/\//, "");
