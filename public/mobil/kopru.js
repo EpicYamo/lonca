@@ -314,23 +314,6 @@
     });
   }
 
-  // ---------- Paylaş (eser penceresi) ----------
-  function paylasDugmesi() {
-    const eylem = $("#eser-penceresi .ep-eylemler");
-    if (!eylem || !P.Share || eylem.querySelector(".ep-paylas")) return;
-    const b = document.createElement("button");
-    b.type = "button"; b.className = "dugme ikincil kucuk ep-paylas"; b.textContent = "Paylaş";
-    b.addEventListener("click", () => {
-      const ad = $("#ep-ad")?.textContent ?? "";
-      const ust = $("#ep-ust")?.textContent ?? "";
-      const ilk = $("#ep-tarihce p")?.textContent ?? "";
-      const ozet = ilk.length > 400 ? `${ilk.slice(0, 400).replace(/\s+\S*$/, "")}…` : ilk;
-      titret("secim");
-      sessiz(P.Share.share({ title: ad, text: [ad, ust, ozet, "Lonca ile keşfet: vakıf eserleri."].filter(Boolean).join("\n\n"), dialogTitle: "Eseri paylaş" }));
-    });
-    eylem.prepend(b);
-  }
-
   // ---------- Sayfa hazır olunca ----------
   function kur() {
     cubukStili();
@@ -338,7 +321,6 @@
     gozle.observe(kok, { attributes: true, attributeFilter: ["data-tema", "class"] });
     for (const s of ["#modul-ekrani", "#ana-ekran", "#profil-ekrani"]) if ($(s)) gozle.observe($(s), { attributes: true, attributeFilter: ["hidden", "data-zemin"] });
     baglantiBolumu();
-    paylasDugmesi();
 
     // Açılış ekranı: Android'in açılış görselinin yerini aynı logolu web açılış ekranı (kabuk.js) hemen devralır;
     // o, veriler gelince solarak kapanır. Web açılış ekranı yoksa vitrin dolunca (en geç 4 sn) kapanır.
