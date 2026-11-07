@@ -315,7 +315,7 @@ test("genel arama: ad, il, ilçe ve tür; Türkçe harfler gevşek eşleşir", a
 
 test("vitrin il listesini, dalış özeti kareleri olmadan döner", async () => {
   const v = (await s.istek("GET", "/api/vitrin")).json();
-  assert.deepEqual(v.iller, ["Bursa"], "yalnızca Vakıf Katılım envanterindeki iller");
+  assert.deepEqual(v.iller, ["Bursa", "Hatay", "Konya"], "yalnızca Vakıf Katılım envanterindeki iller");
   await mkdir(path.join(s.veri, "dalislar"), { recursive: true });
   await copyFile(path.join(KOK, "data", "dalislar", "bursa-ulucami.json"), path.join(s.veri, "dalislar", "bursa-ulucami.json"));
   const ozet = (await s.istek("GET", "/api/dalislar?ozet=1")).json();

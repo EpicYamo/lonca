@@ -1200,7 +1200,7 @@ function profilEkrani() {
         ayarSatiri("palet", "Adı ve rengi değiştir", tanismaAc),
         ayarSatiri("arti", "Eser öner", () => katkiAc()))),
     izinBolumu(),
-    el("p", { className: "kaynak-notu profil-kunye", textContent: "Lonca · Veriler: Vakıf Katılım, Bursa Vakıf Eserleri Envanteri. Fotoğraflar envanter kitaplarındandır." }),
+    el("p", { className: "kaynak-notu profil-kunye", textContent: "Lonca · Veriler: Vakıf Katılım, Bursa, Konya ve Hatay vakıf eserleri kitapları. Fotoğraflar envanter kitaplarındandır." }),
   );
 }
 function izinBolumu() {

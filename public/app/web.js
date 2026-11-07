@@ -249,7 +249,7 @@ function susleKur() {
         <div><h2>Keşfet</h2><a href="/">Ana sayfa</a><a href="/#/kesif">Harita</a><a href="/#/moduller">Modüller</a></div>
         <div><h2>Katkı</h2><a href="/#/profil">Profilim</a><a href="/studio/" target="_blank" rel="noopener">Lonca Studio</a><button type="button" class="wa-oner">Eser öner</button></div>
       </nav>
-      <p class="wa-kaynak">Veriler: Vakıf Katılım, <em>Bursa Vakıf Eserleri Envanteri</em>. Fotoğraflar envanter kitaplarındandır. Vikipedi içerikleri CC BY-SA.</p>
+      <p class="wa-kaynak">Veriler: Vakıf Katılım, <em>Bursa, Konya ve Hatay vakıf eserleri kitapları</em>. Fotoğraflar envanter kitaplarındandır. Vikipedi içerikleri CC BY-SA.</p>
     </div>`;
   alt.querySelector(".wa-logo").innerHTML = loncaLogo({ boyut: 36 });
   alt.querySelector(".wa-cini").style.backgroundImage = ciniArkaPlan("lonca-alt", "firuze");

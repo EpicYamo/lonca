@@ -421,7 +421,8 @@ function eserSayfasi(id) {
   const satir = (ad, deger) => (deger ? [el("dt", { metin: ad }), el("dd", { metin: String(deger) })] : []);
   const haritaKap = e.konum?.lat ? el("div", { sinif: "es-harita", role: "region", "aria-label": "Eserin konumu" }) : null;
 
-  s.replaceChildren(
+  // replaceChildren null'u "null" metni olarak yazar: boş bölümler süzülür
+  s.replaceChildren(...[
     el("nav", { sinif: "es-yol", "aria-label": "Konum" }, el("a", { href: "/#eserler" }, el("span", { "aria-hidden": "true", metin: "← " }), "Eserler"), el("span", { "aria-hidden": "true", metin: " / " }), el("span", { metin: turAdi(e.tur) })),
     el("header", { sinif: "es-baslik" },
       el("p", { sinif: "bolum-ust-yazi", metin: kunye(e) }),
@@ -450,7 +451,8 @@ function eserSayfasi(id) {
           el("span", {}, el("strong", { metin: b.diger.ad }), el("span", { metin: b.baslik ?? "" }), b.kaynak ? el("small", { metin: `Kaynak: ${b.kaynak}` }) : null)))))) : null,
     benzer.length ? el("section", { sinif: "es-benzer", "aria-labelledby": "es-benzer-baslik" },
       el("h2", { id: "es-benzer-baslik", metin: `Diğer ${turAdi(e.tur).toLocaleLowerCase("tr")} eserleri` }),
-      el("ul", { sinif: "eser-satiri" }, benzer.map(eserTasi))) : null);
+      el("ul", { sinif: "eser-satiri" }, benzer.map(eserTasi))) : null,
+  ].filter(Boolean));
   if (haritaKap) haritaKur(haritaKap, [e], { yakinlik: 16 }).catch(() => haritaKap.remove());
 }
 
