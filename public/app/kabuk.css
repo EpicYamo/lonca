@@ -1,0 +1,142 @@
+/* Uygulama kabuğu (html.kabuk): Android uygulamasında açılış ekranı, üst uygulama çubuğu, alt gezinme ve
+   sayfa geçişleri. Web'de ?kabuk ile denenebilir. Belirteçler zarif.css'ten gelir; yalnızca transform/opacity canlanır. */
+
+.alt-gezinme, .acilis-ekrani { display: none; }
+
+/* ---------- Açılış ekranı ---------- */
+.kabuk .acilis-ekrani {
+  position: fixed; inset: 0; z-index: 3000; display: grid; place-content: center; justify-items: center; gap: .2rem;
+  background: var(--zemin); color: var(--metin); font-family: var(--yazi-sistem); text-align: center;
+}
+.kabuk .acilis-ekrani.bitti { display: none; }
+.ae-logo { display: grid; place-items: center; width: 84px; height: 84px; margin-bottom: .9rem; }
+.ae-logo svg { width: 84px; height: 84px; }
+.ae-ad { margin: 0; font-size: 2rem; font-weight: 700; letter-spacing: -.02em; animation: ae-gel .5s var(--egri) .12s both; }
+.ae-alt { margin: 0; color: var(--soluk); font-size: .95rem; animation: ae-gel .5s var(--egri) .22s both; }
+.acilis-ekrani.gidiyor { opacity: 0; transition: opacity .38s ease-out; pointer-events: none; }
+.acilis-ekrani.gidiyor .ae-logo { transform: scale(1.08); transition: transform .38s var(--egri); }
+@keyframes ae-gel { from { opacity: 0; transform: translateY(8px); } }
+
+/* ---------- Üst uygulama çubuğu ---------- */
+.kabuk .ust-bar, .kabuk .profil-ekrani .ust-serit {
+  min-height: 64px; padding: env(safe-area-inset-top) max(.5rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
+  background: var(--zemin); border-bottom: .5px solid transparent;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  transition: background-color .2s ease-out, border-color .2s ease-out;
+  view-transition-name: ust-cubuk;
+}
+.kabuk.kaydirildi .ust-bar, .kabuk.kaydirildi .profil-ekrani .ust-serit { background: var(--yuzey); border-bottom-color: var(--cizgi); }
+.kabuk .ust-bar { flex-wrap: nowrap; }
+.kabuk .marka { font-size: 1.375rem; font-weight: 700; letter-spacing: -.01em; min-width: 0; }
+.kabuk .marka span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kabuk .ana-ekran:not([data-sekme="kesif"]) .marka-logo { display: none; }
+/* Profil alt gezinmede; üst çubukta yinelenmez. */
+.kabuk .ust-bar .profil-cip { display: none; }
+.kabuk .vitrin-dugmeler { flex-wrap: nowrap; gap: 0; }
+.kabuk :is(.ayar-dugme, .tema-dugme) { min-width: 48px; min-height: 48px; }
+.kabuk :is(.ayar-dugme, .tema-dugme)::before { inset: 6px; background: transparent; }
+.kabuk :is(.ayar-dugme, .tema-dugme):active::before { background: var(--dolgu); }
+.kabuk :is(.ayar-dugme, .tema-dugme) svg { width: 22px; height: 22px; }
+/* Profil sayfası: geri oku yok (alt gezinmeden gelinir), başlık solda. */
+.kabuk .profil-ekrani .geri { display: none; }
+.kabuk .profil-ekrani .ust-serit h1 { margin: 0; text-align: left; font-size: 1.375rem; font-weight: 700; letter-spacing: -.01em; }
+
+/* ---------- Sayfalar: Keşfet ve Modüller aynı ekranın iki ayrı sayfası ---------- */
+.kabuk .ana-ekran[data-sekme="kesif"] [data-sekme="moduller"],
+.kabuk .ana-ekran[data-sekme="moduller"] [data-sekme="kesif"] { display: none !important; }
+.kabuk .ana-ekran[data-sekme="moduller"] .meydan-duzen { padding-top: .5rem; }
+.kabuk .ana-ekran[data-sekme="moduller"] .meydan-duzen { grid-template-columns: minmax(0, 1fr); max-width: 900px; }
+.kabuk .kapak-alani { margin-top: .25rem; min-height: clamp(300px, 46vh, 460px); }
+.kabuk :is(.ana-ekran, .profil-ekrani) { min-height: 100dvh; }
+.kabuk:not(.kabuk-modulde) body { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+.kabuk .meydan { padding-bottom: 1.5rem; }
+
+/* ---------- Alt gezinme çubuğu (Material 3 gezinme çubuğu) ---------- */
+.kabuk .alt-gezinme {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; justify-content: space-around;
+  min-height: 80px; padding: 0 max(.5rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(.5rem, env(safe-area-inset-left));
+  background: var(--yuzey); border-top: .5px solid var(--cizgi); font-family: var(--yazi-sistem);
+  view-transition-name: alt-gezinme;
+}
+.kabuk .alt-gezinme[hidden] { display: none !important; }
+.alt-gezinme button {
+  flex: 1 1 0; max-width: 168px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 64px; padding: 12px 0 14px; border: 0; background: none; color: var(--soluk); font: inherit; cursor: pointer;
+}
+.ag-ikon { position: relative; display: grid; place-items: center; width: 64px; height: 32px; border-radius: 16px; isolation: isolate; }
+.ag-ikon::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--vurgu-zemin); transform: scaleX(.4); opacity: 0; transition: transform .25s var(--egri), opacity .2s ease-out; }
+.ag-ikon svg { width: 24px; height: 24px; }
+.ag-ad { font-size: .75rem; font-weight: 500; line-height: 1.2; letter-spacing: .01em; }
+.alt-gezinme button[aria-current="page"] { color: var(--metin); }
+.alt-gezinme button[aria-current="page"] .ag-ikon::before { transform: none; opacity: 1; }
+.alt-gezinme button[aria-current="page"] .ag-ad { font-weight: 700; }
+.alt-gezinme button:active .ag-ikon::before { opacity: 1; background: var(--dolgu-guclu); transform: none; }
+.alt-gezinme button:focus-visible { outline: none; }
+.alt-gezinme button:focus-visible .ag-ikon { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+
+/* ---------- Bildirim: Android'de alttan, gezinme çubuğunun üstünde (snackbar) ---------- */
+.kabuk .bildirimler { top: auto; bottom: calc(92px + env(safe-area-inset-bottom)); }
+.kabuk.kabuk-modulde .bildirimler { bottom: calc(1.2rem + env(safe-area-inset-bottom)); }
+.kabuk .bildirim { animation-name: kabuk-bildirim; }
+@keyframes kabuk-bildirim { from { opacity: 0; transform: translateY(12px); } }
+
+/* ---------- Sayfa geçişi: solup belirme (fade-through), yönlü küçük kayma ---------- */
+:root.kabuk[data-sekme-gecis]::view-transition-old(root) { animation: 90ms cubic-bezier(.4, 0, 1, 1) both kabuk-cik; }
+:root.kabuk[data-sekme-gecis]::view-transition-new(root) { animation: 230ms cubic-bezier(0, 0, .2, 1) 70ms both kabuk-gir-ileri; }
+:root.kabuk[data-sekme-gecis="geri"]::view-transition-new(root) { animation-name: kabuk-gir-geri; }
+:root.kabuk[data-sekme-gecis]::view-transition-group(ust-cubuk),
+:root.kabuk[data-sekme-gecis]::view-transition-group(alt-gezinme) { animation-duration: 200ms; }
+@keyframes kabuk-cik { to { opacity: 0; } }
+@keyframes kabuk-gir-ileri { from { opacity: 0; transform: translateX(28px); } }
+@keyframes kabuk-gir-geri { from { opacity: 0; transform: translateX(-28px); } }
+
+/* ---------- Geniş ekran (tablet): içerik ortada ---------- */
+@media (min-width: 760px) {
+  .kabuk .alt-gezinme { justify-content: center; gap: 2rem; }
+}
+
+/* Erişilebilirlik tercihleri her zaman üstün */
+:root.kontrast.kabuk .alt-gezinme { background: #000; border-top: 1px solid #fff; }
+:root.kontrast .alt-gezinme button[aria-current="page"] .ag-ikon::before { background: #ffd400; }
+:root.kontrast .alt-gezinme button[aria-current="page"] { color: #fff; }
+:root.kontrast .alt-gezinme button[aria-current="page"] .ag-ikon { color: #000; }
+:root.buyuk-hedef .alt-gezinme button { min-height: 72px; }
+:root.hareket-az :is(.ae-ad, .ae-alt) { animation: none; }
+:root.hareket-az :is(.acilis-ekrani.gidiyor, .ag-ikon::before) { transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  :is(.ae-ad, .ae-alt) { animation: none; }
+  .ag-ikon::before { transition: none; }
+}
+
+/* ---------- Sıralama seçici (her yerde): Android'de yerel seçim penceresi açılır ---------- */
+.siralama { position: relative; display: inline-flex; align-items: center; gap: .3rem; min-height: 44px; margin-left: auto; color: var(--vurgu); font-family: var(--yazi-sistem); }
+.siralama svg { width: 18px; height: 18px; flex: none; }
+.siralama select { min-height: 36px; padding: 0 .4rem; border: 0; border-radius: 8px; background: none; color: inherit; font: 600 .9rem var(--yazi-sistem); cursor: pointer; }
+.siralama:has(select:focus-visible) { outline: 2px solid var(--vurgu); outline-offset: 2px; border-radius: 8px; }
+.siralama select:focus-visible { outline: none; }
+.uygulamalar .bolum-ust .bolum-sayi { order: 3; flex-basis: 100%; margin-top: -.5rem; }
+
+/* ---------- Modüller sayfası: kart ızgarası (uygulamada) ---------- */
+.kabuk .uygulama-listesi {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); gap: 12px;
+  overflow: visible; border-radius: 0; background: none; box-shadow: none;
+}
+.kabuk .uygulama-listesi > li { position: relative; border-radius: var(--yaricap-buyuk); background: var(--yuzey); box-shadow: var(--golge-kart); overflow: hidden; }
+.kabuk .uygulama-listesi > li + li .uygulama-satiri::before { display: none; }
+.kabuk .uygulama-satiri {
+  height: 100%; flex-direction: column; align-items: flex-start; gap: .65rem; padding: 1rem 1rem .95rem; border-radius: inherit;
+}
+.kabuk .uygulama-satiri .uygulama-ikonu { width: 56px; height: 56px; }
+.kabuk .us-metin { width: 100%; align-content: start; }
+.kabuk .us-ad { font-size: 1.02rem; font-weight: 650; flex-wrap: wrap; }
+.kabuk .us-kategori { font-size: .74rem; }
+.kabuk .us-aciklama { -webkit-line-clamp: 3; font-size: .82rem; line-height: 1.35; }
+.kabuk .uygulama-li .ac-pill { display: inline-block; margin-top: auto; }
+.kabuk .uygulama-satiri:active { transform: scale(.98); background: none; transition: transform .12s ease-out; }
+.kabuk .raf-dugme { top: .7rem; right: .7rem; translate: none; }
+:root[data-tema="koyu"].kabuk .uygulama-listesi > li { box-shadow: none; }
+.kabuk .uygulama-listesi:has(> li:only-child) { grid-template-columns: repeat(auto-fill, minmax(156px, 1fr)); }
+.kabuk .uygulama-listesi > li.bos { grid-column: 1 / -1; padding: 1rem; }
+/* Klavye açıkken (Android, kopru.js) alt çubuk gizlenir. */
+.klavye-acik .alt-gezinme { display: none !important; }
+.klavye-acik body { padding-bottom: 0 !important; }

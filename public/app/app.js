@@ -286,6 +286,17 @@ function avatarCiz(kap, p) {
 }
 
 $("#marka-logo").innerHTML = loncaLogo({ boyut: 30 });
+$("#hesap-logo").innerHTML = loncaLogo({ boyut: 56 });
+
+// Studio yalnızca web'dedir: uygulamada sistem tarayıcısında (Android'de Custom Tab) açılır.
+const studioAdresi = () => `${window.loncaMobil?.sunucu || location.origin}/studio/`;
+function studioAc() {
+  const url = studioAdresi();
+  const Tarayici = window.Capacitor?.Plugins?.Browser;
+  if (Tarayici) Tarayici.open({ url, presentationStyle: "fullscreen" }).catch(() => window.open(url, "_blank", "noopener"));
+  else window.open(url, "_blank", "noopener");
+  if (matchMedia("(max-width: 759px)").matches) bildir("Studio tarayıcıda açılıyor. En iyi deneyim için bir bilgisayardan aç.", { sure: 4200 });
+}
 
 let vitrin = null;
 const vitrinGetir = () => (vitrin ??= fetch("/api/vitrin").then((y) => y.json()).catch(() => null));
@@ -432,6 +443,15 @@ function oneCikanlariCiz(kapaklar) {
 }
 
 const yeniGelenler = new Set();
+// Sıralama: Önerilen (sunucunun sırası), En yeni (yayın tarihi), A–Z. Seçim cihazda hatırlanır.
+let siralama = ["onerilen", "yeni", "ad"].includes(depo.oku("lonca.siralama")) ? depo.oku("lonca.siralama") : "onerilen";
+$("#siralama").value = siralama;
+$("#siralama").addEventListener("change", (e) => { siralama = e.target.value; depo.yaz("lonca.siralama", siralama); uygulamalariCiz({ animasyonsuz: true }); });
+function siralanmis(liste) {
+  if (siralama === "yeni") return [...liste].sort((a, b) => String(b.yayin ?? "").localeCompare(String(a.yayin ?? "")));
+  if (siralama === "ad") return [...liste].sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+  return liste;
+}
 function uygulamalariCiz({ animasyonsuz = false } = {}) {
   $("#moduller").classList.remove("sessiz");
   const sayac = {};
@@ -445,7 +465,7 @@ function uygulamalariCiz({ animasyonsuz = false } = {}) {
     return b;
   }));
   $("#kategori-cipleri").hidden = modulListesi.length < 2;
-  const gorunen = modulListesi.filter((m) => seciliKategori === "hepsi" || kategoriBul(m) === seciliKategori);
+  const gorunen = siralanmis(modulListesi.filter((m) => seciliKategori === "hepsi" || kategoriBul(m) === seciliKategori));
   $("#uygulama-sayisi").textContent = modulListesi.length ? `${modulListesi.length} uygulama` : "";
   $("#moduller").replaceChildren(...gorunen.map((m, i) => {
     const yeni = raf.yeniMi(m.id);
@@ -723,34 +743,69 @@ async function hesapDurumunuYukle() {
   }
 }
 
+const ROL_ADI = { usta: "Öğretmen / usta", editor: "Editör" };
+const SVG = {
+  kalem: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  tik: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  kalkan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ay: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  erisim: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v4.5m0 0l-3.5 6m3.5-6l3.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  palet: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-.9.7-1.5 1.7-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="11" r="1.3" fill="currentColor"/><circle cx="10.5" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15" cy="7.8" r="1.3" fill="currentColor"/></svg>',
+  arti: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  studio: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20h8M12 16v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  cikis: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+const svgSpan = (ad, sinif = "pl-ikon") => { const s = el("span", { className: sinif, ariaHidden: "true" }); s.innerHTML = SVG[ad]; return s; };
+
+function studioSatiri() {
+  const b = el("button", { type: "button", className: "pl-satir" }, svgSpan("studio"),
+    el("span", { className: "pl-ad" }, "Lonca Studio", el("small", { textContent: "Web'de açılır · en iyi deneyim bilgisayarda" })),
+    el("span", { className: "pl-dis", ariaHidden: "true", textContent: "↗" }));
+  b.addEventListener("click", studioAc);
+  return b;
+}
+
+function oturumuKapat() {
+  localStorage.removeItem(HESAP_JETON_ANAHTARI);
+  hesapKullanici = null;
+  if (!$("#profil-ekrani").hidden) profilEkrani();
+  bildir("Lonca hesabından çıkış yapıldı.");
+}
+
 function hesapBolumu() {
   const bolum = el("section", { className: "hesap-kart" });
   if (hesapKullanici) {
-    const rol = hesapKullanici.rol === "usta" ? "Öğretmen / usta" : hesapKullanici.rol === "editor" ? "Editör" : "Öğrenci / gezgin";
-    const cikis = el("button", { className: "dugme ikincil kucuk", type: "button", textContent: "Oturumu kapat" });
-    cikis.addEventListener("click", () => {
-      localStorage.removeItem(HESAP_JETON_ANAHTARI);
-      hesapKullanici = null;
-      if (!$("#profil-ekrani").hidden) profilEkrani();
-      bildir("Lonca hesabından çıkış yapıldı.");
-    });
+    const cikis = el("button", { className: "pl-satir tehlike", type: "button" }, svgSpan("cikis"), el("span", { className: "pl-ad", textContent: "Oturumu kapat" }));
+    cikis.addEventListener("click", oturumuKapat);
+    bolum.classList.add("acik");
+    bolum.setAttribute("aria-label", "Lonca hesabı");
     bolum.append(
-      el("span", { className: "hesap-ust", textContent: "LONCA HESABI" }),
-      el("h2", { textContent: hesapKullanici.profil?.ad || hesapKullanici.kimlik }),
-      el("p", { className: "hesap-aciklama", textContent: `@${hesapKullanici.kimlik} · ${rol}` }),
-      el("p", { className: "hesap-aciklama", textContent: "Bu cihazdaki profilin hesabınla ilişkilendirildi." }),
-      cikis,
+      el("div", { className: "hesap-durum" }, svgSpan("kalkan", "hesap-rozet"),
+        el("span", { className: "hesap-durum-metin" },
+          el("strong", { textContent: "Hesabına bağlı" }),
+          el("span", { textContent: `@${hesapKullanici.kimlik} · ${ROL_ADI[hesapKullanici.rol] ?? "Öğrenci / gezgin"}` }))),
+      el("p", { className: "hesap-aciklama", textContent: "Profilin ve başarımların hesabında saklanıyor; başka bir cihazda giriş yapınca seni bekliyor olacak." }),
+      el("div", { className: "pl-grup" }, studioSatiri(), cikis),
     );
   } else {
-    const giris = el("button", { className: "dugme ikincil kucuk", type: "button", textContent: "Giriş yap" });
-    const kayit = el("button", { className: "dugme kucuk", type: "button", textContent: "Hesap oluştur" });
+    const giris = el("button", { className: "dugme", type: "button", textContent: "Giriş yap" });
+    const kayit = el("button", { className: "dugme ikincil", type: "button", textContent: "Hesap oluştur" });
     giris.addEventListener("click", () => hesapPenceresiAc("giris"));
     kayit.addEventListener("click", () => hesapPenceresiAc("kayit"));
+    const fayda = (metin) => el("li", {}, svgSpan("tik", "hesap-tik"), el("span", { textContent: metin }));
+    bolum.classList.add("davet");
+    bolum.setAttribute("aria-labelledby", "hesap-davet-baslik");
     bolum.append(
-      el("span", { className: "hesap-ust", textContent: "LONCA HESABI" }),
-      el("h2", { textContent: "Profilini hesabına bağla" }),
-      el("p", { className: "hesap-aciklama", textContent: "Cihazındaki profil ve başarımlarını hesabına taşı. Aynı hesapla Studio’ya da giriş yapabilirsin." }),
+      svgSpan("kalkan", "hesap-rozet"),
+      el("h2", { id: "hesap-davet-baslik", textContent: "Hesabınla devam et" }),
+      el("ul", { className: "hesap-faydalar" },
+        fayda("Puanın ve başarımların telefon değişse de kaybolmaz"),
+        fayda("Profilin her cihazda aynı"),
+        fayda("Aynı hesapla web'deki Lonca Studio'da modül hazırlayabilirsin")),
       el("div", { className: "hesap-eylemler" }, giris, kayit),
+      el("p", { className: "hesap-studio-not" }, "Modül mi hazırlayacaksın? ",
+        Object.assign(el("button", { type: "button", className: "metin-dugme", textContent: "Lonca Studio'yu aç" }), { onclick: studioAc }),
+        " · en iyi deneyim için bilgisayardan."),
     );
   }
   return bolum;
@@ -772,6 +827,10 @@ function hesapPencereGuncelle() {
   $("#hesap-sifre").autocomplete = kayit ? "new-password" : "current-password";
   $("#hesap-hata").hidden = true;
   $("#hesap-hata").textContent = "";
+  $("#hesap-aciklama").textContent = kayit ? "Birkaç saniyede hesabını aç; bu cihazdaki puan ve başarımların hesabına taşınır." : "Tekrar hoş geldin. Profilin ve başarımların hesabınla eşitlenir.";
+  $("#hesap-sifre").type = "password";
+  $("#hesap-goster").setAttribute("aria-pressed", "false");
+  $("#hesap-goster").setAttribute("aria-label", "Şifreyi göster");
 }
 function hesapPenceresiKapat(tamam = false) {
   $("#hesap-penceresi").hidden = true;
@@ -797,6 +856,12 @@ $("#hesap-formu").addEventListener("click", (e) => {
   if (dugme) { hesapKipi = dugme.dataset.hesapKip; hesapPencereGuncelle(); }
 });
 $("#hesap-vazgec").addEventListener("click", () => hesapPenceresiKapat(false));
+$("#hesap-goster").addEventListener("click", () => {
+  const g = $("#hesap-sifre").type === "password";
+  $("#hesap-sifre").type = g ? "text" : "password";
+  $("#hesap-goster").setAttribute("aria-pressed", String(g));
+  $("#hesap-goster").setAttribute("aria-label", g ? "Şifreyi gizle" : "Şifreyi göster");
+});
 $("#hesap-penceresi").addEventListener("click", (e) => { if (e.target === e.currentTarget) hesapPenceresiKapat(false); });
 document.addEventListener("keydown", (e) => {
   if ($("#hesap-penceresi").hidden) return;
@@ -844,28 +909,55 @@ hesapDurumunuYukle();
 function profilEkrani() {
   const p = profil.profilBilgi();
   const sonraki = profil.seviyeEsigi(p.seviye + 1), bu = profil.seviyeEsigi(p.seviye);
-  const avatar = el("span", { className: "avatar buyuk", ariaHidden: "true" });
-  avatarCiz(avatar, p);
-  const duzenle = el("button", { className: "dugme ikincil kucuk", textContent: "Adı ve rengi değiştir" });
-  duzenle.addEventListener("click", tanismaAc);
   const gruplar = profil.tumBasarimlar(modulListesi);
   const kazanilan = gruplar.reduce((t, g) => t + g.basarimlar.filter((b) => b.kazanildi).length, 0);
   const toplam = gruplar.reduce((t, g) => t + g.basarimlar.length, 0);
 
+  // Kahraman kart: çini şerit, avatar, ad, hesap ve seviye
+  const serit = el("span", { className: "pk-serit", ariaHidden: "true" });
+  serit.style.backgroundImage = ciniArkaPlan(`avatar-${p.ad}`, p.renk);
+  const avatar = el("span", { className: "avatar buyuk", ariaHidden: "true" });
+  avatarCiz(avatar, p);
+  const duzenle = el("button", { type: "button", className: "pk-duzenle", ariaLabel: "Adı ve rengi değiştir", title: "Adı ve rengi değiştir" });
+  duzenle.innerHTML = SVG.kalem;
+  duzenle.addEventListener("click", tanismaAc);
+  const alt = hesapKullanici ? `@${hesapKullanici.kimlik} · ${ROL_ADI[hesapKullanici.rol] ?? "Öğrenci / gezgin"}` : "Misafir · profil yalnızca bu cihazda";
+  const oran = Math.max(0, Math.min(1, (p.puan - bu) / (sonraki - bu)));
+  const istatistik = (n, ad) => el("div", { className: "pk-sayi" }, el("strong", { textContent: n }), el("span", { textContent: ad }));
+
+  const ayarSatiri = (ikon, ad, tik, ek = null) => {
+    const b = el("button", { type: "button", className: "pl-satir" }, svgSpan(ikon), el("span", { className: "pl-ad", textContent: ad }), ek ?? el("span", { className: "pl-ok", ariaHidden: "true" }));
+    b.addEventListener("click", () => tik(b));
+    return b;
+  };
+  const koyu = document.documentElement.dataset.tema === "koyu";
+  const temaAnahtari = el("span", { className: `pl-anahtar${koyu ? " acik" : ""}`, ariaHidden: "true" });
+  const temaSatiri = ayarSatiri("ay", "Koyu tema", () => {
+    $("#tema-dugme").click();
+    const simdi = document.documentElement.dataset.tema === "koyu";
+    temaAnahtari.classList.toggle("acik", simdi);
+    temaSatiri.setAttribute("aria-checked", String(simdi));
+  }, temaAnahtari);
+  temaSatiri.setAttribute("role", "switch");
+  temaSatiri.setAttribute("aria-checked", String(koyu));
+
   $("#profil-icerik").replaceChildren(
-    hesapBolumu(),
-    el("section", { className: "profil-kart" },
-      avatar,
+    el("section", { className: "profil-kart profil-kahraman", ariaLabel: "Profil özeti" },
+      serit,
+      el("div", { className: "pk-avatar" }, avatar, duzenle),
       el("h2", { className: "profil-ad", textContent: p.ad }),
-      el("p", { className: "profil-seviye", textContent: `Seviye ${p.seviye} · ${p.puan} puan` }),
+      el("p", { className: "pk-alt", textContent: alt }),
+      el("div", { className: "pk-seviye" },
+        el("span", { className: "profil-seviye", textContent: `Seviye ${p.seviye}` }),
+        el("span", { className: "pk-puan", textContent: `${p.puan} puan` })),
       el("div", { className: "s-ilerleme", role: "progressbar", ariaLabel: "Sonraki seviyeye ilerleme", ariaValueNow: String(p.puan - bu), ariaValueMin: "0", ariaValueMax: String(sonraki - bu) },
-        Object.assign(el("span"), { style: `width:${((p.puan - bu) / (sonraki - bu)) * 100}%` })),
-      el("p", { className: "profil-alt", textContent: `Sonraki seviyeye ${sonraki - p.puan} puan` }),
-      duzenle),
-    el("section", { className: "profil-istatistik" },
-      el("div", { className: "s-istatistik" }, el("strong", { textContent: String(kazanilan) }), el("span", { textContent: "başarım" })),
-      el("div", { className: "s-istatistik" }, el("strong", { textContent: String(toplam ? Math.round((kazanilan / toplam) * 100) : 0) + "%" }), el("span", { textContent: "tamamlandı" })),
-      el("div", { className: "s-istatistik" }, el("strong", { textContent: String(gruplar.length) }), el("span", { textContent: "modül" }))),
+        Object.assign(el("span"), { style: `width:${oran * 100}%` })),
+      el("p", { className: "profil-alt", textContent: `Seviye ${p.seviye + 1} için ${sonraki - p.puan} puan` }),
+      el("div", { className: "profil-istatistik" },
+        istatistik(String(kazanilan), "başarım"),
+        istatistik(`${toplam ? Math.round((kazanilan / toplam) * 100) : 0}%`, "tamamlandı"),
+        istatistik(String(gruplar.length), "modül"))),
+    hesapBolumu(),
     el("h2", { className: "bolum-baslik", textContent: "Başarımlar" }),
     gruplar.length ? el("div", { className: "profil-basarimlar" }, ...gruplar.map(({ modul, basarimlar }) =>
       el("section", { className: "profil-modul" },
@@ -876,7 +968,15 @@ function profilEkrani() {
           r.append(el("strong", { textContent: b.ad }), el("span", { textContent: b.kazanildi ? (b.aciklama || "Kazanıldı") : "Henüz kazanılmadı" }));
           return r;
         }))))) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." }),
+    el("section", { className: "profil-ayarlar" },
+      el("h2", { className: "bolum-baslik", id: "profil-ayar-baslik", textContent: "Ayarlar" }),
+      el("div", { className: "pl-grup" },
+        temaSatiri,
+        ayarSatiri("erisim", "Erişilebilirlik", (b) => ayarlar(true, b)),
+        ayarSatiri("palet", "Adı ve rengi değiştir", tanismaAc),
+        ayarSatiri("arti", "Eser öner", () => katkiAc()))),
     izinBolumu(),
+    el("p", { className: "kaynak-notu profil-kunye", textContent: "Lonca · Veriler: Vakıf Katılım, Bursa Vakıf Eserleri Envanteri. Fotoğraflar envanter kitaplarındandır." }),
   );
 }
 function izinBolumu() {
