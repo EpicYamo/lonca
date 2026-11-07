@@ -3,6 +3,7 @@ export const ESER_TURLERI = ["cami", "mescit", "medrese", "han", "hamam", "cesme
   "kopru", "tekke", "hazire", "carsi", "kutuphane", "sivil", "diger"];
 
 const metinMi = (x) => typeof x === "string";
+// eslint-disable-next-line no-control-regex -- NUL karakteri bilerek temizlenir
 const kirp = (x, n) => (metinMi(x) ? x.replace(/\u0000/g, "").trim().slice(0, n) : "");
 
 export function kimlikUret(ad) {
@@ -60,6 +61,21 @@ export function eserDogrula(veri, { kismi = false } = {}) {
   }
   if (var_("sergi")) eser.sergi = kirp(veri.sergi, 200) || null;
   return { hatalar, eser };
+}
+
+/**
+ * Uzman düzenleme önerisinin ek alanları. Düzenleme önerisi en az bir alanı değiştirmeli ve
+ * eklenen bilginin kaynağını (kitap, cilt, sayfa, kitabe, kurum…) taşımalı; öneren adı isteğe bağlı.
+ * @returns {{ hatalar: string[], kaynak: string | null, oneren: string | null }}
+ */
+export function oneriEkiDogrula(tur, govde = {}, temizVeri = null) {
+  const hatalar = [];
+  const kaynak = kirp(govde.kaynak, 240) || null, oneren = kirp(govde.oneren, 80) || null;
+  if (tur === "duzenle") {
+    if (!temizVeri || !Object.keys(temizVeri).length) hatalar.push("düzenleme önerisinde en az bir alan değişmeli");
+    if (!kaynak || kaynak.length < 3) hatalar.push("eklenen bilginin kaynağı zorunlu (ör. kitap, cilt, sayfa ya da kitabe)");
+  }
+  return { hatalar, kaynak, oneren };
 }
 
 export const TEMEL_ALANLAR = ["ad", "tur", "il", "ilce", "yuzyil", "konum", "adres", "tarihce"];
