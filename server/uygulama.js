@@ -8,6 +8,7 @@ import { kalfaHazirla } from "./kalfa.js";
 import { dalisKalfasiKur } from "./dalis-kalfasi.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri } from "./guvenlik.js";
+import { erisimKur } from "./erisim.js";
 import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar } from "./dogrulama.js";
 
 const MAKS_KOD = 150_000; 
@@ -53,6 +54,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
 
   const app = Fastify({ logger: gunluk ? { level: "info" } : false, bodyLimit: 1024 * 1024, trustProxy: true });
+  const erisim = await erisimKur({ anahtar: ortam.LONCA_API_ANAHTARI, veri });
+  erisim.kur(app);
 
   // ---------- Statik ----------
   app.register(fastifyStatic, { root: path.join(kok, "public"), prefix: "/" });
@@ -545,5 +548,5 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return govde;
   });
 
-  return { app, kalfa, dalisKalfasi, yetki, eserler };
+  return { app, kalfa, dalisKalfasi, yetki, erisim, eserler };
 }

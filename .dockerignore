@@ -1,0 +1,30 @@
+# Gizli ayarlar asla imaja girmez
+.env
+.env.*
+!.env.example
+
+.git
+node_modules
+android
+mobil
+test
+.claude
+*.log
+.DS_Store
+__pycache__/
+
+# Büyük kaynak veriler
+veri-kaynak/
+kitaplar/
+fotograflar*/
+
+# Çalışma verisi ve medya volume olarak bağlanır
+data/
+public/medya/
+
+# Docker ve Android dosyaları sunucuya gerekmez
+Dockerfile
+docker-compose.yml
+apk.sh
+capacitor.config.json
+CLAUDE.md

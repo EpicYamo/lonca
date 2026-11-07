@@ -15,3 +15,6 @@ data/yuklenen/
 data/eser-gecmisi.json
 data/gecmis/
 data/moduller/eski/
+
+# Eşleşen cihazların anahtar özetleri (her makinede ayrı)
+data/cihazlar.json
