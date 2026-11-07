@@ -14,7 +14,8 @@ Kullanıcı Türkçe yazar; yanıtlar Türkçe olsun.
 ## Proje kuralları
 
 - **Sırlar depoya girmez.** `.env` gitignore'da; anahtarlar yalnızca `.env`'de durur. Yeni bir ayar eklersen `.env.example`'a açıklamasıyla, değeri boş olarak ekle. API anahtarı tarayıcıya gitmez (istisna: `GOOGLE_HARITA_ANAHTARI`, referrer kısıtıyla).
-- **Commit'ten önce `npm test` geçmeli.** Arayüz değişikliğinde sayfayı tarayıcıda açıp gözle doğrula.
+- **Dal akışı:** iş dalları → `dev` (deney, CI zorunlu değil) → `main` (beta, PR'da tam CI) → `build` (birleştirince APK GitHub Release). Ayrıntı: `docs/ci-cd.md`.
+- **Commit'ten önce `npm test` ve `npm run lint` geçmeli.** Arayüz değişikliğinde sayfayı tarayıcıda açıp gözle doğrula.
 - **Tarih uydurulmaz.** Eserlerle ilgili her ad, tarih, kişi bir kaynakta aynen geçmeli. Yüzyıl yalnızca yapım tarihinden gelir (onarım tarihi değil); yoksa `null`. Yaklaşık konum `yaklasik: true` taşır. İçerik işlerinde `.claude/skills/vakif-eseri-icerik` skill'ini kullan.
 - **İnsan onayı:** kalfa ve dalış kalfası yalnızca taslak üretir (`durum: "bekliyor"`); yayın editör onayıyla olur (`"onayli"`).
 - **Modül sözleşmesi** `sdk/lonca-sdk.d.ts`'dedir. Modül yalnızca `@lonca/sdk` import eder, ağa/DOM'a erişemez, `sahne.ayarla` zorunlu, en çok 2000 satır. SDK'ya düğüm/ekran eklersen `.d.ts`, `sdk/lonca-sdk.js`, `public/app/sahne.js` ve `server/kalfa.js` denetimini birlikte güncelle.
@@ -37,6 +38,9 @@ npm run dev               # node --watch server/index.js → http://localhost:30
 npm start                 # izlemesiz
 npm test                  # node --test "test/*.test.mjs" (API, doğrulama, kalfa denetimi)
 npm run test:e2e          # Playwright ile uçtan uca senaryo (test/e2e/uctan-uca.mjs)
+npm run lint              # ESLint
+npm run format:check      # Prettier (yalnızca .prettierignore dışındaki dosyalar)
+npm run denetle           # veri, modül sözleşmesi ve depoya girmemesi gereken dosyalar
 npm run konum             # eser koordinatı bul (-- --dene yalnızca yazdırır)
 npm run vendor            # gerçek 3B kütüphanesini esbuild ile yeniden paketle
 node araclar/dalis-uret.mjs araclar/dalis/<eser>.json   # elle dalış karelerini üret

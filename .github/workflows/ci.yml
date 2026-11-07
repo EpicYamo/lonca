@@ -1,0 +1,176 @@
+# Lonca CI: main ve build dallarına giden her PR'da ve main'e her push'ta tam denetim.
+# build dalına push'ta bu iş akışı "APK sürümü" (apk-surumu.yml) tarafından çağrılır.
+# dev dalı deney alanıdır; orada CI zorunlu değildir (dev → main PR'ı açılınca çalışır).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, build]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_COLOR: "1"
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # package.json engines alt sınırı ve Docker imajındaki sürüm
+        node: ["20.12", "22"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Birim ve API testleri
+        run: npm test
+
+  denetim:
+    name: Lint, biçim ve tutarlılık
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: ESLint
+        run: npm run lint
+      - name: Prettier
+        run: npm run format:check
+      - name: Veri ve modül tutarlılığı
+        run: npm run denetle
+      - name: Sözdizimi (node --check)
+        run: git ls-files '*.js' '*.mjs' | grep -vE '^(public/vendor-yerel|data/moduller)/' | xargs -n 50 node --check
+      - name: Kabuk betikleri (bash -n)
+        run: bash -n apk.sh
+
+  e2e:
+    name: Uçtan uca (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+
+  bagimlilik:
+    name: Bağımlılık denetimi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Çalışma zamanı bağımlılıkları (yüksek ve üstü engeller)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Tüm bağımlılıklar (bilgi amaçlı)
+        run: npm audit || echo "::warning::Geliştirme bağımlılıklarında açık var; npm audit çıktısına bak."
+
+  sir-taramasi:
+    name: Sır taraması (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.28.0 git /repo --no-banner --redact -v
+
+  docker:
+    name: Docker imajı + duman testi
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: İmajı derle
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: lonca:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Konteyneri başlat (anahtarsız)
+        run: |
+          # data ve medya, compose'daki gibi volume olarak bağlanır; konteyner "node" kullanıcısıyla yazabilsin.
+          cp -r data "$RUNNER_TEMP/veri" && cp -r public/medya "$RUNNER_TEMP/medya" && chmod -R a+rwX "$RUNNER_TEMP/veri" "$RUNNER_TEMP/medya"
+          docker run -d --name lonca -p 3000:3000 -v "$RUNNER_TEMP/veri:/app/data" -v "$RUNNER_TEMP/medya:/app/public/medya" lonca:ci
+      - name: Sağlık ve uç noktalar
+        run: |
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/merhaba && break; sleep 2; done
+          echo
+          curl -fsS http://127.0.0.1:3000/api/merhaba | grep -q '"lonca":true'
+          # İmajdaki HEALTHCHECK komutunun kendisi
+          docker exec lonca node -e "fetch('http://127.0.0.1:3000/api/merhaba').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+          test "$(curl -fsS http://127.0.0.1:3000/api/eserler | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log((j.eserler??j).length>0)})')" = true
+          for yol in /app/ /studio/ /sdk/lonca-sdk.js /vendor/leaflet/leaflet.js /vendor/three/build/three.module.js; do
+            curl -fsS -o /dev/null "http://127.0.0.1:3000$yol" || { echo "::error::$yol yanıt vermedi"; exit 1; }
+          done
+          # node_modules dışına çıkış yok
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/vendor/three/package.json)" = 404
+      - name: API anahtarı koruması
+        run: |
+          docker rm -f lonca
+          docker run -d --name lonca -p 3000:3000 -e LONCA_API_ANAHTARI=ci-deneme-anahtari \
+            -v "$RUNNER_TEMP/veri:/app/data" -v "$RUNNER_TEMP/medya:/app/public/medya" lonca:ci
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/merhaba && break; sleep 2; done
+          echo
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/api/eserler)" = 401
+          curl -fsS -o /dev/null -H 'x-lonca-anahtar: ci-deneme-anahtari' http://127.0.0.1:3000/api/eserler
+      - name: Konteyner günlüğü
+        if: always()
+        run: docker logs lonca || true
+
+  android:
+    name: Android APK (debug)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # sürüm kodu = commit sayısı
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - run: npm ci --no-audit --no-fund
+      - name: APK derle (./apk.sh)
+        run: ./apk.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lonca-debug-apk
+          path: dist/lonca.apk
+          retention-days: 7
+          if-no-files-found: error

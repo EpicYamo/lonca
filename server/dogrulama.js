@@ -3,6 +3,7 @@ export const ESER_TURLERI = ["cami", "mescit", "medrese", "han", "hamam", "cesme
   "kopru", "tekke", "hazire", "carsi", "kutuphane", "sivil", "diger"];
 
 const metinMi = (x) => typeof x === "string";
+// eslint-disable-next-line no-control-regex -- NUL karakteri bilerek temizlenir
 const kirp = (x, n) => (metinMi(x) ? x.replace(/\u0000/g, "").trim().slice(0, n) : "");
 
 export function kimlikUret(ad) {
