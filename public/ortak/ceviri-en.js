@@ -964,11 +964,6 @@ export const EN = {
   "Uygulamada aç": "Open in the app",
   "Bu modül çevrimdışıyken açılamıyor. Lonca sunucusuna bağlanınca açılır.": "This module can't be opened offline. It opens once you're connected to the Lonca server.",
 
-  // Studio mobil uyarısı
-  "Studio en iyi bilgisayarda çalışır": "Studio works best on a computer",
-  "Kalfa, kod ve önizleme yan yana geniş ekran ister. Modülleri telefonda keşfetmek için Lonca uygulamasını kullan; Studio'yu bir bilgisayardan aç.": "The kalfa, code and preview side by side need a wide screen. To explore modules on a phone, use the Lonca app; open Studio on a computer.",
-  "Lonca'ya dön": "Back to Lonca",
-  "Yine de devam et": "Continue anyway",
   "Bağlantıyı kopyala": "Copy link",
   "Kopyalandı": "Copied",
   // ---------- Web sitesi: üst gezinme, profil menüsü, kayan yazı, alt bilgi ----------
