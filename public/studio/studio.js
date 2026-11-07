@@ -135,10 +135,18 @@ document.querySelectorAll(".kip button[data-kip]").forEach((b) => b.addEventList
 $("#dalis-oneriler").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) gonder(b.textContent); });
 
 // ---------- Öneri düğmeleri ----------
-// Modül kipinde kalfa her yanıtla 2–3 yeni öneri verir; boş sohbette index.html'deki örnek fikirler görünür.
+// Modül kipinde kalfa her yanıtla 2–3 yeni öneri verir (yanıt vermezse sunucu konuşmaya göre yapay zekâya ayrıca
+// sordurur). Boş sohbetteki örnek fikirler her açılışta bilgi bankasından kurulur; index.html'dekiler yalnızca yedektir.
 // Dalış kipinde öneriler sunucudan (bilgi bankasındaki eserlerden) gelir ve her dalış isteğinden sonra yenilenir.
 const ILK_ONERILER = [...document.querySelectorAll("#oneriler button")].map((b) => b.textContent);
 let kalfaOnerileri = null; // null: sohbet boş, örnek fikirler gösterilir
+let ilkOneriler = ILK_ONERILER;
+async function baslangicOnerileriniYukle() {
+  try {
+    const { oneriler } = await yApi(`/api/kalfa/oneriler?dil=${dilAl()}`, { yeniden: false });
+    if (oneriler?.length) { ilkOneriler = oneriler; onerileriGoster(); }
+  } catch { /* yedek örnekler kalır */ }
+}
 let dalisOnerisiYuklendi = false;
 const dalisIstenenler = [];
 const dalisOneriEserleri = new Map(); // öneri metni → eser kimliği (gönderilen öneri yeniden önerilmesin)
@@ -146,7 +154,7 @@ function oneriDugmeleri(kutu, metinler) {
   kutu.replaceChildren(...metinler.map((m) => el("button", { type: "button", textContent: m })));
 }
 function onerileriGoster() {
-  const liste = kalfaOnerileri ?? ILK_ONERILER;
+  const liste = kalfaOnerileri ?? ilkOneriler;
   oneriDugmeleri($("#oneriler"), liste);
   // Sohbet başladıktan sonra kalfanın kısa önerileri yan yana küçük düğmeler olarak durur (mesajlara yer kalsın).
   $("#oneriler").classList.toggle("kompakt", kalfaOnerileri !== null);
@@ -303,7 +311,7 @@ async function gonder(metin) {
   try {
     // İstek oturuma yazılır; sayfa bu sırada yenilense de kalfanın yanıtı sunucuda oturuma kaydedilir.
     const oturum = await oturumGerekli();
-    const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value } });
+    const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value, dil: dilAl() } });
     yaziyor.remove();
     if (bu !== oturumSurumu) return;
     kalfaOnerileriniAyarla(s.oneriler ?? []);
@@ -745,6 +753,7 @@ async function yeniSohbet() {
   mesajlariTemizle();
   editoruDoldur();
   kalfaOnerileriniAyarla(null);
+  baslangicOnerileriniYukle();
   durumYaz("", "");
   $("#gonder").disabled = false;
   $("#istek").focus();
@@ -753,6 +762,7 @@ async function yeniSohbet() {
 // Açılışta ve girişte: en son açık oturum (yoksa en yenisi) geri yüklenir. Kullanıcı "Yeni sohbet" dediyse boş başlar.
 async function oturumlariBaslat() {
   if (oturumId || !atolyeAcik()) return;
+  baslangicOnerileriniYukle();
   try {
     const { oturumlar } = await yApi("/api/atolye/oturumlar", { yeniden: false });
     const son = sonOturumOku();
