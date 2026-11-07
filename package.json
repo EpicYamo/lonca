@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node --watch server/index.js",
     "start": "node server/index.js",
-    "test": "node --test \"test/*.test.mjs\"",
+    "test": "node --test test/*.test.mjs",
     "test:e2e": "node test/e2e/uctan-uca.mjs",
     "vendor": "esbuild araclar/vendor/uc-karolar.js --bundle --format=esm --minify --external:three --external:'three/*' --legal-comments=eof --outfile=public/vendor-yerel/uc-karolar.js",
     "konum": "node araclar/konum-bul.mjs",

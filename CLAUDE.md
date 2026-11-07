@@ -36,7 +36,7 @@ npm install
 cp .env.example .env      # isteğe bağlı; hiçbir ayar olmadan da çalışır
 npm run dev               # node --watch server/index.js → http://localhost:3000/app · /studio
 npm start                 # izlemesiz
-npm test                  # node --test "test/*.test.mjs" (API, doğrulama, kalfa denetimi)
+npm test                  # node --test test/*.test.mjs (API, doğrulama, kalfa denetimi)
 npm run test:e2e          # Playwright ile uçtan uca senaryo (test/e2e/uctan-uca.mjs)
 npm run lint              # ESLint
 npm run format:check      # Prettier (yalnızca .prettierignore dışındaki dosyalar)

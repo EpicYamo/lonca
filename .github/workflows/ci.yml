@@ -124,6 +124,7 @@ jobs:
           docker run -d --name lonca -p 3000:3000 -v "$RUNNER_TEMP/veri:/app/data" -v "$RUNNER_TEMP/medya:/app/public/medya" lonca:ci
       - name: Sağlık ve uç noktalar
         run: |
+          set -x
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3000/api/merhaba && break; sleep 2; done
           echo
           curl -fsS http://127.0.0.1:3000/api/merhaba | grep -q '"lonca":true'
@@ -137,6 +138,7 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/vendor/three/package.json)" = 404
       - name: API anahtarı koruması
         run: |
+          set -x
           docker rm -f lonca
           docker run -d --name lonca -p 3000:3000 -e LONCA_API_ANAHTARI=ci-deneme-anahtari \
             -v "$RUNNER_TEMP/veri:/app/data" -v "$RUNNER_TEMP/medya:/app/public/medya" lonca:ci
