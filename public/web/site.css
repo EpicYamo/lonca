@@ -375,8 +375,11 @@ kbd { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--cizgi); font
 .harita-lejant i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--cizgi); flex: none; }
 .harita-lejant small { margin-left: auto; color: var(--soluk); font-variant-numeric: tabular-nums; }
 .harita-alan { min-height: clamp(440px, 72vh, 820px); background: var(--zemin-2); }
-.harita-alan .leaflet-container, .es-harita.leaflet-container { font: inherit; background: var(--zemin-2); }
-[data-tema="koyu"] .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.92) contrast(.9); }
+.harita-alan.maplibregl-map, .es-harita.maplibregl-map { font: inherit; background: var(--zemin-2); }
+.hn { width: 16px; height: 16px; border-radius: 50%; background: var(--renk); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, .35); cursor: pointer; }
+.hn:focus-visible { outline: 3px solid var(--vurgu, #0b7a66); outline-offset: 2px; }
+.harita-alan .maplibregl-popup-content, .es-harita .maplibregl-popup-content { border-radius: 12px; padding: 10px; color: #1b1b18; }
+.maplibregl-cooperative-gesture-screen { font-family: inherit; font-weight: 600; background: rgba(0, 0, 0, .45); }
 .hb { display: grid; gap: 4px; width: 210px; }
 .hb img { width: 100%; height: auto; border-radius: 8px; }
 .hb strong { font: 1rem/1.2 var(--serif); }

@@ -1,7 +1,7 @@
 // Android uygulamasının web katmanını (mobil/www) hazırlar.
 //
 // Lonca uygulaması (public/app) olduğu gibi pakete girer; yanına:
-//   - çalışması için gereken ortak dosyalar, SDK, Leaflet ve three.js,
+//   - çalışması için gereken ortak dosyalar, SDK, MapLibre ve three.js,
 //   - yayındaki dalışların görselleri ve eser fotoğrafları,
 //   - sunucunun gerçek API yanıtlarından alınmış bir veri anlık görüntüsü (çevrimdışı kullanım için),
 //   - uygulamanın bağlanacağı tek, sabit sunucu adresi (ağ taraması yok)
@@ -55,7 +55,6 @@ await kopyala("public/mobil", "mobil");
 if (existsSync(path.join(KOK, "public/vendor-yerel"))) await kopyala("public/vendor-yerel", "vendor-yerel");
 await mkdir(path.join(WWW, "sdk"), { recursive: true });
 await cp(path.join(KOK, "sdk/lonca-sdk.js"), path.join(WWW, "sdk/lonca-sdk.js"));
-await kopyala("node_modules/leaflet/dist", "vendor/leaflet");
 await kopyala("node_modules/maplibre-gl/dist", "vendor/maplibre", (k) => !/\.map$|-dev\.js$|-csp/.test(k));
 const THREE = "node_modules/three";
 for (const ad of ["three.module.js", "three.core.js"]) {

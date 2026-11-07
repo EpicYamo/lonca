@@ -163,9 +163,8 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 .s-agir-kap { display: flex; flex-direction: column; gap: .5rem; }
 .s-harita { height: 52vh; min-height: 300px; border-radius: 20px; overflow: hidden; border: 1px solid var(--cizgi); background: #e8edf3; }
 .harita-sis { transition: opacity .35s ease; }
-.bag-cizgi { stroke-linecap: round; }
-.bag-cizgi-tiklanabilir { cursor: pointer; filter: drop-shadow(0 0 3px rgba(255, 255, 255, .38)); }
-.leaflet-tooltip { border: 1px solid rgba(240, 196, 110, .55); border-radius: 10px; background: #101a2c; color: #fff; font: 600 .78rem var(--yazi-govde, sans-serif); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); }
+.bag-ipucu .maplibregl-popup-content { border: 1px solid rgba(240, 196, 110, .55); border-radius: 10px; background: #101a2c; color: #fff; font: 600 .78rem var(--yazi-govde, sans-serif); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); padding: .4rem .65rem; }
+.bag-ipucu .maplibregl-popup-tip { display: none; }
 /* Tarihsel bağ ağı (graf düğümü). Tür renkleri hem çizimde hem listede aynı değişkenden gelir. */
 .s-graf { --iliski-rengi: var(--soluk); margin: .8rem 0; padding: 1rem .9rem .9rem; border-radius: 22px; background: var(--yuzey); box-shadow: 0 1px 2px rgba(15, 20, 35, .05), 0 8px 24px rgba(15, 20, 35, .06); }
 .s-graf-t-kulliye { --iliski-rengi: #a87a12; } .s-graf-t-bani { --iliski-rengi: #7a4fc4; } .s-graf-t-mimar { --iliski-rengi: #2f6fb0; }

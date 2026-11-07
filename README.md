@@ -46,7 +46,7 @@ npm run dev              # http://localhost:3000/app  ·  Studio: http://localho
 Everything works without any configuration:
 
 - The journeyman answers from built-in templates ("fake mode").
-- The map uses dark-filtered OpenStreetMap tiles.
+- Every map (Explore tab, work pages, modules, website) is the same MapLibre GL vector map on free OpenFreeMap tiles.
 - Real 3D is disabled, and modules hide the 3D button.
 - Admin actions are open (development mode).
 
@@ -56,7 +56,7 @@ Everything works without any configuration:
 | `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | Optional: point the module journeyman at another endpoint (OpenCode Go, Claude, offline Ollama) |
 | `KALFA_SAHTE=1` | Offline fallback: the journeyman returns a prepared template |
 | `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
-| `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
+| `GOOGLE_HARITA_ANAHTARI` | Real 3D tours (Photorealistic 3D Tiles); maps always use OpenFreeMap |
 | `KALFA_SINIR` | Journeyman requests allowed per IP in ten minutes |
 | `KALFA_ZAMAN_ASIMI_SN` | Timeout for a single journeyman request to the provider (default 150 s) |
 | `OTURUM_ANAHTARI` | Signs Studio account tokens; generated into `data/.oturum-anahtari` when empty |
@@ -444,9 +444,9 @@ test/         node:test suites · e2e/ end-to-end scenario
 
 - **Code:** Team Kozmos.
 - **Fonts:** SIL OFL (`public/ortak/fontlar/LICENSE.md`).
-- **Libraries:** Leaflet BSD-2; three.js and 3d-tiles-renderer MIT.
+- **Libraries:** MapLibre GL BSD-3 (map data © OpenFreeMap, OpenMapTiles, OpenStreetMap contributors); three.js and 3d-tiles-renderer MIT.
 - **Work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*,
   *Konya Vakıf Eserleri* and *Hatay İli Vakıf Eserleri*.
   Used within the scope of the hackathon; the repository is private for this
   reason.
-- **Map data:** © OpenStreetMap contributors or © Google.
+- **Map data:** © OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors (3D tours: © Google).

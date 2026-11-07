@@ -3,11 +3,9 @@
 // eserin olduğu modüller. Uygulamada Keşfet sekmesinin kendisi, web'de ana sayfada bir bölüm.
 // Konum yalnızca "Yakınımdaki eserler"e basılınca sorulur.
 //
-// Harita iki sürücüyle çalışır, ikisi de aynı işaretleri, listeyi, il seçimini ve kartı kullanır:
-//  - 3B vektör harita (MapLibre GL + OpenFreeMap, anahtar gerekmez): binalar yükseklikleriyle görünür; tek parmakla
-//    kaydırma, iki parmakla yakınlaştırma, döndürme ve eğme. Açık temada "liberty", koyu temada "dark" stili.
-//  - WebGL yoksa ya da kütüphane yüklenemezse Leaflet (Esri altlığı); harita hiçbir durumda boş kalmaz.
-import { leafletYukle, karoKatmani, PIN_RENGI, koyuTemaMi } from "./harita.js";
+// Harita uygulamanın ortak haritasıdır (harita.js haritaAc: MapLibre GL + OpenFreeMap, 3B binalı): tek parmakla
+// kaydırma, iki parmakla yakınlaştırma, döndürme ve eğme. Açık temada "liberty", koyu temada "dark" stili.
+import { haritaAc, PIN_RENGI } from "./harita.js";
 
 const KISA_NOT = 230;
 function kisaNot(metin) {
@@ -20,65 +18,11 @@ function kisaNot(metin) {
 
 const hareketAz = () => document.documentElement.classList.contains("hareket-az") || matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-// ---------- MapLibre yükleme ----------
-const STIL = { acik: "https://tiles.openfreemap.org/styles/liberty", koyu: "https://tiles.openfreemap.org/styles/dark" };
-let maplibreYukleniyor = null;
-function maplibreYukle() {
-  maplibreYukleniyor ??= new Promise((coz, reddet) => {
-    const css = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/vendor/maplibre/maplibre-gl.css" });
-    const js = Object.assign(document.createElement("script"), { src: "/vendor/maplibre/maplibre-gl.js" });
-    js.onload = () => (window.maplibregl ? coz(window.maplibregl) : reddet(new Error("MapLibre yüklenmedi")));
-    js.onerror = () => { maplibreYukleniyor = null; reddet(new Error("3B harita kütüphanesi yüklenemedi")); };
-    document.head.append(css, js);
-  });
-  return maplibreYukleniyor;
-}
-function webglVar() {
-  try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
-}
-
-// Koyu stilde 3B bina katmanı yok: aynı bina verisinden ekleriz. Açık stilde (liberty) var; rengini sıcaklaştırırız.
-function binalariKur(harita) {
-  const koyu = koyuTemaMi();
-  if (!harita.getSource("openmaptiles")) return;
-  if (!harita.getLayer("building-3d")) {
-    const ilkYazi = harita.getStyle().layers.find((l) => l.type === "symbol")?.id;
-    harita.addLayer({
-      id: "building-3d", type: "fill-extrusion", source: "openmaptiles", "source-layer": "building", minzoom: 14,
-      filter: ["!", ["has", "hide_3d"]],
-      paint: { "fill-extrusion-base": ["get", "render_min_height"], "fill-extrusion-height": ["get", "render_height"], "fill-extrusion-color": "#2a2a26", "fill-extrusion-opacity": 0.9 },
-    }, ilkYazi);
-  }
-  harita.setPaintProperty("building-3d", "fill-extrusion-color", koyu ? "#34332d" : "#e7dfcf");
-  harita.setPaintProperty("building-3d", "fill-extrusion-opacity", koyu ? 0.9 : 0.85);
-}
-
-// ---------- Sürücüler: aynı arayüz (isaretEkle, gorunur, odakla, sigdir, konum, boyutla) ----------
-async function maplibreSurucusu(kap, { onBosTik }) {
-  const ml = await maplibreYukle();
-  const harita = new ml.Map({
-    container: kap, style: koyuTemaMi() ? STIL.koyu : STIL.acik,
-    center: [29.065, 40.1845], zoom: 14.2, pitch: 50, bearing: -12, maxPitch: 70,
-    attributionControl: { compact: true }, cooperativeGestures: false, dragRotate: true, touchPitch: true,
-    fadeDuration: hareketAz() ? 0 : 250,
-  });
-  harita.addControl(new ml.NavigationControl({ showZoom: false, visualizePitch: true }), "bottom-right");
-  harita.on("style.load", () => binalariKur(harita));
+// Sürücü: işaret, odak, sığdırma ve konum işlemleri ortak haritanın (harita.js haritaAc) üstünde.
+async function haritaSurucusu(kap, { onBosTik }) {
+  const harita = await haritaAc(kap, { gomulu: false, merkez: [29.065, 40.1845], zoom: 14.2, pitch: 50, bearing: -12 });
+  const ml = window.maplibregl;
   harita.on("click", (o) => { if (!o.originalEvent?.target?.closest?.(".kh-isaret-kap")) onBosTik(); });
-  // Tema değişince stil yerinde değişir; işaretler DOM'da olduğu için korunur.
-  let koyu = koyuTemaMi();
-  new MutationObserver(() => {
-    if (koyuTemaMi() === koyu) return;
-    koyu = koyuTemaMi();
-    harita.setStyle(koyu ? STIL.koyu : STIL.acik);
-  }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tema", "class"] });
-  await new Promise((coz, reddet) => {
-    const zaman = setTimeout(() => reddet(new Error("3B harita zamanında açılamadı")), 8000);
-    harita.once("load", () => { clearTimeout(zaman); coz(); });
-    // Tek bir karonun gelmemesi haritayı düşürmez; yalnızca stilin kendisi yüklenemezse düz haritaya geçilir.
-    const hata = (o) => { if (!o.sourceId && !o.tile && !harita.isStyleLoaded()) { clearTimeout(zaman); harita.off("error", hata); reddet(o.error ?? new Error("3B harita açılamadı")); } };
-    harita.on("error", hata);
-  });
   const sure = () => (hareketAz() ? 0 : 900);
   let konumIsareti = null;
   return {
@@ -106,33 +50,6 @@ async function maplibreSurucusu(kap, { onBosTik }) {
       konumIsareti = new ml.Marker({ element: nokta }).setLngLat([k[1], k[0]]).addTo(harita);
     },
     boyutla() { harita.resize(); },
-  };
-}
-
-async function leafletSurucusu(kap, { onBosTik }) {
-  const L = await leafletYukle();
-  const harita = L.map(kap, { zoomControl: true, attributionControl: true, scrollWheelZoom: false, tap: true });
-  (await karoKatmani(L)).addTo(harita);
-  harita.on("click", onBosTik);
-  let konumIsareti = null;
-  return {
-    tur: "2b",
-    isaretEkle(e, oge) {
-      const ikon = L.divIcon({ className: "", html: oge, iconSize: [26, 26], iconAnchor: [13, 13] });
-      return L.marker([e.konum.lat, e.konum.lng], { icon: ikon, keyboard: false, title: e.ad, riseOnHover: true }).addTo(harita);
-    },
-    gorunur(m, acik) { if (acik) m.addTo(harita); else m.remove(); },
-    odakla(e) {
-      if (harita.getZoom() < 15) harita.setView([e.konum.lat, e.konum.lng], 15, { animate: false });
-      else harita.panTo([e.konum.lat, e.konum.lng], { animate: !hareketAz() });
-    },
-    sigdir(liste) { if (liste.length) harita.fitBounds(L.latLngBounds(liste.map((e) => [e.konum.lat, e.konum.lng])), { padding: [32, 32], maxZoom: 15 }); },
-    merkezeGit() { harita.setView([40.1845, 29.065], 14); },
-    konum(k) {
-      konumIsareti?.remove();
-      konumIsareti = L.circleMarker(k, { radius: 8, color: "#fff", weight: 3, fillColor: "#1a73e8", fillOpacity: 1, interactive: false }).addTo(harita);
-    },
-    boyutla() { harita.invalidateSize(); },
   };
 }
 
@@ -250,14 +167,7 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
     // Harita gelene kadar boş alan değil, yükleniyor yazısı görünür.
     const yukleniyor = el("p", { className: "kh-yukleniyor", textContent: "Harita yükleniyor…" });
     kap.parentElement.append(yukleniyor);
-    if (webglVar()) {
-      try { surucu = await maplibreSurucusu(kap, secenek); } catch (h) {
-        console.warn("3B harita açılamadı, düz haritaya geçiliyor:", h.message);
-        kap.replaceChildren();
-        for (const ad of [...kap.classList]) if (ad.startsWith("maplibregl")) kap.classList.remove(ad);
-      }
-    }
-    surucu ??= await leafletSurucusu(kap, secenek);
+    surucu = await haritaSurucusu(kap, secenek);
     kap.dataset.surucu = surucu.tur;
     yukleniyor.remove();
     for (const e of eserler) isaretOlustur(e);

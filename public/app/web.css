@@ -155,7 +155,6 @@ body:has(#modul-ekrani:not([hidden])) #ust-bar { display: none; }
     /* Keşfet: harita sayfanın tamamı, eser listesi solda kalıcı panel */
     & .harita-bolum .kh-liste:not([hidden]) { top: .8rem; bottom: .8rem; left: .8rem; right: auto; width: 340px; max-height: none; }
     & .harita-bolum .kh-kart { left: auto; right: .8rem; width: 400px; margin: 0; }
-    & .harita-bolum .kh-kap:has(.kh-liste:not([hidden])) .leaflet-top.leaflet-left { left: calc(340px + .8rem); }
     & .harita-bolum #kh-liste-dugme { display: none; }
 
     /* Profil: solda özet kartı (yapışkan), sağda hesap, başarımlar ve ayarlar */

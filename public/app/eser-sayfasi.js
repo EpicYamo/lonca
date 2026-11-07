@@ -1,7 +1,7 @@
 // Eser sayfası (#eser-penceresi): fotoğraflar + tam ekran galeri, TR/EN metin, mini harita ve "yaklaşık konum" notu,
 // kaynaklı tarihsel bağlar ve yakındaki eserler, "Dalışı var" rozeti, paylaş.
 import { TUR_ADI } from "./ekranlar.js";
-import { leafletYukle, karoKatmani, bagTuruAdi, ikiParmakla } from "./harita.js";
+import { haritaAc, isaretKoy, daireCokgen, bagTuruAdi } from "./harita.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { dilAl } from "/ortak/dil.js";
 import { eserRozeti } from "/ortak/dogrulama.js";
@@ -88,21 +88,24 @@ export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi
     if (!var_) return;
     $("#ep-yol").href = `https://www.google.com/maps/search/?api=1&query=${Number(k.lat)},${Number(k.lng)}`;
     try {
-      const L = await leafletYukle();
-      if (bu !== istekNo || !d.open) return;
+      if (!d.open) return;
       kutu.replaceChildren();
-      const h = L.map(kutu, { zoomControl: false, scrollWheelZoom: false, attributionControl: true, zoomAnimation: false });
+      const nokta = [Number(k.lng), Number(k.lat)];
+      // Yaklaşık konumda eserin çevresi kesikli halkayla gösterilir; halka tema değişiminde yeniden eklenir.
+      const halka = (h) => {
+        if (!k.yaklasik) return;
+        h.addSource("ep-halka", { type: "geojson", data: daireCokgen(nokta[0], nokta[1], 180) });
+        h.addLayer({ id: "ep-halka-ic", type: "fill", source: "ep-halka", paint: { "fill-color": "#0b7a66", "fill-opacity": 0.08 } });
+        h.addLayer({ id: "ep-halka", type: "line", source: "ep-halka", paint: { "line-color": "#0b7a66", "line-width": 2, "line-dasharray": [3, 3] } });
+      };
+      const h = await haritaAc(kutu, { gomulu: true, merkez: nokta, zoom: k.yaklasik ? 14 : 16, pitch: k.yaklasik ? 0 : 45, katmanlar: halka });
+      if (bu !== istekNo || !d.open) { h.remove(); return; }
       harita = h;
-      const karo = await karoKatmani(L);
-      if (harita !== h) return;
-      kutu.classList.toggle("harita-koyu-tema", !!karo._koyu && document.documentElement.dataset.tema === "koyu");
-      karo.addTo(h);
-      ikiParmakla(h, kutu);
-      const nokta = [Number(k.lat), Number(k.lng)];
-      h.setView(nokta, k.yaklasik ? 15 : 17);
-      if (k.yaklasik) L.circle(nokta, { radius: 180, color: "#0b7a66", weight: 2, dashArray: "6 6", fillOpacity: 0.08 }).addTo(h);
-      L.circleMarker(nokta, { radius: 8, color: "#fff", weight: 3, fillColor: "#0b7a66", fillOpacity: 1 }).addTo(h);
-      requestAnimationFrame(() => h.invalidateSize());
+      const isaret = document.createElement("div");
+      isaret.className = "ep-isaret";
+      isaret.setAttribute("aria-hidden", "true");
+      isaretKoy(h, nokta, isaret);
+      requestAnimationFrame(() => h.resize());
     } catch { kutu.hidden = true; }
   }
 

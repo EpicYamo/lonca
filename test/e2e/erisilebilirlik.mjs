@@ -96,7 +96,7 @@ async function tasmaDenetle(sayfa, yer) {
     const sayfaKayar = document.documentElement.scrollWidth > en + 1;
     const tasanlar = [];
     for (const d of document.querySelectorAll("body *")) {
-      if (d.closest("[hidden], .leaflet-container, svg, canvas, .gizli, [aria-hidden=true], .s-yatay, .one-cikan-seridi, .secki-seridi, .kategori-cipleri, .s-cipler, .s-dalis-noktalar")) continue;
+      if (d.closest("[hidden], .maplibregl-map, svg, canvas, .gizli, [aria-hidden=true], .s-yatay, .one-cikan-seridi, .secki-seridi, .kategori-cipleri, .s-cipler, .s-dalis-noktalar")) continue;
       const r = d.getBoundingClientRect();
       if (!r.width || !r.height) continue;
       const s = getComputedStyle(d);
