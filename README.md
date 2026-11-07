@@ -117,9 +117,13 @@ a read-only deploy key (`~/.ssh/config` host alias `github-lonca` →
 cd /opt/lonca && ./docker/guncelle.sh      # LONCA_DAL=main for another branch; default dev
 ```
 
-It fast-forwards the branch, rebuilds and waits for `/api/merhaba`. If Studio
-edits on the server changed tracked files in `data/` or `public/medya/`, it stops
-and lists them instead of overwriting.
+It fast-forwards the branch, rebuilds and waits for `/api/merhaba`. Studio edits
+made on the server (tracked files in `data/` or `public/medya/`, e.g. a newly
+drafted module in `data/moduller/index.json`) are kept: the script copies `data/`
+to `/opt/lonca-yedek/<time>/`, stashes those changes, fast-forwards and re-applies
+them. Only if GitHub changed the same lines does it stop, leaving the server on
+the old commit with its data untouched. Uncommitted changes to code files stop it
+before anything happens.
 
 The overlay sets `LONCA_IP_BASLIGI=cf-connecting-ip` so rate limits count the
 real visitor instead of the tunnel. Cloudflare waits at most 100 s for response
