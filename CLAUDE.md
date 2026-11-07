@@ -28,7 +28,7 @@ Kullanıcı Türkçe yazar; yanıtlar Türkçe olsun.
   - `public/app/`: web sitesi ve Android uygulamasının ortak kodu. Web'e özel düzen `web.js` + `web.css` (`html.web-sekmeli`; sayfalar `/#/kesif`, `/#/moduller`, `/#/profil`), Android kabuğu `kabuk.js` + `kabuk.css` (`html.kabuk`). İkisi birbirinden ayrı tutulur. Arayüz işinde `.claude/skills/lonca-arayuz` kurallarına uy (belirteçler `zarif.css`'te). `public/ortak/` (özellikle `tasarim.css`) iki tarafça paylaşılır; değiştirmeden önce etkisini iki tarafta da kontrol et.
   - `server/`: API ve kalfalar. `data/`: içerik (JSON). `mobil/` + `android/`: Capacitor paketi.
 - **Çalışırken oluşan veriler commit'lenmez:** `data/eser-oneriler.json`, `data/yuklenen/`, `data/eser-gecmisi.json`, `data/gecmis/`, `data/moduller/eski/`, `data/kalfa-ayarlari.json`, `data/atolye/`, `data/kullanicilar.json`, `data/.oturum-anahtari` (gitignore'da). Büyük kaynaklar (`kitaplar/`, `veri-kaynak/`) depoda değil.
-- **Telif:** Bursa metin ve fotoğrafları © Vakıf Katılım (depo bu yüzden özel). Vikipedi/Commons içeriği CC BY-SA; kaynak bağlantısı kayıtta kalır.
+- **Telif:** Bursa, Konya ve Hatay metin ve fotoğrafları © Vakıf Katılım (depo bu yüzden özel). Vikipedi/Commons içeriği CC BY-SA; kaynak bağlantısı kayıtta kalır.
 
 ## Komutlar
 
