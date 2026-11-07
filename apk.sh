@@ -6,11 +6,13 @@
 #   ./apk.sh --kur       → derledikten sonra USB/kablosuz bağlı telefona adb ile kurar
 #
 # Ortam değişkenleri (isteğe bağlı):
-#   LONCA_SUNUCU=http://192.168.1.20:3000   APK'nın önce deneyeceği sunucu (yoksa bu bilgisayarın IP'leri gömülür)
+#   LONCA_SUNUCU_URL=https://lonca.example.com  internetteki sunucu (Nginx arkası alan adı); APK önce bunu dener
+#   LONCA_SUNUCU=http://192.168.1.20:3000   ek yerel sunucu adresi (yoksa bu bilgisayarın IP'leri gömülür)
 #   PORT=3000                               sunucunun portu (ağ taraması da bu portta yapılır)
 #   LONCA_API_ANAHTARI=...                  sunucu API anahtarı istiyorsa (.env'den de okunur)
 #
-# Uygulama açılınca aynı Wi-Fi'deki Lonca sunucusunu (npm run dev / Docker) kendisi bulur; bulamazsa
+# Uygulama açılınca önce genel sunucuyu (LONCA_SUNUCU_URL), sonra aynı Wi-Fi'deki Lonca sunucusunu (npm run dev / Docker)
+# kendisi bulur; bulamazsa
 # APK içindeki verilerle çevrimdışı çalışır.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -21,7 +23,7 @@ for a in "$@"; do
   case "$a" in
     --release) TUR=release ;;
     --kur|--install) KUR=1 ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,16p' "$0"; exit 0 ;;
     *) echo "Bilinmeyen seçenek: $a" >&2; exit 1 ;;
   esac
 done
@@ -69,6 +71,7 @@ if [[ -z "$IPLER" ]] && command -v hostname >/dev/null 2>&1; then IPLER=$(hostna
 for ip in $IPLER; do
   [[ "$ip" =~ ^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.) ]] && SUNUCU_ARG+=(--sunucu "http://$ip:$PORT")
 done
+[[ -n "${LONCA_SUNUCU_URL:-}" ]] && SUNUCU_ARG+=(--genel "$LONCA_SUNUCU_URL")
 ANAHTAR_ARG=()
 [[ -n "${LONCA_API_ANAHTARI:-}" ]] && ANAHTAR_ARG+=(--anahtar "$LONCA_API_ANAHTARI")
 
