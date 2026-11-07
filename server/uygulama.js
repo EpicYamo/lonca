@@ -154,7 +154,6 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     yonetim: { sifreli: yetki.sifreli },
     hesap: { gerekli: yetki.sifreli, google: google.etkin, sifreSifirlama: eposta.etkin },
   }));
-  app.get("/api/yonetici", async (req, rep) => (yoneticiMi(req) ? { tamam: true } : rep.code(401).send({ hata: "şifre yanlış" })));
 
   // ---------- Hesaplar ----------
   const jetonVer = (h) => ({ jeton: oturum.jetonUret({ id: h.id }), hesap: hesaplar.disaAcik(h) });

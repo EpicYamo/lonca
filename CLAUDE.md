@@ -71,7 +71,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | `KALFA_SAHTE=1` | Kalfayı hazır şablonla çalıştır (çevrimdışı) |
 | `KALFA_SINIR` | IP başına 10 dakikadaki kalfa isteği sınırı |
 | `KALFA_ZAMAN_ASIMI_SN` | Kalfanın sağlayıcıya giden tek isteğinin zaman aşımı (varsayılan 150 sn) |
-| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz). Doluysa Studio'nun tamamı hesap ister; "Yönetici şifresiyle gir" yolu da budur |
+| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz). Doluysa Studio'nun tamamı hesap ister (admin kendi hesabıyla girer) |
 | `OTURUM_ANAHTARI` | Hesap jetonlarını imzalar; boşsa `data/.oturum-anahtari`'na üretilir |
 | `HESAP_SINIR` | IP başına 10 dakikadaki kayıt/giriş denemesi sınırı |
 | `ILK_SIFRE`, `ILK_KULLANICILAR` | Hazır admin (rol `editor`) hesapları (varsayılan `arda,ibrahim,sevilay`): yalnızca eksik olanlar bu ilk şifreyle açılır; ilk girişte yeni şifre belirlenmeden yetki yok (`PUT /api/hesap/sifre`) |

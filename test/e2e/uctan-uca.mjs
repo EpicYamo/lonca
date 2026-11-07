@@ -21,7 +21,7 @@ await writeFile(path.join(veri, "moduller", "index.json"), "[]");
 const baslatici = `import { uygulamaKur } from ${JSON.stringify(path.join(KOK, "server", "uygulama.js"))};
 const { app } = await uygulamaKur({ kok: ${JSON.stringify(KOK)}, veri: ${JSON.stringify(veri)}, gunluk: false });
 await app.listen({ port: ${PORT}, host: "127.0.0.1" }); console.log("hazir");`;
-const sunucu = spawn(process.execPath, ["--input-type=module", "-e", baslatici], { env: { ...process.env, KALFA_SAHTE: "1", YONETICI_SIFRE: SIFRE, GOOGLE_HARITA_ANAHTARI: "" }, stdio: ["ignore", "pipe", "inherit"] });
+const sunucu = spawn(process.execPath, ["--input-type=module", "-e", baslatici], { env: { ...process.env, KALFA_SAHTE: "1", YONETICI_SIFRE: SIFRE, ILK_KULLANICILAR: "e2e-admin", ILK_SIFRE: "e2e-ilk-sifre", GOOGLE_HARITA_ANAHTARI: "" }, stdio: ["ignore", "pipe", "inherit"] });
 await new Promise((coz, red) => { sunucu.stdout.on("data", (d) => String(d).includes("hazir") && coz()); sunucu.on("exit", red); });
 
 const tarayici = await chromium.launch();
@@ -66,19 +66,23 @@ try {
   assert.ok(!(await studio.isVisible("#hesap-pencere[open]")), "usta Modüller'de yeniden giriş görmemeli");
   assert.equal(await studio.locator(".modul-ogesi >> text=Yayınla").count(), 0, "usta yayınlayamaz");
   adim("usta modülü listede görüyor, yayınlayamıyor");
-  // Çıkış → kapı → yönetici şifresiyle admin olarak gir
+  // Çıkış → kapı → hazır admin hesabıyla gir (ilk girişte yeni şifre zorunlu)
   await studio.click("#hesap-d");
   await studio.click("#hesap-kart button[value=cikis]");
   await studio.waitForSelector("#hesap-pencere[open]");
-  await studio.click("#hesap-yonetici");
-  await studio.waitForSelector("#giris[open]");
-  await studio.fill("#giris-sifre", SIFRE);
-  await studio.click("#giris-formu .birincil");
+  assert.equal(await studio.locator("text=Yönetici şifresiyle gir").count(), 0, "yönetici şifresiyle giriş seçeneği olmamalı");
+  await studio.fill("#hesap-kimlik", "e2e-admin");
+  await studio.fill("#hesap-sifre", "e2e-ilk-sifre");
+  await studio.click("#hesap-gonder");
+  await studio.waitForSelector("#sifre-pencere[open]");
+  await studio.fill("#sifre-yeni", "e2e-admin-yeni-sifre");
+  await studio.fill("#sifre-tekrar", "e2e-admin-yeni-sifre");
+  await studio.click("#sifre-gonder");
   await studio.waitForSelector("#giris-kapisi", { state: "hidden" });
   await studio.click(".sekme-d[data-sayfa=moduller]");
   await studio.click(".modul-ogesi >> text=Yayınla");
   await studio.waitForSelector(".etiket.onayli");
-  adim("yönetici girişi yapıldı, modül yayınlandı");
+  adim("admin hesabıyla girildi, modül yayınlandı");
 
   const tel = await (await tarayici.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })).newPage();
   tel.on("pageerror", (e) => hatalar.push(`Uygulama: ${e.message}`));
