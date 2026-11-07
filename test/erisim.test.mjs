@@ -52,6 +52,9 @@ test("tarayıcı girişi çerezle çalışır", async () => {
   const cerez = g.headers["set-cookie"].split(";")[0];
   assert.equal((await istek("GET", "/api/eserler", { basliklar: { cookie: cerez } })).statusCode, 200);
   assert.equal((await istek("GET", "/studio/", { basliklar: { cookie: cerez } })).statusCode, 200);
+  assert.doesNotMatch(g.headers["set-cookie"], /Secure/, "düz HTTP'de Secure yok");
+  const h = await istek("POST", "/giris", { govde: `anahtar=${ANA}`, basliklar: { ...form, "x-forwarded-proto": "https" } });
+  assert.match(h.headers["set-cookie"], /; Secure$/, "Nginx arkasında HTTPS'te Secure");
   const d = await istek("POST", "/giris", { govde: `anahtar=${ANA}&devam=%2F%2Fkotu.example`, basliklar: form });
   assert.equal(d.headers.location, "/app/", "dış adrese yönlendirmez");
 });
