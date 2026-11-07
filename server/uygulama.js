@@ -11,8 +11,9 @@ import { modelTaramasiKur, saglikEkle } from "./model-tarama.js";
 import { jsonDosya } from "./depo.js";
 import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
 import { hesaplarKur } from "./hesap.js";
+import { atolyeKur } from "./atolye.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER } from "./dogrulama.js";
+import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, sifreDegisimiDogrula, ROLLER, atolyeTaslakDogrula, atolyeIstekDogrula, atolyeKimligiGecerli } from "./dogrulama.js";
 import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
@@ -93,6 +94,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   // Atölye (kalfa + modül gönderme) ve Studio listelerini salt okunur görme: usta ya da editör hesabı.
   const ustaGerekli = async (req, rep) => { if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Atölyeyi kullanmak için usta ya da editör hesabıyla giriş yapmalısın" }); };
   const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
+  // Atölye oturumları (kalfa sohbeti + modül taslağı) kullanıcı başına saklanır; hesapsız yönetici "yonetici" altında.
+  const atolye = atolyeKur(path.join(veri, "atolye"));
+  const atolyeSahibi = async (req) => (await oturumSahibi(req))?.id ?? "yonetici";
 
   const app = Fastify({ logger: gunluk ? { level: "info" } : false, bodyLimit: 1024 * 1024, trustProxy: true });
   const erisim = await erisimKur({ anahtar: ortam.LONCA_API_ANAHTARI, veri });
@@ -526,6 +530,10 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     // Bir ustanın taslağını başka bir usta ezemez; editör ve yönetici ezebilir.
     const sahip = (await oturumSahibi(req))?.id ?? null;
     if (onceki?.sahip && sahip !== onceki.sahip && !editor) return rep.code(409).send({ hata: "Bu kimlikte başka bir ustanın taslağı var; başka bir id seç" });
+    // Yayındaki bir modülü editör (ya da yönetici) düzenlerse yayında kalır: kaydeden kişi zaten onay yetkilisi,
+    // uygulamadan kaybolup yeniden onay beklemesin. Yeni modüller ve usta gönderimleri her zaman onay bekler.
+    const canliKalsin = editor && onceki?.durum === "onayli";
+    const simdi = new Date().toISOString();
     const kayit = {
       id, ad: ad.trim().slice(0, 60), aciklama: String(aciklama).slice(0, 200),
       izinler: Array.isArray(izinler) ? izinler.filter((x) => x === "konum") : [],
@@ -534,7 +542,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       kategori: KATEGORILER.includes(kategori) ? kategori : undefined,
       kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
       sahip: sahip ?? onceki?.sahip ?? undefined,
-      durum: "bekliyor", olusturma: onceki?.olusturma ?? new Date().toISOString(), guncelleme: new Date().toISOString(),
+      durum: canliKalsin ? "onayli" : "bekliyor", olusturma: onceki?.olusturma ?? simdi, guncelleme: simdi,
+      ...(canliKalsin ? { yayin: simdi } : {}),
     };
     const kaynak = kaynakBul(kod, onceki);
     kayit.kaynak = { ...kaynak, ozet: kodOzeti(kod) };
@@ -628,12 +637,19 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   // Dalış kalfası: bir eser için geziyi baştan sona hazırlar (dakikalar sürer; Studio ilerlemeyi yoklar).
   app.get("/api/dalis-kalfasi", async () => ({ hazir: dalisKalfasi.hazir(), etkin: dalisKalfasi.etkin()?.id ?? null }));
   app.post("/api/dalis-kalfasi", { preHandler: [editorGerekli, kalfaSiniri] }, async (req, rep) => {
-    const { istek, eser, uzerineYaz } = req.body ?? {};
+    const { istek, eser, uzerineYaz, oturum } = req.body ?? {};
     if (eser != null && !kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz eser kimliği" });
     if (istek != null && (typeof istek !== "string" || istek.length > 1000)) return rep.code(400).send({ hata: "istek en fazla 1000 harf" });
     if (!eser && !String(istek ?? "").trim()) return rep.code(400).send({ hata: "Kalfaya ne istediğini yaz" });
+    if (oturum != null && !atolyeKimligiGecerli(oturum)) return rep.code(400).send({ hata: "geçersiz oturum kimliği" });
+    const sahip = oturum != null ? await atolyeSahibi(req) : null;
+    if (oturum != null) {
+      try { await atolye.getir(sahip, oturum); } catch (h) { return rep.code(h.kod ?? 500).send({ hata: h.message }); }
+    }
     try {
       const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz });
+      // Studio sayfası yenilense de dalışın ilerlemesi sohbetten yeniden izlenebilsin.
+      if (oturum != null) await atolye.dalisEkle(sahip, oturum, { istek: istek || eser, is: is.id }).catch((h) => req.log.warn(h, "dalış oturuma yazılamadı"));
       return { is: is.id };
     } catch (h) {
       return rep.code(h.kod ?? 500).send({ hata: h.message });
@@ -710,7 +726,61 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     req.log.info({ ayar }, "kalfa model seçimi güncellendi");
     return { secili: secimGoster() };
   });
+  // ---------- Atölye oturumları (Studio: kalfa sohbeti + modül taslağı, kullanıcı başına) ----------
+  const atolyeHatasi = (rep, h) => rep.code(h.kod ?? 500).send({ hata: h.message });
+  const oturumKimligi = (req, rep) => {
+    if (atolyeKimligiGecerli(req.params.id)) return true;
+    rep.code(400).send({ hata: "geçersiz oturum kimliği" });
+    return false;
+  };
+  app.get("/api/atolye/oturumlar", { preHandler: ustaGerekli }, async (req) => ({ oturumlar: await atolye.liste(await atolyeSahibi(req)) }));
+  app.post("/api/atolye/oturumlar", { preHandler: ustaGerekli }, async (req, rep) => {
+    let taslak = null;
+    if (req.body?.taslak != null) {
+      const d = atolyeTaslakDogrula(req.body.taslak);
+      if (d.hatalar.length) return rep.code(400).send({ hata: d.hatalar[0], ayrintilar: d.hatalar });
+      taslak = d.taslak;
+    }
+    return rep.code(201).send(await atolye.olustur(await atolyeSahibi(req), { taslak }));
+  });
+  app.get("/api/atolye/oturumlar/:id", { preHandler: ustaGerekli }, async (req, rep) => {
+    if (!oturumKimligi(req, rep)) return rep;
+    try { return await atolye.getir(await atolyeSahibi(req), req.params.id); } catch (h) { return atolyeHatasi(rep, h); }
+  });
+  app.put("/api/atolye/oturumlar/:id/taslak", { preHandler: ustaGerekli }, async (req, rep) => {
+    if (!oturumKimligi(req, rep)) return rep;
+    const d = atolyeTaslakDogrula(req.body);
+    if (d.hatalar.length) return rep.code(400).send({ hata: d.hatalar[0], ayrintilar: d.hatalar });
+    try { return await atolye.taslakYaz(await atolyeSahibi(req), req.params.id, d.taslak); } catch (h) { return atolyeHatasi(rep, h); }
+  });
+  app.delete("/api/atolye/oturumlar/:id", { preHandler: ustaGerekli }, async (req, rep) => {
+    if (!oturumKimligi(req, rep)) return rep;
+    try { return await atolye.sil(await atolyeSahibi(req), req.params.id); } catch (h) { return atolyeHatasi(rep, h); }
+  });
+
+  // Kalfa. "oturum" verilirse sohbet sunucudaki oturumdan kurulur ve yanıt (istemci beklemeyi bıraksa da) oturuma yazılır;
+  // verilmezse eski biçim: sohbet istekle gelir, hiçbir şey saklanmaz.
   app.post("/api/kalfa", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
+    if (req.body?.oturum != null) {
+      const { oturum, istek, kod } = req.body;
+      if (!atolyeKimligiGecerli(oturum)) return rep.code(400).send({ hata: "geçersiz oturum kimliği" });
+      const hatalar = atolyeIstekDogrula({ istek, kod });
+      if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+      const sahip = await atolyeSahibi(req);
+      let sohbet;
+      try { ({ sohbet } = await atolye.kalfaBaslat(sahip, oturum, { istek: istek.trim(), kod: kod ?? null })); }
+      catch (h) { return atolyeHatasi(rep, h); }
+      try {
+        const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+        kalfaUretiminiKaydet(sonuc);
+        await atolye.kalfaBitir(sahip, oturum, { sonuc });
+        return sonuc;
+      } catch (h) {
+        req.log.error(h);
+        await atolye.kalfaBitir(sahip, oturum, { hata: h.message, ayrintilar: h.ayrintilar ?? [] }).catch(() => {});
+        return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });
+      }
+    }
     const { sohbet, kod } = req.body ?? {};
     const gecerli = Array.isArray(sohbet) && sohbet.length > 0 && sohbet.length <= 30 &&
       sohbet.every((m) => (m?.rol === "usta" || m?.rol === "kalfa") && typeof m.metin === "string" && m.metin.length <= 4000) &&

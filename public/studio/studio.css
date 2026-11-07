@@ -970,3 +970,15 @@ body.kapali .giris { margin: auto; border-radius: 18px; border-bottom: 1px solid
 /* Usta hesabı Studio'yu görür ama düzenleyemez: admin işlemleri gizlenir. */
 body:not(.admin) .yalniz-admin { display: none !important; }
 @media (max-width: 720px) { body.kapali .giris { width: calc(100vw - 32px); max-width: 460px; padding: 20px 16px; } }
+/* Geçmiş sohbetler (atölye oturumları, sunucuda kullanıcı başına) */
+.sohbetler-pencere { width: min(560px, calc(100vw - 32px)); max-height: min(720px, calc(100dvh - 32px)); }
+.sohbetler-pencere form { display: flex; flex-direction: column; max-height: calc(min(720px, 100dvh - 32px) - 44px); }
+.sohbet-listesi { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; overflow-y: auto; min-height: 0; }
+.sohbet-listesi > .aciklama { padding: 24px 12px; text-align: center; border: 1px dashed var(--cizgi-guclu); border-radius: var(--r-m); }
+.sohbet-ogesi { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; padding: 4px 4px 4px 0; border: 1px solid var(--cizgi); border-radius: var(--r-m); background: var(--zemin-2); }
+.sohbet-ogesi.secili { border-color: var(--vurgu-cizgi); background: var(--vurgu-zemin); }
+.sohbet-ac { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 8px 12px; border: 0; background: none; color: var(--metin); text-align: start; cursor: pointer; border-radius: var(--r-m); }
+.sohbet-ac b { font-weight: 600; font-size: .9rem; color: var(--baslik); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sohbet-ac small { color: var(--soluk); font-size: .76rem; }
+@media (hover: hover) { .sohbet-ac:hover b { color: var(--vurgu); } }
+.sohbet-ogesi .tehlike { min-height: 32px; padding: 0 .7rem; font-size: .78rem; }

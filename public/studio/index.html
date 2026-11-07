@@ -37,6 +37,7 @@
     <symbol id="i-ay" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
     <symbol id="i-ayar" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
     <symbol id="i-kisi" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-gecmis" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M12 7.5V12l3 2"/></symbol>
     <symbol id="i-kilit" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
     <symbol id="i-foto" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/></symbol>
   </svg>
@@ -94,6 +95,12 @@
           <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
           <button type="button" role="radio" aria-checked="false" data-kip="dalis" class="yalniz-admin">Dalış</button>
         </div>
+        <button id="sohbetler-d" type="button" class="ikon-d" aria-label="Geçmiş sohbetler" title="Geçmiş sohbetler">
+          <svg class="ik" aria-hidden="true"><use href="#i-gecmis"/></svg>
+        </button>
+        <button id="yeni-sohbet-d" type="button" class="ikon-d" aria-label="Yeni sohbet" title="Yeni sohbet">
+          <svg class="ik" aria-hidden="true"><use href="#i-arti"/></svg>
+        </button>
         <button id="kalfa-ayar-d" type="button" class="ikon-d yalniz-admin" aria-label="Kalfa modelleri" title="Kalfa modelleri">
           <svg class="ik" aria-hidden="true"><use href="#i-ayar"/></svg>
         </button>
@@ -394,6 +401,15 @@
         <button class="ikincil" value="iptal" formnovalidate id="sifre-vazgec">Vazgeç</button>
         <button class="metin-d" value="cikis" formnovalidate id="sifre-cikis">Çıkış yap</button>
       </div>
+    </form>
+  </dialog>
+
+  <dialog id="sohbetler-pencere" class="giris sohbetler-pencere" aria-labelledby="sohbetler-h">
+    <form method="dialog">
+      <h2 class="pencere-h" id="sohbetler-h"><svg class="ik" aria-hidden="true"><use href="#i-gecmis"/></svg>Geçmiş sohbetler</h2>
+      <p class="aciklama">Kalfayla konuşmaların ve üzerinde çalıştığın modül hesabına kaydedilir; sayfayı yenilesen de kaldığın yerden devam edersin.</p>
+      <ul id="sohbet-listesi" class="sohbet-listesi"></ul>
+      <div class="eylemler"><button class="birincil" value="yeni">Yeni sohbet</button><button class="ikincil" value="kapat">Kapat</button></div>
     </form>
   </dialog>
 
