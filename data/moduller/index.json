@@ -44,7 +44,7 @@
  {
   "id": "vakif-dalislari",
   "ad": "Vakıf Dalışları",
-  "aciklama": "Kaydırdıkça eserin içine gir: Ulucami, Koza Hanı ve Şehzade Mustafa Türbesi. Her durakta kamera durur, eserin kaydından kısa notlar belirir.",
+  "aciklama": "Kaydırdıkça Bursa'nın vakıf eserlerinin içine gir: Ulucami'den Koza Hanı'na, Emir Sultan Külliyesi'ne. Her durakta kamera durur, eserin kaydından kısa notlar belirir.",
   "izinler": [],
   "renk": "altin",
   "ikon": "cami",
@@ -54,5 +54,46 @@
   "guncelleme": "2026-11-03T12:00:00.000Z",
   "yayin": "2026-11-03T12:00:00.000Z",
   "kapakEser": "bursa-ulucami"
+ },
+ {
+  "id": "eser-kesfi",
+  "ad": "Eser Keşfi",
+  "aciklama": "Dokuz şehrin vakıf eserlerini tek yerde keşfet: harita, yakınındakiler, tarihçe, fotoğraflar, kaynaklar ve kaynaklı tarihsel bağlar.",
+  "izinler": [
+   "konum"
+  ],
+  "renk": "firuze",
+  "ikon": "kopru",
+  "kategori": "rehber",
+  "durum": "onayli",
+  "olusturma": "2026-11-07T09:00:00.000Z",
+  "guncelleme": "2026-11-07T09:00:00.000Z",
+  "yayin": "2026-11-07T09:00:00.000Z",
+  "kapakEser": "bursa-ulucami"
+ },
+ {
+  "id": "hanlarda-hazine-avi",
+  "ad": "Hanlarda Hazine Avı",
+  "aciklama": "Çocuklar için süreli hazine avı: fotoğraftaki Bursa hanını bul, altınları sandığına doldur, rozetleri topla.",
+  "izinler": [],
+  "renk": "altin",
+  "ikon": "han",
+  "kategori": "oyun",
+  "durum": "bekliyor",
+  "olusturma": "2026-11-07T09:00:00.000Z",
+  "guncelleme": "2026-11-07T09:00:00.000Z",
+  "kapakEser": "bursa-koza-hani"
+ },
+ {
+  "id": "turbe-dedektifi",
+  "ad": "Türbe Dedektifi",
+  "aciklama": "Bursa türbelerini fotoğraflarından incele, hangi yüzyılda yapıldıklarını süre dolmadan bul.",
+  "izinler": [],
+  "renk": "murdum",
+  "ikon": "turbe",
+  "kategori": "oyun",
+  "durum": "bekliyor",
+  "olusturma": "2026-11-07T09:00:00.000Z",
+  "guncelleme": "2026-11-07T09:00:00.000Z"
  }
 ]

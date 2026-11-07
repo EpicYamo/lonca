@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f6f7f9">
-  <script>try { if (localStorage.getItem("lonca.tema") === "koyu") { document.documentElement.dataset.tema = "koyu"; document.querySelector('meta[name="theme-color"]').content = "#0b0c0e"; } } catch {}</script>
+  <meta name="theme-color" content="#f5f5f7">
+  <script>try { if (localStorage.getItem("lonca.tema") === "koyu") { document.documentElement.dataset.tema = "koyu"; document.querySelector('meta[name="theme-color"]').content = "#000000"; } } catch {}</script>
   <title>Lonca</title>
   <meta name="description" content="Bursa’nın vakıf eserlerini rehberler, oyunlar ve gezi rotalarıyla keşfet.">
   <link rel="manifest" href="/app/manifest.webmanifest">
@@ -15,6 +15,8 @@
   <link rel="stylesheet" href="/app/app.css">
   <link rel="stylesheet" href="/app/sahne.css">
   <link rel="stylesheet" href="/app/tema.css">
+  <link rel="stylesheet" href="/app/kesif.css">
+  <link rel="stylesheet" href="/app/zarif.css">
   <link rel="stylesheet" href="/mobil/mobil.css">
   <script src="/mobil/kopru.js"></script>
   <script type="importmap">
@@ -27,7 +29,7 @@
     <header class="ust-bar" id="ust-bar">
       <p class="marka"><span class="marka-logo" id="marka-logo" aria-hidden="true"></span><span>Lonca</span></p>
       <div class="vitrin-dugmeler">
-        <button class="profil-cip" id="profil-cip" aria-label="Profilim">
+        <button class="profil-cip" id="profil-cip"><span class="gizli">Profilim: </span>
           <span class="avatar" id="cip-avatar" aria-hidden="true"></span>
           <span class="profil-cip-metin"><strong id="cip-ad">Gezgin</strong><span id="cip-seviye">Seviye 1</span></span>
         </button>
@@ -53,11 +55,31 @@
         <p class="kolaj-atif" id="kolaj-atif"></p>
       </section>
 
+      <section class="arama-alani" role="search" aria-label="Eser ve uygulama ara">
+        <label class="arama-kutu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="gizli">Ara</span>
+          <input id="arama" type="search" aria-label="Eser, ilçe, il ya da tür ara" autocomplete="off" enterkeyhint="search" maxlength="80" placeholder="Eser, ilçe, il ya da tür ara" aria-controls="arama-sonuc" aria-describedby="arama-durum">
+          <button type="button" class="arama-temizle" id="arama-temizle" aria-label="Aramayı temizle" hidden>×</button>
+        </label>
+        <p class="arama-durum" id="arama-durum" role="status"></p>
+        <div class="arama-sonuc" id="arama-sonuc" hidden></div>
+      </section>
+
       <div class="meydan-duzen">
         <main class="meydan-ana">
           <section id="devam" class="devam" hidden aria-labelledby="devam-baslik">
             <h2 id="devam-baslik" class="bolum-baslik kucuk">Kaldığın yerden</h2>
             <button class="devam-karti" id="devam-karti"></button>
+          </section>
+
+          <section class="modullerim" id="modullerim-bolum" aria-labelledby="modullerim-baslik">
+            <div class="bolum-ust">
+              <h2 id="modullerim-baslik" class="bolum-baslik">Modüllerim</h2>
+              <button type="button" class="metin-dugme" id="modullerim-duzenle" aria-pressed="false" hidden>Düzenle</button>
+            </div>
+            <ul id="modullerim" class="modullerim-rafi"></ul>
+            <p class="modullerim-bos" id="modullerim-bos" hidden>Henüz boş. Aşağıdaki uygulamalardan <strong>＋</strong> ile ekle; açtığın uygulamalar da buraya gelir.</p>
           </section>
 
           <section class="one-cikanlar" aria-labelledby="one-cikanlar-baslik">
@@ -106,19 +128,66 @@
     </div>
   </div>
 
+  <dialog id="galeri" class="galeri" aria-labelledby="galeri-baslik">
+    <div class="galeri-ust">
+      <p class="galeri-baslik" id="galeri-baslik"></p>
+      <span class="galeri-sayac" id="galeri-sayac" aria-live="polite"></span>
+      <button type="button" class="galeri-dugme" id="galeri-kapat" aria-label="Galeriyi kapat">×</button>
+    </div>
+    <div class="galeri-seridi" id="galeri-seridi"></div>
+    <button type="button" class="galeri-dugme galeri-ok onceki" id="galeri-onceki" aria-label="Önceki fotoğraf">‹</button>
+    <button type="button" class="galeri-dugme galeri-ok sonraki" id="galeri-sonraki" aria-label="Sonraki fotoğraf">›</button>
+  </dialog>
+
   <dialog id="eser-penceresi" class="eser-penceresi" aria-labelledby="ep-ad">
-    <div class="ep-fotolar" id="ep-fotolar"></div>
+    <div class="ep-foto-alan">
+      <div class="ep-fotolar" id="ep-fotolar" tabindex="0" role="group" aria-label="Fotoğraflar, yana kaydır"></div>
+      <span class="ep-foto-sayi" id="ep-foto-sayi" aria-hidden="true" hidden></span>
+    </div>
     <div class="ep-govde">
-      <p class="ep-ust" id="ep-ust"></p>
+      <div class="ep-ust-satir">
+        <p class="ep-ust" id="ep-ust"></p>
+        <div class="ep-dil" id="ep-dil" role="group" aria-label="Metin dili" hidden>
+          <button type="button" data-dil="tr" aria-pressed="true" lang="tr">TR</button>
+          <button type="button" data-dil="en" aria-pressed="false" lang="en">EN</button>
+        </div>
+      </div>
       <h2 id="ep-ad"></h2>
+      <p class="ep-rozetler" id="ep-rozetler"></p>
       <div id="ep-tarihce" class="ep-tarihce"></div>
+      <section class="ep-bolum" id="ep-konum" aria-labelledby="ep-konum-baslik" hidden>
+        <h3 id="ep-konum-baslik">Konum</h3>
+        <div class="ep-harita" id="ep-harita" role="group" aria-label="Eserin konumu haritada"></div>
+        <p class="ep-konum-notu" id="ep-konum-notu" hidden><strong>Yaklaşık konum.</strong> Kaynakta tam adres yok; işaret mahalleyi gösterir, eserin yeri birkaç yüz metre farklı olabilir.</p>
+        <p class="ep-adres" id="ep-adres"></p>
+        <a class="ep-yol" id="ep-yol" target="_blank" rel="noopener" hidden>Haritada aç ↗</a>
+      </section>
+      <section class="ep-bolum" id="ep-ilgili-bolum" aria-labelledby="ep-ilgili-baslik" hidden>
+        <h3 id="ep-ilgili-baslik">İlişkili eserler</h3>
+        <ul class="ep-ilgili" id="ep-ilgili"></ul>
+      </section>
       <p class="ep-kaynak" id="ep-kaynak"></p>
       <div class="ep-eylemler">
-        <button type="button" class="dugme ikincil kucuk" id="ep-hata">Bir hata mı gördün? Bildir</button>
+        <button type="button" class="dugme ikincil kucuk ep-paylas" id="ep-paylas">Paylaş</button>
+        <button type="button" class="dugme ikincil kucuk" id="ep-hata">Hata bildir</button>
         <button type="button" class="dugme kucuk" id="ep-kapat">Kapat</button>
       </div>
     </div>
     <button type="button" class="ep-x" id="ep-x" aria-label="Kapat">×</button>
+  </dialog>
+
+  <dialog id="izin-penceresi" class="izin-penceresi" aria-labelledby="izin-baslik">
+    <form method="dialog" class="izin-kutu">
+      <span class="izin-ikon" id="izin-ikon" aria-hidden="true"></span>
+      <h2 id="izin-baslik"></h2>
+      <p class="tanisma-alt" id="izin-alt"></p>
+      <ul class="izin-listesi" id="izin-listesi"></ul>
+      <p class="izin-not">Bu kararı istediğin zaman <strong>Profilim → Uygulama izinleri</strong>'nden değiştirebilirsin.</p>
+      <div class="tanisma-dugmeler">
+        <button class="dugme ikincil" value="hayir">İzin verme</button>
+        <button class="dugme" value="evet">İzin ver</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Profil -->
@@ -186,7 +255,11 @@
       <div id="katki-yeni">
         <label class="katki-alan">Eserin adı <input name="ad" maxlength="120" required></label>
         <label class="katki-alan">Türü <select name="tur"></select></label>
-        <label class="katki-alan">İlçe <input name="ilce" maxlength="40"></label>
+        <div class="katki-ikili">
+          <label class="katki-alan">İl <input name="il" maxlength="40" list="il-listesi" autocomplete="off" placeholder="Örn. Bursa"></label>
+          <label class="katki-alan">İlçe <input name="ilce" maxlength="40"></label>
+        </div>
+        <datalist id="il-listesi"></datalist>
         <label class="katki-alan">Bildiklerin (tarihçe) <textarea name="tarihce" rows="5" maxlength="4000"></textarea></label>
         <label class="katki-alan">Kaynak <input name="kaynak" maxlength="240" placeholder="Kitap, kurum, kitabe…"></label>
         <div class="katki-alan katki-fotolar">
@@ -267,12 +340,13 @@
         const koyu = kok.dataset.tema !== "koyu";
         if (koyu) kok.dataset.tema = "koyu"; else delete kok.dataset.tema;
         try { localStorage.setItem("lonca.tema", koyu ? "koyu" : "acik"); } catch {}
-        document.querySelector('meta[name="theme-color"]').content = koyu ? "#0b0c0e" : "#f6f7f9";
+        document.querySelector('meta[name="theme-color"]').content = koyu ? "#000000" : "#f5f5f7";
         ciz();
       });
       ciz();
     })();
   </script>
   <script type="module" src="/app/app.js"></script>
+  <script type="module" src="/app/zarif.js"></script>
 </body>
 </html>

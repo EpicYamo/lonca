@@ -1,0 +1,39 @@
+# İnternetteki sunucu için: Lonca'nın önüne HTTPS'li Nginx + Let's Encrypt koyar.
+#   .env: LONCA_EPOSTA=sen@example.com  LONCA_API_ANAHTARI=...  (LONCA_ALAN_ADI boşsa kozmos.42.fr)
+#   docker compose -f docker-compose.yml -f docker-compose.sunucu.yml up -d --build
+#   ./docker/sertifika-al.sh          # ilk sertifika (bir kez); yenileme kendiliğinden olur
+# Lonca'nın 3000 portu dışarı açılmaz; ona yalnızca Nginx (80/443) ulaşır.
+services:
+  lonca:
+    ports: !reset []
+    expose:
+      - "3000"
+
+  nginx:
+    build: docker/nginx
+    image: lonca-nginx:yerel
+    restart: unless-stopped
+    depends_on:
+      - lonca
+    environment:
+      LONCA_ALAN_ADI: ${LONCA_ALAN_ADI:-kozmos.42.fr}
+      LONCA_YOL_ONEKI: ${LONCA_YOL_ONEKI:-}
+    ports:
+      - "${LONCA_HTTP_PORT:-80}:80"
+      - "${LONCA_HTTPS_PORT:-443}:443"
+    volumes:
+      - sertifikalar:/etc/letsencrypt:ro
+      - acme:/var/www/certbot:ro
+
+  certbot:
+    image: certbot/certbot:v2.11.0
+    restart: unless-stopped
+    volumes:
+      - sertifikalar:/etc/letsencrypt
+      - acme:/var/www/certbot
+    # Günde iki kez yenilemeyi dener (süresine 30 günden az kalanı yeniler); Nginx yenisini kendisi yükler.
+    entrypoint: ["/bin/sh", "-c", "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $$!; done"]
+
+volumes:
+  sertifikalar:
+  acme:

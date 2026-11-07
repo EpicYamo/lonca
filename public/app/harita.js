@@ -2,7 +2,7 @@ import { baglaninca } from "/ortak/animasyon.js";
 import { ayarlariGetir } from "/ortak/ayarlar.js";
 
 let googleOturumu = null;
-async function karoKatmani(L) {
+export async function karoKatmani(L) {
   const { harita } = await ayarlariGetir();
   if (harita?.saglayici === "google" && harita.anahtar) {
     try {
@@ -27,7 +27,7 @@ async function karoKatmani(L) {
 }
 
 let leafletYukleniyor = null;
-function leafletYukle() {
+export function leafletYukle() {
   leafletYukleniyor ??= new Promise((coz, reddet) => {
     const css = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/vendor/leaflet/leaflet.css" });
     const js = Object.assign(document.createElement("script"), { src: "/vendor/leaflet/leaflet.js" });
@@ -43,7 +43,6 @@ export const PIN_RENGI = {
   medrese: "#2e7d4f", kutuphane: "#2e7d4f", turbe: "#5b2a6e", hazire: "#5b2a6e", tekke: "#5b2a6e", kulliye: "#8a6420", imaret: "#8a6420",
 };
 
-const PIN_HARF = { cami: "C", mescit: "M", han: "H", carsi: "Ç", hamam: "Hm", cesme: "Ç", kopru: "K", medrese: "Md", kutuphane: "K", turbe: "T", hazire: "Hz", tekke: "Tk", kulliye: "Kl", imaret: "İ" };
 
 export const BAG_RENK = {
   kulliye: "#ffd25e", bani: "#c084fc", mimar: "#60a5fa", vakif: "#4ade80",
@@ -453,6 +452,7 @@ export async function haritaGoster(eserler, secenek, { el, sahneyeKoy, seslendir
     el("h3", { className: "liste-baslik", textContent: rota ? "Duraklar" : "Haritadaki eserler" }),
     listeKap, kapat);
 
+  // eslint-disable-next-line no-async-promise-executor -- harita kurulumu beklenirken kapat düğmesi de çözebilmeli
   return new Promise(async (coz) => {
     let harita = null, bitti = false;
     const bitir = (sonuc) => { bitti = true; harita?.yokEt(); coz(sonuc); };

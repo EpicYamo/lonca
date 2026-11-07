@@ -9,7 +9,8 @@
 // uygulamanın gördüğü yanıt sunucununkiyle birebir aynı kalır.
 //
 // Kullanım: node mobil/hazirla.mjs [--sunucu http://192.168.1.20:3000 ...] [--port 3000] [--anahtar API_ANAHTARI]
-// (anahtar verilmezse .env içindeki LONCA_API_ANAHTARI kullanılır)
+//   [--genel https://kozmos.42.fr]  internetteki sunucu (Nginx arkası); önce bu denenir
+// (anahtar/genel verilmezse .env içindeki LONCA_API_ANAHTARI / LONCA_SUNUCU_URL kullanılır)
 import { cp, mkdir, rm, writeFile, readFile, readdir, stat } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -21,14 +22,17 @@ const arg = process.argv.slice(2);
 const sunucular = [];
 let port = 3000;
 let anahtar = "";
+let genel = "";
 for (let i = 0; i < arg.length; i++) {
   if (arg[i] === "--sunucu" && arg[i + 1]) sunucular.push(arg[++i].replace(/\/+$/, ""));
   else if (arg[i] === "--port" && arg[i + 1]) port = Number(arg[++i]) || 3000;
   else if (arg[i] === "--anahtar" && arg[i + 1]) anahtar = arg[++i];
+  else if (arg[i] === "--genel" && arg[i + 1]) genel = arg[++i].replace(/\/+$/, "");
 }
 
 try { process.loadEnvFile(path.join(KOK, ".env")); } catch {}
 anahtar ||= process.env.LONCA_API_ANAHTARI ?? "";
+genel ||= (process.env.LONCA_SUNUCU_URL ?? "").replace(/\/+$/, "");
 
 const kopyala = (kaynak, hedef, filtre) => cp(path.join(KOK, kaynak), path.join(WWW, hedef), { recursive: true, filter: filtre });
 async function boyut(d) {
@@ -93,7 +97,7 @@ for (const d of dalislar) {
 
 // ---------- Giriş sayfası ----------
 // Capacitor kökteki index.html'i açar; /app/ ile aynı sayfa (bütün yollar mutlak olduğundan değişmeden çalışır).
-const yapilandirma = { surum: olusturma, sunucular, port, anlik: olusturma, ...(anahtar ? { anahtar } : {}) };
+const yapilandirma = { surum: olusturma, sunucular, port, anlik: olusturma, ...(anahtar ? { anahtar } : {}), ...(genel ? { genel } : {}) };
 let html = await readFile(path.join(KOK, "public/app/index.html"), "utf8");
 const kopruEtiketi = '<script src="/mobil/kopru.js"></script>';
 const satir = `<script>window.LONCA_MOBIL=${JSON.stringify(yapilandirma)};</script>`;
@@ -105,4 +109,5 @@ await writeFile(path.join(WWW, "app/index.html"), html);
 
 const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 console.log(`mobil/www hazır: ${eserler.length} eser, ${moduller.length} modül, ${dalislar.length} dalış, toplam ${mb(await boyut(WWW))}`);
+if (genel) console.log(`Genel sunucu (önce denenir): ${genel}`);
 console.log(sunucular.length ? `Aranacak sunucular: ${sunucular.join(", ")}` : "Gömülü sunucu adresi yok: uygulama ağı tarayacak.");

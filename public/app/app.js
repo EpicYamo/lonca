@@ -6,6 +6,9 @@ import { ciniArkaPlan } from "/ortak/cini.js";
 import { cizim } from "/ortak/cizimler.js";
 import { gecis, ciz, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
 import { loncaLogo } from "/ortak/logo.js";
+import { modulSurumu } from "/ortak/arama.js";
+import * as raf from "./modullerim.js";
+import { eserSayfasiKur } from "./eser-sayfasi.js";
 
 const $ = (s) => document.querySelector(s);
 export const el = (etiket, ozellik = {}, ...cocuklar) => {
@@ -181,7 +184,7 @@ function yontemlerOlustur(modul) {
     let uygulamaModu = false;
     const hedefKoy = (...d) => (uygulamaModu ? katman.koy(...d) : sahneyeKoy(...d));
     const ekranlar = ekranYontemleri({
-      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => katkiAc(e),
+      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => duzeltmeIste(e),
       rozetKaydet: ({ ad }) => {
         const t = profil.basarimKazan(modul.id, `rozet-${ad}`, ad);
         if (t) profil.puanEkle(25);
@@ -205,7 +208,9 @@ function yontemlerOlustur(modul) {
 
     return {
       "eserler.yakindaki": async (s = {}) => {
-        const k = await konumAl(); 
+        // Kullanıcı bu modüle konum izni vermediyse cihaz konumu hiç sorulmaz; örnek konum kullanılır.
+        const izinli = ONIZLEME || !raf.istenenIzinler(modul).includes("konum") || raf.izinDurumu(modul.id, "konum") !== false;
+        const k = izinli ? await konumAl() : { ...DEMO_KONUM, ornek: true };
         const q = new URLSearchParams({ lat: k.lat, lng: k.lng, limit: Math.min(Number(s.limit) || 10, 50) });
         if (s.tur) q.set("tur", s.tur);
         const liste = await (await api(`/api/eserler/yakin?${q}`)).json();
@@ -236,12 +241,13 @@ function yontemlerOlustur(modul) {
         uygulamaModu = true;
         document.body.classList.add("uygulama-modu");
         katman.kapat();
-        sahneApi.ciz(agac);
+        // "Ekranı sesli oku" açıksa yeni görünümün başlığı ve ilk paragrafı okunur (ekranda yazanın aynısı).
+        if (sahneApi.ciz(agac)?.yeni) seslendir([...$("#sahne").querySelectorAll(".s-ust-metin strong, .s-kapak-baslik, .s-kapak-alt, .s-afis-baslik, .s-baslik, .s-metin")].slice(0, 3).map((d) => d.textContent.trim()).filter(Boolean).join(". ").slice(0, 400));
         acilisBitir();
       },
       "sahne.bildir": async (m) => bildir(m),
       "sahne.efekt": async (ad) => sahneApi.efekt(ad),
-      "ekran.duzeltme": async (eser) => (eser?.id ? katkiAc(eser) : { gonderildi: false }),
+      "ekran.duzeltme": async (eser) => (eser?.id ? duzeltmeIste(eser) : { gonderildi: false }),
       "profil.bilgi": async () => profil.profilBilgi(),
       "profil.puanEkle": async (n, neden) => {
         const r = profil.puanEkle(n);
@@ -292,6 +298,7 @@ async function vitrinCiz() {
   const v = await vitrinGetir();
   if (!v) return;
   const s = v.sayilar;
+  if (Array.isArray(v.iller)) $("#il-listesi").replaceChildren(...v.iller.map((il) => el("option", { value: il })));
   $("#vitrin-sayilar").replaceChildren(...[[s.eser, "vakıf eseri"], [s.fotografli, "fotoğraflı"], [s.ilce, "ilçe"], [s.konumlu, "haritada"]]
     .map(([n, ad]) => el("li", {}, el("strong", { textContent: String(n) }), el("span", { textContent: ad }))));
   const kolajEserleri = [v.gununEseri, ...v.secki].filter(Boolean).slice(0, 5);
@@ -314,7 +321,6 @@ async function vitrinCiz() {
         el("span", { className: "gunun-ozet", textContent: g.ozet }),
         el("span", { className: "gunun-devam", textContent: `Devamını oku · ${g.fotoSayisi} fotoğraf →` })));
     $("#gunun-karti").onclick = () => eserPenceresi(g.id);
-    $("#gunun-karti").setAttribute("aria-label", `Günün eseri: ${g.ad}. Devamını oku`);
   }
   $("#secki").replaceChildren(...v.secki.map((e) => {
     const foto = el("span", { className: "secki-foto" });
@@ -341,23 +347,13 @@ function kolajDongusu(liste) {
   kolajZamanlayici = setInterval(() => { if (!$("#ana-ekran").hidden && !document.hidden) { i = (i + 1) % kareler.length; goster(); } }, 6000);
 }
 
-async function eserPenceresi(id) {
-  const d = $("#eser-penceresi");
-  let e;
-  try { e = await (await api(`/api/eserler/${encodeURIComponent(id)}`)).json(); } catch { return; }
-  $("#ep-fotolar").replaceChildren(...(e.fotograflar ?? []).map((f, i) => el("img", { src: f, alt: `${e.ad}, fotoğraf ${i + 1}`, loading: i ? "lazy" : "eager" })));
-  $("#ep-fotolar").hidden = !e.fotograflar?.length;
-  $("#ep-ust").textContent = [TUR_ADI[e.tur] ?? "Eser", yuzyilYazi(e.yuzyil), [e.ilce, e.il].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
-  $("#ep-ad").textContent = e.ad;
-  $("#ep-tarihce").replaceChildren(...String(e.tarihce?.tr ?? "").split(/\n+/).filter(Boolean).map((p) => el("p", { textContent: p })));
-  $("#ep-kaynak").textContent = `Kaynak: ${e.kaynak}`;
-  $("#ep-hata").onclick = () => { d.close(); katkiAc(e); };
-  d.showModal();
-  d.scrollTop = 0;
-  seslendir(`${e.ad}. ${$("#ep-ust").textContent}`);
-}
-for (const id of ["#ep-kapat", "#ep-x"]) $(id).addEventListener("click", () => $("#eser-penceresi").close());
-$("#eser-penceresi").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+const eserSayfasi = eserSayfasiKur({
+  el, api, seslendir, bildir, katkiAc: (e) => duzeltmeIste(e),
+  hataYazisi: ONIZLEME ? "Bu eserde eksik var, düzenle" : "Bir hata mı gördün? Bildir",
+  dalisModulu: () => modulListesi.find((m) => /dalis/.test(m.id)) ?? null,
+  modulAc: (m) => moduluAc(m),
+});
+const eserPenceresi = (id) => eserSayfasi.ac(id);
 
 function devamKartiCiz() {
   const son = depo.oku("lonca.son-modul", null);
@@ -415,13 +411,12 @@ function oneCikanlariCiz(kapaklar) {
     const b = el("button", { className: `oc-kart renk-${m.renk ?? "kobalt"}` },
       arka,
       el("span", { className: "oc-govde" },
-        el("span", { className: "oc-etiket", textContent: i === 0 ? `Yeni · ${KATEGORI_ADI[kategoriBul(m)]}` : KATEGORI_ADI[kategoriBul(m)] }),
+        el("span", { className: "oc-etiket", textContent: raf.yeniMi(m.id) ? `Yeni · ${KATEGORI_ADI[kategoriBul(m)]}` : KATEGORI_ADI[kategoriBul(m)] }),
         el("span", { className: "oc-ad", textContent: m.ad }),
         el("span", { className: "oc-aciklama", textContent: m.aciklama }),
         el("span", { className: "oc-alt" }, uygulamaIkonu(m, "kucuk"),
-          el("span", { className: "oc-alt-metin" }, el("strong", { textContent: m.ad }), el("span", { textContent: kapak?.eser ? `Kapak: ${kapak.eser}` : "Lonca uygulaması" })),
-          el("span", { className: "ac-pill", textContent: "AÇ" }))));
-    b.setAttribute("aria-label", `${m.ad}: ${m.aciklama}. Aç`);
+          el("span", { className: "oc-alt-metin", ariaHidden: "true" }, el("strong", { textContent: m.ad }), el("span", { textContent: kapak?.eser ? `Kapak: ${kapak.eser}` : "Lonca uygulaması" })),
+          el("span", { className: "ac-pill", ariaHidden: "true", textContent: "AÇ" }))));
     b.addEventListener("click", () => moduluAc(m, b));
     const li = el("li", {}, b);
     li.style.setProperty("--i", String(i));
@@ -430,7 +425,9 @@ function oneCikanlariCiz(kapaklar) {
   $("#one-cikan-oklar").hidden = liste.length < 2;
 }
 
-function uygulamalariCiz() {
+const yeniGelenler = new Set();
+function uygulamalariCiz({ animasyonsuz = false } = {}) {
+  $("#moduller").classList.remove("sessiz");
   const sayac = {};
   for (const m of modulListesi) sayac[kategoriBul(m)] = (sayac[kategoriBul(m)] ?? 0) + 1;
   const ciple = [["hepsi", "Hepsi", modulListesi.length], ...Object.keys(KATEGORI_ADI).filter((k) => sayac[k]).map((k) => [k, KATEGORI_ADI[k], sayac[k]])];
@@ -438,28 +435,102 @@ function uygulamalariCiz() {
   $("#kategori-cipleri").replaceChildren(...ciple.map(([k, ad, n]) => {
     const b = el("button", { type: "button", className: `kategori-cip${k === seciliKategori ? " secili" : ""}` }, ad, el("small", { textContent: String(n) }));
     b.setAttribute("aria-pressed", String(k === seciliKategori));
-    b.addEventListener("click", () => { seciliKategori = k; uygulamalariCiz(); });
+    b.addEventListener("click", () => { seciliKategori = k; uygulamalariCiz({ animasyonsuz: true }); });
     return b;
   }));
   $("#kategori-cipleri").hidden = modulListesi.length < 2;
   const gorunen = modulListesi.filter((m) => seciliKategori === "hepsi" || kategoriBul(m) === seciliKategori);
   $("#uygulama-sayisi").textContent = modulListesi.length ? `${modulListesi.length} uygulama` : "";
   $("#moduller").replaceChildren(...gorunen.map((m, i) => {
+    const yeni = raf.yeniMi(m.id);
+    const izinler = raf.istenenIzinler(m).map((iz) => raf.IZIN_BILGISI[iz].ad);
     const b = el("button", { className: "karo uygulama-satiri" },
       uygulamaIkonu(m),
       el("span", { className: "us-metin" },
-        el("span", { className: "us-ad", textContent: m.ad }),
-        el("span", { className: "us-kategori", textContent: KATEGORI_ADI[kategoriBul(m)] }),
+        el("span", { className: "us-ad" }, m.ad, yeni ? el("span", { className: "yeni-rozet", textContent: "Yeni" }) : null),
+        el("span", { className: "us-kategori" }, KATEGORI_ADI[kategoriBul(m)],
+          izinler.length ? el("span", { className: "us-izin", textContent: ` · ${izinler.join(", ")} ister` }) : null),
         el("span", { className: "us-aciklama", textContent: m.aciklama }),
         basarimCubugu(m)),
       el("span", { className: "ac-pill", ariaHidden: "true", textContent: "AÇ" }));
-    b.setAttribute("aria-label", `${m.ad}, ${KATEGORI_ADI[kategoriBul(m)]}. ${m.aciklama}`);
     b.addEventListener("click", () => moduluAc(m, b));
-    const li = el("li", {}, b);
+    const rafta = raf.raftaMi(m.id);
+    const ekle = el("button", { type: "button", className: `raf-dugme${rafta ? " rafta" : ""}`, textContent: rafta ? "✓" : "＋",
+      ariaLabel: rafta ? `${m.ad}: Modüllerim'den çıkar` : `${m.ad}: Modüllerim'e ekle`, title: rafta ? "Modüllerim'de" : "Modüllerim'e ekle" });
+    ekle.setAttribute("aria-pressed", String(rafta));
+    ekle.addEventListener("click", () => {
+      if (raf.raftaMi(m.id)) { raf.raftanKaldir(m.id); bildir(`${m.ad} Modüllerim'den çıkarıldı.`, { sure: 1800 }); }
+      else { raf.rafaEkle(m.id); bildir(`${m.ad} Modüllerim'e eklendi.`, { sure: 1800 }); }
+      uygulamalariCiz({ animasyonsuz: true });
+      rafCiz();
+      document.querySelector(`#moduller [data-id="${m.id}"] .raf-dugme`)?.focus();
+    });
+    const li = el("li", { className: `uygulama-li${yeni ? " yeni" : ""}${yeniGelenler.has(m.id) ? " geldi" : ""}` }, b, ekle);
+    li.dataset.id = m.id;
     li.style.setProperty("--i", String(i));
     return li;
   }));
-  $("#moduller").querySelectorAll(".ikon-madalyon svg").forEach((svg, i) => ciz(svg, { gecikme: 200 + i * 80, sure: 650, aralik: 40 }));
+  if (!animasyonsuz) $("#moduller").querySelectorAll(".ikon-madalyon svg").forEach((svg, i) => ciz(svg, { gecikme: 200 + i * 80, sure: 650, aralik: 40 }));
+  else $("#moduller").classList.add("sessiz");
+}
+
+// ---------- Modüllerim rafı ----------
+let rafDuzenleme = false;
+function rafCiz() {
+  const liste = raf.rafModulleri(modulListesi);
+  const ul = $("#modullerim");
+  $("#modullerim-bos").hidden = liste.length > 0;
+  $("#modullerim-duzenle").hidden = !liste.length;
+  if (!liste.length) rafDuzenleme = false;
+  $("#modullerim-duzenle").textContent = rafDuzenleme ? "Bitti" : "Düzenle";
+  $("#modullerim-duzenle").setAttribute("aria-pressed", String(rafDuzenleme));
+  ul.classList.toggle("duzenleniyor", rafDuzenleme);
+  ul.replaceChildren(...liste.map((m) => {
+    const sabit = raf.sabitMi(m.id);
+    const ac = el("button", { type: "button", className: "raf-karo" }, uygulamaIkonu(m),
+      el("span", { className: "raf-ad", textContent: m.ad }),
+      sabit ? el("span", { className: "raf-igne", ariaHidden: "true", title: "Sabitlendi" }) : null,
+      raf.yeniMi(m.id) ? el("span", { className: "raf-yeni", ariaHidden: "true" }) : null);
+    ac.setAttribute("aria-label", `${m.ad}${sabit ? ", sabitlendi" : ""}. Aç`);
+    ac.addEventListener("click", () => (rafDuzenleme ? null : moduluAc(m, ac)));
+    ac.disabled = rafDuzenleme;
+    const li = el("li", { className: sabit ? "sabit" : "" }, ac);
+    li.dataset.id = m.id;
+    if (rafDuzenleme) {
+      const igne = el("button", { type: "button", className: `raf-eylem igne${sabit ? " secili" : ""}`, ariaLabel: sabit ? `${m.ad}: sabitlemeyi kaldır` : `${m.ad}: başa sabitle` });
+      igne.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 4 4H6l4-4-1-6zM12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+      igne.setAttribute("aria-pressed", String(sabit));
+      igne.addEventListener("click", () => { raf.sabitle(m.id); rafCiz(); $(`#modullerim [data-id="${m.id}"] .igne`)?.focus(); });
+      const kaldir = el("button", { type: "button", className: "raf-eylem kaldir", textContent: "−", ariaLabel: `${m.ad}: Modüllerim'den çıkar` });
+      kaldir.addEventListener("click", () => { raf.raftanKaldir(m.id); rafCiz(); uygulamalariCiz({ animasyonsuz: true }); ($("#modullerim .raf-eylem") ?? $("#modullerim-duzenle"))?.focus(); });
+      li.append(igne, kaldir);
+    }
+    return li;
+  }));
+}
+$("#modullerim-duzenle").addEventListener("click", () => { rafDuzenleme = !rafDuzenleme; rafCiz(); $("#modullerim-duzenle").focus(); });
+
+// ---------- İzin sorma ----------
+const KONUM_IKONU = '<svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="currentColor"/></svg>';
+function izinSor(m) {
+  const sorulacak = raf.sorulmamisIzinler(m);
+  if (ONIZLEME || !sorulacak.length) return Promise.resolve();
+  const d = $("#izin-penceresi");
+  $("#izin-ikon").innerHTML = KONUM_IKONU;
+  $("#izin-baslik").textContent = `${m.ad} izin istiyor`;
+  $("#izin-alt").textContent = "Uygulama açılmadan önce, ne için istediğini bilmeni istiyoruz.";
+  $("#izin-listesi").replaceChildren(...sorulacak.map((iz) => {
+    const b = raf.IZIN_BILGISI[iz];
+    return el("li", {}, el("strong", { textContent: b.ad }), el("span", { textContent: b.neden }), el("small", { textContent: b.reddedilince }));
+  }));
+  d.returnValue = "";
+  d.showModal();
+  d.querySelector('button[value="evet"]').focus();
+  return new Promise((coz) => d.addEventListener("close", () => {
+    // Pencere bir seçim yapılmadan kapanırsa (Esc, Android geri) karar kaydedilmez; bu açılışta izinsiz çalışır.
+    if (d.returnValue === "evet" || d.returnValue === "hayir") for (const iz of sorulacak) raf.izinKaydet(m.id, iz, d.returnValue === "evet");
+    coz();
+  }, { once: true }));
 }
 $("#one-cikan-oklar").addEventListener("click", (e) => {
   const yon = Number(e.target.closest("[data-yon]")?.dataset.yon);
@@ -476,8 +547,11 @@ async function anaEkran({ gecisli = false } = {}) {
   try {
     const [liste, v] = await Promise.all([api("/api/moduller").then((y) => y.json()), vitrinGetir()]);
     modulListesi = liste;
+    sonSurum = modulSurumu(liste);
+    raf.yenileriBul(liste);
     oneCikanlariCiz(v?.kapaklar);
     uygulamalariCiz();
+    rafCiz();
     devamKartiCiz();
     if (!modulListesi.length) {
       ul.replaceChildren(el("li", { className: "bos", textContent: "Henüz yayında uygulama yok. Lonca Studio'da onaylanan uygulamalar burada görünür." }));
@@ -513,6 +587,8 @@ function acilisBitir() {
 
 let calisan = null; // { modul, iptal, sahneApi }
 async function moduluAc(m, karo) {
+  await izinSor(m);
+  if (!ONIZLEME) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
   depo.yaz("lonca.son-modul", { id: m.id, zaman: Date.now() });
   calisan?.iptal.abort();
   const iptal = new AbortController();
@@ -606,7 +682,23 @@ function profilEkrani() {
           r.append(el("strong", { textContent: b.ad }), el("span", { textContent: b.kazanildi ? (b.aciklama || "Kazanıldı") : "Henüz kazanılmadı" }));
           return r;
         }))))) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." }),
+    izinBolumu(),
   );
+}
+function izinBolumu() {
+  const satirlar = modulListesi.flatMap((m) => raf.istenenIzinler(m).map((iz) => {
+    const durum = raf.izinDurumu(m.id, iz);
+    const kutu = el("input", { type: "checkbox", checked: durum === true });
+    kutu.addEventListener("change", () => { raf.izinKaydet(m.id, iz, kutu.checked); alt.textContent = kutu.checked ? "İzin verildi" : "İzin verilmedi"; });
+    const alt = el("small", { textContent: durum === undefined ? "Henüz sorulmadı" : durum ? "İzin verildi" : "İzin verilmedi" });
+    return el("label", { className: "anahtar" }, kutu, el("span", {}, `${m.ad}: ${raf.IZIN_BILGISI[iz].ad}`, alt));
+  }));
+  const bolum = el("section", { className: "profil-izinler" });
+  bolum.setAttribute("aria-labelledby", "izin-bolum-baslik");
+  bolum.append(
+    el("h2", { className: "bolum-baslik", id: "izin-bolum-baslik", textContent: "Uygulama izinleri" }),
+    satirlar.length ? el("div", { className: "izin-satirlari" }, ...satirlar) : el("p", { className: "bos", textContent: "Hiçbir uygulama özel izin istemiyor." }));
+  return bolum;
 }
 $("#profil-cip").addEventListener("click", () => { profilEkrani(); gecis(() => ekranGoster("profil"), "ileri"); });
 $("#profil-geri").addEventListener("click", () => anaEkran({ gecisli: true }));
@@ -628,6 +720,8 @@ function tanismaKapat(kaydet) {
   const renk = document.querySelector('input[name="renk"]:checked')?.value ?? "kobalt";
   profil.profilKaydet({ ad: kaydet ? $("#tanisma-ad").value : (profil.profilOku()?.ad ?? "Gezgin"), renk });
   $("#tanisma").hidden = true;
+  // Odak gizlenen formda kalmasın; klavye ve ekran okuyucu ana içerikten devam eder.
+  if (document.activeElement?.closest("#tanisma") || document.activeElement === document.body) $("#uygulamalar-baslik").focus({ preventScroll: true });
   profilCipiGuncelle();
   if (!$("#profil-ekrani").hidden) profilEkrani();
 }
@@ -661,6 +755,12 @@ $("#katki-formu").elements.foto.addEventListener("change", (e) => {
   e.target.value = "";
   katkiFotolariniCiz();
 });
+// Studio önizlemesinde vatandaş formu yerine eser, Studio'nun içerik formunda düzenlemeye açılır.
+function duzeltmeIste(eser) {
+  if (!ONIZLEME || !eser?.id) return katkiAc(eser);
+  parent.postMessage({ tur: "eser-duzenle", id: eser.id }, location.origin);
+  return Promise.resolve({ gonderildi: false });
+}
 function katkiAc(eser = null) {
   katkiEser = eser;
   const f = $("#katki-formu");
@@ -695,9 +795,9 @@ $("#katki-formu").addEventListener("submit", async (e) => {
       if (f.not.value.trim().length < 5) { $("#katki-gonder").disabled = false; return hata("Lütfen birkaç kelimeyle anlat."); }
       govde = { tur: "not", eserId: katkiEser.id, not: f.not.value };
     } else {
-      if (f.ad.value.trim().length < 2 || f.tarihce.value.trim().length < 20 || f.kaynak.value.trim().length < 3) {
+      if (f.ad.value.trim().length < 2 || f.il.value.trim().length < 2 || f.tarihce.value.trim().length < 20 || f.kaynak.value.trim().length < 3) {
         $("#katki-gonder").disabled = false;
-        return hata("Ad, en az bir cümlelik tarihçe ve kaynak gerekli.");
+        return hata("Ad, il, en az bir cümlelik tarihçe ve kaynak gerekli.");
       }
       const fotograflar = [];
       for (const [i, dosya] of katkiFotolari.entries()) {
@@ -708,7 +808,7 @@ $("#katki-formu").addEventListener("submit", async (e) => {
         if (!y.ok) { $("#katki-gonder").disabled = false; return hata(`${dosya.name}: ${s.hata}`); }
         fotograflar.push(s.yol);
       }
-      govde = { tur: "yeni", veri: { ad: f.ad.value, tur: f.tur.value, ilce: f.ilce.value, il: "Bursa", tarihce: { tr: f.tarihce.value }, kaynak: f.kaynak.value, fotograflar } };
+      govde = { tur: "yeni", veri: { ad: f.ad.value, tur: f.tur.value, ilce: f.ilce.value, il: f.il.value.trim(), tarihce: { tr: f.tarihce.value }, kaynak: f.kaynak.value, fotograflar } };
     }
     const y = await fetch("/api/eser-oneriler", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde) });
     const s = await y.json();
@@ -720,6 +820,90 @@ $("#katki-formu").addEventListener("submit", async (e) => {
   } catch (h) { $("#katki-gonder").disabled = false; hata(`Gönderilemedi: ${h.message}`); }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#katki").hidden) katkiKapat(false); });
+
+// ---------- Yeni onaylanan modüller: hafif sürüm yoklaması ----------
+// Sunucu her onay/kaldırmada değişen kısa bir sürüm verir; değişince liste yeniden çekilir. Android köprüsü fetch'i
+// canlı sunucuya yönlendirdiği için telefonda da aynen çalışır.
+let sonSurum = null, yoklaniyor = false;
+async function modulleriYokla() {
+  if (ONIZLEME || document.hidden || yoklaniyor || sonSurum == null) return;
+  yoklaniyor = true;
+  try {
+    const { surum } = await (await api("/api/moduller/surum")).json();
+    if (surum === sonSurum) return;
+    const liste = await (await api("/api/moduller")).json();
+    sonSurum = modulSurumu(liste);
+    const gelenler = raf.yenileriBul(liste);
+    modulListesi = liste;
+    for (const m of gelenler) yeniGelenler.add(m.id);
+    if (!$("#ana-ekran").hidden) {
+      vitrin = null;
+      oneCikanlariCiz((await vitrinGetir())?.kapaklar);
+      uygulamalariCiz({ animasyonsuz: true });
+      rafCiz();
+      $("#one-cikanlar").closest("section").hidden = !liste.length;
+    }
+    for (const m of gelenler.slice(0, 2)) bildir(`Yeni uygulama yayında: ${m.ad}`, { tur: "yeni", sure: 4200 });
+    if (gelenler.length > 2) bildir(`${gelenler.length - 2} yeni uygulama daha`, { tur: "yeni", sure: 4200 });
+    setTimeout(() => { for (const m of gelenler) yeniGelenler.delete(m.id); }, 4000);
+  } catch {} finally { yoklaniyor = false; }
+}
+if (!ONIZLEME) setInterval(modulleriYokla, 12000);
+
+// ---------- Genel arama ----------
+let aramaNo = 0, aramaZaman = null;
+const aramaGirdi = $("#arama"), aramaSonuc = $("#arama-sonuc");
+function aramaTemizle() {
+  aramaGirdi.value = ""; aramaNo++;
+  aramaSonuc.hidden = true; aramaSonuc.replaceChildren();
+  $("#arama-durum").textContent = ""; $("#arama-temizle").hidden = true;
+}
+function sonucSatiri({ foto, desen, baslik, alt, tik, etiket }) {
+  const kare = el("span", { className: "as-foto", ariaHidden: "true" });
+  if (foto) kare.style.backgroundImage = `url("${foto}")`;
+  else if (desen) kare.append(desen);
+  const b = el("button", { type: "button", className: "as-satir" }, kare,
+    el("span", { className: "as-metin" }, el("strong", { textContent: baslik }), el("span", { textContent: alt })),
+    etiket ? el("span", { className: "as-etiket", textContent: etiket }) : null);
+  b.addEventListener("click", tik);
+  return el("li", {}, b);
+}
+async function aramaYap() {
+  const q = aramaGirdi.value.trim();
+  $("#arama-temizle").hidden = !aramaGirdi.value;
+  const bu = ++aramaNo;
+  if (q.length < 2) { aramaSonuc.hidden = true; $("#arama-durum").textContent = ""; return; }
+  const kucuk = (x) => String(x ?? "").toLocaleLowerCase("tr");
+  const uygulamalar = modulListesi.filter((m) => kucuk(`${m.ad} ${m.aciklama}`).includes(kucuk(q))).slice(0, 4);
+  let eserler = [];
+  try { eserler = await (await api(`/api/ara?q=${encodeURIComponent(q)}&limit=20`)).json(); } catch {}
+  if (bu !== aramaNo) return;
+  const gruplar = [];
+  if (uygulamalar.length) gruplar.push(el("h3", { className: "as-baslik", textContent: "Uygulamalar" }),
+    el("ul", {}, ...uygulamalar.map((m) => sonucSatiri({ desen: uygulamaIkonu(m, "kucuk"), baslik: m.ad, alt: KATEGORI_ADI[kategoriBul(m)], etiket: "AÇ",
+      tik: () => { aramaTemizle(); moduluAc(m); } }))));
+  if (eserler.length) gruplar.push(el("h3", { className: "as-baslik", textContent: "Eserler" }),
+    el("ul", {}, ...eserler.map((e) => sonucSatiri({ foto: e.foto, desen: el("span", { className: "as-cini", style: `background-image:${ciniArkaPlan(e.id, "firuze")}` }),
+      baslik: e.ad, alt: [TUR_ADI[e.tur] ?? "Eser", [e.ilce, e.il].filter(Boolean).join(", "), yuzyilYazi(e.yuzyil)].filter(Boolean).join(" · "),
+      tik: () => eserPenceresi(e.id) }))));
+  if (!gruplar.length) gruplar.push(el("p", { className: "as-bos", textContent: `“${q}” için sonuç yok. Başka bir ad, ilçe ya da il dene.` }));
+  aramaSonuc.replaceChildren(...gruplar);
+  aramaSonuc.hidden = false;
+  $("#arama-durum").textContent = eserler.length || uygulamalar.length ? `${eserler.length} eser, ${uygulamalar.length} uygulama bulundu` : "Sonuç yok";
+}
+aramaGirdi.addEventListener("input", () => { clearTimeout(aramaZaman); aramaZaman = setTimeout(aramaYap, 180); });
+aramaGirdi.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && aramaGirdi.value) { e.stopPropagation(); aramaTemizle(); }
+  if (e.key === "ArrowDown" || e.key === "Enter") { const ilk = aramaSonuc.querySelector("button"); if (ilk) { e.preventDefault(); ilk.focus(); } }
+});
+aramaSonuc.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const d = [...aramaSonuc.querySelectorAll("button")], i = d.indexOf(document.activeElement);
+  e.preventDefault();
+  if (e.key === "ArrowUp" && i <= 0) return aramaGirdi.focus();
+  d[Math.max(0, Math.min(d.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))]?.focus();
+});
+$("#arama-temizle").addEventListener("click", () => { aramaTemizle(); aramaGirdi.focus(); });
 
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && !$("#ana-ekran").hidden && !ONIZLEME) anaEkran();
@@ -752,6 +936,9 @@ if (ONIZLEME) {
   parent.postMessage({ tur: "onizleme-hazir" }, location.origin);
 } else {
   anaEkran();
+  // Paylaşılan bağlantı: /app/?eser=<id> eser sayfasını açar.
+  const paylasilan = new URLSearchParams(location.search).get("eser");
+  if (paylasilan && /^[a-z0-9-]{1,80}$/.test(paylasilan)) eserPenceresi(paylasilan);
 }
 
 export { TUR_ADI };

@@ -6,11 +6,14 @@
 #   ./apk.sh --kur       → derledikten sonra USB/kablosuz bağlı telefona adb ile kurar
 #
 # Ortam değişkenleri (isteğe bağlı):
-#   LONCA_SUNUCU=http://192.168.1.20:3000   APK'nın önce deneyeceği sunucu (yoksa bu bilgisayarın IP'leri gömülür)
+#   LONCA_SUNUCU_URL=https://kozmos.42.fr   internetteki sunucu (varsayılan; .env'den de okunur); APK önce bunu dener.
+#                                           "yok" verilirse genel sunucu gömülmez
+#   LONCA_SUNUCU=http://192.168.1.20:3000   ek yerel sunucu adresi (yoksa bu bilgisayarın IP'leri gömülür)
 #   PORT=3000                               sunucunun portu (ağ taraması da bu portta yapılır)
 #   LONCA_API_ANAHTARI=...                  sunucu API anahtarı istiyorsa (.env'den de okunur)
 #
-# Uygulama açılınca aynı Wi-Fi'deki Lonca sunucusunu (npm run dev / Docker) kendisi bulur; bulamazsa
+# Uygulama açılınca önce genel sunucuyu (LONCA_SUNUCU_URL), sonra aynı Wi-Fi'deki Lonca sunucusunu (npm run dev / Docker)
+# kendisi bulur; bulamazsa
 # APK içindeki verilerle çevrimdışı çalışır.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -21,7 +24,7 @@ for a in "$@"; do
   case "$a" in
     --release) TUR=release ;;
     --kur|--install) KUR=1 ;;
-    -h|--help) sed -n '2,15p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
     *) echo "Bilinmeyen seçenek: $a" >&2; exit 1 ;;
   esac
 done
@@ -30,7 +33,7 @@ bilgi() { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
 hata() { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------- Araçlar ----------
-command -v node >/dev/null || hata "Node.js gerekli (20.12+)."
+command -v node >/dev/null || hata "Node.js gerekli (20.19+)."
 
 if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]] || ! "${JAVA_HOME}/bin/java" -version 2>&1 | grep -qE 'version "(2[1-9]|1[7-9])'; then
   JAVA_HOME=""
@@ -62,13 +65,20 @@ PORT="${PORT:-3000}"
 SUNUCU_ARG=()
 [[ -n "${LONCA_SUNUCU:-}" ]] && SUNUCU_ARG+=(--sunucu "$LONCA_SUNUCU")
 IPLER=""
-if command -v ipconfig >/dev/null 2>&1; then
+# CI'da derleme makinesinin IP'leri anlamsızdır; yalnızca LONCA_SUNUCU ve ağ taraması kullanılır.
+if [[ "${CI:-}" == true ]]; then :
+elif command -v ipconfig >/dev/null 2>&1; then
   for i in en0 en1 en2 en3 en4 en5 en6 en7 en8; do ip=$(ipconfig getifaddr "$i" 2>/dev/null || true); [[ -n "$ip" ]] && IPLER="$IPLER $ip"; done
 fi
-if [[ -z "$IPLER" ]] && command -v hostname >/dev/null 2>&1; then IPLER=$(hostname -I 2>/dev/null || true); fi
+if [[ -z "$IPLER" && "${CI:-}" != true ]] && command -v hostname >/dev/null 2>&1; then IPLER=$(hostname -I 2>/dev/null || true); fi
 for ip in $IPLER; do
   [[ "$ip" =~ ^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.) ]] && SUNUCU_ARG+=(--sunucu "http://$ip:$PORT")
 done
+# Genel sunucu: ortam > .env > projenin alan adı. "yok" ise gömülmez.
+if [[ -z "${LONCA_SUNUCU_URL:-}" && -f .env ]]; then LONCA_SUNUCU_URL=$(sed -n 's/^LONCA_SUNUCU_URL=//p' .env | tail -n 1); fi
+LONCA_SUNUCU_URL="${LONCA_SUNUCU_URL:-https://kozmos.42.fr}"
+[[ "$LONCA_SUNUCU_URL" != yok ]] && SUNUCU_ARG+=(--genel "$LONCA_SUNUCU_URL")
+bilgi "Genel sunucu: $LONCA_SUNUCU_URL"
 ANAHTAR_ARG=()
 [[ -n "${LONCA_API_ANAHTARI:-}" ]] && ANAHTAR_ARG+=(--anahtar "$LONCA_API_ANAHTARI")
 

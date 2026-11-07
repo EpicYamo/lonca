@@ -1,37 +1,21 @@
-//
+// Modül kalfası. Sağlayıcı ve model seçimi server/kalfa-ayarlari.js'de:
+//   openai-uyumlu → UstaGPT (birincil; USTAGPT_*) ya da KALFA_API_URL'deki başka bir uç nokta
 //   anthropic     → Claude (ANTHROPIC_API_KEY)
 import Anthropic from "@anthropic-ai/sdk";
 import ts from "typescript";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { kalfaSaglayicisi, secimOku } from "./kalfa-ayarlari.js";
 
 ts.validateLocaleAndSetLanguage("tr", ts.sys);
 
 const MAKS_DENEME = 3;   
 const MAKS_ADIM = 8;     
 const MAKS_SATIR = 2000;
-
-function saglayiciSec(ortam = process.env) {
-  if (ortam.KALFA_SAHTE === "1") return { tur: "sahte" };
-  // KALFA_* tanımlı değilse dalış kalfasıyla aynı UstaGPT (OpenAI uyumlu) uç noktası kullanılır;
-  // böylece yalnızca USTAGPT_* dolu bir .env'de modül kalfası sessizce sahte kipe düşmez.
-  const e = { ...ortam };
-  if (!e.KALFA_SAGLAYICI && !e.ANTHROPIC_API_KEY && !e.KALFA_API_URL && e.USTAGPT_BASE_URL && e.USTAGPT_API_KEY) {
-    Object.assign(e, { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: e.USTAGPT_BASE_URL, KALFA_API_ANAHTARI: e.USTAGPT_API_KEY, KALFA_MODEL: e.KALFA_MODEL || "gemini-3.8-flash" });
-  }
-  const secilen = e.KALFA_SAGLAYICI || (e.ANTHROPIC_API_KEY ? "anthropic" : e.KALFA_API_URL ? "openai-uyumlu" : "sahte");
-  if (secilen === "anthropic") {
-    if (!e.ANTHROPIC_API_KEY) throw new Error("KALFA_SAGLAYICI=anthropic için ANTHROPIC_API_KEY gerekli");
-    return { tur: "anthropic", model: e.KALFA_MODEL || "claude-sonnet-5-5" };
-  }
-  if (secilen === "openai-uyumlu") {
-    if (!e.KALFA_API_URL || !e.KALFA_MODEL) throw new Error("openai-uyumlu için KALFA_API_URL ve KALFA_MODEL gerekli");
-    return { tur: "openai-uyumlu", url: e.KALFA_API_URL.replace(/\/+$/, ""), anahtar: e.KALFA_API_ANAHTARI || "", model: e.KALFA_MODEL };
-  }
-  if (secilen === "sahte") return { tur: "sahte" };
-  throw new Error(`Bilinmeyen KALFA_SAGLAYICI: ${secilen}`);
-}
+// Sağlayıcıya giden tek bir isteğin en uzun süresi (KALFA_ZAMAN_ASIMI_SN ile değişir). Takılan bir model
+// Studio'yu dakikalarca bekletmesin diye; 5xx'te yapılan yeniden denemelerin her biri ayrı sayılır.
+const ISTEK_ZAMAN_ASIMI_SN = 150;
 
 export function kalfaHazirla({ kok, eserler, ortam = process.env }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
@@ -39,7 +23,10 @@ export function kalfaHazirla({ kok, eserler, ortam = process.env }) {
   const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi");
   const iller = [...new Set(eserler.map((e) => e.il))];
   const turler = [...new Set(eserler.map((e) => e.tur))];
-  const saglayici = saglayiciSec(ortam);
+  // Sağlayıcı ve model her istekte yeniden çözülür (Studio'daki model seçimi yeniden başlatmadan geçerli olsun).
+  const saglayiciAl = () => kalfaSaglayicisi(ortam, secimOku(ortam));
+  saglayiciAl(); // yanlış yapılandırma sunucu açılırken fark edilsin
+  const zamanAsimiMs = (Number(ortam.KALFA_ZAMAN_ASIMI_SN) > 0 ? Number(ortam.KALFA_ZAMAN_ASIMI_SN) : ISTEK_ZAMAN_ASIMI_SN) * 1000;
 
   const sistem = `Sen Lonca platformunun "kalfa"sısın. Usta (kullanıcı) bir fikir anlatır; sen o fikri vakıf eserleri hakkında küçük bir Lonca modülüne dönüştürürsün. Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
 
@@ -144,13 +131,17 @@ ${ornekOyun}
 
   //   baslat(konusma) → durum
   //   iste(durum) → { cagrilar: [{id, ad, girdi}], sonuclariBildir([{id, icerik, hata}]) }
-  const adaptor = {
+  const adaptorler = {
     anthropic: anthropicAdaptoru,
     "openai-uyumlu": openaiUyumluAdaptor,
-  }[saglayici.tur]?.({ saglayici, sistem, araclar });
+  };
 
-  async function calistir(sohbet, mevcutKod) {
-    if (saglayici.tur === "sahte") return sahteYanit(sohbet, ornekOyun);
+  // secenek.model: yalnızca bu istek için başka bir model (model taraması kullanır); secenek.sinyal: iptal.
+  async function calistir(sohbet, mevcutKod, { model, sinyal } = {}) {
+    let saglayici = saglayiciAl();
+    if (saglayici.tur === "sahte") return { ...sahteYanit(sohbet, ornekOyun), model: "sahte" };
+    if (model) saglayici = { ...saglayici, model };
+    const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem, araclar, sinyal, zamanAsimiMs });
 
     const konusma = sohbet.map((m) => ({ ...m }));
     if (mevcutKod) konusma.at(-1).metin += `\n\n(Studio'daki güncel modül kodu:)\n\`\`\`js\n${mevcutKod}\n\`\`\``;
@@ -183,7 +174,8 @@ ${ornekOyun}
           sonuclar.push({ id: c.id, hata: true, icerik: `Bilinmeyen araç: ${c.ad}` });
         }
       }
-      if (teslim) return { ...teslim, deneme, aramalar };
+      // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
+      if (teslim) return { ...teslim, deneme, aramalar, model: saglayici.model };
       sonuclariBildir(sonuclar);
     }
     const hata = new Error("Kalfa geçerli bir modül üretemedi");
@@ -191,12 +183,18 @@ ${ornekOyun}
     throw hata;
   }
 
-  const etiket = saglayici.tur === "sahte" ? "sahte" : `${saglayici.model}`;
-  return { calistir, dogrula: (kod) => dogrula(kod, sdkTipleri), sahte: saglayici.tur === "sahte", model: etiket, saglayici: saglayici.tur };
+  return {
+    calistir,
+    dogrula: (kod) => dogrula(kod, sdkTipleri),
+    get sahte() { return saglayiciAl().tur === "sahte"; },
+    get model() { const s = saglayiciAl(); return s.tur === "sahte" ? "sahte" : s.model; },
+    get saglayici() { return saglayiciAl().tur; },
+    get ustagpt() { const s = saglayiciAl(); return s.tur === "openai-uyumlu" && !!s.ustagpt; },
+  };
 }
 
 // ---------- Claude (Anthropic) ----------
-function anthropicAdaptoru({ saglayici, sistem, araclar }) {
+function anthropicAdaptoru({ saglayici, sistem, araclar, sinyal, zamanAsimiMs }) {
   const istemci = new Anthropic();
   const tools = araclar.map((a) => ({ name: a.ad, description: a.aciklama, input_schema: a.sema }));
   return {
@@ -209,7 +207,7 @@ function anthropicAdaptoru({ saglayici, sistem, araclar }) {
         tools,
         tool_choice: { type: "any" }, 
         messages: durum.mesajlar,
-      }).finalMessage();
+      }, { timeout: zamanAsimiMs, ...(sinyal && { signal: sinyal }) }).finalMessage();
       const bloklar = yanit.content.filter((b) => b.type === "tool_use");
       return {
         cagrilar: bloklar.map((b) => ({ id: b.id, ad: b.name, girdi: b.input })),
@@ -227,7 +225,7 @@ function anthropicAdaptoru({ saglayici, sistem, araclar }) {
   };
 }
 
-function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
+function openaiUyumluAdaptor({ saglayici, sistem, araclar, sinyal, zamanAsimiMs }) {
   const tools = araclar.map((a) => ({ type: "function", function: { name: a.ad, description: a.aciklama, parameters: a.sema } }));
   // OpenCode Go (ve Zen) istekleri konuşma başına sabit bir oturum kimliği ister.
   // Anahtar "oc_sk_" ile başlıyorsa sağlayıcı OpenCode kabul edilir.
@@ -249,32 +247,45 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
     }),
     async iste(durum) {
       const govde = { model: saglayici.model, messages: durum.mesajlar, tools, tool_choice: "auto", max_tokens: 32000 };
-      const gonder = () => fetch(`${saglayici.url}/chat/completions`, {
-        method: "POST",
-        headers: { ...basliklar, ...(opencode && { "x-opencode-session": durum.oturum }) },
-        body: JSON.stringify(govde),
-      });
+      // Her istek zaman aşımına (ve varsa dışarıdan gelen iptale) bağlıdır; yanıt gövdesi de bu süre içinde okunur.
+      const gonder = async () => {
+        const isaret = AbortSignal.any([AbortSignal.timeout(zamanAsimiMs), ...(sinyal ? [sinyal] : [])]);
+        try {
+          const y = await fetch(`${saglayici.url}/chat/completions`, {
+            method: "POST",
+            headers: { ...basliklar, ...(opencode && { "x-opencode-session": durum.oturum }) },
+            body: JSON.stringify(govde),
+            signal: isaret,
+          });
+          return { y, metin: await y.text() };
+        } catch (h) {
+          if (sinyal?.aborted) throw sinyal.reason instanceof Error ? sinyal.reason : new Error("Kalfa isteği iptal edildi");
+          if (h.name === "TimeoutError") throw Object.assign(new Error(`Yapay zekâ sağlayıcısı ${Math.round(zamanAsimiMs / 1000)} sn içinde yanıt vermedi (zaman aşımı)`), { zamanAsimi: true });
+          throw new Error(`Yapay zekâ sağlayıcısına ulaşılamadı: ${h.cause?.code ?? h.message}`);
+        }
+      };
+      const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 
-      let y = await gonder();
-      let hataGovdesi = y.ok ? "" : await y.text();
+      let { y, metin } = await gonder();
+      let hataGovdesi = y.ok ? "" : metin;
       // Geçici sağlayıcı hataları (5xx) için kısa beklemeyle iki kez daha dene.
       for (let deneme = 1; deneme <= 2 && !y.ok && y.status >= 500; deneme++) {
-        await new Promise((r) => setTimeout(r, 3000 * deneme));
-        y = await gonder();
-        hataGovdesi = y.ok ? "" : await y.text();
+        await bekle(3000 * deneme);
+        ({ y, metin } = await gonder());
+        hataGovdesi = y.ok ? "" : metin;
       }
       // Bazı modeller (ör. düşünen DeepSeek) tool_choice: "required" kabul etmez.
       // "auto" de reddedilirse istekten alanı tamamen çıkarıp bir kez daha dene.
       if (!y.ok && y.status === 400 && govde.tool_choice && /tool_choice/i.test(hataGovdesi)) {
         delete govde.tool_choice;
-        y = await gonder();
-        hataGovdesi = y.ok ? "" : await y.text();
+        ({ y, metin } = await gonder());
+        hataGovdesi = y.ok ? "" : metin;
       }
       if (!y.ok) {
-        if (y.status === 429) throw new Error("Yapay zekâ sağlayıcısının istek kotası doldu (429). Biraz bekle ya da başka bir model dene.");
-        throw new Error(`Yapay zekâ sağlayıcısı hata verdi (${y.status}): ${hataMesaji(hataGovdesi)}`);
+        if (y.status === 429) throw Object.assign(new Error("Yapay zekâ sağlayıcısının istek kotası doldu (429). Biraz bekle ya da başka bir model dene."), { durumKodu: 429 });
+        throw Object.assign(new Error(`Yapay zekâ sağlayıcısı hata verdi (${y.status}): ${hataMesaji(hataGovdesi)}`), { durumKodu: y.status });
       }
-      const mesaj = (await y.json()).choices?.[0]?.message;
+      const mesaj = jsonCoz(metin)?.choices?.[0]?.message;
       if (!mesaj) throw new Error("Yapay zekâ sağlayıcısından boş yanıt geldi");
 
       let cagrilar = (mesaj.tool_calls ?? []).map((c) => ({ id: c.id, ad: c.function?.name, girdi: jsonCoz(c.function?.arguments) ?? {} }));
@@ -362,6 +373,11 @@ function dogrula(kod, sdkTipleri) {
   return hatalar.concat(tipDenetimi(kod, sdkTipleri));
 }
 
+// "let oyun = null;" yazıp değeri iç içe bir fonksiyonda (oyunuKur()) atamak geçerli JavaScript'tir; ama TypeScript
+// o atamayı görmediği için değişkeni hep null sanır ve "oyun && oyun.cevap" ifadesinde oyun'u never'a daraltır.
+// Kalfanın ürettiği geçerli modüller bu yüzden reddediliyordu; never üzerindeki "özellik yok" (TS2339) yok sayılır.
+const neverYanilgisi = (d) => d.code === 2339 && /'never'/.test(ts.flattenDiagnosticMessageText(d.messageText, " "));
+
 function tipDenetimi(kod, sdkTipleri) {
   const dosyalar = { "/modul.js": kod, "/lonca-sdk.d.ts": sdkTipleri, "/ortam.d.ts": ORTAM_TIPLERI };
   const ayarlar = {
@@ -378,7 +394,7 @@ function tipDenetimi(kod, sdkTipleri) {
 
   const program = ts.createProgram(Object.keys(dosyalar), ayarlar, host);
   return ts.getPreEmitDiagnostics(program)
-    .filter((d) => d.file?.fileName === "/modul.js")
+    .filter((d) => d.file?.fileName === "/modul.js" && !neverYanilgisi(d))
     .slice(0, 8)
     .map((d) => {
       const { line } = d.file.getLineAndCharacterOfPosition(d.start ?? 0);

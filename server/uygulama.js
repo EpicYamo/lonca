@@ -2,14 +2,18 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createHash } from "node:crypto";
 import path from "node:path";
 import { kalfaHazirla } from "./kalfa.js";
+import { AYAR_DOSYASI, etkinSecim, modelKatalogu } from "./kalfa-ayarlari.js";
 import { dalisKalfasiKur } from "./dalis-kalfasi.js";
+import { modelTaramasiKur, saglikEkle } from "./model-tarama.js";
 import { jsonDosya } from "./depo.js";
-import { yetkiKur, hizSiniri } from "./guvenlik.js";
+import { yetkiKur, hizSiniri, oturumAraclari } from "./guvenlik.js";
+import { hesaplarKur } from "./hesap.js";
 import { erisimKur } from "./erisim.js";
-import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar } from "./dogrulama.js";
+import { eserDogrula, kimlikUret, tamlikSuzgeci, tamlik, TEMEL_ALANLAR, TUM_ALANLAR, alanVar, kalfaAyarDogrula, kalfaTaramaDogrula, oneriEkiDogrula, hesapGirdisiDogrula, ROLLER } from "./dogrulama.js";
+import { eserAra, modulSurumu } from "../public/ortak/arama.js";
 
 const MAKS_KOD = 150_000; 
 const MAKS_FOTO = 6 * 1024 * 1024;
@@ -38,6 +42,10 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const gecmisDosyasi = jsonDosya(path.join(veri, "eser-gecmisi.json"), []);
   const ANLIK_DIZINI = path.join(veri, "gecmis");
 
+  // Studio'da seçilen kalfa modelleri (çalışma verisi); kalfalar ayarı her istekte buradan okur.
+  const kalfaAyarDosyasi = jsonDosya(path.join(veri, "kalfa-ayarlari.json"), {});
+  ortam = { ...ortam, [AYAR_DOSYASI]: kalfaAyarDosyasi.yol };
+  const modelKatalogum = modelKatalogu({ ortam });
   const eserVerisi = await eserDosyasi.oku();
   const eserler = eserVerisi.eserler;
   const iliskiVerisi = await iliskiDosyasi.oku();
@@ -45,12 +53,43 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const eserleriKaydet = () => eserDosyasi.yaz({ ...eserVerisi, eserler });
 
   const kalfa = kalfaHazirla({ kok, eserler, ortam });
+  // Kalfa modellerinin sağlık taraması (çalışma verisi; Studio'daki "Modelleri test et").
+  const modelTaramasi = modelTaramasiKur({ kalfa, dosya: jsonDosya(path.join(veri, "kalfa-model-durumu.json"), { sonuclar: {} }) });
   const DALIS_DIZINI = path.join(veri, "dalislar");
   const dalisKalfasi = dalisKalfasiKur({ kok, eserler, dalisDizini: DALIS_DIZINI, ortam });
   const yetki = yetkiKur(ortam.YONETICI_SIFRE);
   const { yoneticiGerekli, yoneticiMi } = yetki;
   const kalfaSiniri = hizSiniri({ adet: Number(ortam.KALFA_SINIR ?? 30), pencereMs: 10 * 60_000, mesaj: "Kalfa şu an çok meşgul; birkaç dakika sonra tekrar dene." });
   const oneriSiniri = hizSiniri({ adet: 20, pencereMs: 10 * 60_000 });
+  const hesapSiniri = hizSiniri({ adet: Number(ortam.HESAP_SINIR ?? 20), pencereMs: 10 * 60_000, mesaj: "Çok fazla hesap isteği; biraz sonra tekrar dene." });
+
+  // ---------- Hesaplar ve roller (vatandaş / usta / editör) ----------
+  // Oturum anahtarı .env'deki OTURUM_ANAHTARI'ndan, yoksa ilk açılışta üretilip data/.oturum-anahtari'na yazılır (gitignore'da).
+  const OTURUM_DOSYASI = path.join(veri, ".oturum-anahtari");
+  async function oturumAnahtariGetir() {
+    if (ortam.OTURUM_ANAHTARI) return ortam.OTURUM_ANAHTARI;
+    if (existsSync(OTURUM_DOSYASI)) return (await readFile(OTURUM_DOSYASI, "utf8")).trim();
+    const yeni = randomBytes(32).toString("hex");
+    await mkdir(veri, { recursive: true });
+    await writeFile(OTURUM_DOSYASI, yeni, { mode: 0o600 });
+    return yeni;
+  }
+  const oturum = oturumAraclari(await oturumAnahtariGetir());
+  const hesaplar = hesaplarKur(path.join(veri, "kullanicilar.json"));
+  // Jeton yalnızca hesabı gösterir; rol her istekte kayıttan okunur (rolü düşürülen ya da silinen hesap yetkisini hemen kaybeder).
+  async function oturumSahibi(req) {
+    const baslik = req.headers.authorization ?? "";
+    const yuk = baslik.startsWith("Bearer ") ? oturum.jetonCoz(baslik.slice(7)) : null;
+    return yuk ? hesaplar.idIle(yuk.id) : null;
+  }
+  // Editör kaydı davet anahtarı ister: yönetici şifresi. Geliştirme modunda (şifre boş) herkes zaten yöneticidir.
+  const editorAnahtariDogru = (girilen) => !yetki.sifreli || (typeof girilen === "string" && girilen.length > 0 && yoneticiMi({ headers: { "x-yonetici-sifre": girilen } }));
+  const editorMi = async (req) => yoneticiMi(req) || (await oturumSahibi(req))?.rol === "editor";
+  const ustaMi = async (req) => yoneticiMi(req) || ["usta", "editor"].includes((await oturumSahibi(req))?.rol);
+  // Onay, yayın, içerik düzenleme: yönetici şifresi ya da editör hesabı.
+  const editorGerekli = async (req, rep) => { if (!(await editorMi(req))) return rep.code(401).send({ hata: "Bu işlem için editör hesabı ya da yönetici şifresi gerekli" }); };
+  // Atölye (kalfa + modül gönderme): usta ya da editör hesabı.
+  const ustaGerekli = async (req, rep) => { if (!(await ustaMi(req))) return rep.code(401).send({ hata: "Atölyeyi kullanmak için usta ya da editör hesabıyla giriş yapmalısın" }); };
   const googleAnahtari = ortam.GOOGLE_HARITA_ANAHTARI || "";
 
   const app = Fastify({ logger: gunluk ? { level: "info" } : false, bodyLimit: 1024 * 1024, trustProxy: true });
@@ -70,8 +109,52 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     harita: googleAnahtari ? { saglayici: "google", anahtar: googleAnahtari } : { saglayici: "osm" },
     uc: { google: !!googleAnahtari, anahtar: googleAnahtari || undefined },
     yonetim: { sifreli: yetki.sifreli },
+    hesap: { gerekli: yetki.sifreli },
   }));
   app.get("/api/yonetici", async (req, rep) => (yoneticiMi(req) ? { tamam: true } : rep.code(401).send({ hata: "şifre yanlış" })));
+
+  // ---------- Hesaplar ----------
+  const jetonVer = (h) => ({ jeton: oturum.jetonUret({ id: h.id }), hesap: hesaplar.disaAcik(h) });
+  app.post("/api/hesap/kayit", { preHandler: hesapSiniri }, async (req, rep) => {
+    const hatalar = hesapGirdisiDogrula(req.body, { kayit: true });
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const { kimlik, sifre, rol: istenen, editorAnahtari } = req.body;
+    let rol = istenen === "usta" ? "usta" : "vatandas";
+    if (istenen === "editor") {
+      if (!editorAnahtariDogru(editorAnahtari)) return rep.code(403).send({ hata: "Editör olmak için doğru davet anahtarı gerekli" });
+      rol = "editor";
+    }
+    const r = await hesaplar.kayitOl({ kimlik, sifre, rol });
+    if (r.hata) return rep.code(409).send({ hata: r.hata });
+    return rep.code(201).send(jetonVer(r.hesap));
+  });
+  app.post("/api/hesap/giris", { preHandler: hesapSiniri }, async (req, rep) => {
+    const hatalar = hesapGirdisiDogrula(req.body);
+    if (hatalar.length) return rep.code(401).send({ hata: "Kullanıcı adı ya da şifre yanlış." });
+    const r = await hesaplar.girisYap(req.body);
+    if (r.hata) return rep.code(401).send({ hata: r.hata });
+    return jetonVer(r.hesap);
+  });
+  app.get("/api/hesap/ben", async (req, rep) => {
+    const h = await oturumSahibi(req);
+    return h ? hesaplar.disaAcik(h) : rep.code(401).send({ hata: "Giriş yapılmamış" });
+  });
+  app.put("/api/hesap/profil", async (req, rep) => {
+    const h = await oturumSahibi(req);
+    if (!h) return rep.code(401).send({ hata: "Giriş yapılmamış" });
+    return hesaplar.disaAcik(await hesaplar.profilGuncelle(h.id, req.body ?? {}));
+  });
+  app.post("/api/hesap/tasi", async (req, rep) => {
+    const h = await oturumSahibi(req);
+    if (!h) return rep.code(401).send({ hata: "Giriş yapılmamış" });
+    return hesaplar.disaAcik(await hesaplar.cihazdanTasi(h.id, req.body ?? {}));
+  });
+  app.put("/api/hesap/:id/rol", { preHandler: editorGerekli }, async (req, rep) => {
+    const { rol } = req.body ?? {};
+    if (!ROLLER.includes(rol)) return rep.code(400).send({ hata: `rol: ${ROLLER.join(" | ")}` });
+    const h = await hesaplar.rolDegistir(req.params.id, rol);
+    return h ? hesaplar.disaAcik(h) : rep.code(404).send({ hata: "hesap bulunamadı" });
+  });
 
   // ---------- Eserler ----------
   app.get("/api/eserler", async (req) => {
@@ -113,6 +196,14 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       .map((e) => ({ ...e, mesafe_m: mesafe({ lat, lng }, e.konum) }))
       .sort((a, b) => a.mesafe_m - b.mesafe_m)
       .slice(0, limit);
+  });
+
+  // Uygulamadaki genel arama: ad, İngilizce ad, il, ilçe, tür. Eserin yalnızca özeti döner.
+  app.get("/api/ara", async (req, rep) => {
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    if (!q) return [];
+    if (q.length > 80) return rep.code(400).send({ hata: "arama en fazla 80 harf" });
+    return eserAra(eserler, q, { limit: req.query.limit });
   });
 
   app.get("/api/eserler/:id", async (req, rep) => eserler.find((x) => x.id === req.params.id) ?? rep.code(404).send({ hata: "eser bulunamadı" }));
@@ -158,14 +249,14 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return ad;
   }
 
-  app.post("/api/eserler", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.post("/api/eserler", { preHandler: editorGerekli }, async (req, rep) => {
     const r = eserUygula({ tur: "yeni" }, req.body);
     if (r.hatalar) return rep.code(400).send({ hata: "Eser doğrulamadan geçmedi", ayrintilar: r.hatalar });
     await eserleriKaydet();
     await gecmiseYaz({ islem: "ekle", eserId: r.eser.id, ad: r.eser.ad, once: null, sonra: kopya(r.eser) });
     return rep.code(201).send(r.eser);
   });
-  app.put("/api/eserler/:id", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.put("/api/eserler/:id", { preHandler: editorGerekli }, async (req, rep) => {
     const once = kopya(eserler.find((e) => e.id === req.params.id));
     const r = eserUygula({ tur: "duzenle", eserId: req.params.id }, req.body);
     if (r.hatalar) return rep.code(r.hatalar[0].includes("bulunamadı") ? 404 : 400).send({ hata: "Eser doğrulamadan geçmedi", ayrintilar: r.hatalar });
@@ -175,7 +266,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     await gecmiseYaz({ islem: "duzenle", eserId: r.eser.id, ad: r.eser.ad, neden, once, sonra: kopya(r.eser) });
     return r.eser;
   });
-  app.delete("/api/eserler/:id", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.delete("/api/eserler/:id", { preHandler: editorGerekli }, async (req, rep) => {
     const i = eserler.findIndex((e) => e.id === req.params.id);
     if (i < 0) return rep.code(404).send({ hata: "eser bulunamadı" });
     const [silinen] = eserler.splice(i, 1);
@@ -184,7 +275,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return { silindi: silinen.id, gecmis: g.id };
   });
 
-  app.get("/api/eser-gecmisi", { preHandler: yoneticiGerekli }, async (req) => {
+  app.get("/api/eser-gecmisi", { preHandler: editorGerekli }, async (req) => {
     const { eser } = req.query;
     const gecmis = await gecmisDosyasi.oku();
     return gecmis.filter((g) => !eser || g.eserId === eser).slice(0, 100).map((g) => ({
@@ -198,7 +289,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return [...new Set([...Object.keys(once), ...Object.keys(sonra)])]
       .filter((k) => k !== "guncelleme" && JSON.stringify(once[k] ?? null) !== JSON.stringify(sonra[k] ?? null));
   }
-  app.post("/api/eser-gecmisi/:id/geri-al", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.post("/api/eser-gecmisi/:id/geri-al", { preHandler: editorGerekli }, async (req, rep) => {
     const gecmis = await gecmisDosyasi.oku();
     const g = gecmis.find((x) => x.id === req.params.id);
     if (!g) return rep.code(404).send({ hata: "geçmiş kaydı bulunamadı" });
@@ -222,12 +313,12 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return { geriAlindi: g.id, gecmis: yeni.id, eser: g.once ? eserler.find((e) => e.id === g.eserId) : null };
   });
 
-  app.get("/api/eserler-disa-aktar", { preHandler: yoneticiGerekli }, async (_, rep) => {
+  app.get("/api/eserler-disa-aktar", { preHandler: editorGerekli }, async (_, rep) => {
     const tarih = new Date().toISOString().slice(0, 10);
     rep.header("content-disposition", `attachment; filename="lonca-eserler-${tarih}.json"`);
     return { ...eserVerisi, disaAktarma: new Date().toISOString(), eserler };
   });
-  app.post("/api/eserler-ice-aktar", { preHandler: yoneticiGerekli, bodyLimit: 25 * 1024 * 1024 }, async (req, rep) => {
+  app.post("/api/eserler-ice-aktar", { preHandler: editorGerekli, bodyLimit: 25 * 1024 * 1024 }, async (req, rep) => {
     const { kip = "birlestir" } = req.body ?? {};
     const gelen = Array.isArray(req.body?.eserler) ? req.body.eserler : null;
     if (!["birlestir", "degistir"].includes(kip)) return rep.code(400).send({ hata: "kip: birlestir | degistir" });
@@ -276,25 +367,27 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       if (hatalar.length) return rep.code(400).send({ hata: "Öneri doğrulamadan geçmedi", ayrintilar: hatalar });
       temiz = eser;
     }
+    const ek = oneriEkiDogrula(tur, req.body ?? {}, temiz);
+    if (ek.hatalar.length) return rep.code(400).send({ hata: "Öneri doğrulamadan geçmedi", ayrintilar: ek.hatalar });
     const notMetni = typeof not === "string" ? not.trim().slice(0, 1500) : "";
     if (tur === "not" && notMetni.length < 5) return rep.code(400).send({ hata: "Düzeltme notu en az 5 karakter olmalı" });
     const oneriler = await oneriDosyasi.oku();
     if (oneriler.filter((o) => o.durum === "bekliyor").length >= 500) return rep.code(503).send({ hata: "Onay kuyruğu dolu" });
     const kayit = { id: randomBytes(6).toString("hex"), tur, eserId: tur === "yeni" ? null : eserId, veri: temiz, not: notMetni || null,
-      durum: "bekliyor", tarih: new Date().toISOString() };
+      kaynak: ek.kaynak, oneren: ek.oneren, durum: "bekliyor", tarih: new Date().toISOString() };
     oneriler.push(kayit);
     await oneriDosyasi.yaz(oneriler);
     return rep.code(201).send({ id: kayit.id, durum: kayit.durum });
   });
 
-  app.get("/api/eser-oneriler", { preHandler: yoneticiGerekli }, async (req) => {
+  app.get("/api/eser-oneriler", { preHandler: editorGerekli }, async (req) => {
     const liste = await oneriDosyasi.oku();
     const durum = req.query.durum ?? "bekliyor";
     return liste.filter((o) => durum === "hepsi" || o.durum === durum).reverse()
       .map((o) => ({ ...o, eser: o.eserId ? eserler.find((e) => e.id === o.eserId) ?? null : null }));
   });
 
-  app.post("/api/eser-oneriler/:id/karar", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.post("/api/eser-oneriler/:id/karar", { preHandler: editorGerekli }, async (req, rep) => {
     const { karar, veri: duzeltilmis } = req.body ?? {};
     if (!["onayla", "reddet"].includes(karar)) return rep.code(400).send({ hata: "karar: onayla | reddet" });
     const oneriler = await oneriDosyasi.oku();
@@ -338,7 +431,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (!/^[a-z0-9-]+\.(jpg|png|webp)$/.test(ad)) return rep.code(404).send();
     const yol = `/medya/yuklenen/${ad}`;
     const yayinda = eserler.some((e) => e.fotograflar?.includes(yol));
-    if (!yayinda && !yoneticiMi(req)) return rep.code(404).send({ hata: "bulunamadı" });
+    if (!yayinda && !(await editorMi(req))) return rep.code(404).send({ hata: "bulunamadı" });
     const dosya = path.join(YUKLENEN, ad);
     if (!existsSync(dosya)) return rep.code(404).send();
     const tur = { jpg: "image/jpeg", png: "image/png", webp: "image/webp" }[ad.split(".").pop()];
@@ -378,28 +471,40 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       gununEseri: gununEseri && { ...ozetEser(gununEseri), ozet: ilginçCumleler(gununEseri.tarihce.tr), fotoSayisi: gununEseri.fotograflar.length },
       secki: secki.map(ozetEser),
       kapaklar,
+      iller: [...new Set(eserler.map((e) => e.il).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr")),
     };
   });
 
+  const yayindakiler = async () => (await modulDosyasi.oku()).filter((m) => m.durum === "onayli");
   app.get("/api/moduller", async (req, rep) => {
-    const liste = await modulDosyasi.oku();
     if (req.query.durum === "hepsi") {
-      if (!yoneticiMi(req)) return rep.code(401).send({ hata: "Bu liste için yönetici şifresi gerekli" });
-      return liste;
+      if (!(await editorMi(req))) return rep.code(401).send({ hata: "Bu liste için editör hesabı ya da yönetici şifresi gerekli" });
+      return modulDosyasi.oku();
     }
-    return liste.filter((m) => m.durum === "onayli");
+    const liste = await yayindakiler();
+    const etiket = `"${modulSurumu(liste)}"`;
+    rep.header("etag", etiket).header("cache-control", "no-cache");
+    if (req.headers["if-none-match"] === etiket) return rep.code(304).send();
+    return liste;
+  });
+  // Uygulama bunu birkaç saniyede bir yoklar; sürüm değişince listeyi yeniden çeker (yeni onaylanan modül anında görünür).
+  // SSE yerine yoklama: Android köprüsü yalnızca fetch'i canlı sunucuya yönlendirebiliyor.
+  app.get("/api/moduller/surum", async (_, rep) => {
+    const liste = await yayindakiler();
+    rep.header("cache-control", "no-store");
+    return { surum: modulSurumu(liste), sayi: liste.length };
   });
 
   app.get("/api/moduller/:id/kod", async (req, rep) => {
     const { id } = req.params;
     const m = (await modulDosyasi.oku()).find((x) => x.id === id);
     if (!m || !kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
-    if (m.durum !== "onayli" && !yoneticiMi(req)) return rep.code(403).send({ hata: "modül yayında değil" });
+    if (m.durum !== "onayli" && !(await editorMi(req))) return rep.code(403).send({ hata: "modül yayında değil" });
     const kod = await readFile(path.join(MODUL_DIZINI, `${id}.js`), "utf8");
     return rep.type("text/javascript; charset=utf-8").header("cache-control", "no-store").send(kod);
   });
 
-  app.post("/api/moduller", { preHandler: oneriSiniri }, async (req, rep) => {
+  app.post("/api/moduller", { preHandler: [ustaGerekli, oneriSiniri] }, async (req, rep) => {
     const { id, ad, aciklama = "", izinler = [], kod, renk, ikon, kategori } = req.body ?? {};
     if (!kimlikGecerli(id)) return rep.code(400).send({ hata: "id: küçük harf, rakam ve tire (en fazla 64)" });
     if (typeof ad !== "string" || !ad.trim()) return rep.code(400).send({ hata: "ad gerekli" });
@@ -409,7 +514,11 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
     const liste = await modulDosyasi.oku();
     const onceki = liste.find((m) => m.id === id);
-    if (onceki && onceki.durum === "onayli" && !yoneticiMi(req)) return rep.code(409).send({ hata: "Bu kimlikle yayında bir modül var; başka bir id seç" });
+    const editor = await editorMi(req);
+    if (onceki && onceki.durum === "onayli" && !editor) return rep.code(409).send({ hata: "Bu kimlikle yayında bir modül var; başka bir id seç" });
+    // Bir ustanın taslağını başka bir usta ezemez; editör ve yönetici ezebilir.
+    const sahip = (await oturumSahibi(req))?.id ?? null;
+    if (onceki?.sahip && sahip !== onceki.sahip && !editor) return rep.code(409).send({ hata: "Bu kimlikte başka bir ustanın taslağı var; başka bir id seç" });
     const kayit = {
       id, ad: ad.trim().slice(0, 60), aciklama: String(aciklama).slice(0, 200),
       izinler: Array.isArray(izinler) ? izinler.filter((x) => x === "konum") : [],
@@ -417,8 +526,11 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       ikon: IKONLAR.includes(ikon) ? ikon : undefined,
       kategori: KATEGORILER.includes(kategori) ? kategori : undefined,
       kapakEser: typeof req.body?.kapakEser === "string" && eserler.some((e) => e.id === req.body.kapakEser) ? req.body.kapakEser : onceki?.kapakEser,
+      sahip: sahip ?? onceki?.sahip ?? undefined,
       durum: "bekliyor", olusturma: onceki?.olusturma ?? new Date().toISOString(), guncelleme: new Date().toISOString(),
     };
+    const kaynak = kaynakBul(kod, onceki);
+    kayit.kaynak = { ...kaynak, ozet: kodOzeti(kod) };
     const i = liste.findIndex((m) => m.id === id);
     if (i >= 0) liste[i] = kayit; else liste.push(kayit);
     await mkdir(MODUL_DIZINI, { recursive: true });
@@ -445,15 +557,15 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     await modulDosyasi.yaz(liste);
     return m;
   }
-  app.post("/api/moduller/:id/durum", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.post("/api/moduller/:id/durum", { preHandler: editorGerekli }, async (req, rep) => {
     const { durum } = req.body ?? {};
     if (!MODUL_DURUMLARI.includes(durum)) return rep.code(400).send({ hata: `durum: ${MODUL_DURUMLARI.join(" | ")}` });
     return (await durumDegistir(req.params.id, durum)) ?? rep.code(404).send({ hata: "modül bulunamadı" });
   });
-  app.post("/api/moduller/:id/onayla", { preHandler: yoneticiGerekli }, async (req, rep) =>
+  app.post("/api/moduller/:id/onayla", { preHandler: editorGerekli }, async (req, rep) =>
     (await durumDegistir(req.params.id, "onayli")) ?? rep.code(404).send({ hata: "modül bulunamadı" }));
 
-  app.delete("/api/moduller/:id", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.delete("/api/moduller/:id", { preHandler: editorGerekli }, async (req, rep) => {
     const { id } = req.params;
     if (!kimlikGecerli(id)) return rep.code(404).send({ hata: "modül bulunamadı" });
     const liste = await modulDosyasi.oku();
@@ -478,11 +590,13 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   }
   app.get("/api/dalislar", async (req) => {
     const onizleme = req.query.onizleme === "1";
-    return (await dalislariOku()).filter((d) => d.durum === "onayli" || (onizleme && d.durum === "bekliyor"));
+    const liste = (await dalislariOku()).filter((d) => d.durum === "onayli" || (onizleme && d.durum === "bekliyor"));
+    // ?ozet=1: kareler olmadan yalnızca hangi eserin dalışı olduğu (eser sayfasındaki "Dalışı var" rozeti için).
+    return req.query.ozet === "1" ? liste.map((d) => ({ eser: d.eser, ozet: d.ozet ?? null, durum: d.durum })) : liste;
   });
-  app.get("/api/dalislar-yonetim", { preHandler: yoneticiGerekli }, async () =>
+  app.get("/api/dalislar-yonetim", { preHandler: editorGerekli }, async () =>
     (await dalislariOku()).map(({ kareler, ...d }) => ({ ...d, kareSayisi: kareler?.length ?? 0, kartlar: (kareler ?? []).flatMap((k) => (k.k ?? []).map((b) => ({ ...b, kare: k.b ?? "" }))) })));
-  app.post("/api/dalislar/:eser/durum", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.post("/api/dalislar/:eser/durum", { preHandler: editorGerekli }, async (req, rep) => {
     const { eser } = req.params, { durum } = req.body ?? {};
     if (!kimlikGecerli(eser) || !DALIS_DURUMLARI.includes(durum)) return rep.code(400).send({ hata: `durum: ${DALIS_DURUMLARI.join(" | ")}` });
     const yol = path.join(DALIS_DIZINI, `${eser}.json`);
@@ -492,7 +606,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     await writeFile(yol, JSON.stringify(tanim, null, 1) + "\n");
     return { eser, durum };
   });
-  app.delete("/api/dalislar/:eser", { preHandler: yoneticiGerekli }, async (req, rep) => {
+  app.delete("/api/dalislar/:eser", { preHandler: editorGerekli }, async (req, rep) => {
     const { eser } = req.params;
     if (!kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz kimlik" });
     const yol = path.join(DALIS_DIZINI, `${eser}.json`);
@@ -506,7 +620,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
 
   // Dalış kalfası: bir eser için geziyi baştan sona hazırlar (dakikalar sürer; Studio ilerlemeyi yoklar).
   app.get("/api/dalis-kalfasi", async () => ({ hazir: dalisKalfasi.hazir(), etkin: dalisKalfasi.etkin()?.id ?? null }));
-  app.post("/api/dalis-kalfasi", { preHandler: [yoneticiGerekli, kalfaSiniri] }, async (req, rep) => {
+  app.post("/api/dalis-kalfasi", { preHandler: [editorGerekli, kalfaSiniri] }, async (req, rep) => {
     const { istek, eser, uzerineYaz } = req.body ?? {};
     if (eser != null && !kimlikGecerli(eser)) return rep.code(400).send({ hata: "geçersiz eser kimliği" });
     if (istek != null && (typeof istek !== "string" || istek.length > 1000)) return rep.code(400).send({ hata: "istek en fazla 1000 harf" });
@@ -525,8 +639,71 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc };
   });
 
+  // Kalfanın ürettiği kodlar: sha256 özeti → { model, tarih }. POST /api/moduller gelen kodu burada bulursa
+  // kayda kaynak: { tur: "kalfa", … } yazar; böylece "bu modülü kalfa yazdı" bilgisi istemcinin beyanına değil
+  // sunucunun kendi kaydına dayanır. Studio'da elle değiştirilen kod "elle" sayılır.
+  const kalfaUretimleri = new Map();
+  const kodOzeti = (kod) => createHash("sha256").update(String(kod).replace(/\r\n/g, "\n")).digest("hex");
+  function kalfaUretiminiKaydet(sonuc) {
+    kalfaUretimleri.set(kodOzeti(sonuc.kod), { model: sonuc.model ?? kalfa.model, sahte: sonuc.model === "sahte", tarih: new Date().toISOString() });
+    while (kalfaUretimleri.size > 200) kalfaUretimleri.delete(kalfaUretimleri.keys().next().value);
+  }
+  function kaynakBul(kod, onceki) {
+    const uretim = kalfaUretimleri.get(kodOzeti(kod));
+    if (uretim) return { tur: "kalfa", model: uretim.model, ...(uretim.sahte && { sahte: true }), uretim: uretim.tarih };
+    // Aynı kod yeniden gönderildiyse (ör. sunucu yeniden başladıktan sonra) önceki kaynak korunur.
+    if (onceki?.kaynak?.ozet === kodOzeti(kod)) return onceki.kaynak;
+    return { tur: "elle" };
+  }
+
   app.get("/api/kalfa", async () => ({ model: kalfa.model, sahte: kalfa.sahte }));
-  app.post("/api/kalfa", { preHandler: kalfaSiniri }, async (req, rep) => {
+
+  // Kalfa modelleri: UstaGPT'nin model listesi (sunucu çağırır, anahtar tarayıcıya gitmez) ve şu anki seçim.
+  const secimGoster = () => etkinSecim(ortam);
+  app.get("/api/kalfa/modeller", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    try {
+      const { modeller, zaman } = await modelKatalogum.liste({ yenile: req.query?.yenile === "1" });
+      const tarama = await modelTaramasi.durum();
+      return {
+        modeller: saglikEkle(modeller, tarama.sonuclar), guncelleme: new Date(zaman).toISOString(), secili: secimGoster(),
+        tarama: { calisiyor: tarama.calisiyor, ilerleme: tarama.ilerleme, guncelleme: tarama.guncelleme },
+      };
+    } catch (h) {
+      return rep.code(h.kod ?? 502).send({ hata: h.message, secili: secimGoster() });
+    }
+  });
+  // Model taraması: her metin modeline gerçek bir kalfa isteği gönderir (dakikalar sürer; Studio GET ile izler).
+  app.get("/api/kalfa/modeller/tara", { preHandler: yoneticiGerekli }, async () => modelTaramasi.durum());
+  app.post("/api/kalfa/modeller/tara", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const bicim = kalfaTaramaDogrula(req.body);
+    if (bicim.hatalar.length) return rep.code(400).send({ hata: bicim.hatalar[0], ayrintilar: bicim.hatalar });
+    if (!kalfa.ustagpt) return rep.code(409).send({ hata: "Modül kalfası UstaGPT'ye bağlı değil (sahte mod ya da başka bir uç nokta); tarama yalnızca UstaGPT modelleri için yapılır" });
+    if (modelTaramasi.calisiyor) return rep.code(409).send({ hata: "Bir model taraması zaten sürüyor", ...(await modelTaramasi.durum()) });
+    let modeller;
+    try { ({ modeller } = await modelKatalogum.liste()); }
+    catch (h) { return rep.code(h.kod ?? 502).send({ hata: h.message }); }
+    const { hatalar, liste } = kalfaTaramaDogrula(req.body, modeller);
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const hedef = liste ?? modeller.filter((m) => m.tur === "metin").map((m) => m.deger);
+    const { ilerleme } = modelTaramasi.baslat(hedef);
+    req.log.info({ adet: hedef.length }, "kalfa model taraması başladı");
+    return rep.code(202).send({ calisiyor: true, ilerleme });
+  });
+  app.put("/api/kalfa/ayarlar", { preHandler: yoneticiGerekli }, async (req, rep) => {
+    const bicim = kalfaAyarDogrula(req.body);
+    if (bicim.hatalar.length) return rep.code(400).send({ hata: bicim.hatalar[0], ayrintilar: bicim.hatalar });
+    let modeller;
+    try { ({ modeller } = await modelKatalogum.liste()); }
+    catch (h) { return rep.code(h.kod ?? 502).send({ hata: h.message }); }
+    const { hatalar, ayar } = kalfaAyarDogrula(req.body, modeller);
+    if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
+    const kayitli = { ...(await kalfaAyarDosyasi.oku()) };
+    for (const [k, v] of Object.entries(ayar)) { if (v === null) delete kayitli[k]; else kayitli[k] = v; }
+    await kalfaAyarDosyasi.yaz(kayitli);
+    req.log.info({ ayar }, "kalfa model seçimi güncellendi");
+    return { secili: secimGoster() };
+  });
+  app.post("/api/kalfa", { preHandler: [ustaGerekli, kalfaSiniri] }, async (req, rep) => {
     const { sohbet, kod } = req.body ?? {};
     const gecerli = Array.isArray(sohbet) && sohbet.length > 0 && sohbet.length <= 30 &&
       sohbet.every((m) => (m?.rol === "usta" || m?.rol === "kalfa") && typeof m.metin === "string" && m.metin.length <= 4000) &&
@@ -534,7 +711,9 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     if (!gecerli) return rep.code(400).send({ hata: "sohbet: en fazla 30 mesaj, son mesaj ustadan" });
     if (kod != null && (typeof kod !== "string" || kod.length > MAKS_KOD)) return rep.code(400).send({ hata: "kod çok uzun" });
     try {
-      return await kalfa.calistir(sohbet, kod || undefined);
+      const sonuc = await kalfa.calistir(sohbet, kod || undefined);
+      kalfaUretiminiKaydet(sonuc);
+      return sonuc;
     } catch (h) {
       req.log.error(h);
       return rep.code(502).send({ hata: h.message, ayrintilar: h.ayrintilar ?? [] });
@@ -548,5 +727,5 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     return govde;
   });
 
-  return { app, kalfa, dalisKalfasi, yetki, erisim, eserler };
+  return { app, kalfa, dalisKalfasi, modelTaramasi, yetki, erisim, eserler };
 }

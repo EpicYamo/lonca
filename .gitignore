@@ -15,9 +15,16 @@ data/yuklenen/
 data/eser-gecmisi.json
 data/gecmis/
 data/moduller/eski/
+# Studio'da seçilen kalfa modelleri (her makinede ayrı)
+data/kalfa-ayarlari.json
+# Kalfa model taramasının sonuçları (araclar/kalfa-model-tara.mjs, Studio "Modelleri test et")
+data/kalfa-model-durumu.json
 
 # Eşleşen cihazların anahtar özetleri (her makinede ayrı)
 data/cihazlar.json
+# Hesaplar (şifre özetleri) ve oturum imza anahtarı (her makinede ayrı, asla depoya girmez)
+data/kullanicilar.json
+data/.oturum-anahtari
 
 # Android uygulaması (./apk.sh ile üretilir)
 mobil/www/
