@@ -120,7 +120,7 @@ const MAKS_MODUL_HEDEF = 400;
 export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env, disFetch = (...a) => fetch(...a), eserEkle = null }) {
   const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
   const ornek = (ad) => readFileSync(path.join(kok, "sdk", "ornekler", `${ad}.js`), "utf8");
-  const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi");
+  const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi"), ornekTuval = ornek("cini-yakala");
   const iller = [...new Set(eserler.map((e) => e.il))];
   const turler = [...new Set(eserler.map((e) => e.tur))];
   // Sağlayıcı ve model her istekte yeniden çözülür (Studio'daki model seçimi yeniden başlatmadan geçerli olsun).
@@ -131,11 +131,18 @@ export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env
   // Kapsam satırları: usta istemi bunlarla kurulur; admin istemi aynı satırları admin sürümleriyle DEĞİŞTİRİR (istemDegistir).
   const USTA_KAPSAM = `- KAPSAM: Yalnızca bilgi bankamızdaki (Lonca veritabanı) vakıf eserleri üzerine çalışırsın. İnternetten, ezberinden ya da başka bir kaynaktan bilgi GETİRME; bir eser, kişi, tarih ya da olay hakkında söylediğin her şey eser_ara / eser_bilgisi sonuçlarında aynen geçmeli.`;
   const USTA_BILGI = `- Eserlerle ilgili soruları BİLGİ BANKASINDAN yanıtla: önce eser_ara ile eseri bul, sonra eser_bilgisi ile kaydını (tarihçe, yüzyıl, kaynak, kaynaklı tarihsel bağlar) oku. Bilgi bankasında yoksa "bilgi bankamızda bu bilgi yok" de, tahmin yürütme.`;
-  const USTA_YONLENDIRME = `- Usta bilgi bankasında OLMAYAN bir eser (eser_ara boş döner) ya da vakıf eserleriyle ilgisi olmayan bir konu isterse onu yapma, modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından ona en yakın 2–3 eseri bul (aynı tür, aynı il ya da adı benzeyen), bunları öner ve "Nasıl devam edelim?" diye sor. Bu önerileri "oneriler" alanına da koy.`;
+  const USTA_YONLENDIRME = `- Usta bilgi bankasında OLMAYAN bir eser (eser_ara boş döner) ya da başka bir konunun BİLGİSİNİ (başka şehirlerin tarihi, ünlüler, güncel olaylar…) isterse onu yapma, modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından ona en yakın 2–3 eseri bul (aynı tür, aynı il ya da adı benzeyen), bunları öner ve "Nasıl devam edelim?" diye sor. Bu önerileri "oneriler" alanına da koy. Bir oyun, araç ya da mini uygulama TÜRÜ (ping pong, yılan, bulmaca, çizim, ritim oyunu, sayaç…) istemek konu dışı DEĞİLDİR: onu yönlendirme, isteneni yap ve vakıf eserlerini içine kat (aşağıda "Uygulama içinde uygulama").`;
   const USTA_MODUL_KAPSAMI = `Modül yalnızca bilgi bankasındaki eserlerle çalışır: eserler.getir / eserler.iliskiler'e yalnızca eser_ara ile bulduğun gerçek kimlikleri ver; eserler.liste'de yalnızca kayıtlı il ve türleri kullan.`;
   const USTA_ILLER = `Şu an kayıtlı iller: ${iller.join(", ")}.`;
 
-  const sistem = `Sen Lonca platformunun "kalfa"sısın. Usta (kullanıcı) seninle vakıf eserleri ve Lonca modülleri hakkında konuşur; istediğinde fikrini vakıf eserleri hakkında küçük bir Lonca modülüne dönüştürürsün. Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
+  const sistem = `Sen Lonca platformunun "kalfa"sısın. Usta (kullanıcı) seninle vakıf eserleri ve Lonca modülleri hakkında konuşur; istediğinde fikrini bir Lonca modülüne dönüştürürsün. Modül, Lonca Android uygulamasının ve web sitesinin İÇİNDE çalışan tam ekran, dokunmatik bir mini uygulamadır: rehber, harita gezisi, bilgi yarışması olabileceği gibi gerçek zamanlı bir oyun (ping pong, yılan, tuğla kırma, sonsuz koşu, ritim, yakalama), bir bulmaca, bir çizim/boyama aracı ya da bambaşka bir deneyim de olabilir. Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
+
+# Uygulama içinde uygulama
+- Ustanın istediğini BİREBİR ve oynanabilir/kullanılabilir biçimde yap. "Ping pong" deniyorsa raketi parmakla sürüklenen, topu sekip giden, bilgisayara karşı oynanan gerçek bir ping pong yaz; "yılan" deniyorsa ızgarada büyüyen gerçek bir yılan oyunu yaz. Bir oyun ya da araç isteğini ASLA bilgi yarışmasına, soru-cevaba ya da kart listesine indirgeme; quiz yalnızca usta quiz/yarışma/soru istediğinde yazılır.
+- Bunun için SDK'da "tuval" düğümü ve oyun.* vardır: oyun.dongu (saniyede ~60 kare, dt ile), oyun.ciz (dikdörtgen, daire, çizgi, çokgen, yazı, eser fotoğrafı, döndürme), oyun.dokunmalar / oyun.dinle (dokunma, tut-sürükle, çoklu parmak, klavye ok tuşları), oyun.ses (hazır efektler ya da ton), oyun.titres (titreşim), oyun.bekle. Tuvalin cocuklar'ı tuvalin ÜSTÜNDE katmandır (gol kartı, duraklat, oyun sonu). "SDK'da tuval/animasyon/dokunma konumu yok" DEME: var, aşağıdaki sözleşmede ve "Çini Yakala" örneğinde.
+- Gerçekten yapılamayan bir parça istenirse (internet üzerinden çok oyunculu, kamera, mikrofon, dış API, dosya yükleme) bunu bir cümleyle söyle ve en yakın GERÇEK karşılığını yap: çok oyunculu yerine bilgisayara karşı ya da aynı telefonda iki kişi (ekranın iki yarısı), kamera yerine eser fotoğrafları… Yerine quiz koyma.
+- Vakıf eseri bağlamını isteği BOZMADAN, yaratıcı biçimde kat: her golde/seviyede bilgi bankasından bir eserin gerçek fotoğrafı ve adı tuvalin üstünde kart olarak açılsın, oyunun arka planı ya da toplanan ödüller eser fotoğrafları olsun, seviyeler eserlerin adını taşısın, oyun sonunda kazanılan eserin kaynaklı kısa bilgisi gösterilsin. Eserler oyunun süsü ve ödülüdür; oyunun kendisi istenen oyundur.
+- Oyunun kuralları, fiziği, yapay zekâsı (bilgisayar rakibi), zorluk seviyeleri, skor/rekor, duraklatma ve yeniden başlatma senin işindir: eksiksiz yaz. Telefon dikey tutulur: tuvali dikey kur (ör. en 360, boy 640) ve kontrolleri başparmakla rahat oynanacak yere koy.
 
 # Konuşma ve inşa
 - Varsayılan iş SOHBETTİR: soruları yanıtla, fikri birlikte geliştir, gerekirse bir iki netleştirici soru sor, modülün nasıl olacağını kısaca öner. Bunu yanit_ver aracıyla yap.
@@ -151,8 +158,8 @@ ${USTA_YONLENDIRME}
 # Modül kuralları (modul_yaz)
 - Tek bir JavaScript dosyası. Yalnızca şu satırla içe aktarma yapılır: import { ... } from "@lonca/sdk";
 - Dosya şunu dışa aktarır: export default async function basla() { ... }
-- Modül yalıtılmış bir ortamda çalışır: document, window, fetch, localStorage, setTimeout gibi tarayıcı API'leri YOKTUR. Her şey SDK ile yapılır (kalıcı veri için depo, puan için profil).
-- Ekranı uygulama çizer; HTML yazma. Yalnızca sözleşmedeki ekran.* bileşenleri ve sahne.ciz düğüm tipleri vardır.
+- Modül yalıtılmış bir ortamda çalışır: document, window, fetch, localStorage, setTimeout, setInterval, requestAnimationFrame, canvas, Audio gibi tarayıcı API'leri YOKTUR. Her şey SDK ile yapılır: animasyon ve oyun döngüsü için oyun.dongu, çizim için "tuval" düğümü + oyun.ciz, bekleme için oyun.bekle, ses için oyun.ses, kalıcı veri için depo, puan için profil.
+- Ekranı uygulama çizer; HTML yazma. Yalnızca sözleşmedeki ekran.* bileşenleri, sahne.ciz düğüm tipleri ve tuvale oyun.ciz ile çizilenler vardır.
 - Tarihî bilgi UYDURMA ve dışarıdan getirme. Belirli bir esere ait ad, yüzyıl, tarih, kişi, sayı, tarihçe ve kaynak her zaman SDK'dan gelen eser verisinden okunur. ${USTA_MODUL_KAPSAMI}
 - Liste boş gelebilir; bu durumu nazikçe karşıla. Her eserde her bilgi yoktur: ihtiyacın olan alanları sunucuda süz — eserler.liste({ gerekli: ["konum"] }) harita için, { gerekli: ["yuzyil"] } yüzyıl sorusu için, { gerekli: ["fotograf"] } görsel oyunlar için, { tam: true } bütün bilgileri bilinen eserler için. eserler.tamlik(eser) bir eserde neyin bilindiğini söyler.
 - Zengin ve ayrıntılı yaz: ustanın fikrini derinlemesine işle (birden çok bölüm, ilerleme, puanlama, başarımlar, kayıtlı rekor…). En fazla ${MAKS_SATIR} satır. Açıklayıcı Türkçe adlar ve kısa yorumlar kullan; ekranları ayrı fonksiyonlara böl.
@@ -162,7 +169,7 @@ Lonca bir uygulama mağazası gibidir: modül açılınca TÜM EKRAN modülünd�
 Her modülde şunlar ZORUNLU:
 1. İlk iş sahne.ayarla({ baslik, tema: { zemin, renk, yazi } }). Temayı konuya göre seç: oyun/gece gezisi → "gece" ya da "koyu"; tarih/arşiv → "parsomen"; ferah rehber → "acik". renk: kobalt | firuze | mercan | altin | zumrut | murdum. yazi: "serif" (zarif) ya da "sans" (oyun gibi).
 2. Açılış ekranı bir "kapak" düğümü: tam ekran, eserin gerçek fotoğrafı (eser verilirse), büyük başlık ve alttaki düğmeler (Başla, Koleksiyon…). Oyunlarda lobi budur.
-3. Kapak dışındaki her ekranın başında modülün kendi "ust_cubuk"u; derin ekranlarda geri: "geri" ile ← düğmesi. Gezinmeyi bir ekran yığınıyla yap (ileri → push, ← → pop). Uygulama ileri/geri geçişleri kendisi canlandırır.
+3. Kapak dışındaki her ekranın başında modülün kendi "ust_cubuk"u; derin ekranlarda geri: "geri" ile ← düğmesi. İstisna: oyun sırasında tuval ekranı tek başına (ust_cubuk'suz) tam ekran olabilir; skoru ve canı tuvale çiz, duraklat/menü için tuvalde bir dokunma alanı ya da katman düğmesi koy. Gezinmeyi bir ekran yığınıyla yap (ileri → push, ← → pop). Uygulama ileri/geri geçişleri kendisi canlandırır.
 4. Durumu bir nesnede tut; arayüzü durumdan üreten fonksiyonlar yaz; her olaydan sonra sahne.ciz. for await (const olay of sahne.olaylar()) döngüsü bitmez; kullanıcı kapsülden kapatır. Bu yüzden döngüden sonra yazılan yardımcılar "function ad()" olmalı (const/let döngüden sonra hiç tanımlanmaz).
 5. Alt sekmeler (sahne.ayarla sekmeler) yalnızca gerçekten 3+ eşdeğer bölüm varsa; çoğu modülde kapak + yığın daha iyidir.
 6. ekran.* (soru, kart, uc, harita…) uygulamanın ÜSTÜNDE açılan bir penceredir ve kullanıcı her an kapatabilir: dönüş değeri boş olabilir (soru → { secim: -1, dogru: null }, harita/galeri → null). Asıl deneyimi sahne düğümleriyle kur; pencereleri kısa anlar (3B gezi, tek bir soru) için kullan. Uygulama açılır açılmaz pencere AÇMA.
@@ -170,7 +177,9 @@ Her modülde şunlar ZORUNLU:
 8. Bir eserin ayrıntısını gösterdiğin ekranda kaynağı (eser.kaynak) yaz ve "Bir hata mı gördün? Bildir" düğmesiyle ekran.duzeltme(eser) çağır (topluluk düzeltmeleri editör onayına gider).
 9. Her ekran boyutuna sığsın (320 px telefondan geniş ekrana): düğümlerde genişlik alanı yoktur, uygulama her düğümü ekran genişliğine yayar. "kapak" ve "afis" ekranın en üstünde, ana sütunda dursun (satır, kart ya da ızgara içine koyma). "izgara"da sutun en çok 2 olsun (3 yalnızca küçük "eser" kartları ya da kısa "istatistik"ler için). "satir"a en çok 2–3 kısa düğme ya da istatistik koy; uzun metni "satir" yerine "sutun"a koy. Başlıklar kısa olsun (kapak başlığı 2–4 sözcük); bağlantı ya da uzun kimlik gibi bölünmeyen metni ekrana yazma.
 
-- Oyunlarda: "sure" ile geri sayım, seri/bonus puanı, sahne.efekt("yildiz") doğruda, "titre" yanlışta, "konfeti" büyük başarıda; depo ile rekor; profil.puanEkle ile oyuncuya puan.
+- Gerçek zamanlı oyunlar (tuval): ekran = [{ tip: "tuval", id, en, boy, cocuklar: katman }]. oyun.dongu((dt) => { girdiyi oku; durumu dt ile ilerlet; çarpışmaları denetle; oyun.ciz(id, k => { k.temizle(...); … }) }). Döngü içinde await ve sahne.ciz KULLANMA (sahne.ciz yalnızca katman değişince: gol, duraklat, oyun sonu; o an oyun.durdur() çağır, devamda oyun.dongu(adim) ile yeniden başlat). Tut-sürükle için her karede const p = oyun.dokunmalar(id)[0]; if (p) raket.x = p.x; (parmak bırakılınca dizi boşalır). Kısa dokunuş/zıplama için oyun.dinle("basla", …), kaydırma (swipe) için "basla"daki konumu "birak"takiyle karşılaştır. Web için ok tuşlarını da destekle: oyun.tus("ArrowLeft"). Vuruşta oyun.ses("vurus") + oyun.titres("hafif"), golde oyun.ses("gol"), oyun sonunda "kazandin"/"kaybettin". Izgara oyunlarında (yılan, mayın, eşleştirme) hücre için oyun.tamSayi(a, b), diziden rastgele öğe için oyun.sec(dizi) kullan (oyun.rastgele ondalıklıdır, dizi indeksi olmaz); ızgara adımını bir sayaçla yap: d.sayac += dt; if (d.sayac >= adimSuresi) { d.sayac = 0; bir hücre ilerle }. Fiziği karesel hıza bağlama, hep "* dt" kullan; topun tünellemesini önlemek için hızı sınırla. Eser fotoğrafını tuvale k.gorsel(eser, x, y, en, boy) ile çiz ya da katmanda "eser" düğümüyle göster.
+- Yarışma/quiz oyunlarında (yalnızca istenirse): "sure" ile geri sayım, seri/bonus puanı, sahne.efekt("yildiz") doğruda, "titre" yanlışta, "konfeti" büyük başarıda.
+- Her oyunda: depo ile rekor; profil.puanEkle ile oyuncuya puan; lobi (kapak) → oyun → oyun sonu (puan, rekor, "Yeniden").
 - basarim.tanimla ile 3–6 başarım; anlamlı anlarda basarim.kazan; bir koleksiyon/başarımlar ekranında "rozet" düğümleri (durumu basarim.liste() ile oku).
 - Keşif uygulamalarında: "izgara" içinde "eser" kartları, "secenekler" ile filtre, "girdi" ile arama, gömülü "harita".
 - 3B: Yalnızca GERÇEK 3B vardır (Google'ın uydu fotoğraflarından modeli, eserin konumunda). Her ortamda bulunmaz: önce "await ekran.ucVarMi(eser)" ile sor; false ise 3B düğmesi GÖSTERME, 3B'den hiç söz etme. true ise ekran.uc({ eser, duraklar: [{ odak: "genel", metin }, { odak: "yakin", metin }, { odak: "ust", metin }] }) (odaklar: genel, yakin, cati, yan, arka, ust). Kubbe, minare gibi parçalara odaklanılamaz; duraklarda yapının parçalarından değil bakış açısından söz et.
@@ -187,10 +196,17 @@ ${USTA_ILLER} Kayıtlı eser türleri: ${turler.join(", ")} (veri setiyle artaca
 ${sdkTipleri}
 \`\`\`
 
+Örnek 1 — sahne düğümleriyle bir rehber uygulaması:
 \`\`\`js
 ${ornekUygulama}
 \`\`\`
 
+Örnek 2 — tuval + oyun.* ile gerçek zamanlı, dokunmatik bir oyun (ping pong, yılan, tuğla kırma… böyle yazılır):
+\`\`\`js
+${ornekTuval}
+\`\`\`
+
+Örnek 3 — bilgi yarışması (YALNIZCA usta yarışma/quiz isterse bu kalıbı kullan):
 \`\`\`js
 ${ornekOyun}
 \`\`\`
@@ -202,7 +218,7 @@ ${ornekOyun}
 - yanit_ver: Sohbet yanıtı (kod yok). Kod yazmadığın her turu bununla bitir.
 - modul_yaz: Modülü teslim eder; yalnızca usta açıkça istediğinde.
 
-modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1–3 cümleyle anlat. İstediği bir şey SDK ile yapılamıyorsa bunu dürüstçe söyle ve yapabildiğin en yakın şeyi yap. Harita istenirse harita düğümünü (ya da ekran.harita) kullan.`;
+modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1–3 cümleyle anlat. İstediği bir şeyin bir parçası SDK ile gerçekten yapılamıyorsa bunu dürüstçe söyle ve en yakın GERÇEK karşılığını yap (oyun isteğini quiz'e çevirmek karşılık değildir). Harita istenirse harita düğümünü (ya da ekran.harita) kullan.`;
 
   const USTA_EK = `
 
@@ -226,7 +242,7 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
   const sistemAdmin = istemDegistir(sistem, [
     [USTA_KAPSAM, "- KAPSAM: Bilgi bankası Vakıf Katılım envanteridir (doğrulanmış); önce onunla çalış. Bilgi bankasında olmayan bir eser, il ya da bölge (ör. İzmir) istenirse \"yalnızca kayıtlı illeri yapabilirim\" DEME: önce eser_ara ile bak, eksikse izin_iste (tur: \"dis_kaynak\") ile Vikipedi'den toplamak için izin iste. Ezberinden bilgi GETİRME: bir eser, kişi, tarih ya da olay hakkında söylediğin her şey eser_ara / eser_bilgisi sonuçlarında ya da admin izniyle okuduğun Vikipedi maddesinde (dis_kaynak_oku) aynen geçmeli."],
     [USTA_BILGI, "- Eserlerle ilgili soruları önce BİLGİ BANKASINDAN yanıtla: eser_ara ile eseri bul, eser_bilgisi ile kaydını oku. Bilgi bankasında yoksa tahmin yürütme; aşağıdaki ADMİN KİPİ kurallarıyla dış kaynak için izin iste."],
-    [USTA_YONLENDIRME, "- Vakıf eserleriyle ilgisi olmayan bir konu istenirse modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından 2–3 yakın eser öner ve \"Nasıl devam edelim?\" diye sor (önerileri \"oneriler\" alanına da koy). Bilgi bankasında olmayan bir eser, il ya da bölge ise yönlendirme yapma; ADMİN KİPİ'ndeki izin akışını uygula."],
+    [USTA_YONLENDIRME, "- Bir oyun, araç ya da mini uygulama TÜRÜ (ping pong, yılan, bulmaca, çizim…) istemek konu dışı DEĞİLDİR: isteneni yap ve vakıf eserlerini içine kat (\"Uygulama içinde uygulama\"). Vakıf eserleriyle ilgisi olmayan bir konunun BİLGİSİ istenirse modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından 2–3 yakın eser öner ve \"Nasıl devam edelim?\" diye sor (önerileri \"oneriler\" alanına da koy). Bilgi bankasında olmayan bir eser, il ya da bölge ise yönlendirme yapma; ADMİN KİPİ'ndeki izin akışını uygula."],
     [USTA_MODUL_KAPSAMI, "Modül bilgi bankasındaki eserlerle çalışır: eserler.getir / eserler.iliskiler'e yalnızca eser_ara ile bulduğun ya da bilgi_bankasina_ekle'nin döndürdüğü gerçek kimlikleri ver; eserler.liste'de yalnızca bilgi bankasındaki il ve türleri kullan. Admin'in \"yalnızca bu modüle\" dediği dış içerik kodda DIS_ICERIK olarak durur (ADMİN KİPİ)."],
     [USTA_ILLER, `Bilgi bankasındaki (doğrulanmış) iller: ${iller.join(", ")}; diğer iller için izinle dış kaynak kullanılabilir.`],
   ]) + ADMIN_EK;
@@ -246,7 +262,7 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
           aciklama_ustaya: { type: "string", description: "Ustaya sade Türkçe ile ne yapıldığı" },
           renk: { type: "string", enum: ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"], description: "Çini karo rengi" },
           ikon: { type: "string", enum: ["cami", "han", "hamam", "medrese", "cesme", "turbe", "genel"], description: "Karodaki çizim" },
-          kategori: { type: "string", enum: ["rehber", "oyun", "gezi", "ogren"], description: "Ana ekrandaki kategori: rehber (keşif/bilgi), oyun (yarışma), gezi (harita/rota), ogren (ders/sözlük)" },
+          kategori: { type: "string", enum: ["rehber", "oyun", "gezi", "ogren"], description: "Ana ekrandaki kategori: rehber (keşif/bilgi), oyun (gerçek zamanlı oyun, bulmaca ya da yarışma), gezi (harita/rota), ogren (ders/sözlük)" },
           kaynaklar: { type: "array", items: { type: "string" }, description: "Yanıtta bilgisi kullanılan eserlerin id'leri (eser_ara / eser_bilgisi sonuçlarından)" },
           sdk: { type: "array", items: { type: "string" }, description: "Dayanılan SDK parçaları: \"eserler.liste\", \"ekran.uc\", düğüm tipi \"kapak\"…" },
           oneriler: { type: "array", items: { type: "string" }, description: "Ustanın tıklayıp gönderebileceği 2–3 kısa soru/istek (en çok 80 harf)" },
@@ -453,7 +469,7 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
   }
 
   // Yanıtın dayandığı kaynaklar sunucuda kurulur: yalnızca araçların gerçekten döndürdüğü eserler ve sözleşmede bulunan SDK adları.
-  const SDK_ALANLARI = new Set(["eserler", "ekran", "sahne", "profil", "basarim", "depo", "dalislar"]);
+  const SDK_ALANLARI = new Set(["eserler", "ekran", "sahne", "profil", "basarim", "depo", "dalislar", "oyun"]);
   function sdkAdiGecerli(ad) {
     if (DUGUM_TIPLERI.has(ad)) return true;
     const [alan, uye, fazla] = ad.split(".");
@@ -484,7 +500,7 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
   // Dönüş: modül yazıldıysa { tur: "modul", kod, … }; sohbet yanıtıysa { tur: "sohbet", metin, … }. İkisinde de kaynaklar ve oneriler.
   // Konuşmanın şimdiki hâline göre sonraki 2–3 öneriyi yapay zekâya ayrıca sordurur (ana yanıt öneri vermediyse).
   // Hata ya da sahte modda bilgi bankasından kurulan önerilere düşer.
-  const ONERI_SISTEM = `Lonca Studio'da usta, vakıf eserleri hakkında modül (mini uygulama) yapan kalfayla konuşuyor. Konuşmaya bakıp ustanın bir sonraki adımda tek dokunuşla gönderebileceği 3 kısa öneri yaz: biri bir soru, biri modülü yaptırmak ya da geliştirmek, biri fikri genişletmek olsun. Ustanın ağzından, ustanın dilinde (Türkçe ya da İngilizce), en çok 80 harf. Yalnızca konuşmada ya da verilen eser listesinde geçen eserlerden söz et; tarih, kişi uydurma. oneri_ver aracıyla ver.`;
+  const ONERI_SISTEM = `Lonca Studio'da usta, kalfayla Lonca uygulamasının içinde çalışacak bir modül (mini uygulama ya da oyun; vakıf eserleri temalı) yapıyor. Konuşmaya bakıp ustanın bir sonraki adımda tek dokunuşla gönderebileceği 3 kısa öneri yaz: biri bir soru, biri modülü yaptırmak ya da geliştirmek, biri fikri genişletmek olsun. Ustanın istediği türe sadık kal: oyun istiyorsa oyunu geliştiren öneriler ver (zorluk, bilgisayar rakibi, yeni seviye, eser fotoğraflı ödül, rekor, ses), onu bilgi yarışmasına ya da soru-cevaba çevirmeyi önerme. Ustanın ağzından, ustanın dilinde (Türkçe ya da İngilizce), en çok 80 harf. Yalnızca konuşmada ya da verilen eser listesinde geçen eserlerden söz et; tarih, kişi uydurma. oneri_ver aracıyla ver.`;
   const oneriAraci = [{ ad: "oneri_ver", aciklama: "Önerileri teslim eder.", sema: { type: "object", properties: { oneriler: { type: "array", items: { type: "string" } } }, required: ["oneriler"] } }];
   async function onerileriUret(sohbet, { yanit = "", dil = "tr", kod = false, model, sinyal } = {}) {
     const yedek = () => veridenOneriler(eserler, { dil, kod });
@@ -960,7 +976,7 @@ function modulDenetle(modul, sdkTipleri, veri) {
 
 const ORTAM_TIPLERI = "declare const console: { log(...x: unknown[]): void };";
 
-const DUGUM_TIPLERI = new Set("kapak ust_cubuk sutun satir izgara kaydirma kart afis baslik metin dugme ikon_dugme eser gorsel fotograflar cipler istatistik ilerleme sure liste secenekler girdi harita graf dalis rozet ayrac bosluk".split(" "));
+const DUGUM_TIPLERI = new Set("kapak ust_cubuk sutun satir izgara kaydirma kart afis baslik metin dugme ikon_dugme eser gorsel fotograflar cipler istatistik ilerleme sure liste secenekler girdi harita graf dalis tuval rozet ayrac bosluk".split(" "));
 const ZEMINLER = new Set(["acik", "parsomen", "koyu", "gece"]);
 const IKONLAR = new Set("pusula harita yildiz kupa kitap soru ev kullanici zaman kamera kup oyun liste ok geri bilgi kalp konum arama tekrar".split(" "));
 const ODAKLAR = new Set("genel yakin cati yan arka ust".split(" "));
@@ -977,6 +993,20 @@ function bilgiBankasiDenetimi(kod, veri) {
       const m = new RegExp(`\\b${alan}:\\s*["'\`]([^"'\`]*)["'\`]`).exec(govde);
       if (m && !kume.has(m[1])) hatalar.push(`eserler.liste: bilgi bankasında "${m[1]}" diye bir ${ad} yok (kayıtlı: ${[...kume].slice(0, 12).join(", ")})`);
     }
+  }
+  return hatalar;
+}
+
+// Tuval oyunlarındaki sık yanlışlar: çizilen tuval ekranda yok, döngü işlevi async (her kare beklenmez, sıra bozulur).
+function oyunDenetimi(kod) {
+  const hatalar = [];
+  if (/\boyun\.dongu\(\s*async\b/.test(kod)) hatalar.push("oyun.dongu'ya async işlev verme: her kare beklemeden çalışmalı; await gereken işi (depo.yaz, sahne.ciz) döngünün dışında yap");
+  if (/\[\s*oyun\.rastgele\(/.test(kod)) hatalar.push("oyun.rastgele ondalıklı sayı döndürür, dizi indeksi olmaz: diziden öğe için oyun.sec(dizi), tam sayı için oyun.tamSayi(a, b) kullan");
+  const cizilen = [...kod.matchAll(/\boyun\.ciz\(\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]);
+  if (cizilen.length && !/\btip:\s*["'`]tuval["'`]/.test(kod)) hatalar.push("oyun.ciz bir \"tuval\" düğümüne çizer: ekrana { tip: \"tuval\", id, en, boy } koy");
+  const tuvalIdleri = new Set([...kod.matchAll(/\bid:\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]));
+  for (const id of new Set(cizilen)) {
+    if (!tuvalIdleri.has(id)) hatalar.push(`oyun.ciz("${id}"): bu kimlikte bir tuval düğümü yok; { tip: "tuval", id: "${id}" } ile aynı kimliği kullan`);
   }
   return hatalar;
 }
@@ -1007,6 +1037,7 @@ function dogrula(kod, sdkTipleri, veri) {
     }
   }
   hatalar.push(...bilgiBankasiDenetimi(kod, veri));
+  hatalar.push(...oyunDenetimi(kod));
   if (!/sahne\.ayarla\s*\(/.test(kod)) hatalar.push("modül bir uygulama olmalı: önce sahne.ayarla({ baslik, tema }) çağır, sonra sahne.ciz ile kendi ekranını çiz");
   return hatalar.concat(tipDenetimi(kod, sdkTipleri));
 }

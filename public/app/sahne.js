@@ -9,7 +9,7 @@ const MAKS_DUGUM = 900, MAKS_DERINLIK = 24;
 const metin = (x) => (x == null ? "" : String(x));
 const RENKLER = ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"];
 
-export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
+export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen, tuval = null }) {
   const { gorsel, cipler, yerBilgisi, turAdi } = bileşen;
   const agirlar = new Map(); // id → { tip, kap, api, kullanildi }
   let sekmeler = [], seciliSekme = null, ilkCizim = true, sayac = 0, oncekiImza = null;
@@ -350,6 +350,22 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
         const son = cocuklar();
         return el("div", { className: "s-dalis-kap" }, kayit.kap, son.length ? el("div", { className: "s-dalis-son" }, ...son) : null);
       }
+      case "tuval": {
+        // Oyun alanı (tuval.js): yeniden çizimlerde aynı <canvas> kalır; cocuklar tuvalin üstünde katman olarak gösterilir.
+        if (!tuval) return null;
+        const id = `tuval:${metin(n.id) || "oyun"}`;
+        let kayit = agirlar.get(id);
+        if (!kayit) {
+          const api = tuval.kur({ ...n, id: metin(n.id) || "oyun" });
+          kayit = { kap: api.kap, tuval: api, api: Promise.resolve(api) };
+          agirlar.set(id, kayit);
+        } else kayit.tuval.guncelle(n);
+        kayit.kullanildi = true;
+        const ust = cocuklar();
+        kayit.tuval.katman.replaceChildren(...ust);
+        kayit.tuval.katman.hidden = !ust.length;
+        return kayit.kap;
+      }
       case "ayrac": return el("hr", { className: "s-ayrac" });
       case "bosluk": return el("div", { className: "s-bosluk", ariaHidden: "true" });
       default: return null;
@@ -425,7 +441,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       const kok = ciz(agac);
       const ilkCizimdi = ilkCizim;
       const ilkTip = Array.isArray(agac?.cocuklar) ? agac.cocuklar[0]?.tip : agac?.tip;
-      const tam = ["ust_cubuk", "afis", "kapak", "dalis"].includes(ilkTip) || agac?.tip === "kapak";
+      const tam = ["ust_cubuk", "afis", "kapak", "dalis", "tuval"].includes(ilkTip) || agac?.tip === "kapak";
       const sarmal = el("div", { className: `s-kok${ilkCizim ? " s-giris" : ""}${tam ? " s-kok-tam" : ""}` }, kok);
       kap.replaceChildren(sarmal);
       ilkCizim = false;
@@ -447,6 +463,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen }) {
       else if (ad === "parla") kap.animate([{ filter: "brightness(1)" }, { filter: "brightness(1.25)" }, { filter: "brightness(1)" }], { duration: 500 });
     },
     temizle() {
+      tuval?.yokEt();
       for (const k of agirlar.values()) k.api?.then?.((a) => a.yokEt());
       agirlar.clear();
       sekmeler = []; seciliSekme = null; sekmeleriCiz();
