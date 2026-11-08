@@ -258,24 +258,25 @@ p { margin: 0; text-wrap: pretty; }
 
 /* ---------- 2. Sayılar ---------- */
 .sayilar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 28px var(--kenar); border-bottom: 1px solid var(--cizgi); }
-.sayilar ul { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
+/* Sayı adedi değişebilir (modül eklenince 6, 7…): sütunlar adede göre açılır, hepsi tek satırda kalır. */
+.sayilar ul { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: end; gap: 16px; margin: 0; padding: 0; list-style: none; }
 .sayilar a { display: grid; gap: 2px; text-decoration: none; padding: 6px 0; border-radius: 8px; transition: transform .15s var(--egri); }
 .sayilar a:hover strong { color: var(--vurgu); }
 .sayilar a:active { transform: scale(.97); }
-.sayilar strong { font: clamp(2rem, 3.6vw, 3.2rem)/1 var(--serif); font-variant-numeric: tabular-nums; transition: color .2s; }
+.sayilar strong { font: clamp(2rem, 3.6vw, 3.2rem)/1 var(--serif); font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; transition: color .2s; }
 .sayilar span { color: var(--soluk); font-weight: 550; }
-.sayilar-ara { display: flex; align-items: center; gap: 12px; min-width: min(420px, 34vw); min-height: 56px; padding: 0 12px 0 18px; border: 1.5px solid var(--cizgi); border-radius: 999px; background: var(--yuzey); color: var(--soluk); text-align: left; transition: border-color .2s, transform .15s var(--egri); }
+.sayilar-ara { display: flex; align-items: center; gap: 12px; min-width: min(380px, 28vw); min-height: 56px; padding: 0 12px 0 18px; border: 1.5px solid var(--cizgi); border-radius: 999px; background: var(--yuzey); color: var(--soluk); text-align: left; transition: border-color .2s, transform .15s var(--egri); }
 .sayilar-ara:hover { border-color: var(--metin); }
 .sayilar-ara:active { transform: scale(.98); }
 .sayilar-ara span { flex: 1; }
 .sayilar-ara svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 kbd { padding: 2px 8px; border-radius: 6px; border: 1px solid var(--cizgi); font: 600 .8rem var(--sans); }
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   .sayilar { grid-template-columns: 1fr; }
   .sayilar-ara { min-width: 0; width: 100%; }
 }
 @media (max-width: 640px) {
-  .sayilar ul { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 8px; }
+  .sayilar ul { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 8px; }
   .sayilar kbd { display: none; }
 }
 
