@@ -43,7 +43,8 @@ function ortakGiris(el, tl) {
 function ac(yeni, yon = 1) {
   yeni = Math.max(0, Math.min(sayfalar.length - 1, yeni));
   if (yeni === sira) return;
-  gecis?.progress(1); // önceki geçiş yarım kaldıysa önce bitsin
+  gecis?.progress(1).kill(); // önceki geçiş yarım kaldıysa önce bitsin
+  bulanikligiTemizle();
   const eski = sayfalar[sira];
   const gelen = sayfalar[yeni];
   const eskiBaglam = baglam;
@@ -52,10 +53,12 @@ function ac(yeni, yon = 1) {
   document.getElementById("gz-sayi").textContent = `${sira + 1} / ${sayfalar.length}`;
   document.getElementById("ilerleme").style.width = `${((sira + 1) / sayfalar.length) * 100}%`;
 
-  gecis = gsap.timeline({ defaults: { ease: "sinema" } });
+  // Bulanık geçiş: filter yalnız .geciyor sınıfı varken etkili (CSS'te .sayfa:not(.geciyor) { filter: none !important }).
+  // Geçiş bitince, kesilince ya da yeni bir ← → basışında sınıf ve satır içi filter her sayfadan silinir.
+  gecis = gsap.timeline({ defaults: { ease: "sinema" }, onComplete: bulanikligiTemizle, onInterrupt: bulanikligiTemizle });
   if (eski && !hareketAz) {
-    // Geçişte bulanıklık (filter) hiç kullanılmaz: hızlı ← → basışlarında hiçbir sayfa bulanık kalamaz.
-    gecis.to(eski, { opacity: 0, scale: 0.96, xPercent: -4 * yon, duration: 0.45 }, 0);
+    eski.classList.add("geciyor");
+    gecis.to(eski, { opacity: 0, scale: 0.96, xPercent: -4 * yon, filter: "blur(10px)", duration: 0.45 }, 0);
   }
   gecis.add(() => {
     // Gelen dışındaki bütün sayfalar: yarım kalan geçiş animasyonları durur, satır içi bulanıklık/saydamlık silinir.
@@ -80,7 +83,17 @@ function ac(yeni, yon = 1) {
       if (hareketAz) tl.progress(1);
     }, gelen);
   }, eski && !hareketAz ? 0.45 : 0);
-  if (!hareketAz) gecis.fromTo(gelen, { opacity: 0, scale: 1.04, xPercent: 3 * yon }, { opacity: 1, scale: 1, xPercent: 0, duration: 0.75, clearProps: "opacity,transform,filter" }, eski ? 0.45 : 0);
+  if (!hareketAz) {
+    gecis.add(() => gelen.classList.add("geciyor"), eski ? 0.45 : 0);
+    gecis.fromTo(gelen, { opacity: 0, scale: 1.04, xPercent: 3 * yon, filter: "blur(10px)" }, { opacity: 1, scale: 1, xPercent: 0, filter: "blur(0px)", duration: 0.75, clearProps: "opacity,transform,filter" }, eski ? 0.45 : 0);
+  }
+}
+
+function bulanikligiTemizle() {
+  for (const s of sayfalar) {
+    s.classList.remove("geciyor");
+    s.style.removeProperty("filter");
+  }
 }
 
 const ileri = () => ac(sira + 1, 1);
