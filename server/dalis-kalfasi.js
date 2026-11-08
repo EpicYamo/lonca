@@ -33,13 +33,15 @@ const KART_METNI = 340;                 // kart metninin en çok uzunluğu (harf
 
 export const DALIS_SISTEM = `Sen Lonca platformunun "dalış kalfası"sın. Bir vakıf eseri için kaydırarak gezilen, uydudan eserin içine inen bir gezi ("dalış") planlarsın. Planını yalnızca JSON olarak verirsin; görüntüleri ve uydu inişini platform üretir.
 
-# Gezinin yapısı
+# Gezinin yapısı (elle hazırlanmış dalışlar gibi: gerçek fotoğrafların ARASINI yapay zekâ kareleri doldurur)
 1. Uydu inişi: platform kendisi yapar (Dünya → şehir → eser).
-2. Dış duraklar: eserin gerçek fotoğraflarından 1–3 tanesi, uzaktan yakına sıralı (önce hava/uzak, sonra cephe).
-3. Giriş (isteğe bağlı): son dış fotoğrafın ortasından kapıya/eşiğe yaklaşan bir canlandırma karesi.
-4. Merkez: eserin içini (ya da avlusunu) gösteren GENİŞ bir canlandırma karesi. Yalnızca gerçek fotoğrafların desteklediği planı ve öğeleri kullan; referansta olmayan yeni mimari ayrıntı ekleme.
-5. Kollar: 0–${MAKS_KOL} ayrıntı. Yalnızca hem kaynak metninde açıkça geçen hem de gerçek fotoğrafta seçilebilir olan ayrıntıları seç. Kaynakta desteklenmiyorsa kol üretme; az ama doğru durak, çok ama uydurma duraktan iyidir. Her kol için kaynakta aynen geçen kısa bir "kanıt" alıntısı ver.
-6. Çıkış: platform kendisi yapar (gökyüzüne yükseliş).
+2. İniş karesi: uydu görüntüsünden ilk dış fotoğrafa alçalan bir drone karesi ("inis").
+3. Dış duraklar: eserin gerçek fotoğraflarından 1–3 tanesi, uzaktan yakına sıralı (önce hava/uzak, sonra cephe). Her dış durak için "ara": kameranın bu duraktan bir sonrakine (son dış durakta: kapıya) doğru ilerlediği ara karenin istemi.
+4. Giriş: son dış fotoğrafın ortasından kapıya/eşiğe yaklaşan, içeri giren bir canlandırma karesi (her zaman ver).
+5. Merkez: eserin içini (ya da avlusunu/hazireyi) gösteren GENİŞ kare. İç mekân fotoğrafı varsa onun numarasını "foto" alanına yaz; platform gerçek fotoğrafı kullanır. Yalnızca gerçek fotoğrafların desteklediği planı ve öğeleri kullan; referansta olmayan yeni mimari ayrıntı ekleme.
+6. Kollar: 0–${MAKS_KOL} ayrıntı. Yalnızca hem kaynak metninde açıkça geçen hem de gerçek fotoğrafta seçilebilir olan ayrıntıları seç. Kaynakta desteklenmiyorsa kol üretme; az ama doğru durak, çok ama uydurma duraktan iyidir. Her kol için kaynakta aynen geçen kısa bir "kanit" alıntısı ver.
+7. Yakın çekimler ("detay"): "detay" türündeki gerçek fotoğraflar merkezden sonra yakın çekim durağı olur.
+8. Çıkış: platform kendisi yapar (aynı yoldan dışarı, gökyüzüne yükseliş).
 
 # Bilgi kartları (bakışlar)
 - Gezi eserin hikâyesini DERİNLEMESİNE anlatır; yalnızca nerede olduğunu söyleyen yüzeysel bir gezi istenmez. ENVANTER metnindeki bilgilerin TAMAMINI duraklara dağıt: her cümle en az bir kartta kullanılsın. Konum/adres bilgisi en çok bir kartta geçer.
@@ -53,7 +55,9 @@ export const DALIS_SISTEM = `Sen Lonca platformunun "dalış kalfası"sın. Bir 
 
 # Görüntü istemleri (İngilizce)
 - "onek": bütün görüntülere eklenecek tarz cümlesi: "Photorealistic, high-resolution documentary architectural photograph of the <eserin İngilizce adı/tarifi> in <şehir>, Turkey (<yüzyıl> century). Natural light, crisp detail. No people, no text, no captions, no watermark."
+- "inis": uydu görüntüsünden alçalan, eseri ve çevresini eğik açıyla gösteren dikey drone karesi (ilk dış fotoğraftaki yapıya sadık).
 - Dış durakta "genislet": fotoğrafın dikey kareye genişletilirken üstüne/altına ne geleceği (gökyüzü, ağaçlar, avlu taşları…). Ana yapıyı tekrar çizdirme.
+- Dış durakta "ara": kamera bu fotoğraftan bir sonrakine yürürken/alçalırken görülen dikey kare (aynı ışık, aynı yapı, daha yakın).
 - "giris.istem": son dış fotoğrafın ortasındaki kapıya/girişe yaklaşan dikey kare.
 - "merkez.istem": geniş, dikey, simetrik bir iç mekân/avlu karesi; her kolun nesnesini konumuyla birlikte say ("in the lower centre the marble fountain; on the left pier a framed calligraphy panel; in the background right the wooden pulpit…"). Fotoğraflarda iç mekân varsa ona sadık kal.
 - "kollar[].aranacak": nesnenin merkez karede bulunması için İngilizce kısa tarif. "kollar[].istem": o nesnenin yakın çekimi (aynı konum ve kompozisyon, çok daha yakın ve net).
@@ -62,19 +66,35 @@ export const DALIS_SISTEM = `Sen Lonca platformunun "dalış kalfası"sın. Bir 
 {
   "ozet": "Lobide görünecek tek cümle",
   "onek": "...",
-  "dis": [ { "foto": 1, "baslik": "...", "yazi": "alt|ust", "genislet": "...", "bakislar": [ ... ] } ],
-  "giris": { "istem": "...", "baslik": "...", "bakislar": [ ... ] } | null,
+  "inis": "...",
+  "dis": [ { "foto": 1, "baslik": "...", "yazi": "alt|ust", "genislet": "...", "ara": "...", "bakislar": [ ... ] } ],
+  "giris": { "istem": "...", "baslik": "...", "bakislar": [ ... ] },
   "merkez": { "istem": "...", "foto": null | iç mekân fotoğrafının numarası, "baslik": "...", "bakislar": [ ... ] },
-  "kollar": [ { "baslik": "...", "aranacak": "...", "istem": "...", "k": "E|B|V", "kanit": "kaynakta aynen geçen kısa alıntı", "bakislar": [ ... ] } ]
+  "kollar": [ { "baslik": "...", "aranacak": "...", "istem": "...", "k": "E|B|V", "kanit": "kaynakta aynen geçen kısa alıntı", "bakislar": [ ... ] } ],
+  "detay": [ { "foto": 1, "baslik": "...", "bakislar": [ ... ] } ]
 }
 "yazi": görüntünün alt kısmı önemliyse "ust" (kart üstte durur).
 
 # Ustanın isteği
 Gezi ustanın isteğinden doğar: istediği ayrıntıları kol yap, istediği konuyu (ör. ipek ticareti, hat sanatı, banisi) kartlarda öne çıkar, istediği uzunluğa ve tona uy. İstek kaynaklarla çelişirse ya da kaynaklarda olmayan bir bilgi isterse kaynağa sadık kal; uydurma.`;
 
-export const ISTEK_SISTEM = `Sen Lonca'nın dalış kalfasısın. Usta bir vakıf eseri için kaydırmalı gezi ("dalış") istiyor. Verilen aday eserlerden ustanın kastettiğini seç ve isteğini planlama için özetle. Yalnızca JSON ver:
-{ "eser": "<aday id'si ya da null>", "neden": "kısa Türkçe gerekçe", "odak": "ustanın istediği ayrıntılar, konu, uzunluk ve ton (Türkçe, en çok 400 harf)" }
-Hiçbir aday isteğe uymuyorsa ya da istek bir eser belirtmiyorsa "eser": null ver ve "neden" alanında ustaya hangi bilgiyi yazması gerektiğini söyle.`;
+export const ISTEK_SISTEM = `Sen Lonca'nın dalış kalfasısın ve ustayla bir sohbet içindesin. Usta bir vakıf eseri için kaydırmalı gezi ("dalış") hazırlatır, hazırlanmış dalışı değiştirmeni ister ya da soru sorar. "ÖNCEKİ KONUŞMA" bu sohbette daha önce olanların özetidir; ustanın yeni mesajını onunla birlikte oku. "resimleri çoğalt", "uzaydan başlasın", "tekrar yap", "daha uzun olsun" gibi eser adı geçmeyen istekler SON KONUŞULAN ESERE aittir.
+Yalnızca JSON ver:
+{ "eylem": "dalis" | "yanit", "eser": "<aday id'si ya da null>", "neden": "kısa Türkçe gerekçe", "odak": "ustanın istediği ayrıntılar, konu, uzunluk ve ton; önceki isteklerdeki geçerli dilekler de dahil (Türkçe, en çok 400 harf)", "yanit": "eylem yanit ise ustaya söyleyeceğin kısa, sıcak Türkçe yanıt" }
+- "dalis": yeni bir dalış hazırla ya da son eserin dalışını ustanın yeni dileğiyle yeniden hazırla. "eser" adaylardan biri olmalı.
+- "yanit": usta soru soruyor, sohbet ediyor ya da hangi eseri kastettiği belli değil. Dalış başlatma; "yanit" alanında soruyu yanıtla ya da ustadan eksik bilgiyi iste. Yalnızca adaylarda ve önceki konuşmada olan bilgiyi kullan; eser hakkında bilgi uydurma.
+Dalışlarda gerçek fotoğrafların arasını her zaman yapay zekâ kareleri doldurur. Uydudan (uzaydan) iniş yalnızca eser kaydında enlem/boylam varsa yapılır (adaylarda "konum": true); konumu olmayan eser için usta uzaydan başlamayı isterse yine "dalis" ver ama "odak" alanına uydu inişinin konum olmadığı için yapılamayacağını yaz.`;
+
+// Sohbet bağlamı: oturumdaki önceki dalış konuşmasının kısa özeti (server/atolye.js dalisBaglami). Bütün günlük ya da
+// kartlar gönderilmez; her tur tek satırdır ve son konuşulan eser ayrıca verilir.
+export function baglamMetni(baglam) {
+  if (!baglam?.turlar?.length && !baglam?.sonEser) return "";
+  const satirlar = (baglam.turlar ?? []).slice(-6).map((t) => `- Usta: "${kisalt(t.istek, 200)}" → Kalfa: ${kisalt(t.yanit, 220) || "(yanıt yok)"}`);
+  return [
+    satirlar.length ? `# ÖNCEKİ KONUŞMA\n${satirlar.join("\n")}` : "",
+    baglam.sonEser ? `# SON KONUŞULAN ESER\n${baglam.sonEser.id} (${baglam.sonEser.ad})${baglam.sonEser.odak ? `\nO dalıştaki dilekler: ${kisalt(baglam.sonEser.odak, 400)}` : ""}` : "",
+  ].filter(Boolean).join("\n\n");
+}
 
 const katla = (s) => String(s ?? "").toLocaleLowerCase("tr").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ı/g, "i").replace(/[^a-z0-9 ]/g, " ");
 const DOLGU = new Set("bir bu su ve ile icin icine dalis dalisi yap hazirla olustur gezi gezisi anlat anlatan istiyorum lutfen ne nasil olsun daha cok az".split(" "));
@@ -346,7 +366,8 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
 
   // korunanlar: üzerine yazılmayacak mevcut dalış durumları. Usta (admin olmayan) için "bekliyor" da korunur ki
   // başkasının onay bekleyen dalışını ezemesin.
-  function baslat({ istek = "", eserId = null, uzerineYaz = false, korunanlar = ["onayli"] }) {
+  // baglam: sohbetin kısa özeti (baglamMetni); bitince: iş bitince (dalış, yanıt ya da hata) çağrılır, oturuma sonucu yazar.
+  function baslat({ istek = "", eserId = null, uzerineYaz = false, korunanlar = ["onayli"], baglam = null, bitince = null }) {
     if (!hazir()) throw Object.assign(new Error("Dalış kalfası için .env'de USTAGPT_BASE_URL ve USTAGPT_API_KEY (ya da DALIS_API_URL ve DALIS_API_ANAHTARI) gerekli"), { kod: 503 });
     const eksik = eksikAraclar();
     if (eksik.length) throw Object.assign(new Error(`Dalış kalfası için bu bilgisayarda şu araçlar eksik: ${eksik.join("; ")}. Kurup sunucuyu yeniden başlat.`), { kod: 503 });
@@ -357,7 +378,9 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
     isler.set(is.id, is);
     etkin = is;
     (async () => {
-      const { eser, odak } = await istegiCoz(is, eserId);
+      const { eser, odak, yanit } = await istegiCoz(is, eserId, baglam);
+      if (yanit) return { yanit };
+      is.odak = kisalt(odak, 1000);
       const tanimYolu = path.join(dalisDizini, `${eser.id}.json`);
       const mevcut = existsSync(tanimYolu) ? JSON.parse(readFileSync(tanimYolu, "utf8")).durum : null;
       if (mevcut && !uzerineYaz && korunanlar.includes(mevcut)) {
@@ -367,10 +390,24 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
       }
       return calistir(is, eser, kisalt(odak, 1000), tanimYolu);
     })()
-      .then((sonuc) => { is.durum = "bitti"; is.sonuc = sonuc; yaz(is, `Hazır: ${sonuc.kareSayisi} durak. Studio'da inceleyip onayla.`); })
+      .then((sonuc) => {
+        if (sonuc.yanit) { is.durum = "yanit"; is.yanit = sonuc.yanit; return; }
+        is.durum = "bitti"; is.sonuc = sonuc; yaz(is, `Hazır: ${sonuc.kareSayisi} durak. Studio'da inceleyip onayla.`);
+      })
       .catch((h) => { is.durum = "hata"; is.hata = h.message; yaz(is, `Hata: ${h.message}`); })
-      .finally(() => { etkin = null; is.bitis = Date.now(); });
+      .finally(() => {
+        etkin = null; is.bitis = Date.now();
+        try { bitince?.(ozetle(is)); } catch { /* oturuma yazılamadı: dalış yine de kaydedildi */ }
+      });
     return is;
+  }
+
+  // Oturuma yazılacak kısa sonuç: sonraki isteklerde sohbet bağlamı bundan kurulur.
+  function ozetle(is) {
+    const yanit = is.durum === "yanit" ? is.yanit
+      : is.durum === "bitti" ? `${is.ad} dalışı hazırlandı (${is.sonuc.kareSayisi} kare, onay bekliyor).`
+        : `Hata: ${is.hata}`;
+    return { is: is.id, durum: is.durum, eser: is.eser ?? null, ad: is.ad ?? null, odak: is.odak ?? null, yanit: kisalt(yanit, 400), kareSayisi: is.sonuc?.kareSayisi };
   }
 
   function yaz(is, metin, adim) {
@@ -379,21 +416,28 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
     if (is.gunluk.length > 300) is.gunluk.shift();
   }
 
-  // 0. Ustanın isteğinden eseri ve odağı çıkar
-  async function istegiCoz(is, eserId) {
+  // 0. Ustanın isteğinden eseri ve odağı çıkar (ya da sohbet yanıtı ver). Önceki konuşmanın özeti bağlam olarak gider;
+  // son konuşulan eser her zaman adaylardadır ("resimleri çoğalt" gibi eser adı geçmeyen istekler ona aittir).
+  async function istegiCoz(is, eserId, baglam) {
     yaz(is, `İstek: "${is.istek || "(eser seçildi)"}"`, 0);
     let eser = eserId ? eserler.find((e) => e.id === eserId) : null;
     if (eser && !is.istek) { is.eser = eser.id; is.ad = eser.ad; return { eser, odak: "" }; }
-    const aday = eser ? [eser] : adaylar(eserler, is.istek);
-    if (!aday.length) throw new Error("Bu istek bilgi bankamızdaki bir vakıf eserine uymuyor (dalış yalnızca veritabanımızdaki, fotoğrafı olan eserler için yapılır). Aşağıdaki önerilerden birini seçebilir ya da bilgi bankasındaki bir eserin adını yazabilirsin. Nasıl devam edelim?");
-    yaz(is, `Adaylar: ${aday.slice(0, 6).map((e) => e.ad).join(", ")}${aday.length > 6 ? "…" : ""}`);
+    const sonEser = baglam?.sonEser?.id ? eserler.find((e) => e.id === baglam.sonEser.id && e.fotograflar?.length) : null;
+    const aday = eser ? [eser] : [...new Set([...(sonEser ? [sonEser] : []), ...adaylar(eserler, is.istek)])].slice(0, 15);
+    if (aday.length) yaz(is, `Adaylar: ${aday.slice(0, 6).map((e) => e.ad).join(", ")}${aday.length > 6 ? "…" : ""}`);
+    if (sonEser) yaz(is, `Sohbetten hatırlanan eser: ${sonEser.ad}`);
+    const onceki = baglamMetni(baglam);
     const { metin, model } = await dalisSohbet({
-      ortam, sistem: ISTEK_SISTEM, maks: 800,
-      metin: `# İSTEK\n${is.istek}\n\n# ADAYLAR\n${aday.map((e) => JSON.stringify({ id: e.id, ad: e.ad, tur: e.tur, il: e.il, ilce: e.ilce, yuzyil: e.yuzyil, foto: e.fotograflar.length })).join("\n")}`,
+      ortam, sistem: ISTEK_SISTEM, maks: 900,
+      metin: [onceki, `# ADAYLAR\n${aday.length ? aday.map((e) => JSON.stringify({ id: e.id, ad: e.ad, tur: e.tur, il: e.il, ilce: e.ilce, yuzyil: e.yuzyil, foto: e.fotograflar.length, konum: !!e.konum })).join("\n") : "(isteğe uyan, fotoğrafı olan eser bulunamadı)"}`, `# USTANIN YENİ MESAJI\n${is.istek}`].filter(Boolean).join("\n\n"),
     });
     const j = jsonCikar(metin);
-    eser = aday.find((e) => e.id === j?.eser) ?? null;
-    if (!eser) throw new Error(`${kisalt(j?.neden, 300) || "İstekteki eser bilgi bankamızda bulunamadı."} Aşağıdaki önerilerden birini seçebilir ya da bilgi bankasındaki bir eserin adını yazabilirsin. Nasıl devam edelim?`);
+    eser = j?.eylem !== "yanit" ? aday.find((e) => e.id === j?.eser) ?? null : null;
+    if (!eser) {
+      const yanit = kisalt(j?.yanit || j?.neden, 600) || "Hangi eser için dalış hazırlayayım? Bilgi bankasındaki bir eserin adını yazabilirsin.";
+      yaz(is, `Yanıt [${model}]: ${kisalt(yanit, 160)}`);
+      return { yanit };
+    }
     is.eser = eser.id; is.ad = eser.ad;
     yaz(is, `Eser: ${eser.ad} (${eser.il}) — ${kisalt(j?.neden, 160)} [${model}]`);
     if (j?.odak) yaz(is, `Odak: ${kisalt(j.odak, 300)}`);
@@ -407,10 +451,11 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
     yaz(is, vikiAcik ? "Kaynaklar toplanıyor: eser kaydı ve Vikipedi…" : "Kaynak: bilgi bankasındaki eser kaydı (envanter)", 1);
     const viki = vikiAcik ? await vikipedi(eser).catch(() => null) : null;
     if (vikiAcik) yaz(is, viki ? `Vikipedi: "${viki.baslik}" (${viki.metin.length} harf)` : "Vikipedi'de uygun madde bulunamadı; yalnızca envanter kullanılacak.");
+    // Uydu inişi yalnızca eser kaydında (ya da Vikipedi maddesinde) enlem/boylam varsa yapılır; konum aranmaz, tahmin edilmez.
     let hedef = null;
     if (viki?.konum && (!eser.konum || mesafe(viki.konum, eser.konum) < 20_000)) hedef = viki.konum;
     else if (eser.konum) hedef = { lat: eser.konum.lat, lng: eser.konum.lng };
-    yaz(is, hedef ? `Uydu hedefi: ${hedef.lat.toFixed(5)}, ${hedef.lng.toFixed(5)} (${viki?.konum ? "Vikipedi" : "eser kaydı"})` : "Konum yok: uydu inişi atlanacak.");
+    yaz(is, hedef ? `Uydu hedefi: ${hedef.lat.toFixed(5)}, ${hedef.lng.toFixed(5)} (${viki?.konum ? "Vikipedi" : "eser kaydı"})` : "Eser kaydında enlem/boylam yok: uydu inişi yapılmayacak, gezi ilk fotoğraftan başlar.");
 
     const fotolar = (eser.fotograflar ?? []).filter((f) => typeof f === "string" && existsSync(path.join(kok, "public", f))).slice(0, 4);
     if (!fotolar.length) throw new Error("Eserin fotoğrafı yok; dalış için en az bir gerçek fotoğraf gerekli");
@@ -484,37 +529,70 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
     const u = dalisUretici({ kok, eser: eser.id, onek: kisalt(plan.onek, 400), ortam, gunluk: (m) => yaz(is, m.trim()) });
     try {
       const kareler = [];
-      // 4a. Uydu inişi
-      yaz(is, "Uydu inişi hazırlanıyor (Esri World Imagery)…", 4);
+      // Kameranın içeri girdiği yol (uydudan sonraki dış kareler). Çıkışta aynı yol tersinden yürünür.
+      const yol = [];
+      const ekle = (kare, { zincir = false } = {}) => { kareler.push(kare); if (zincir) yol.push(kare); return kare; };
+      // Yapay zekâ ara karesi: ref'teki görüntülerden üretilir; üretilemezse gezi o kare olmadan sürer.
+      const yzKare = async (ad, ref, istem, ne) => {
+        try { await u.uretilenKare({ ad, uret: { ref, istem } }); return true; }
+        catch (h) { yaz(is, `  ${ne} üretilemedi (${kisalt(h.message, 80)}), atlandı`); return false; }
+      };
+      const netMi = (kaynak) => { try { return u.genislik(u.yerel(kaynak)) < 1000; } catch { return false; } };
+      async function gercek(ad, kaynak, genisletIstem) {
+        const netlestir = netMi(kaynak);
+        try { const r = await u.gercekKare({ ad, kaynak, genislet: true, netlestir, genisletIstem: kisalt(genisletIstem, 400) }); return r.yz ? "yeniden-cizim" : netlestir ? "netlestirilmis" : "genisletilmis"; }
+        catch (h) { yaz(is, `  ${ad}: genişletilemedi (${kisalt(h.message, 80)}), fotoğraf kırpılarak kullanılıyor`); await u.gercekKare({ ad, kaynak }); return "gercek"; }
+      }
+
+      // 4a. Uydu inişi (yalnızca konum varsa)
+      yaz(is, hedef ? "Uydu inişi hazırlanıyor (Esri World Imagery)…" : "Uydu inişi yok (konum yok); dış fotoğraflardan başlanıyor…", 4);
       const uydular = hedef ? UYDU_DUZEYLERI.map((z) => ({ ad: `u${z}`, uydu: { lat: hedef.lat, lng: hedef.lng, z } })) : [];
       for (const [i, k] of uydular.entries()) {
         await u.uyduKare(k);
         kareler.push({ g: k.ad, t: "uydu", u: [hedef.lat, hedef.lng, k.uydu.z, 0], p: uydular[i + 1] ? u.uyduPortal(k.uydu, uydular[i + 1].uydu) : CAPRAZ });
       }
-      // 4b. Dış duraklar
-      for (const [i, d] of dis.entries()) {
-        const ad = `d${i + 1}`, kaynak = fotolar[d.foto - 1];
-        const netlestir = u.genislik(u.yerel(kaynak)) < 1000;
-        let r;
-        const genislet = d.genislet !== false;
-        try { r = await u.gercekKare({ ad, kaynak, genislet, netlestir, genisletIstem: kisalt(d.genislet, 400) }); }
-        catch (h) { yaz(is, `  ${ad}: genişletilemedi (${kisalt(h.message, 80)}), fotoğraf kırpılarak kullanılıyor`); r = await u.gercekKare({ ad, kaynak }); }
-        kareler.push({ g: ad, t: r.yz ? "yeniden-cizim" : netlestir ? "netlestirilmis" : genislet ? "genisletilmis" : "gercek", p: CAPRAZ,
-           b: kisalt(d.baslik, 60), y: d.yazi === "ust" ? "ust" : undefined, k: temizle(d.bakislar) });
+      // 4b. İniş: uydu görüntüsünden ilk dış fotoğrafa alçalan drone karesi (yapay zekâ)
+      if (uydular.length) {
+        const ilk = fotolar[dis[0].foto - 1];
+        if (await yzKare("i1", [{ kare: uydular.at(-1).ad, kirp: CAPRAZ }, ilk],
+          `Vertical aerial drone photo. The first reference is a satellite image seen from straight above; the camera has now descended much lower and tilted forward, approaching ${eser.ad_en || eser.ad} in ${eser.il}, which must look exactly like the building in the second reference. Keep the same city fabric, roofs, streets and greenery around it, seen obliquely from about 150 m. ${kisalt(plan.inis, 600)}`, "İniş karesi")) {
+          kareler.at(-1).p = CAPRAZ;
+          ekle({ g: "i1", t: "canlandirma", p: CAPRAZ, b: "Esere alçalırken" }, { zincir: true });
+        }
       }
-      // 4c. Giriş
-      if (plan.giris?.istem) try {
-        const kirp = [0.3, 0.35, 0.4];
-        await u.uretilenKare({ ad: "g1", uret: { ref: [{ kare: kareler.at(-1).g, kirp }], istem: `Vertical photo continuing the reference: ${kisalt(plan.giris.istem, 900)}` } });
-        kareler.at(-1).p = kirp;
-         kareler.push({ g: "g1", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.giris.baslik, 60), k: temizle(plan.giris.bakislar) });
-      } catch { yaz(is, "  Giriş karesi üretilemedi, atlandı"); }
-      // 4d. Merkez
-      yaz(is, "Merkez karesi üretiliyor…");
+      // 4c. Dış duraklar: gerçek fotoğraflar, aralarında yapay zekâ ara kareleri
+      for (const [i, d] of dis.entries()) {
+        const ad = `d${i + 1}`;
+        const t = await gercek(ad, fotolar[d.foto - 1], d.genislet);
+        ekle({ g: ad, t, p: CAPRAZ, b: kisalt(d.baslik, 60), y: d.yazi === "ust" ? "ust" : undefined, k: temizle(d.bakislar) }, { zincir: true });
+        const sonraki = dis[i + 1];
+        if (!sonraki) continue;
+        const kirp = [0.25, 0.3, 0.5];
+        if (await yzKare(`a${i + 1}`, [{ kare: ad, kirp }, fotolar[sonraki.foto - 1]],
+          `Vertical photo continuing the first reference: the camera has moved much closer, walking toward the view shown in the second reference (same building, same light and season). ${kisalt(d.ara, 600)}`, `Ara kare ${i + 1}`)) {
+          kareler.at(-1).p = kirp;
+          ekle({ g: `a${i + 1}`, t: "canlandirma", p: CAPRAZ, b: "" }, { zincir: true });
+        }
+      }
+      // 4d. Giriş: kapıya yaklaşıp içeri bakan kare (iç mekân fotoğrafı varsa kapıdan o görünür)
       const icFotoNo = Number.isInteger(plan.merkez.foto) ? plan.merkez.foto : 0;
-      const icFoto = fotoBilgi.find((f) => f.no === icFotoNo && f.tur === "ic") ? fotolar[icFotoNo - 1] : null;
-      if (icFotoNo && !icFoto) yaz(is, "  Merkez için seçilen fotoğraf iç mekân olarak doğrulanmadı; gerçek dış fotoğraf referans alınacak");
-      await u.uretilenKare({ ad: "m", uret: { ref: [icFoto || u.kareYolu(kareler.at(-1).g).replace(path.join(kok, "public"), "")], istem: `Vertical wide photo. ${kisalt(plan.merkez.istem, 1400)}` } });
+      let icFoto = fotoBilgi.find((f) => f.no === icFotoNo && f.tur === "ic") ? fotolar[icFotoNo - 1] : null;
+      if (icFotoNo && !icFoto) yaz(is, "  Merkez için seçilen fotoğraf iç mekân olarak doğrulanmadı");
+      icFoto ??= fotolar[fotoBilgi.find((f) => f.tur === "ic")?.no - 1] ?? null;
+      {
+        const kirp = [0.3, 0.35, 0.4];
+        const istem = plan.giris?.istem || `the camera walks up to the entrance of ${eser.ad_en || eser.ad} and looks through the open doorway or gate`;
+        if (await yzKare("g1", [{ kare: kareler.at(-1).g, kirp }, ...(icFoto ? [icFoto] : [])],
+          `Vertical photo continuing the first reference: ${kisalt(istem, 900)}${icFoto ? " Through the opening, the space of the second reference is visible." : ""}`, "Giriş karesi")) {
+          kareler.at(-1).p = kirp;
+          ekle({ g: "g1", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.giris?.baslik, 60) || "İçeri girerken", k: temizle(plan.giris?.bakislar) }, { zincir: true });
+        }
+      }
+      // 4e. Merkez: iç mekânın gerçek fotoğrafı (dikey kareye genişletilmiş) ya da yoksa canlandırma
+      yaz(is, "Merkez karesi hazırlanıyor…");
+      let merkezTuru = "canlandirma";
+      if (icFoto) merkezTuru = await gercek("m", icFoto, "Continue the same interior: floor, walls and ceiling with correct perspective.");
+      else await u.uretilenKare({ ad: "m", uret: { ref: [u.kareYolu(kareler.at(-1).g).replace(path.join(kok, "public"), "")], istem: `Vertical wide photo. ${kisalt(plan.merkez.istem, 1400)}` } });
 
       // 5. Kollar: merkezde yerlerini bul, kırpımdan yakın çekim üret
       yaz(is, "Merkezde ayrıntıların yeri bulunuyor…", 5);
@@ -537,19 +615,30 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
       }
       if (kollar.length && !bulunan.length) yaz(is, "  Ayrıntılar gerçek görselde doğrulanamadı; uydurma yakın çekim yerine merkez karesiyle devam ediliyor");
 
+      // Yakın çekim durakları: "detay" türündeki gerçek fotoğraflar (merkezden yakınlaşıp merkeze geri çekilir)
+      const kullanilan = new Set([...dis.map((d) => d.foto), fotolar.indexOf(icFoto) + 1]);
+      const detayPlani = new Map((Array.isArray(plan.detay) ? plan.detay : []).filter((d) => Number.isInteger(d?.foto)).map((d) => [d.foto, d]));
+      const detaylar = fotoBilgi.filter((f) => f.tur === "detay" && !kullanilan.has(f.no)).slice(0, 3);
+      for (const [i, f] of detaylar.entries()) {
+        const d = detayPlani.get(f.no) ?? {};
+        const ad = `r${i + 1}`;
+        const t = await gercek(ad, fotolar[f.no - 1], "Continue the same surface and material around this close-up.");
+        bulunan.push({ kol: { baslik: kisalt(d.baslik, 60) || "Yakından", bakislar: d.bakislar }, ad, kirp: CAPRAZ, t });
+      }
+
       const merkezBakis = temizle(plan.merkez.bakislar);
-      if (bulunan.length) merkezBakis.push({ u: "Gezi", b: `${bulunan.length} doğrulanmış ayrıntı`, m: `${bulunan.map((x) => kisalt(x.kol.baslik, 30)).join(", ")}; her birinden sonra bu noktaya döneceğiz.`, k: "" });
+      if (bulunan.length) merkezBakis.push({ u: "Gezi", b: `${bulunan.length} ayrıntı`, m: `${bulunan.map((x) => kisalt(x.kol.baslik, 30)).join(", ")}; her birinden sonra bu noktaya döneceğiz.`, k: "" });
       else merkezBakis.push({ u: "Kaynak notu", b: "Burada duruyoruz", m: "Bu eserin kaynaklarında fotoğraftaki ayrıntılarla güvenle eşleştirilebilecek başka bir öğe bulunmadı.", k: "" });
       kareler.at(-1).p = CAPRAZ;
       if (bulunan.length) {
         bulunan.forEach((b, i) => {
-          kareler.push({ g: "m", t: "canlandirma", p: b.kirp, b: i === 0 ? kisalt(plan.merkez.baslik, 60) || "İçeride" : `Şimdi: ${kisalt(b.kol.baslik, 45)}`, k: i === 0 ? merkezBakis : undefined });
+          kareler.push({ g: "m", t: merkezTuru, p: b.kirp, b: i === 0 ? kisalt(plan.merkez.baslik, 60) || "İçeride" : `Şimdi: ${kisalt(b.kol.baslik, 45)}`, k: i === 0 ? merkezBakis : undefined });
           const kb = temizle(b.kol.bakislar);
-          if (kb[0] && !kb[0].nerede) kb[0].n = [0.5, 0.5];
-          kareler.push({ g: b.ad, t: "canlandirma", c: b.kirp, b: kisalt(b.kol.baslik, 60), k: kb });
+          if (kb[0] && !kb[0].nerede && !b.t) kb[0].n = [0.5, 0.5];
+          kareler.push({ g: b.ad, t: b.t ?? "canlandirma", c: b.kirp, b: kisalt(b.kol.baslik, 60), k: kb });
         });
-        kareler.push({ g: "m", t: "canlandirma", p: CAPRAZ, b: "" });
-      } else kareler.push({ g: "m", t: "canlandirma", p: CAPRAZ, b: kisalt(plan.merkez.baslik, 60) || "Eserin merkezinde", k: merkezBakis });
+        kareler.push({ g: "m", t: merkezTuru, p: CAPRAZ, b: "" });
+      } else kareler.push({ g: "m", t: merkezTuru, p: CAPRAZ, b: kisalt(plan.merkez.baslik, 60) || "Eserin merkezinde", k: merkezBakis });
 
       // Planın atladığı envanter cümleleri: tarihçenin tamamı gezide anlatılsın.
       const eklenen = eksikCumleleriEkle(kareler, envanter, kanitlar, eser.kaynak);
@@ -569,7 +658,17 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
       }
       for (const kare of kareler) for (const b of kare.k ?? []) delete b.nerede;
 
-      // Çıkış: gökyüzüne
+      // Çıkış: girilen yoldan dışarı (kamera her karede geri çekilir), sonra gökyüzüne
+      const sonUydu = kareler.find((k) => k.t === "uydu" && k.g === uydular.at(-1)?.ad);
+      if (yol.length) {
+        const merkezSon = kareler.at(-1);
+        delete merkezSon.p;
+        merkezSon.c = yol.at(-1).p;
+        for (let j = yol.length - 1; j >= 0; j--) {
+          const c = j > 0 ? yol[j - 1].p : sonUydu?.p;
+          kareler.push({ g: yol[j].g, t: yol[j].t, ...(c ? { c } : { p: CAPRAZ }), b: j === yol.length - 1 ? "Dışarı çıkarken" : "" });
+        }
+      }
       if (uydular.length) {
         const ters = [...uydular].reverse();
         ters.forEach((k, i) => kareler.push({ g: k.ad, t: "uydu", u: [hedef.lat, hedef.lng, k.uydu.z, 1], c: ters[i + 1] ? u.uyduPortal(ters[i + 1].uydu, k.uydu) : undefined, b: i === 0 ? "Gökyüzüne" : "" }));
@@ -577,6 +676,7 @@ export function dalisKalfasiKur({ kok, eserler, iliskiler = [], dalisDizini = pa
 
       // 7. Kayıt
       yaz(is, "Dalış kaydediliyor (onay bekliyor)…", 7);
+      if (!kareler.at(-1).u) delete kareler.at(-1).p; // son karenin geçeceği kare yok
       for (const k of kareler) for (const a of Object.keys(k)) if (k[a] === undefined || (Array.isArray(k[a]) && !k[a].length && a === "k")) delete k[a];
       const tanim = {
         eser: eser.id, ozet: kisalt(plan.ozet, 160) || `${eser.ad} gezisi`, hedef, durum: "bekliyor", kaynak: "kalfa",

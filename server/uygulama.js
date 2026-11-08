@@ -951,7 +951,10 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       try { await atolye.getir(sahip, oturum); } catch (h) { return rep.code(h.kod ?? 500).send({ hata: h.message }); }
     }
     try {
-      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz, korunanlar: admin ? ["onayli"] : ["onayli", "bekliyor"] });
+      // Sohbet hafızası: oturumdaki önceki dalış turlarının kısa özeti; iş bitince sonucu oturuma yazılır.
+      const baglam = oturum != null ? await atolye.dalisBaglami(sahip, oturum).catch(() => null) : null;
+      const bitince = oturum != null ? (sonuc) => atolye.dalisBitir(sahip, oturum, sonuc).catch((h) => req.log.warn(h, "dalış sonucu oturuma yazılamadı")) : null;
+      const is = dalisKalfasi.baslat({ istek: istek ?? "", eserId: eser ?? null, uzerineYaz: !!uzerineYaz, korunanlar: admin ? ["onayli"] : ["onayli", "bekliyor"], baglam, bitince });
       // Studio sayfası yenilense de dalışın ilerlemesi sohbetten yeniden izlenebilsin.
       if (oturum != null) await atolye.dalisEkle(sahip, oturum, { istek: istek || eser, is: is.id }).catch((h) => req.log.warn(h, "dalış oturuma yazılamadı"));
       return { is: is.id };
@@ -962,8 +965,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.get("/api/dalis-kalfasi/:id", async (req, rep) => {
     const is = dalisKalfasi.is(req.params.id);
     if (!is) return rep.code(404).send({ hata: "iş bulunamadı" });
-    const { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc } = is;
-    return { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc };
+    const { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc, yanit } = is;
+    return { id, istek, eser, ad, durum, adim, toplamAdim, gunluk, hata, sonuc, yanit };
   });
 
   // Kalfanın ürettiği kodlar: sha256 özeti → { model, tarih }. POST /api/moduller gelen kodu burada bulursa

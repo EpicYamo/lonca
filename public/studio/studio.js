@@ -230,7 +230,8 @@ $("#dalis-oneriler").addEventListener("click", (e) => { const b = e.target.close
 // ---------- Öneri düğmeleri ----------
 // Modül kipinde kalfa her yanıtla 2–3 yeni öneri verir (yanıt vermezse sunucu konuşmaya göre yapay zekâya ayrıca
 // sordurur). Boş sohbetteki örnek fikirler her açılışta bilgi bankasından kurulur; index.html'dekiler yalnızca yedektir.
-// Dalış kipinde öneriler sunucudan (bilgi bankasındaki eserlerden) gelir ve her dalış isteğinden sonra yenilenir.
+// Dalış kipinde öneriler sunucudan (bilgi bankasındaki eserlerden) gelir ve yalnızca sohbet boşken görünür: usta ilk
+// mesajını yazınca kalkar, dalış kalfası sohbeti hatırladığı için sonraki istekler öneri gerektirmez.
 const ILK_ONERILER = [...document.querySelectorAll("#oneriler button")].map((b) => b.textContent);
 let kalfaOnerileri = null; // null: sohbet boş, örnek fikirler gösterilir
 let ilkOneriler = ILK_ONERILER;
@@ -252,8 +253,9 @@ function onerileriGoster() {
   // Sohbet başladıktan sonra kalfanın kısa önerileri yan yana küçük düğmeler olarak durur (mesajlara yer kalsın).
   $("#oneriler").classList.toggle("kompakt", kalfaOnerileri !== null);
   $("#oneriler").hidden = kip !== "modul" || !liste.length;
-  $("#dalis-oneriler").hidden = kip !== "dalis" || !$("#dalis-oneriler").children.length;
+  $("#dalis-oneriler").hidden = kip !== "dalis" || sohbetBasladi() || !$("#dalis-oneriler").children.length;
 }
+const sohbetBasladi = () => !!$("#mesajlar .mesaj.usta");
 function kalfaOnerileriniAyarla(liste) {
   kalfaOnerileri = Array.isArray(liste) ? liste : null;
   onerileriGoster();
@@ -279,7 +281,8 @@ function dalisKutusu() {
   return { li, cubuk, gunluk, baslik };
 }
 // Dalış işini sunucudan izler. geriYukleme: sayfa yenilendikten sonra oturumdan açılan eski bir dalış (önizleme kendiliğinden açılmaz).
-async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = false, bu = oturumSurumu } = {}) {
+// kayit: oturumdaki kısa sonuç (atolye dalisSonuc); iş sunucuda artık yoksa o gösterilir.
+async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = false, bu = oturumSurumu, kayit = null } = {}) {
   let goruldu = 0, durum;
   try {
     while (true) {
@@ -295,6 +298,8 @@ async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = fals
     }
   } catch (h) {
     if (geriYukleme && /bulunamadı/.test(h.message)) {
+      li.querySelector(".dalis-ilerleme")?.remove();
+      if (kayit?.yanit) { baslik.textContent = kayit.yanit; li.classList.toggle("hata", kayit.durum === "hata"); return; }
       baslik.textContent = "Bu dalış işinin kaydı sunucuda artık yok (sunucu yeniden başlamış olabilir). Sonucuna Dalışlar sayfasından bakabilirsin.";
       return;
     }
@@ -307,11 +312,17 @@ async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = fals
     baslik.textContent = durum.hata;
     return;
   }
+  // Kalfa dalış başlatmadı, sohbet yanıtı verdi (soru, eksik bilgi): düz bir kalfa mesajı gibi görünür.
+  if (durum.durum === "yanit") {
+    li.querySelector(".dalis-ilerleme")?.remove();
+    baslik.textContent = durum.yanit;
+    return;
+  }
   cubuk.firstChild.style.width = "100%";
   baslik.textContent = yoneticiMi()
     ? `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; kartları kontrol edip yayınla.`
     : `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; admin kartları kontrol edip onaylayınca yayına girer.`;
-  if (!geriYukleme && durum.eser) { dalisIstenenler.push(durum.eser); dalisOnerileriniYenile(); }
+  if (!geriYukleme && durum.eser) dalisIstenenler.push(durum.eser);
   const onizleDugme = el("button", { type: "button", className: "ikincil", textContent: "Önizle" });
   const yayinla = el("button", { type: "button", className: "birincil yalniz-admin", textContent: "Yayınla" });
   onizleDugme.addEventListener("click", () => dalisOnizle());
@@ -327,6 +338,7 @@ async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = fals
 async function dalisGonder(metin) {
   if (dalisOneriEserleri.has(metin)) dalisIstenenler.push(dalisOneriEserleri.get(metin));
   mesajEkle("usta", metin);
+  onerileriGoster(); // sohbet başladı: öneri düğmeleri kalkar
   $("#istek").value = "";
   $("#gonder").disabled = true;
   const kutu = dalisKutusu();
@@ -335,13 +347,11 @@ async function dalisGonder(metin) {
   try {
     const oturum = await oturumGerekli();
     const { is } = await yApi("/api/dalis-kalfasi", { method: "POST", govde: { istek: metin, oturum } });
-    dalisOnerileriniYenile(); // gönderilen öneri listede takılı kalmasın
     await dalisIzle(is, kutu, { bu });
     return;
   } catch (h) {
     kutu.li.classList.add("hata");
     kutu.baslik.textContent = h.message;
-    dalisOnerileriniYenile(); // istek başarısız olsa da öneriler yenilenir
   } finally {
     if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
     $("#istek").focus();
@@ -953,7 +963,7 @@ async function oturumuAc(id) {
   sahneDurum(null);
   izinDurumlari = new Map((o.kalfaDurumu?.izinler ?? []).map((i) => [i.id, i]));
   for (const m of o.mesajlar) {
-    if (m.dalis) dalisIzle(m.dalis, dalisKutusu(), { geriYukleme: true, bu });
+    if (m.dalis) dalisIzle(m.dalis, dalisKutusu(), { geriYukleme: true, bu, kayit: m.dalisSonuc });
     else mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar, izin: m.ek?.izin, eserIstegi: m.ek?.eserIstegi });
   }
   kalfaOnerileriniAyarla(o.mesajlar.length ? sonOneriler(o.mesajlar) : null);

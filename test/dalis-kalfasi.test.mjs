@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { bakislariTemizle, kaynakKaniti, cumleler, eksikCumleleriEkle } from "../server/dalis-kalfasi.js";
+import { bakislariTemizle, kaynakKaniti, cumleler, eksikCumleleriEkle, baglamMetni } from "../server/dalis-kalfasi.js";
 
 const envanter = "Külliye, Çelebi Mehmed tarafından 1414-1419 arasında inşa edildi. Avlunun batısında bir medrese bulunur.";
 const vikipedi = "Yapı, Bursa'daki tarihî çarşı bölgesinde yer alır.";
@@ -59,4 +59,14 @@ test("planın kullanmadığı envanter cümleleri duraklara aynen eklenir, uydu 
   assert.equal(kart.m, "Avlunun batısında bir medrese bulunur.");
   assert.equal(kart.k, "E");
   assert.equal(kart.ky, "Cilt 2, s. 370");
+});
+
+test("sohbet bağlamı kısa özettir: son turlar ve son konuşulan eser", () => {
+  assert.equal(baglamMetni(null), "");
+  const turlar = Array.from({ length: 9 }, (_, i) => ({ istek: `istek ${i}`, yanit: `yanıt ${i}` }));
+  const metin = baglamMetni({ turlar, sonEser: { id: "bursa-x", ad: "X Haziresi", odak: "uzaydan başlasın" } });
+  assert.ok(!metin.includes("istek 2"), "yalnızca son 6 tur gider");
+  assert.ok(metin.includes('Usta: "istek 8" → Kalfa: yanıt 8'));
+  assert.ok(metin.includes("bursa-x (X Haziresi)"));
+  assert.ok(metin.includes("uzaydan başlasın"));
 });
