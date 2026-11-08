@@ -30,16 +30,6 @@ function kapak(el, tl) {
   gsap.to($(el, ".kapak-logo"), { y: -10, duration: 2.4, ease: "sine.inOut", yoyo: true, repeat: -1, delay: 2 });
 }
 
-// ── 2 · Künye: dört kart sırayla açılır ─────────────────────────────────────────────────────────
-function ekip(el, tl) {
-  const kartlar = $$(el, ".kunye-kart");
-  tl.from(kartlar, { y: 140, opacity: 0, rotateX: -35, transformOrigin: "50% 100%", stagger: 0.15, duration: 1, ease: "power4.out" }, 0.4)
-    .from($$(el, ".kk-ikon"), { scale: 0, rotate: -30, stagger: 0.15, duration: 0.7, ease: "back.out(2)" }, 0.8)
-    .from($$(el, ".kunye-kart strong"), { y: 30, opacity: 0, stagger: 0.15, duration: 0.6, ease: "power3.out" }, 1)
-    .from($$(el, ".kunye-kart small"), { opacity: 0, stagger: 0.15, duration: 0.5 }, 1.3);
-  kartlar.forEach((k, i) => gsap.to($(k, ".kk-ikon"), { y: -10, duration: 1.8 + i * 0.2, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 2 }));
-}
-
 // ── 3 · Problem: her zorluk kendi sahnesinde gösterilir, sonra Lonca'nın cevabına dönüşür ─────────
 // Sağdaki listede bir satıra tıklanınca o zorluğun sahnesine gidilir (sunum sırasında geri dönmek için).
 const PROBLEM_SAHNE = [
@@ -190,7 +180,28 @@ function deger(el, tl) {
 }
 
 // ── 4 · Çözüm: modül paketi Studio'dan çıkar, platformda damgalanır, uygulamada belirir ───────────
+// Her turda sıradaki gerçek modül çıkar. Sıra, telefondaki ilk üç modülün (Eser Keşfi, Vakıf Dalışları,
+// Payitaht Atlası) devamıdır: 7 modül, 4 satırlık listede hiç tekrar etmez.
+const CIKAN_MODULLER = [
+  { ad: "Hanlarda Hazine Avı", renk: "#e2338a" },
+  { ad: "Türbe Dedektifi", renk: "#7a5cd6" },
+  { ad: "Bursa Pusulası", renk: "#e07a2f" },
+  { ad: "Sisli Vakıf Haritası", renk: "#5b6f8f" },
+  { ad: "Payitaht Atlası", renk: "#e6c477" },
+  { ad: "Vakıf Dalışları", renk: "#1f3a93" },
+  { ad: "Eser Keşfi", renk: "#2bb3ad" },
+];
+const ILK_LISTE = new WeakMap();
 function cozum(el, tl) {
+  // Sayfaya her dönüşte telefon listesi ve paket ilk haline döner.
+  const liste = $(el, ".mini-liste");
+  const paketAd = $(el, ".paket span");
+  if (!ILK_LISTE.has(liste)) ILK_LISTE.set(liste, liste.innerHTML);
+  liste.innerHTML = ILK_LISTE.get(liste);
+  let cikanSira = 0;
+  paketAd.textContent = CIKAN_MODULLER[0].ad;
+  const paketRenk = $(el, ".paket i");
+  paketRenk.style.background = CIKAN_MODULLER[0].renk;
   const ist = $$(el, ".istasyon");
   tl.from(ist, { y: 60, opacity: 0, stagger: 0.2, duration: 0.8, ease: "power3.out" }, 0.3)
     .from($(el, ".hat-yol path"), { drawSVG: "0%", duration: 1.2, ease: "power2.inOut" }, 0.8)
@@ -208,10 +219,16 @@ function cozum(el, tl) {
     .to($(el, ".ist-ikon .kivilcim"), { rotate: 180, scale: 1.3, duration: 0.6, yoyo: true, repeat: 1 }, 0)
     .to(paket, { scale: 0.3, opacity: 0, duration: 0.4 }, 4.1)
     .add(() => {
-      const liste = $(el, ".mini-liste");
+      const { ad, renk } = CIKAN_MODULLER[cikanSira % CIKAN_MODULLER.length];
+      cikanSira++;
+      // Bir sonraki turda yola çıkacak paketin adı şimdiden yazılır (paket şu an görünmüyor).
+      paketAd.textContent = CIKAN_MODULLER[cikanSira % CIKAN_MODULLER.length].ad;
+      paketRenk.style.background = CIKAN_MODULLER[cikanSira % CIKAN_MODULLER.length].renk;
+      for (const m of liste.querySelectorAll(".yeni")) m.classList.remove("yeni");
       const yeni = document.createElement("div");
       yeni.className = "mini-modul yeni";
-      yeni.innerHTML = "<i></i><span>Hanlarda Hazine Avı</span>";
+      yeni.innerHTML = `<i style="background:${renk}"></i><span></span>`;
+      yeni.querySelector("span").textContent = ad;
       liste.prepend(yeni);
       while (liste.children.length > 4) liste.lastElementChild.remove();
       gsap.from(yeni, { height: 0, opacity: 0, scale: 0.6, duration: 0.6, ease: "back.out(2)" });
@@ -746,7 +763,44 @@ function gelecek(el, tl) {
     .from($(ucb, ".api"), { x: 60, opacity: 0, duration: 0.5 }, 4.9);
 }
 
-// ── 17 · Kapanış: ekip önde, "Teşekkürler" arkada; fare hareketiyle hafif derinlik ───────────────
+// ── 16 · Akademik kullanım: eser kaydından dört yola veri akar, her satır kendi işini gösterir ─
+function akademik(el, tl) {
+  const yollar = $$(el, ".ak-yollar path");
+  const noktalar = $$(el, ".ak-nokta");
+  const satirlar = $$(el, ".ak-satir");
+  tl.from($(el, ".ak-kayit"), { x: -80, rotate: -4, opacity: 0, duration: 0.8, ease: "power3.out" }, 0.4)
+    .from($$(el, ".ak-kayit dt, .ak-kayit dd"), { x: -20, opacity: 0, stagger: 0.06, duration: 0.35 }, 0.9)
+    .from(yollar, { drawSVG: 0, stagger: 0.15, duration: 0.6, ease: "power1.inOut" }, 1.3)
+    .from(satirlar, { x: 80, opacity: 0, stagger: 0.25, duration: 0.6, ease: "power3.out" }, 1.5);
+  // Altın noktalar kayıttan her satıra sürekli veri taşır
+  noktalar.forEach((n, i) => {
+    gsap.timeline({ repeat: -1, repeatDelay: 1.2, delay: 2.4 + i * 0.35 })
+      .set(n, { opacity: 1, scale: 1 })
+      .to(n, { duration: 1, ease: "power1.inOut", motionPath: { path: yollar[i], align: yollar[i], alignOrigin: [0.5, 0.5] } })
+      .to(n, { opacity: 0, scale: 2, duration: 0.3 })
+      .to(satirlar[i], { borderColor: "rgba(230,196,119,.8)", duration: 0.2, yoyo: true, repeat: 1 }, "<");
+  });
+  // Atıf: metin yazılır gibi belirir
+  const atif = new window.SplitText($(el, ".atif-metin"), { type: "words,chars" });
+  tl.from(atif.chars, { opacity: 0, stagger: 0.025, duration: 0.01 }, 2);
+  // API: istek gider, yanıt gelir (döngü)
+  gsap.timeline({ repeat: -1, repeatDelay: 1.4, delay: 2.4 })
+    .fromTo($(el, ".istek"), { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.4 })
+    .fromTo($(el, ".yanit"), { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: "back.out(2.5)" }, "+=0.5")
+    .to($$(el, ".istek, .yanit"), { opacity: 0, duration: 0.3 }, "+=1.6");
+  // Ders: öğrenci ilerlemeleri dolar
+  gsap.timeline({ repeat: -1, repeatDelay: 0.8, delay: 2.8 })
+    .fromTo($$(el, ".ders-cubuk i"), { "--d": "0%" }, { "--d": (i) => ["100%", "75%", "90%"][i], stagger: 0.3, duration: 1.4, ease: "power1.inOut" })
+    .to($$(el, ".ders-cubuk i"), { backgroundColor: "#3fd497", duration: 0.3 }, ">-0.2")
+    .to($$(el, ".ders-cubuk i"), { backgroundColor: "#8fb4ff", duration: 0.3 }, "+=1.2");
+  // Analiz: sütunlar yükselir, sonra canlı veri gibi dalgalanır
+  const sutun = $$(el, ".sutunlar i");
+  tl.from(sutun, { scaleY: 0, stagger: 0.08, duration: 0.6, ease: "back.out(1.6)" }, 2.6);
+  gsap.to(sutun, { scaleY: () => gsap.utils.random(0.25, 1), duration: 0.9, ease: "sine.inOut", repeat: -1, repeatRefresh: true, stagger: 0.08, delay: 3.6 });
+  tl.from($$(el, ".ak-serit span"), { y: 30, opacity: 0, stagger: 0.15, duration: 0.5, ease: "back.out(1.8)" }, 3.2);
+}
+
+// ── 18 · Kapanış: ekip önde, "Teşekkürler" arkada; fare hareketiyle hafif derinlik ───────────────
 function kapanis(el, tl) {
   const dev = $(el, ".kapanis-dev");
   const uyeler = $$(el, ".uye");
@@ -775,4 +829,4 @@ function kapanis(el, tl) {
   };
 }
 
-export const SAHNELER = [kapak, ekip, problem, deger, cozum, vizyon, veri, ux, moduller, dalis, kalfa, erisim, mimari, olcek, guven, gelecek, kapanis];
+export const SAHNELER = [kapak, problem, deger, cozum, vizyon, veri, ux, moduller, dalis, kalfa, erisim, mimari, olcek, guven, gelecek, akademik, kapanis];
