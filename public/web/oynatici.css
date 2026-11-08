@@ -23,14 +23,18 @@ html.gomulu { --oy-kenar: clamp(16px, 4vw, 64px); }
   html.gomulu .s-kapak-alt { max-width: 46ch; font-size: 1.15rem; line-height: 1.6; }
   html.gomulu .s-kapak-dugmeler { flex-direction: row; flex-wrap: wrap; max-width: 640px; }
   html.gomulu .s-kapak-dugmeler > * { flex: 1 1 260px; }
+  html.gomulu .s-kapak-dugmeler > .s-satir { flex-basis: 100%; }
+  html.gomulu .s-kapak-dugmeler .s-satir > .s-dugme { flex: 1 1 0; white-space: nowrap; }
 
   /* Afiş: tam genişlik bant */
-  html.gomulu .s-afis { min-height: 34dvh; margin-inline: calc(var(--oy-kenar) * -1); padding: 2.4rem var(--oy-kenar); }
+  html.gomulu .s-afis { min-height: 34dvh; margin-inline: calc(var(--oy-kenar) * -1); padding: 2.4rem var(--oy-kenar); width: calc(100% + 2 * var(--oy-kenar)); max-width: none; }
+  /* Kartın, ızgaranın ya da satırın içindeki afiş kenara taşmaz: kendi kutusunu doldurur. */
+  html.gomulu :is(.s-kart, .s-izgara, .s-satir, .s-kapak-dugmeler) .s-afis { min-height: 220px; margin: 0; width: auto; padding: 1.6rem 1.4rem; }
   html.gomulu .s-afis-baslik { font-size: clamp(2.4rem, 4vw, 3.8rem); }
   html.gomulu .s-afis-alt { max-width: 60ch; font-size: 1.1rem; }
 
   /* Üst çubuk kenardan kenara */
-  html.gomulu .s-ust-cubuk { margin-inline: calc(var(--oy-kenar) * -1); padding-left: var(--oy-kenar); }
+  html.gomulu .s-ust-cubuk { margin-inline: calc(var(--oy-kenar) * -1); padding-left: var(--oy-kenar); width: calc(100% + 2 * var(--oy-kenar)); max-width: none; }
   html.gomulu .s-ust-metin strong { font-size: 1.5rem; }
 
   /* Sütun içeriği: düğmeler kendi genişliğinde, metin okunur satır boyunda */
