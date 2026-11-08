@@ -2,14 +2,14 @@
  {
   "id": "bursa-pusulasi",
   "ad": "Bursa Pusulası",
-  "aciklama": "Keşfet, yakınındaki eserleri bul, yarış ve koleksiyonunu büyüt: Bursa vakıf eserlerinin rehberi.",
+  "aciklama": "Bursa'yı yürüyüş rotalarıyla gez: Hanlar ve Çarşı'dan Muradiye'ye, Yeşil'den İznik'e 8 rota, durak durak fotoğraf, tarihçe ve sonraki durağa uzaklık. Yakınındakileri bul, gördüklerini defterine işle.",
   "izinler": [
    "konum"
   ],
   "renk": "altin",
   "durum": "onayli",
   "olusturma": "2026-10-24T22:21:58.609Z",
-  "guncelleme": "2026-10-24T22:21:58.609Z",
+  "guncelleme": "2026-11-08T07:00:00.000Z",
   "yayin": "2026-10-24T22:21:58.609Z",
   "kategori": "rehber",
   "kapakEser": "bursa-ulucami"
@@ -17,25 +17,25 @@
  {
   "id": "payitaht-atlasi",
   "ad": "Payitaht Atlası",
-  "aciklama": "Bursa'nın vakıf şaheserlerini 3B kuşbakışı uçuş, canlı harita atlası ve mimari imtihanla keşfet.",
+  "aciklama": "Konya'dan Bursa'ya vakıf eserlerini yüzyıl yüzyıl gez: her yüzyıl bir bölüm, haritada şehir şehir eserler, tarihçelerden başkent tanıklıkları ve yüzyıl sınavı.",
   "izinler": [],
   "renk": "altin",
   "ikon": "cami",
   "kategori": "gezi",
   "durum": "onayli",
   "olusturma": "2026-10-24T23:30:18.953Z",
-  "guncelleme": "2026-10-24T23:30:23.035Z",
+  "guncelleme": "2026-11-08T07:00:00.000Z",
   "yayin": "2026-10-24T23:30:23.035Z"
  },
  {
   "id": "sisli-vakif-haritasi",
   "ad": "Sisli Vakıf Atlası",
-  "aciklama": "Bursa'nın vakıf eserlerini ilçe ilçe karanlık bir atlas gibi keşfet; ilçeleri aç, kaynaklı tarihsel bağları ve bağ ağlarını gör.",
+  "aciklama": "Harita sisle örtülü: keşfettiğin her eser çevresini aydınlatır. Komşu yapıları ve kaynaklı tarihsel bağları izleyerek Bursa, Konya ve Hatay atlasını aç, ilçeleri tamamla.",
   "izinler": [],
   "kategori": "gezi",
   "durum": "onayli",
   "olusturma": "2026-10-26T16:31:59.583Z",
-  "guncelleme": "2026-10-26T19:15:20.555Z",
+  "guncelleme": "2026-11-08T07:00:00.000Z",
   "yayin": "2026-10-26T16:32:06.411Z",
   "renk": "firuze",
   "ikon": "cami",
@@ -58,7 +58,7 @@
  {
   "id": "eser-kesfi",
   "ad": "Eser Keşfi",
-  "aciklama": "Bursa'nın vakıf eserlerini tek yerde keşfet: harita, yakınındakiler, tarihçe, fotoğraflar, kaynaklar ve kaynaklı tarihsel bağlar.",
+  "aciklama": "Bütün vakıf eserlerinin cep ansiklopedisi: il → ilçe → eser diye in, türe göre süz, adla ya da tarihçede geçen kelimeyle ara, kaynaklı tarihsel bağları konu konu gez.",
   "izinler": [
    "konum"
   ],
@@ -67,33 +67,33 @@
   "kategori": "rehber",
   "durum": "onayli",
   "olusturma": "2026-11-07T09:00:00.000Z",
-  "guncelleme": "2026-11-07T09:00:00.000Z",
+  "guncelleme": "2026-11-08T07:00:00.000Z",
   "yayin": "2026-11-07T09:00:00.000Z",
   "kapakEser": "bursa-ulucami"
  },
  {
   "id": "hanlarda-hazine-avi",
   "ad": "Hanlarda Hazine Avı",
-  "aciklama": "Çocuklar için süreli hazine avı: fotoğraftaki Bursa hanını bul, altınları sandığına doldur, rozetleri topla.",
+  "aciklama": "Çocuklar için kervan yolculuğu: her menzilde fotoğraftaki hanı bil, ipuçlarıyla altın kazan, sandığını doldur ve han defterini tamamla. Üç zorluk: Çırak, Kalfa, Usta.",
   "izinler": [],
   "renk": "altin",
   "ikon": "han",
   "kategori": "oyun",
   "durum": "bekliyor",
   "olusturma": "2026-11-07T09:00:00.000Z",
-  "guncelleme": "2026-11-07T09:00:00.000Z",
+  "guncelleme": "2026-11-08T07:00:00.000Z",
   "kapakEser": "bursa-koza-hani"
  },
  {
   "id": "turbe-dedektifi",
   "ad": "Türbe Dedektifi",
-  "aciklama": "Bursa türbelerini fotoğraflarından incele, hangi yüzyılda yapıldıklarını süre dolmadan bul.",
+  "aciklama": "Her türbe bir dosya: fotoğrafa bak, karartılmış tanık ifadelerini, mimari izi ve komşu yapıları aç; sonra hükmünü ver, türbe hangi yüzyılda yapıldı?",
   "izinler": [],
   "renk": "murdum",
   "ikon": "turbe",
   "kategori": "oyun",
   "durum": "bekliyor",
   "olusturma": "2026-11-07T09:00:00.000Z",
-  "guncelleme": "2026-11-07T09:00:00.000Z"
+  "guncelleme": "2026-11-08T07:00:00.000Z"
  }
 ]

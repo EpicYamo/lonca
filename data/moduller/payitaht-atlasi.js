@@ -1,556 +1,432 @@
 import { sahne, ekran, eserler, basarim, profil, depo } from "@lonca/sdk";
 
+// Payitaht Atlası: Selçuklu başkenti Konya'dan Osmanlı'nın ilk başkenti Bursa'ya, vakıf eserlerini yüzyıl yüzyıl gezdiren atlas.
+// Her yüzyıl bir bölümdür: o yüzyılda yapılmış eserler haritada, şehirlere ve türlere göre sayılarıyla görünür.
+// "Başkent tanıklıkları" eser kayıtlarındaki tarihçelerden aynen alınır, kaynağıyla gösterilir. Yüzyıl yalnızca yapım tarihinden gelir.
+
+const SEKMELER = [
+  { id: "yuzyillar", ad: "Yüzyıllar", ikon: "zaman" },
+  { id: "sehirler", ad: "Şehirler", ikon: "harita" },
+  { id: "sina", ad: "Sına", ikon: "soru" },
+];
+
+const TUR_ADI = { cami: "Cami", mescit: "Mescit", medrese: "Medrese", han: "Han", hamam: "Hamam", cesme: "Çeşme", turbe: "Türbe",
+  kulliye: "Külliye", imaret: "İmaret", kopru: "Köprü", tekke: "Tekke", hazire: "Hazire", carsi: "Çarşı", kutuphane: "Kütüphane", sivil: "Sivil mimari", diger: "Diğer" };
+const TUR_COGUL = { cami: "cami", mescit: "mescit", medrese: "medrese", han: "han", hamam: "hamam", cesme: "çeşme", turbe: "türbe",
+  kulliye: "külliye", imaret: "imaret", kopru: "köprü", tekke: "tekke", hazire: "hazire", carsi: "çarşı", kutuphane: "kütüphane", sivil: "sivil yapı", diger: "diğer yapı" };
+const ROMA = { 11: "XI", 12: "XII", 13: "XIII", 14: "XIV", 15: "XV", 16: "XVI", 17: "XVII", 18: "XVIII", 19: "XIX", 20: "XX", 21: "XXI" };
+const SEHIR_RENK = { Bursa: "altin", Konya: "firuze", Hatay: "mercan" };
 
 const BASARIMLAR = [
-  { id: "ilk-adim", ad: "İlk Adım", aciklama: "Payitahtın ilk anıt eserini seyyah defterine kaydet." },
-  { id: "gok-seyyahi", ad: "Gök Seyyahı", aciklama: "Bir vakıf eserini gerçek 3B uçuşla gökyüzünden süzülerek incele." },
-  { id: "haritaci", ad: "Şehir Haritacısı", aciklama: "Canlı harita atlasından 5 farklı eseri keşfet." },
-  { id: "mimar-gozu", ad: "Mimarın Gözü", aciklama: "Mimari İmtihan'da art arda 3 doğru cevap vererek seri yakala." },
-  { id: "bursa-piri", ad: "Bursa Pîri", aciklama: "Toplam 10 eseri inceleyip seyyah defterini zenginleştir." },
+  { id: "ilk-bolum", ad: "Yolculuk Başladı", aciklama: "Bir yüzyıl bölümünü aç." },
+  { id: "bes-bolum", ad: "Zaman Gezgini", aciklama: "Beş farklı yüzyılı gez." },
+  { id: "uc-sehir", ad: "Üç Başkent", aciklama: "Bursa, Konya ve Hatay sayfalarını aç." },
+  { id: "tanik", ad: "Tanık", aciklama: "Bir başkent tanıklığının eserine git." },
+  { id: "sina-6", ad: "Yüzyıl Bilgini", aciklama: "Sınavda 8 sorudan en az 6'sını bil." },
+  { id: "sina-8", ad: "Müverrih", aciklama: "Sınavda 8 sorunun hepsini bil." },
 ];
-
-const LUGAT = [
-  {
-    id: "ters-t",
-    metin: "Ters T (Bursa Tipi) Plan",
-    alt: "Girişte bir hol, ortada kubbeli bir orta avlu veya şadırvan, yanlarda ise dervişlerin konakladığı tabhâne odalarından oluşan Erken Osmanlı mimarisine has cami planı.",
-  },
-  {
-    id: "mukarnas",
-    metin: "Mukarnas (Petek Dolgu)",
-    alt: "Kademeli küçük nişlerin yan yana ve üst üste dizilmesiyle oluşan, ışık-gölge oyunları sunan prizmatik İslam süsleme ve geçiş ögesi.",
-  },
-  {
-    id: "kulliye",
-    metin: "Külliye Mimarisi",
-    alt: "Cami merkezinde medrese, hamam, imaret, türbe ve darüşşifanın bir arada yer aldığı, vakıf kültürünün en kapsamlı sosyo-kültürel yerleşkesi.",
-  },
-  {
-    id: "revak",
-    metin: "Revak & Son Cemaat",
-    alt: "Üstü tonoz veya kubbelerle örtülü, önü sütun ve kemerlerle dışarıya açılan yarı açık gölgelikli geçit alanı.",
-  },
-  {
-    id: "kasnak",
-    metin: "Kubbe Kasnağı",
-    alt: "Kare veya çokgen duvar gövdesinden yuvarlak kubbe eteğine geçişi sağlayan ve pencereleriyle ana mekana ışık taşıyan yüksek kuşak.",
-  },
-];
+const SORU_SAYISI = 8;
+const ADRES_DESENI = /(Caddesi|Sokak|Sokağı|Mahallesi|No:|yer almaktadır|bulunmaktadır|konumlanmaktadır)/;
 
 export default async function basla() {
-  const tumEserler = await eserler.liste({ il: "Bursa" });
-  const konumluEserler = tumEserler.filter((e) => e.konum);
-  const fotoluEserler = tumEserler.filter((e) => e.fotograflar && e.fotograflar.length > 0);
-
+  // ---------- Veri ----------
+  const hepsi = await eserler.liste({});
+  const kimlikle = new Map(hepsi.map((e) => [e.id, e]));
+  const tarihli = hepsi.filter((e) => e.yuzyil);
+  const yuzyillar = [...new Set(tarihli.map((e) => e.yuzyil))].sort((a, b) => a - b);
+  const sehirler = [...new Set(hepsi.map((e) => e.il))].sort((a, b) => hepsi.filter((e) => e.il === b).length - hepsi.filter((e) => e.il === a).length);
+  const tanikliklar = taniklikBul(hepsi);
   await basarim.tanimla(BASARIMLAR);
 
-  const incelenenler = new Set((await depo.oku("incelenen_eserler")) ?? []);
-  let enYuksekSkor = (await depo.oku("rekor_skor")) ?? 0;
-  let rozetler = await basarim.liste();
+  const gezilen = new Set((await depo.oku("gezilen")) ?? []);
+  const sehirAcilan = new Set((await depo.oku("sehir")) ?? []);
+  let rekor = (await depo.oku("rekor")) ?? 0;
 
-  let yigin = [{ ad: "kapak" }];
-  const simdiki = () => yigin[yigin.length - 1];
-  const git = (ad, veri = {}) => yigin.push({ ad, veri });
-  const geri = () => { if (yigin.length > 1) yigin.pop(); };
-
-  let seciliTur = "hepsi";
-
-  // Mimari imtihan durumu
+  // ---------- Durum ----------
   /** @type {any} */
-  let oyun = null;
+  const d = { acildi: false, yigin: [{ ad: "yuzyillar" }], il: "hepsi", tamOku: false, sina: null, rozetler: [] };
+  const ust = () => d.yigin[d.yigin.length - 1];
+  const git = (ad, ek = {}) => { d.tamOku = false; d.yigin.push({ ad, ...ek }); };
 
-  await sahne.ayarla({
-    baslik: "Payitaht Bursa",
-    tema: { zemin: "gece", renk: "altin", yazi: "serif" },
-  });
-
-  const ciz = () => sahne.ciz(guncelArayuz());
+  await sahne.ayarla({ baslik: "Payitaht Atlası", tema: { zemin: "parsomen", renk: "altin", yazi: "serif" } });
   await ciz();
 
   for await (const olay of sahne.olaylar()) {
-    if (olay.tur === "dokun") {
-      if (olay.id === "geri") {
-        geri();
-      } else if (olay.id === "menu-atlas") {
-        git("atlas");
-      } else if (olay.id === "menu-oyun") {
-        oyunuKur();
-        git("oyun");
-      } else if (olay.id === "menu-defter") {
-        rozetler = await basarim.liste();
-        git("defter");
-      } else if (olay.id === "menu-lugat") {
-        git("lugat");
-      } else if (olay.id === "eser-sec" && olay.eser) {
-        await eseriAc(olay.eser);
-      } else if (olay.id === "uc-gezi" && simdiki().veri?.eser) {
-        await gercek3BUcus(simdiki().veri.eser);
-      } else if (olay.id === "harita-ac-pencere") {
-        const secilen = await ekran.harita(konumluEserler, { baslik: "Bursa Vakıf Anıtları" });
-        if (secilen) await eseriAc(secilen);
-      } else if (olay.id === "galeri-ac") {
-        const secilen = await ekran.galeri(fotoluEserler.slice(0, 15), { baslik: "Bursa Şaheserleri Galerisi" });
-        if (secilen) await eseriAc(secilen);
-      } else if (olay.id === "zaman-tuneli") {
-        const yuzyilli = tumEserler.filter((e) => e.yuzyil);
-        await ekran.zaman(yuzyilli.slice(0, 20), { baslik: "Asırlar Boyu Bursa" });
-      } else if (olay.id === "hata-bildir" && simdiki().veri?.eser) {
-        await ekran.duzeltme(simdiki().veri.eser);
-      } else if (olay.id.startsWith("sik-") && oyun && !oyun.cevap) {
-        const indeks = Number(olay.id.slice(4));
-        await cevapla(indeks);
-      } else if (olay.id === "oyun-sonraki" && oyun) {
-        oyun.sira++;
-        oyun.cevap = null;
-        if (oyun.sira >= oyun.sorular.length) {
-          await oyunuBitir();
-        }
-      } else if (olay.id === "oyun-tekrar") {
-        oyunuKur();
-      }
-    } else if (olay.tur === "sec" && olay.id === "tur-filtre") {
-      seciliTur = olay.deger;
-    } else if (olay.tur === "sure" && oyun && !oyun.cevap) {
-      await cevapla(-1); 
+    try {
+      await isle(olay);
+    } catch {
+      await sahne.bildir("Bir şeyler ters gitti, tekrar dene.");
     }
-
     await ciz();
   }
 
-  // ---------- Aksiyonlar ----------
-  async function eseriAc(eser) {
-    const ucVar = await ekran.ucVarMi(eser);
-    git("detay", { eser, ucVar });
-
-    if (!incelenenler.has(eser.id)) {
-      incelenenler.add(eser.id);
-      await depo.yaz("incelenen_eserler", [...incelenenler]);
-      await profil.puanEkle(15, `Keşif: ${eser.ad}`);
+  // ======================================================================
+  // Olaylar
+  // ======================================================================
+  async function isle(olay) {
+    if (olay.tur === "sekme") return sekmeyeGec(olay.id);
+    if (olay.tur === "sec") {
+      if (olay.id === "il") d.il = olay.deger;
+      return;
     }
+    if (olay.tur !== "dokun") return;
+    const id = olay.id;
 
-    await basarim.kazan("ilk-adim");
-    if (incelenenler.size >= 5) await basarim.kazan("haritaci");
-    if (incelenenler.size >= 10) {
-      await basarim.kazan("bursa-piri");
-      await sahne.efekt("konfeti");
+    if (id === "kapak-yolculuk") { await sekmeyeGec("yuzyillar"); return bolumAc(yuzyillar[0]); }
+    if (id === "kapak-yuzyillar") return sekmeyeGec("yuzyillar");
+    if (id === "kapak-sehirler") return sekmeyeGec("sehirler");
+    if (id === "geri") { if (d.yigin.length > 1) d.yigin.pop(); d.tamOku = false; return; }
+
+    if (id.startsWith("yy-")) return bolumAc(Number(id.slice(3)));
+    if (id === "bolum-onceki" || id === "bolum-sonraki") {
+      const i = yuzyillar.indexOf(ust().yuzyil) + (id === "bolum-sonraki" ? 1 : -1);
+      if (yuzyillar[i]) { d.yigin.pop(); return bolumAc(yuzyillar[i]); }
+      return;
     }
+    if (id.startsWith("sehir-")) return sehirAc(id.slice(6));
+    if (id.startsWith("syy-")) {
+      const [il, yy] = id.slice(4).split("|");
+      d.il = il;
+      return bolumAc(Number(yy), true);
+    }
+    if (id.startsWith("tanik-")) { const e = kimlikle.get(id.slice(6)); if (e) { await basarim.kazan("tanik"); git("eser", { eser: e }); } return; }
+    if (id === "zaman") { await ekran.zaman(tarihli.filter((e) => d.il === "hepsi" || e.il === d.il).filter((e) => e.fotograflar.length).slice(0, 60), { baslik: "Zaman çizelgesi" }); return; }
+    if (id === "devam") { d.tamOku = !d.tamOku; return; }
+
+    // Sınav
+    if (id === "sina-basla") return sinaKur();
+    if (id.startsWith("cevap-")) return sinaCevap(Number(id.slice(6)));
+    if (id === "sina-sonraki") return sinaSonraki();
+
+    // Eser
+    if (id.startsWith("eser:") || (olay.eser && (id === "eser" || id.endsWith("-pin")))) {
+      const e = olay.eser ? kimlikle.get(olay.eser.id) ?? olay.eser : kimlikle.get(id.slice(5));
+      if (!e) return;
+      if (d.sina && !d.sina.bitti && ust().ad === "sina") return;
+      return git("eser", { eser: e });
+    }
+    const e = ust().eser;
+    if (!e) return;
+    if (id === "hata") { const r = await ekran.duzeltme(e); if (r?.gonderildi) await sahne.bildir("Teşekkürler, editörlere iletildi."); }
   }
 
-  async function gercek3BUcus(eser) {
-    const ucSonuc = await ekran.uc({
-      eser,
-      baslik: eser.ad,
-      duraklar: [
-        { odak: "genel", metin: `${eser.ad} ve çevresi. Kuşbakışı Bursa silüeti ve eserin şehir dokusundaki yeri.` },
-        { odak: "yakin", metin: "Eserin giriş cephesi ve abidevi mimari oranları yakından karşınızda." },
-        { odak: "ust", metin: "Kuşbakışı çatı ve kubbe nizamı. Erken devir taş ve tuğla işçiliği belirginleşir." },
-      ],
-    });
-
-    if (ucSonuc.acildi) {
-      await basarim.kazan("gok-seyyahi");
-      await profil.puanEkle(25, "3B Hava Seyri");
-      await sahne.efekt("parla");
-    }
+  async function sekmeyeGec(sekme) {
+    d.acildi = true;
+    d.yigin = [{ ad: sekme === "sina" ? "sina-giris" : sekme }];
+    d.tamOku = false;
+    if (sekme === "sina") d.rozetler = await basarim.liste();
+    await sahne.ayarla({ sekmeler: SEKMELER, sekme });
   }
 
-  function oyunuKur() {
-    const havuz = fotoluEserler.filter((e) => e.yuzyil);
-    const secilenler = eserler.karistir(havuz).slice(0, 5);
-    const sorular = secilenler.map((e) => ({
-      eser: e,
-      secenekler: eserler.yuzyilSecenekleri(e, 4),
-    }));
-
-    oyun = {
-      sorular,
-      sira: 0,
-      puan: 0,
-      dogru: 0,
-      seri: 0,
-      enUzunSeri: 0,
-      cevap: null,
-      bitti: false,
-      yeniRekor: false,
-    };
+  async function bolumAc(yy, ilKorunsun = false) {
+    if (!ilKorunsun && ust().ad !== "bolum") d.il = "hepsi";
+    git("bolum", { yuzyil: yy });
+    if (!gezilen.has(yy)) {
+      gezilen.add(yy);
+      await depo.yaz("gezilen", [...gezilen]);
+      await profil.puanEkle(5, "Yeni yüzyıl");
+    }
+    await basarim.kazan("ilk-bolum");
+    if (gezilen.size >= 5) await basarim.kazan("bes-bolum");
   }
 
-  async function cevapla(i) {
-    const soru = oyun.sorular[oyun.sira];
-    const dogruMu = i >= 0 && !!soru.secenekler[i]?.dogru;
-    oyun.cevap = { secim: i, dogru: dogruMu };
-
-    if (dogruMu) {
-      oyun.dogru++;
-      oyun.seri++;
-      oyun.enUzunSeri = Math.max(oyun.enUzunSeri, oyun.seri);
-      const puan = 10 + (oyun.seri - 1) * 5;
-      oyun.puan += puan;
-      await sahne.efekt("yildiz");
-
-      if (oyun.seri >= 3) {
-        await basarim.kazan("mimar-gozu");
-      }
-    } else {
-      oyun.seri = 0;
-      await sahne.efekt("titre");
-    }
+  async function sehirAc(il) {
+    git("sehir", { il });
+    sehirAcilan.add(il);
+    await depo.yaz("sehir", [...sehirAcilan]);
+    if (sehirler.every((s) => sehirAcilan.has(s))) await basarim.kazan("uc-sehir");
   }
 
-  async function oyunuBitir() {
-    oyun.bitti = true;
-    if (oyun.puan > enYuksekSkor) {
-      enYuksekSkor = oyun.puan;
-      oyun.yeniRekor = true;
-      await depo.yaz("rekor_skor", enYuksekSkor);
+  // ---------- Sınav ----------
+  function sinaKur() {
+    const adaylar = eserler.karistir(tarihli.filter((e) => e.fotograflar.length));
+    const secilen = [];
+    const yy = new Map();
+    // Yüzyıllar dengeli dağılsın: aynı yüzyıldan en çok iki soru
+    for (const e of adaylar) {
+      if ((yy.get(e.yuzyil) ?? 0) >= 2) continue;
+      yy.set(e.yuzyil, (yy.get(e.yuzyil) ?? 0) + 1);
+      secilen.push(e);
+      if (secilen.length === SORU_SAYISI) break;
     }
-    if (oyun.puan > 0) {
-      await profil.puanEkle(Math.round(oyun.puan / 2), "Mimari İmtihan");
-    }
-    if (oyun.dogru === oyun.sorular.length) {
-      await sahne.efekt("konfeti");
-    }
+    d.sina = { sorular: secilen.map((e) => ({ eser: e, secenekler: eserler.yuzyilSecenekleri(e, 4) })), sira: 0, dogru: 0, cevap: null, bitti: false };
+    git("sina");
   }
 
-  function guncelArayuz() {
-    const e = simdiki();
-    if (e.ad === "atlas") return atlasEkrani();
-    if (e.ad === "detay") return detayEkrani(e.veri.eser, e.veri.ucVar);
-    if (e.ad === "oyun") return oyunEkrani();
-    if (e.ad === "defter") return defterEkrani();
-    if (e.ad === "lugat") return lugatEkrani();
-    return kapakEkrani();
+  async function sinaCevap(i) {
+    const s = d.sina;
+    if (!s || s.cevap) return;
+    const soru = s.sorular[s.sira];
+    s.cevap = { secim: i, dogru: !!soru.secenekler[i]?.dogru };
+    if (s.cevap.dogru) { s.dogru++; await sahne.efekt("yildiz"); } else await sahne.efekt("titre");
+  }
+
+  async function sinaSonraki() {
+    const s = d.sina;
+    if (!s) return;
+    if (s.sira < s.sorular.length - 1) { s.sira++; s.cevap = null; return; }
+    s.bitti = true;
+    await profil.puanEkle(s.dogru * 5, "Payitaht sınavı");
+    if (s.dogru >= 6) await basarim.kazan("sina-6");
+    if (s.dogru === SORU_SAYISI) { await basarim.kazan("sina-8"); await sahne.efekt("konfeti"); }
+    if (s.dogru > rekor) { rekor = s.dogru; await depo.yaz("rekor", rekor); }
+    d.rozetler = await basarim.liste();
+  }
+
+  // ======================================================================
+  // Ekranlar
+  // ======================================================================
+  function ciz() {
+    if (!d.acildi) return sahne.ciz(kapakEkrani());
+    const u = ust();
+    if (u.ad === "bolum") return sahne.ciz(bolumEkrani(u.yuzyil));
+    if (u.ad === "sehir") return sahne.ciz(sehirEkrani(u.il));
+    if (u.ad === "eser") return sahne.ciz(eserEkrani(u.eser));
+    if (u.ad === "sina" && d.sina) return sahne.ciz(sinaEkrani());
+    if (u.ad === "sehirler") return sahne.ciz(sehirlerEkrani());
+    if (u.ad === "sina-giris") return sahne.ciz(sinaGirisEkrani());
+    return sahne.ciz(yuzyillarEkrani());
   }
 
   function kapakEkrani() {
-    const vitrinEser = tumEserler.find((e) => e.id === "bursa-ulucami") ?? tumEserler[0];
     return {
-      tip: "kapak",
-      ust: "Osmanlı Payitahtı · Vakıf Medeniyeti",
-      baslik: "Payitaht Atlası",
-      alt: "Ulu Şehir Bursa'nın anıt eserlerini gerçek 3B gökyüzü uçuşlarıyla keşfet, canlı harita üzerinde adımla ve mimari imtihanla seyyah rütbeni yükselt.",
-      eser: vitrinEser,
-      renk: "altin",
-      desen: "payitaht-bursa",
+      tip: "kapak", ust: sehirler.join(" · "), baslik: "Payitaht Atlası", renk: "altin",
+      eser: kimlikle.get("bursa-orhan-bey-kulliyesi") ?? tarihli.find((e) => e.fotograflar.length),
+      alt: `${ROMA[yuzyillar[0]]}. yüzyıldan ${ROMA[yuzyillar[yuzyillar.length - 1]]}. yüzyıla, ${tarihli.length} tarihli vakıf eseri. Başkentlerin yüzyıllar içinde nasıl büyüdüğünü haritada izle.`,
       cocuklar: [
-        { tip: "dugme", id: "menu-atlas", metin: "Vakıf Atlası & Harita", ikon: "harita" },
-        { tip: "dugme", id: "menu-oyun", metin: "Mimarın İmtihanı (Oyun)", ikon: "oyun", tur: "ikincil" },
-        { tip: "satir", hizala: "orta", cocuklar: [
-          { tip: "dugme", id: "menu-defter", metin: `Seyyah Defteri (${incelenenler.size})`, ikon: "kupa", tur: "hayalet" },
-          { tip: "dugme", id: "menu-lugat", metin: "Mimari Lügat", ikon: "kitap", tur: "hayalet" },
-        ]},
+        { tip: "dugme", id: "kapak-yolculuk", metin: "Zamanda yolculuğa çık", ikon: "zaman" },
+        { tip: "satir", hizala: "yay", cocuklar: [
+          { tip: "dugme", id: "kapak-yuzyillar", metin: "Yüzyıllar", ikon: "liste", tur: "ikincil" },
+          { tip: "dugme", id: "kapak-sehirler", metin: "Şehirler", ikon: "harita", tur: "ikincil" },
+        ] },
       ],
     };
   }
 
-  function atlasEkrani() {
-    // Filtrelenen eserler
-    const filtrelenmis = tumEserler.filter((e) => {
-      if (seciliTur === "hepsi") return true;
-      if (seciliTur === "ibadet") return e.tur === "cami" || e.tur === "mescit";
-      if (seciliTur === "kulliye") return e.tur === "kulliye" || e.tur === "medrese";
-      if (seciliTur === "ticaret") return e.tur === "han" || e.tur === "hamam" || e.tur === "carsi";
-      if (seciliTur === "turbe") return e.tur === "turbe" || e.tur === "hazire";
-      return true;
-    });
-
-    const haritaGosterim = filtrelenmis.filter((e) => e.konum).slice(0, 30);
-
+  function yuzyillarEkrani() {
     return {
-      tip: "sutun",
-      cocuklar: [
-        {
-          tip: "ust_cubuk",
-          baslik: "Vakıf Atlası",
-          alt: `${filtrelenmis.length} Tarihî Anıt`,
-          geri: "geri",
-          sag: [
-            { id: "galeri-ac", ikon: "kamera", etiket: "Galeri" },
-            { id: "zaman-tuneli", ikon: "zaman", etiket: "Kronoloji" },
-          ],
-        },
-        {
-          tip: "secenekler",
-          id: "tur-filtre",
-          secili: seciliTur,
-          secenekler: [
-            { id: "hepsi", metin: "Tümü" },
-            { id: "ibadet", metin: "Cami & Mescit" },
-            { id: "kulliye", metin: "Külliye & Medrese" },
-            { id: "ticaret", metin: "Han & Hamam" },
-            { id: "turbe", metin: "Türbe & Hazire" },
-          ],
-        },
-        haritaGosterim.length > 0
-          ? { tip: "harita", id: "eser-sec", eserler: haritaGosterim }
-          : { tip: "bosluk" },
-        {
-          tip: "satir",
-          hizala: "orta",
-          cocuklar: [
-            { tip: "dugme", id: "harita-ac-pencere", metin: "Büyük Haritada Gezin", ikon: "pusula", tur: "ikincil" },
-          ],
-        },
-        { tip: "baslik", metin: "Öne Çıkan Vakıf Eserleri", boyut: 3 },
-        {
-          tip: "izgara",
-          sutun: 2,
-          cocuklar: filtrelenmis.slice(0, 10).map((eser) => ({
-            tip: "eser",
-            eser,
-            id: "eser-sec",
-            boyut: "kucuk",
-          })),
-        },
+      tip: "sutun", cocuklar: [
+        { tip: "ust_cubuk", baslik: "Yüzyıllar", alt: `${yuzyillar.length} bölüm · ${gezilen.size} gezildi` },
+        { tip: "metin", metin: `Yapım tarihi bilinen ${tarihli.length} eser yüzyıllarına göre bölümlere ayrıldı. Bir bölüm aç; o yüzyılın eserlerini haritada, şehir şehir gör.`, soluk: true },
+        ...yuzyillar.map((y) => {
+          const liste = tarihli.filter((e) => e.yuzyil === y);
+          const kapak = enIyi(liste);
+          return { tip: "kart", id: `yy-${y}`, renk: gezilen.has(y) ? "altin" : undefined, cocuklar: [
+            { tip: "afis", baslik: `${ROMA[y]}. yüzyıl`, alt: ozet(liste), eser: kapak, renk: "altin" },
+            { tip: "cipler", ogeler: [...sayim(liste, (e) => e.tur).slice(0, 3).map(([t, n]) => `${n} ${TUR_COGUL[t] ?? t}`), ...(gezilen.has(y) ? ["Gezildi ✓"] : [])] },
+          ] };
+        }),
+        { tip: "metin", metin: `${hepsi.length - tarihli.length} eserin kaydında açık bir yapım tarihi yok; bu eserler bölümlere alınmadı.`, soluk: true },
       ],
     };
   }
 
-  function detayEkrani(eser, ucVar) {
-    const paragraflar = eser.tarihce.tr.split(/\n+/).filter(Boolean);
-    const yuzyilMetni = eser.yuzyil ? `${eser.yuzyil}. Yüzyıl Yapımı` : "Tarihlendirme Belirsiz";
-    const turEtiketi = eser.tur.toUpperCase();
-
+  function bolumEkrani(yy) {
+    const tumu = tarihli.filter((e) => e.yuzyil === yy);
+    const liste = d.il === "hepsi" ? tumu : tumu.filter((e) => e.il === d.il);
+    const i = yuzyillar.indexOf(yy);
+    const onceki = yuzyillar[i - 1], sonraki = yuzyillar[i + 1];
+    const ilSecenek = [{ id: "hepsi", metin: `Hepsi (${tumu.length})` },
+      ...sehirler.filter((s) => tumu.some((e) => e.il === s)).map((s) => ({ id: s, metin: `${s} (${tumu.filter((e) => e.il === s).length})` }))];
+    const turSay = sayim(liste, (e) => e.tur);
+    const fotolu = liste.filter((e) => e.fotograflar.length);
+    const tanik = tanikliklar.filter((t) => t.eser.yuzyil === yy && (d.il === "hepsi" || t.eser.il === d.il));
     return {
-      tip: "sutun",
-      cocuklar: [
-        {
-          tip: "ust_cubuk",
-          baslik: eser.ad,
-          alt: `${[eser.ilce, eser.il].filter(Boolean).join(", ") || "Türkiye"} · ${turEtiketi}`,
-          geri: "geri",
-        },
-        { tip: "fotograflar", eser },
-        {
-          tip: "cipler",
-          ogeler: [
-            yuzyilMetni,
-            turEtiketi,
-            incelenenler.has(eser.id) ? "✓ Deftere Kaydedildi" : "Keşfedildi",
-          ],
-        },
-        ...(ucVar
-          ? [
-              {
-                tip: "kart",
-                renk: "altin",
-                cocuklar: [
-                  { tip: "baslik", metin: "Gökyüzünden Süzül (Gerçek 3B)", boyut: 3 },
-                  {
-                    tip: "metin",
-                    metin: "Google 3B fotogrametri modeliyle bu eserin üzerinde kuşbakışı süzülün.",
-                  },
-                  { tip: "dugme", id: "uc-gezi", metin: "3B Hava Uçuşunu Başlat", ikon: "kup" },
-                ],
-              },
-            ]
-          : []),
-        { tip: "baslik", metin: "Tarihçe ve Mimari Kimlik", boyut: 2 },
-        ...paragraflar.slice(0, 3).map((p) => ({ tip: "metin", metin: p })),
-        eser.konum
-          ? { tip: "harita", id: "eser-sec", eserler: [eser], secili: eser.id }
-          : { tip: "bosluk" },
-        eser.adres
-          ? { tip: "metin", metin: `📍 Adres: ${eser.adres}`, soluk: true }
-          : { tip: "bosluk" },
-        { tip: "ayrac" },
-        { tip: "metin", metin: `Kaynak: ${eser.kaynak}`, soluk: true },
-        {
-          tip: "satir",
-          hizala: "orta",
-          cocuklar: [
-            { tip: "dugme", id: "hata-bildir", metin: "Eksik / Yanlış Bilgi Bildir", tur: "hayalet", ikon: "bilgi" },
-          ],
-        },
+      tip: "sutun", cocuklar: [
+        { tip: "ust_cubuk", baslik: `${ROMA[yy]}. yüzyıl`, alt: `${yy}. yüzyıl · ${tumu.length} eser`, geri: "geri" },
+        { tip: "afis", baslik: `${ROMA[yy]}. yüzyıl`, alt: ozet(tumu), eser: enIyi(liste.length ? liste : tumu), renk: "altin" },
+        { tip: "secenekler", id: "il", secenekler: ilSecenek, secili: ilSecenek.some((s) => s.id === d.il) ? d.il : "hepsi" },
+        { tip: "izgara", sutun: 3, cocuklar: [
+          { tip: "istatistik", deger: liste.length, etiket: "eser", ikon: "kitap" },
+          { tip: "istatistik", deger: new Set(liste.map((e) => e.ilce ?? e.il)).size, etiket: "ilçe", ikon: "konum" },
+          { tip: "istatistik", deger: fotolu.length, etiket: "fotoğraflı", ikon: "kamera" },
+        ] },
+        { tip: "cipler", ogeler: turSay.slice(0, 6).map(([t, n]) => `${n} ${TUR_COGUL[t] ?? t}`) },
+        ...(liste.some((e) => e.konum) ? [{ tip: "harita", id: "bolum-pin", eserler: liste.filter((e) => e.konum) }] : []),
+        ...(tanik.length ? [
+          { tip: "baslik", metin: "Başkent tanıklıkları", boyut: 2 },
+          ...tanik.slice(0, 3).map((t) => ({ tip: "kart", id: `tanik-${t.eser.id}`, renk: SEHIR_RENK[t.eser.il], cocuklar: [
+            { tip: "metin", metin: `“${t.cumle}”` },
+            { tip: "metin", metin: `${t.eser.ad} kaydından · ${t.eser.kaynak}`, soluk: true },
+          ] })),
+        ] : []),
+        { tip: "baslik", metin: "Bu yüzyılın eserleri", boyut: 2 },
+        ...(fotolu.length ? [{ tip: "kaydirma", cocuklar: fotolu.slice(0, 16).map((e) => ({ tip: "eser", eser: e, id: "eser", boyut: "kucuk" })) }] : []),
+        { tip: "liste", ogeler: liste.slice(0, 80).map((e) => ({ id: `eser:${e.id}`, metin: e.ad, alt: [TUR_ADI[e.tur], e.ilce ? `${e.ilce}, ${e.il}` : e.il].filter(Boolean).join(" · "), ikon: "konum" })) },
+        { tip: "satir", hizala: "yay", cocuklar: [
+          { tip: "dugme", id: "bolum-onceki", metin: onceki ? `${ROMA[onceki]}. yy` : "Başlangıç", ikon: "geri", tur: "hayalet", devre_disi: !onceki },
+          { tip: "dugme", id: "bolum-sonraki", metin: sonraki ? `${ROMA[sonraki]}. yy` : "Son bölüm", ikon: "ok", tur: "hayalet", devre_disi: !sonraki },
+        ] },
       ],
     };
   }
 
-  function oyunEkrani() {
-    if (!oyun) return kapakEkrani();
-    if (oyun.bitti) return imtihanSonucEkrani();
+  function sehirlerEkrani() {
+    return {
+      tip: "sutun", cocuklar: [
+        { tip: "ust_cubuk", baslik: "Şehirler", alt: `${sehirler.length} şehir · ${hepsi.length} eser` },
+        ...sehirler.map((s) => {
+          const liste = hepsi.filter((e) => e.il === s);
+          const t = liste.filter((e) => e.yuzyil);
+          const zirve = sayim(t, (e) => e.yuzyil)[0];
+          return { tip: "kart", id: `sehir-${s}`, renk: SEHIR_RENK[s], cocuklar: [
+            { tip: "afis", baslik: s, alt: `${liste.length} eser · ${t.length} tarihli${zirve ? ` · en çok ${ROMA[zirve[0]]}. yüzyıl` : ""}`, eser: enIyi(t.length ? t : liste), renk: SEHIR_RENK[s] },
+          ] };
+        }),
+      ],
+    };
+  }
 
-    const soru = oyun.sorular[oyun.sira];
-    const c = oyun.cevap;
+  function sehirEkrani(il) {
+    const liste = hepsi.filter((e) => e.il === il);
+    const t = liste.filter((e) => e.yuzyil);
+    const yySay = new Map(sayim(t, (e) => e.yuzyil));
+    const enCok = Math.max(1, ...yySay.values());
+    const tanik = tanikliklar.filter((x) => x.eser.il === il);
+    const ilceSay = sayim(liste, (e) => e.ilce ?? "Bilinmiyor");
+    return {
+      tip: "sutun", cocuklar: [
+        { tip: "ust_cubuk", baslik: il, alt: `${liste.length} vakıf eseri`, geri: "geri" },
+        { tip: "afis", baslik: il, alt: `${liste.length} vakıf eseri · ${t.length} tanesinin yapım yüzyılı biliniyor`, eser: enIyi(t.length ? t : liste), renk: SEHIR_RENK[il] },
+        { tip: "izgara", sutun: 3, cocuklar: [
+          { tip: "istatistik", deger: liste.length, etiket: "eser", ikon: "kitap" },
+          { tip: "istatistik", deger: ilceSay.length, etiket: "ilçe", ikon: "konum" },
+          { tip: "istatistik", deger: t.length, etiket: "tarihli", ikon: "zaman" },
+        ] },
+        { tip: "baslik", metin: "Yüzyıllara göre", boyut: 2 },
+        { tip: "metin", metin: "Bir yüzyıla dokun; o bölüm bu şehirle süzülmüş olarak açılır.", soluk: true },
+        { tip: "liste", ogeler: yuzyillar.filter((y) => yySay.has(y)).map((y) => ({
+          id: `syy-${il}|${y}`, metin: `${ROMA[y]}. yüzyıl`, ikon: "zaman",
+          alt: "▮".repeat(Math.max(1, Math.round((yySay.get(y) / enCok) * 12))), sag: `${yySay.get(y)} eser`,
+        })) },
+        ...(liste.some((e) => e.konum) ? [{ tip: "harita", id: "sehir-pin", eserler: liste.filter((e) => e.konum) }] : []),
+        ...(tanik.length ? [
+          { tip: "baslik", metin: "Başkent tanıklıkları", boyut: 2 },
+          ...tanik.slice(0, 4).map((x) => ({ tip: "kart", id: `tanik-${x.eser.id}`, renk: SEHIR_RENK[il], cocuklar: [
+            { tip: "metin", metin: `“${x.cumle}”` },
+            { tip: "metin", metin: `${x.eser.ad} kaydından · ${x.eser.kaynak}`, soluk: true },
+          ] })),
+        ] : []),
+        { tip: "baslik", metin: "İlçeler", boyut: 2 },
+        { tip: "cipler", ogeler: ilceSay.slice(0, 12).map(([ilce, n]) => `${ilce} ${n}`) },
+        { tip: "dugme", id: "zaman", metin: "Zaman çizelgesinde gör", ikon: "zaman", tur: "ikincil" },
+      ],
+    };
+  }
 
-    const sikDugmeleri = soru.secenekler.map((x, i) => {
-      let tur = "ikincil";
-      let metin = x.metin;
-      if (c) {
-        if (x.dogru) {
-          tur = "ana";
-          metin = `✓ ${x.metin}`;
-        } else if (i === c.secim) {
-          metin = `✗ ${x.metin}`;
-        }
-      }
+  function eserEkrani(e) {
+    const p = paragraflar(e);
+    const gorunen = d.tamOku ? p : p.slice(0, 2);
+    const cagdas = tarihli.filter((x) => x.id !== e.id && x.yuzyil && x.yuzyil === e.yuzyil && x.il === e.il && x.fotograflar.length).slice(0, 10);
+    return {
+      tip: "sutun", cocuklar: [
+        { tip: "ust_cubuk", baslik: e.ad, alt: [e.ilce, e.il].filter(Boolean).join(", "), geri: "geri" },
+        { tip: "fotograflar", eser: e },
+        { tip: "cipler", ogeler: [TUR_ADI[e.tur] ?? e.tur, e.yuzyil ? `${ROMA[e.yuzyil]}. yüzyıl` : "Yapım tarihi bilinmiyor", e.il] },
+        ...(gorunen.length ? gorunen.map((m) => ({ tip: "metin", metin: m })) : [{ tip: "metin", metin: "Bu eserin kaydında tarihçe yok.", soluk: true }]),
+        ...(p.length > 2 ? [{ tip: "dugme", id: "devam", metin: d.tamOku ? "Daha az göster" : `Devamını oku (${p.length - 2} paragraf)`, ikon: "kitap", tur: "hayalet" }] : []),
+        ...(e.konum ? [{ tip: "harita", id: "eser-konum", eserler: [e], secili: e.id }] : []),
+        ...(cagdas.length ? [
+          { tip: "baslik", metin: `Aynı yüzyılda ${e.il}`, boyut: 3 },
+          { tip: "kaydirma", cocuklar: cagdas.map((x) => ({ tip: "eser", eser: x, id: "eser", boyut: "kucuk" })) },
+        ] : []),
+        { tip: "metin", metin: e.kaynak, soluk: true },
+        { tip: "dugme", id: "hata", metin: "Bir hata mı gördün? Bildir", ikon: "bilgi", tur: "hayalet" },
+      ],
+    };
+  }
+
+  function sinaGirisEkrani() {
+    return {
+      tip: "sutun", cocuklar: [
+        { tip: "ust_cubuk", baslik: "Sına", alt: rekor ? `En iyi skorun ${rekor}/${SORU_SAYISI}` : "Yüzyıl sınavı" },
+        { tip: "afis", baslik: "Hangi yüzyıl?", alt: `${SORU_SAYISI} eser, her biri farklı bir dönemden. Fotoğrafa ve yerine bakıp yapıldığı yüzyılı bul.`, eser: enIyi(tarihli), renk: "altin" },
+        { tip: "dugme", id: "sina-basla", metin: "Sınava başla", ikon: "oyun" },
+        { tip: "baslik", metin: "Rozetler", boyut: 2 },
+        { tip: "izgara", sutun: 2, cocuklar: d.rozetler.map((b) => ({ tip: "rozet", ad: b.ad, aciklama: b.aciklama, kazanildi: b.kazanildi })) },
+      ],
+    };
+  }
+
+  function sinaEkrani() {
+    const s = d.sina;
+    if (s.bitti) {
       return {
-        tip: "dugme",
-        id: `sik-${i}`,
-        metin,
-        tur,
-        devre_disi: !!c && !x.dogru && i !== c.secim,
+        tip: "sutun", cocuklar: [
+          { tip: "ust_cubuk", baslik: "Sonuç", geri: "geri" },
+          { tip: "istatistik", deger: `${s.dogru}/${s.sorular.length}`, etiket: s.dogru >= 6 ? "Yüzyıl bilgini!" : "Atlas seni bekliyor", ikon: "kupa" },
+          { tip: "baslik", metin: "Sorulan eserler", boyut: 3 },
+          { tip: "liste", ogeler: s.sorular.map((q) => ({ id: `eser:${q.eser.id}`, metin: q.eser.ad, alt: `${ROMA[q.eser.yuzyil]}. yüzyıl · ${q.eser.il}`, ikon: "zaman" })) },
+          { tip: "dugme", id: "sina-basla", metin: "Yeniden dene", ikon: "tekrar" },
+        ],
       };
-    });
-
-    const ilkParagraf = soru.eser.tarihce.tr.split(/\n+/).filter(Boolean)[0] ?? "";
-    const ipucuMetni = ilkParagraf.length > 220 ? ilkParagraf.slice(0, 220) + "..." : ilkParagraf;
-
+    }
+    const q = s.sorular[s.sira];
     return {
-      tip: "sutun",
-      cocuklar: [
-        {
-          tip: "ust_cubuk",
-          baslik: `İmtihan: Soru ${oyun.sira + 1} / ${oyun.sorular.length}`,
-          alt: `${oyun.puan} Puan${oyun.seri >= 2 ? ` · 🔥 ${oyun.seri} Seri` : ""}`,
-          geri: "geri",
-        },
-        c
-          ? { tip: "ilerleme", deger: oyun.sira + 1, toplam: oyun.sorular.length }
-          : { tip: "sure", id: `soru-sure-${oyun.sira}`, saniye: 14 },
-        { tip: "fotograflar", eser: soru.eser },
-        {
-          tip: "baslik",
-          metin: c ? soru.eser.ad : "Bu vakıf anıtı hangi yüzyılda inşa edilmiştir?",
-          boyut: 2,
-        },
-        {
-          tip: "metin",
-          metin: !c
-            ? "Yapının kubbe, taçkapı ve cephe üslubuna dikkat ederek yüzyılı tahmin edin."
-            : c.dogru
-            ? "Tebrikler! Mimarın gözüyle doğru çağı tespit ettiniz."
-            : c.secim < 0
-            ? "Süre doldu! Eserin yapım çağı belirlenemedi."
-            : "Yanlış tahmin! Mimari üslup başka bir döneme işaret ediyor.",
-          soluk: !c,
-        },
-        { tip: "sutun", aralik: "dar", cocuklar: sikDugmeleri },
-        ...(c
-          ? [
-              {
-                tip: "kart",
-                renk: c.dogru ? "zumrut" : "mercan",
-                cocuklar: [
-                  { tip: "metin", metin: ipucuMetni },
-                  { tip: "metin", metin: soru.eser.kaynak, soluk: true },
-                ],
-              },
-              {
-                tip: "dugme",
-                id: "oyun-sonraki",
-                metin: oyun.sira + 1 < oyun.sorular.length ? "Sıradaki Eser" : "İmtihanı Tamamla",
-                ikon: "ok",
-              },
-            ]
-          : []),
+      tip: "sutun", cocuklar: [
+        { tip: "ust_cubuk", baslik: `Soru ${s.sira + 1}/${s.sorular.length}`, alt: `${s.dogru} doğru`, geri: "geri" },
+        { tip: "ilerleme", deger: s.sira + (s.cevap ? 1 : 0), toplam: s.sorular.length },
+        { tip: "gorsel", eser: q.eser },
+        { tip: "baslik", metin: q.eser.ad, boyut: 2 },
+        { tip: "metin", metin: `${TUR_ADI[q.eser.tur] ?? q.eser.tur} · ${[q.eser.ilce, q.eser.il].filter(Boolean).join(", ")}`, soluk: true },
+        { tip: "baslik", metin: "Hangi yüzyılda yapıldı?", boyut: 3 },
+        { tip: "izgara", sutun: 2, cocuklar: q.secenekler.map((sec, i) => {
+          let metin = sec.metin;
+          if (s.cevap && sec.dogru) metin = `✓ ${metin}`;
+          else if (s.cevap && s.cevap.secim === i) metin = `✗ ${metin}`;
+          return { tip: "dugme", id: `cevap-${i}`, metin, tur: s.cevap && sec.dogru ? "ana" : "ikincil", devre_disi: !!s.cevap && !sec.dogru && s.cevap.secim !== i };
+        }) },
+        ...(s.cevap ? [
+          { tip: "kart", renk: s.cevap.dogru ? "zumrut" : "mercan", cocuklar: [
+            { tip: "baslik", metin: s.cevap.dogru ? "Doğru!" : `Doğrusu: ${ROMA[q.eser.yuzyil]}. yüzyıl`, boyut: 3 },
+            { tip: "metin", metin: ilkCumle(q.eser) },
+            { tip: "metin", metin: q.eser.kaynak, soluk: true },
+          ] },
+          { tip: "dugme", id: "sina-sonraki", metin: s.sira < s.sorular.length - 1 ? "Sonraki soru" : "Sonucu gör", ikon: "ok" },
+        ] : []),
       ],
     };
   }
+}
 
-  function imtihanSonucEkrani() {
-    const tamPuan = oyun.dogru === oyun.sorular.length;
-    return {
-      tip: "sutun",
-      cocuklar: [
-        {
-          tip: "kapak",
-          ust: oyun.yeniRekor ? "👑 YENİ ŞEHİR REKORU!" : `En Yüksek Skor: ${enYuksekSkor}`,
-          baslik: tamPuan ? "Hassa Mimarı!" : `${oyun.puan} Puan`,
-          alt: `${oyun.sorular.length} sorudan ${oyun.dogru} doğru bildiniz. En uzun isabet seriniz: ${oyun.enUzunSeri}`,
-          renk: tamPuan ? "altin" : "kobalt",
-          desen: `imtihan-${oyun.puan}`,
-          cocuklar: [
-            { tip: "dugme", id: "oyun-tekrar", metin: "Yeniden İmtihan Ol", ikon: "tekrar" },
-            { tip: "dugme", id: "geri", metin: "Atlasa Dön", tur: "ikincil" },
-          ],
-        },
-        { tip: "baslik", metin: "İmtihandaki Eserler", boyut: 3 },
-        {
-          tip: "sutun",
-          aralik: "dar",
-          cocuklar: oyun.sorular.map((s) => ({
-            tip: "eser",
-            eser: s.eser,
-            boyut: "satir",
-            id: "eser-sec",
-          })),
-        },
-      ],
-    };
+// ---------- Yardımcılar ----------
+function paragraflar(e) {
+  const p = String(e.tarihce?.tr ?? "").split(/\n+/).map((x) => x.trim()).filter(Boolean);
+  if (p.length > 1 && p[0].length < 220 && ADRES_DESENI.test(p[0])) p.shift();
+  return p;
+}
+
+function ilkCumle(e) {
+  const c = (paragraflar(e)[0] ?? "").split(/(?<=[.!?])\s+/)[0] ?? "";
+  return c.length > 220 ? `${c.slice(0, 219)}…` : c;
+}
+
+function sayim(liste, anahtar) {
+  const m = new Map();
+  for (const e of liste) m.set(anahtar(e), (m.get(anahtar(e)) ?? 0) + 1);
+  return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function ozet(liste) {
+  const sehir = sayim(liste, (e) => e.il).map(([s, n]) => `${s} ${n}`).join(" · ");
+  return `${liste.length} eser${sehir ? ` — ${sehir}` : ""}`;
+}
+
+// Fotoğrafı, konumu ve uzun tarihçesi olan eseri öne çıkar (kapak görseli için).
+function enIyi(liste) {
+  return [...liste].sort((a, b) => puan(b) - puan(a))[0];
+}
+function puan(e) {
+  return (e.fotograflar.length ? 10 : 0) + Math.min(4, e.fotograflar.length) + (e.konum ? 3 : 0) + Math.min(5, String(e.tarihce?.tr ?? "").length / 800);
+}
+
+// Tarihçelerde "başkent / payitaht" geçen cümleler, aynen.
+function taniklikBul(liste) {
+  const sonuc = [];
+  for (const e of liste) {
+    const metin = String(e.tarihce?.tr ?? "").replace(/\s+/g, " ");
+    const cumle = metin.split(/(?<=[.!?])\s+/).find((c) => /başkent|payitaht/i.test(c));
+    if (cumle && cumle.length <= 320) sonuc.push({ eser: e, cumle: cumle.trim() });
   }
-
-  function defterEkrani() {
-    const toplam = tumEserler.length;
-    const oran = Math.round((incelenenler.size / Math.max(1, toplam)) * 100);
-    const rutbe =
-      incelenenler.size >= 15
-        ? "Bursa Şehir Pîri"
-        : incelenenler.size >= 8
-        ? "Kıdemli Seyyah"
-        : incelenenler.size >= 3
-        ? "Yolcu Çelebi"
-        : "Acemi Seyyah";
-
-    return {
-      tip: "sutun",
-      cocuklar: [
-        {
-          tip: "ust_cubuk",
-          baslik: "Seyyah Defteri",
-          alt: `Rütbe: ${rutbe}`,
-          geri: "geri",
-        },
-        {
-          tip: "izgara",
-          sutun: 3,
-          cocuklar: [
-            { tip: "istatistik", deger: incelenenler.size, etiket: "Keşif", ikon: "harita" },
-            { tip: "istatistik", deger: `%${oran}`, etiket: "Tamamlanma", ikon: "yildiz" },
-            { tip: "istatistik", deger: enYuksekSkor, etiket: "Rekor Skor", ikon: "kupa" },
-          ],
-        },
-        { tip: "ilerleme", deger: incelenenler.size, toplam, etiket: "Bursa Envanteri Keşif İlerlemesi" },
-        { tip: "baslik", metin: "Kazanılan Mühürler & Başarımlar", boyut: 2 },
-        {
-          tip: "izgara",
-          sutun: 2,
-          cocuklar: rozetler.map((r) => ({
-            tip: "rozet",
-            ad: r.ad,
-            aciklama: r.aciklama,
-            kazanildi: r.kazanildi,
-          })),
-        },
-      ],
-    };
-  }
-
-  function lugatEkrani() {
-    return {
-      tip: "sutun",
-      cocuklar: [
-        {
-          tip: "ust_cubuk",
-          baslik: "Mimari Lügat",
-          alt: "Bursa Vakıf Mimarisi Kavramları",
-          geri: "geri",
-        },
-        {
-          tip: "metin",
-          metin: "Bursa camilerini, külliyelerini ve hanlarını incelerken karşılaşacağınız kadim mimari terimler rehberi.",
-          soluk: true,
-        },
-        {
-          tip: "liste",
-          ogeler: LUGAT.map((l) => ({
-            id: l.id,
-            metin: l.metin,
-            alt: l.alt,
-            ikon: "kitap",
-          })),
-        },
-      ],
-    };
-  }
+  return sonuc;
 }
