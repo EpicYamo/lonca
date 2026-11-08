@@ -138,7 +138,7 @@ function vitrinKur() {
         el("p", { sinif: "sahne-ust" }, el("span", { metin: kategoriAdi(m.kategori) }), el("span", { sinif: "sahne-sira", translate: "no", metin: `${String(i + 1).padStart(2, "0")} / ${String(moduller.length).padStart(2, "0")}` })),
         el("h2", { sinif: "sahne-ad" }, m.ad, modulRozeti(m)),
         el("p", { sinif: "sahne-aciklama", metin: m.aciklama }),
-        el("ul", { sinif: "sahne-etiketler" }, el("li", { metin: "Giriş gerekmez" }), izinler),
+        izinler ? el("ul", { sinif: "sahne-etiketler" }, izinler) : null,
         el("div", { sinif: "sahne-dugmeler" },
           el("a", { sinif: "dugme sahne-ac", href: modulAdresi(m.id) }, "Modülü aç", el("span", { sinif: "ok", "aria-hidden": "true", metin: "→" })),
           el("a", { sinif: "dugme cizgili", href: "/#moduller" }, "Tüm modüller"))),
