@@ -146,6 +146,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   app.get("/web", (_, rep) => rep.redirect("/", 302));
   app.get("/web/", (_, rep) => rep.redirect("/", 302));
   app.get("/studio", (_, rep) => rep.redirect("/studio/"));
+  // Jüri sunumu (public/sunum/): sayfa sayfa ilerleyen tam ekran sunum.
+  app.get("/sunum", (_, rep) => rep.redirect("/sunum/"));
 
   app.get("/api/ayarlar", async () => ({
     harita: googleAnahtari ? { saglayici: "google", anahtar: googleAnahtari } : { saglayici: "osm" },
