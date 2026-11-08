@@ -55,7 +55,7 @@ await kopyala("public/mobil", "mobil");
 if (existsSync(path.join(KOK, "public/vendor-yerel"))) await kopyala("public/vendor-yerel", "vendor-yerel");
 await mkdir(path.join(WWW, "sdk"), { recursive: true });
 await cp(path.join(KOK, "sdk/lonca-sdk.js"), path.join(WWW, "sdk/lonca-sdk.js"));
-await kopyala("node_modules/maplibre-gl/dist", "vendor/maplibre", (k) => !/\.map$|-dev\.js$|-csp/.test(k));
+await kopyala("node_modules/maplibre-gl/dist", "vendor/maplibre", (k) => !/\.map$|-dev\.mjs$|\.d\.ts$/.test(k));
 const THREE = "node_modules/three";
 for (const ad of ["three.module.js", "three.core.js"]) {
   if (existsSync(path.join(KOK, THREE, "build", ad))) await cp(path.join(KOK, THREE, "build", ad), path.join(WWW, "vendor/three/build", ad));

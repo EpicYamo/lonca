@@ -179,7 +179,7 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
     if (merkez.length > 5) surucu.merkezeGit(); else surucu.sigdir(eserler);
     $("#harita-sayi").textContent = `${eserler.length} eser haritada`;
   }
-  const hazirla = () => (kuruldu ??= kur().catch((h) => { kuruldu = null; document.querySelector(".kh-yukleniyor")?.remove(); kap.replaceChildren(el("p", { className: "bos", textContent: `Harita açılamadı: ${h.message}` })); }));
+  const hazirla = () => (kuruldu ??= kur().catch((h) => { kuruldu = null; document.querySelector(".kh-yukleniyor")?.remove(); kap.replaceChildren(el("p", { className: "bos harita-hata", role: "status", textContent: h.message || "Harita açılamadı." })); }));
 
   // İzin önceden verildiyse kullanıcının yeri sormadan haritaya konur (harita her açılışta en çok dakikada bir yenilenir).
   let sonKonumZamani = 0;

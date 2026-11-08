@@ -1,4 +1,4 @@
-import { haritaKur, bagTuruAdi } from "./harita.js";
+import { haritaKur, haritaHatasiGoster, bagTuruAdi } from "./harita.js";
 import { ikon } from "/ortak/ikonlar.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { konfeti, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
@@ -384,6 +384,8 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen, tuval = n
     const kutu = el("div", { className: `s-${tip}`, role: "region", ariaLabel: tip === "harita" ? "Harita" : "3B görünüm" });
     kayit = { kap: kutu, kullanildi: true, son: { odak: n.odak } };
     kayit.api = kur(kutu);
+    // Harita (ya da 3B) açılamazsa kutu siyah kalmaz, okunur ileti gösterilir; liste yine çalışır.
+    if (tip === "harita") kayit.api = kayit.api.catch((h) => { haritaHatasiGoster(kutu, h); return new Promise(() => {}); });
     agirlar.set(id, kayit);
     if (tip === "harita") {
       const liste = (Array.isArray(n.eserler) ? n.eserler : []).filter((e) => e?.konum);

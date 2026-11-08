@@ -12,18 +12,36 @@ const hareketAz = () => document.documentElement.classList.contains("hareket-az"
 const STIL = { acik: "https://tiles.openfreemap.org/styles/liberty", koyu: "https://tiles.openfreemap.org/styles/dark" };
 
 let maplibreYukleniyor = null;
+// MapLibre 6 yalnızca ES modülü olarak gelir (maplibre-gl.mjs); çizim işçisi (maplibre-gl-worker.mjs) aynı klasörden
+// modül işçisi olarak açılır. Diğer dosyalar window.maplibregl'i kullandığı için modül oraya da konur.
 export function maplibreYukle() {
-  maplibreYukleniyor ??= new Promise((coz, reddet) => {
-    const css = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/vendor/maplibre/maplibre-gl.css" });
-    const js = Object.assign(document.createElement("script"), { src: "/vendor/maplibre/maplibre-gl.js" });
-    js.onload = () => (window.maplibregl ? coz(window.maplibregl) : reddet(new Error("MapLibre yüklenmedi")));
-    js.onerror = () => { maplibreYukleniyor = null; reddet(new Error("Harita kütüphanesi yüklenemedi")); };
-    document.head.append(css, js);
-  });
+  maplibreYukleniyor ??= (async () => {
+    if (!document.querySelector('link[href="/vendor/maplibre/maplibre-gl.css"]')) {
+      document.head.append(Object.assign(document.createElement("link"), { rel: "stylesheet", href: "/vendor/maplibre/maplibre-gl.css" }));
+    }
+    const ml = await import("/vendor/maplibre/maplibre-gl.mjs");
+    ml.setWorkerUrl(new URL("/vendor/maplibre/maplibre-gl-worker.mjs", location.href).href);
+    window.maplibregl = ml;
+    return ml;
+  })().catch(() => { maplibreYukleniyor = null; throw new Error("Harita kütüphanesi yüklenemedi"); });
   return maplibreYukleniyor;
 }
+// MapLibre 6 WebGL2 ister (WebGL1 desteği kaldırıldı).
 export function webglVar() {
-  try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch { return false; }
+  try { return !!document.createElement("canvas").getContext("webgl2"); } catch { return false; }
+}
+const WEBGL2_YOK = "Bu cihaz haritayı çizemiyor: WebGL2 desteklenmiyor. Android System WebView / Chrome güncellemesi sorunu çözebilir.";
+
+// Harita açılamazsa kutu siyah ya da boş kalmaz: hatanın okunur metni ortak "bos" biçemiyle kutunun içinde gösterilir.
+export function haritaHatasiGoster(kutu, hata) {
+  if (!kutu) return;
+  const p = document.createElement("p");
+  p.className = "bos harita-hata";
+  p.setAttribute("role", "status");
+  p.textContent = hata?.message || "Harita açılamadı.";
+  kutu.hidden = false;
+  kutu.style.background = "";
+  kutu.replaceChildren(p);
 }
 
 // Koyu stilde 3B bina katmanı yok: aynı bina verisinden ekleriz. Açık stilde (liberty) var; rengini sıcaklaştırırız.
@@ -45,12 +63,15 @@ function binalariKur(harita, koyu) {
 // katmanlar(harita): stil her yüklendiğinde (ilk açılış ve tema değişimi) kendi kaynak ve katmanlarını yeniden ekler.
 // Döner: hazır (load olmuş) maplibregl.Map. Kütüphane ya da stil açılamazsa hata fırlatır.
 export async function haritaAc(kutu, { tema = "otomatik", gomulu = true, merkez = [29.065, 40.1845], zoom = 13, pitch = 0, bearing = 0, katmanlar, pusula = true } = {}) {
-  if (!webglVar()) throw new Error("Bu cihaz haritayı çizemiyor (WebGL yok)");
+  if (!webglVar()) throw new Error(WEBGL2_YOK);
   const ml = await maplibreYukle();
   await baglaninca(kutu);
   const koyuMu = () => tema === "koyu" || koyuTemaMi();
   let koyu = koyuMu();
-  const harita = new ml.Map({
+  // WebGL bağlamı kurulamazsa MapLibre yapıcıda hata fırlatır (ya da webglcontextcreationerror yayar).
+  let harita;
+  try {
+    harita = new ml.Map({
     container: kutu, style: koyu ? STIL.koyu : STIL.acik,
     center: merkez, zoom, pitch, bearing, maxPitch: 70,
     attributionControl: { compact: true }, dragRotate: true, touchPitch: true,
@@ -63,7 +84,11 @@ export async function haritaAc(kutu, { tema = "otomatik", gomulu = true, merkez 
       "NavigationControl.ResetBearing": "Kuzeye döndür", "NavigationControl.ZoomIn": "Yakınlaştır", "NavigationControl.ZoomOut": "Uzaklaştır",
       "AttributionControl.ToggleAttribution": "Harita kaynakları",
     },
-  });
+    });
+  } catch {
+    kutu.replaceChildren();
+    throw new Error(WEBGL2_YOK);
+  }
   if (pusula) harita.addControl(new ml.NavigationControl({ showZoom: gomulu, visualizePitch: true }), "bottom-right");
   harita.on("style.load", () => { binalariKur(harita, koyu); katmanlar?.(harita); });
   // Tema değişince stil yerinde değişir; DOM işaretleri korunur, katmanlar style.load'da yeniden eklenir.
@@ -82,7 +107,10 @@ export async function haritaAc(kutu, { tema = "otomatik", gomulu = true, merkez 
     // Tek bir karonun gelmemesi haritayı düşürmez; yalnızca stilin kendisi yüklenemezse hata olur.
     const hata = (o) => { if (!o.sourceId && !o.tile && !harita.isStyleLoaded()) { clearTimeout(zaman); harita.off("error", hata); reddet(o.error ?? new Error("Harita açılamadı")); } };
     harita.on("error", hata);
-  }).catch((h) => { harita.remove(); throw h; });
+    const baglamYok = () => { clearTimeout(zaman); reddet(new Error(WEBGL2_YOK)); };
+    harita.once("webglcontextcreationerror", baglamYok);
+    harita.once("webglcontextlost", baglamYok);
+  }).catch((h) => { try { harita.remove(); } catch { /* zaten kapanmış */ } kutu.replaceChildren(); throw h; });
   return harita;
 }
 
@@ -527,8 +555,14 @@ export async function haritaGoster(eserler, secenek, { el, sahneyeKoy, seslendir
       seslendir(`${eser.ad}. ${turAdi(eser.tur)}.`);
     }
 
-    harita = await haritaKur(kutu, { eserler: gecerli, rota, baglantilar, hayaletBaglantilar, sis, etiketler, odak, onSec: (eser) => bilgiKarti(eser) });
-    if (bitti) { harita.yokEt(); return; }
+    try {
+      harita = await haritaKur(kutu, { eserler: gecerli, rota, baglantilar, hayaletBaglantilar, sis, etiketler, odak, onSec: (eser) => bilgiKarti(eser) });
+    } catch (h) {
+      // Harita çizilemese de liste ve bilgi kartları çalışır.
+      harita = null;
+      haritaHatasiGoster(kutu, h);
+    }
+    if (bitti) { harita?.yokEt(); return; }
 
     listeKap.append(...gecerli.map((eser, i) => {
       const d = el("button", { className: "liste-ogesi" },
@@ -536,7 +570,7 @@ export async function haritaGoster(eserler, secenek, { el, sahneyeKoy, seslendir
         el("span", { textContent: String(eser.ad ?? "") }),
         el("span", { className: "liste-tur", textContent: turAdi(eser.tur) }));
       d.querySelector(".liste-nokta").style.setProperty("--pin", PIN_RENGI[eser.tur] ?? "#1f3a93");
-      d.addEventListener("click", () => { kutu.scrollIntoView({ behavior: "smooth", block: "center" }); harita.sec(i); bilgiKarti(eser); });
+      d.addEventListener("click", () => { if (harita) { kutu.scrollIntoView({ behavior: "smooth", block: "center" }); harita.sec(i); } bilgiKarti(eser); });
       return el("li", {}, d);
     }));
     seslendir(`${baslik}. Haritada ${gecerli.length} eser var. Altta liste olarak da seçebilirsin.`);
