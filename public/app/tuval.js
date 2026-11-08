@@ -2,7 +2,11 @@
 //
 // Modül görünmez, yalıtılmış bir çerçevede çalışır; DOM'a erişemez. Tuvali uygulama (bu dosya) çizer:
 //   - Modül oyun.ciz(id, kalem => …) ile çizim komutlarını gönderir; burada mantıksal koordinatlarda (tuvalin en × boy'u)
-//     yüksek DPI'lı bir <canvas>'a çizilir. Tuval ekrana orantılı sığdırılır (taşma ve kaydırma yok).
+//     yüksek DPI'lı bir <canvas>'a çizilir. Taşma ve kaydırma yok.
+//   - Tam ekran tuval (en/boy verilmez): tuval kalan ekranın tamamını doldurur; mantıksal birim CSS pikselidir, en × boy
+//     ekranın gerçek boyutudur (telefonda dar ve uzun, masaüstünde geniş). Boyut değişince { tur:"boyut", tuval, en, boy }
+//     girdisi gider; her kare de güncel boyutları taşır (modülde oyun.boyut(id)). en/boy verilirse tuval o oranda sabit
+//     kalır ve ekrana orantılı sığdırılır (eski modüller).
 //   - oyun.dongu(fn) açıksa her ekran karesinde (requestAnimationFrame) çerçeveye { tur:"kare", dt, t } gider. Modül kareyi
 //     onaylamadan (kare_tamam) yenisi gönderilmez; sekme gizlenince kare gelmez, modül kapanınca döngü durur.
 //   - Dokunma/fare (pointer) ve klavye girdisi tuval koordinatına çevrilip { tur:"girdi" } olarak iletilir.
@@ -60,7 +64,9 @@ export function tuvalMotoru({ ham, gonder, el }) {
     sonZaman = zaman;
     toplam += dt;
     bekliyor = true;
-    if (!ham({ tur: "kare", dt, t: toplam })) yokEt(); // çerçeve kapandı
+    for (const t of tuvaller.values()) if (!t.sonBoyut) boyutla(t); // ilk kareden önce gerçek boyut bilinsin
+    const boyutlar = Object.fromEntries([...tuvaller.values()].map((t) => [t.id, [t.en, t.boy]]));
+    if (!ham({ tur: "kare", dt, t: toplam, boyutlar })) yokEt(); // çerçeve kapandı
   }
   const gorunurluk = () => { sonZaman = 0; };
   document.addEventListener("visibilitychange", gorunurluk);
@@ -190,7 +196,7 @@ export function tuvalMotoru({ ham, gonder, el }) {
     if (t) ciz(t);
   }
 
-  // ---------- Yerleşim: tuval ekrana orantılı sığar ----------
+  // ---------- Yerleşim: tam ekran tuval kalan alanı doldurur; sabit boyutlu tuval ekrana orantılı sığar ----------
   function boyutla(t) {
     if (!t.kutu.isConnected) return;
     const genislik = t.kutu.clientWidth || 360;
@@ -199,13 +205,23 @@ export function tuvalMotoru({ ham, gonder, el }) {
     const ust = r.top + (kaydirici?.scrollTop ?? 0) + scrollY;
     const vh = window.visualViewport?.height ?? innerHeight;
     const sekme = document.getElementById("sekme-cubugu");
-    const alt = sekme && !sekme.hidden ? sekme.getBoundingClientRect().height + 8 : 10;
-    const yukseklik = Math.max(220, vh - Math.max(0, ust) - alt);
-    const anahtar = `${genislik}x${yukseklik}x${devicePixelRatio}`;
+    const alt = sekme && !sekme.hidden ? sekme.getBoundingClientRect().height + 8 : t.tam ? 0 : 10;
+    const yukseklik = Math.max(220, Math.floor(vh - Math.max(0, ust) - alt));
+    const anahtar = `${genislik}x${yukseklik}x${devicePixelRatio}x${t.tam ? "tam" : `${t.en}x${t.boy}`}`;
     if (anahtar === t.sonBoyut) return;
     t.sonBoyut = anahtar;
-    const oran = Math.min(genislik / t.en, yukseklik / t.boy);
-    const cssEn = Math.floor(t.en * oran), cssBoy = Math.floor(t.boy * oran);
+    let cssEn, cssBoy;
+    if (t.tam) {
+      cssEn = sinirla(Math.floor(genislik), 50, MAKS_TUVAL_KENARI);
+      cssBoy = sinirla(yukseklik, 50, MAKS_TUVAL_KENARI);
+      const degisti = cssEn !== t.en || cssBoy !== t.boy || !t.bildirildi;
+      t.en = cssEn; t.boy = cssBoy;
+      if (degisti) { t.bildirildi = true; girdi({ tur: "boyut", tuval: t.id, en: t.en, boy: t.boy }); }
+    } else {
+      const oran = Math.min(genislik / t.en, yukseklik / t.boy);
+      cssEn = Math.floor(t.en * oran); cssBoy = Math.floor(t.boy * oran);
+      if (!t.bildirildi) { t.bildirildi = true; girdi({ tur: "boyut", tuval: t.id, en: t.en, boy: t.boy }); }
+    }
     const dpr = Math.min(MAKS_DPR, devicePixelRatio || 1);
     t.cerceve.style.width = `${cssEn}px`;
     t.cerceve.style.height = `${cssBoy}px`;
@@ -372,7 +388,7 @@ export function tuvalMotoru({ ham, gonder, el }) {
   // ---------- sahne.js "tuval" düğümü ----------
   function kur(n) {
     const id = String(n.id ?? "oyun");
-    const t = { id, en: 360, boy: 640, olcek: 1, sonBoyut: null };
+    const t = { id, en: 360, boy: 640, tam: false, olcek: 1, sonBoyut: null, bildirildi: false };
     const canvas = el("canvas", { className: "s-tuval-cizim", tabIndex: 0, role: "img", ariaLabel: String(n.etiket ?? "Oyun alanı").slice(0, 120) });
     const katman = el("div", { className: "s-tuval-katman" });
     const cerceve = el("div", { className: "s-tuval-cerceve" }, canvas, katman);
@@ -388,8 +404,14 @@ export function tuvalMotoru({ ham, gonder, el }) {
       kap: kutu,
       katman,
       guncelle(d) {
-        const en = sinirla(Math.round(sayi(d.en, 360)), 50, MAKS_TUVAL_KENARI), boy = sinirla(Math.round(sayi(d.boy, 640)), 50, MAKS_TUVAL_KENARI);
-        if (en !== t.en || boy !== t.boy) { t.en = en; t.boy = boy; t.sonBoyut = null; }
+        // en ve boy verilmediyse (ya da tam: true) tuval tam ekrandır: boyutunu ekran belirler (boyutla).
+        const tam = d.tam === true || (d.en == null && d.boy == null);
+        if (tam !== t.tam) { t.tam = tam; t.sonBoyut = null; t.bildirildi = false; }
+        kutu.classList.toggle("tam", tam);
+        if (!tam) {
+          const en = sinirla(Math.round(sayi(d.en, 360)), 50, MAKS_TUVAL_KENARI), boy = sinirla(Math.round(sayi(d.boy, 640)), 50, MAKS_TUVAL_KENARI);
+          if (en !== t.en || boy !== t.boy) { t.en = en; t.boy = boy; t.sonBoyut = null; t.bildirildi = false; }
+        }
         kutu.style.background = renkGecerli(d.arkaplan) ? d.arkaplan : "";
         requestAnimationFrame(() => boyutla(t));
       },

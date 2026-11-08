@@ -81,6 +81,23 @@ test("tamSayi sınırlar içinde tam sayı, sec dizinin bir öğesini verir", ()
   assert.equal(lonca.oyun.sec([]), undefined);
 });
 
+test("oyun.boyut: önce uygulama ekranı, sonra tuvalin gerçek boyutu (boyut girdisi ve her kare)", () => {
+  const { lonca, gelen } = cerceve();
+  assert.deepEqual({ ...lonca.oyun.boyut("alan") }, { en: 360, boy: 640 });
+  gelen({ tur: "calistir", kod: "", ekran: { en: 412, boy: 860 } });
+  assert.deepEqual({ ...lonca.oyun.boyut("alan") }, { en: 412, boy: 860 }, "tuval ekrana gelmeden ekran boyutu");
+  const olaylar = [];
+  lonca.oyun.dinle("boyut", (o) => olaylar.push([o.en, o.boy]));
+  gelen({ tur: "girdi", olay: { tur: "boyut", tuval: "alan", en: 390, boy: 780 } });
+  assert.deepEqual({ ...lonca.oyun.boyut("alan") }, { en: 390, boy: 780 });
+  assert.deepEqual({ ...lonca.oyun.boyut() }, { en: 390, boy: 780 }, "kimliksiz: ilk tuval");
+  let karede = null;
+  lonca.oyun.dongu(() => { karede = { ...lonca.oyun.boyut("alan") }; });
+  gelen({ tur: "kare", dt: 0.016, t: 0.016, boyutlar: { alan: [1280, 800] } });
+  assert.deepEqual(karede, { en: 1280, boy: 800 }, "kare güncel boyutu taşır");
+  assert.deepEqual(olaylar, [[390, 780]]);
+});
+
 test("döngüde atılan hata modülü anlaşılır bir mesajla durdurur", () => {
   const { lonca, giden, gelen } = cerceve();
   lonca.oyun.dongu(() => { throw new Error("top yok"); });
@@ -97,15 +114,18 @@ ${govde}
 }
 `;
   const gecerli = oyunKodu(`  let x = 0;
-  await sahne.ciz({ tip: "tuval", id: "masa", en: 360, boy: 640, cocuklar: [] });
+  await sahne.ciz({ tip: "tuval", id: "masa", cocuklar: [] });
   oyun.dongu((dt) => {
+    const { en, boy } = oyun.boyut("masa");
     const p = oyun.dokunmalar("masa")[0];
     if (p) x = p.x;
-    oyun.ciz("masa", (k) => { k.temizle("#000"); k.dikdortgen(x, 600, 80, 12, "#fff", { yuvarlak: 6 }); });
+    oyun.ciz("masa", (k) => { k.temizle("#000"); k.dikdortgen(x, boy - 40, en / 4, 12, "#fff", { yuvarlak: 6 }); });
     if (oyun.tus("ArrowLeft")) { oyun.ses("vurus"); oyun.titres("hafif"); }
   });`);
   assert.deepEqual(kalfa.dogrula(gecerli), []);
   assert.ok(kalfa.dogrula(oyunKodu(`  oyun.ciz("masa", (k) => k.temizle());`)).some((h) => h.includes("tuval")));
+  // Sabit 360 × 640 tuval ekranda küçük kalır: tam ekran tuval ve oyun.boyut istenir.
+  assert.ok(kalfa.dogrula(gecerli.replace(`id: "masa", cocuklar`, `id: "masa", en: 360, boy: 640, cocuklar`).replace(/const \{ en, boy \} = oyun\.boyut\("masa"\);/, "const en = 360, boy = 640;")).some((h) => h.includes("tam ekran")));
   assert.ok(kalfa.dogrula(oyunKodu(`  await sahne.ciz({ tip: "tuval", id: "masa" });\n  oyun.ciz("alan", (k) => k.temizle());`)).some((h) => h.includes('oyun.ciz("alan")')));
   assert.ok(kalfa.dogrula(oyunKodu(`  await sahne.ciz({ tip: "tuval", id: "masa" });\n  oyun.dongu(async (dt) => { await oyun.bekle(1); });`)).some((h) => h.includes("async")));
   assert.ok(kalfa.dogrula(oyunKodu(`  const d = [1, 2];\n  const x = d[oyun.rastgele(0, 1)];`)).some((h) => h.includes("oyun.sec")));
@@ -152,7 +172,7 @@ test("usta ve admin istemi gerçek zamanlı oyunu anlatır, oyunu quiz'e indirge
 const TUVAL_KODU = `import { sahne, oyun } from "@lonca/sdk";
 export default async function basla() {
   await sahne.ayarla({ baslik: "Pong", tema: { zemin: "gece" } });
-  await sahne.ciz({ tip: "tuval", id: "masa", en: 360, boy: 640 });
+  await sahne.ciz({ tip: "tuval", id: "masa" });
   oyun.dongu(() => oyun.ciz("masa", (k) => k.temizle("#000")));
 }
 `;

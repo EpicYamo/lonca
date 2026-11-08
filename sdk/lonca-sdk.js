@@ -18,7 +18,8 @@
     if (e.source !== parent) return;
     const m = e.data;
     if (!m || m.lonca !== 1) return;
-    if (m.tur === "kare") return kareCalistir(m.dt, m.t);
+    if (m.tur === "kare") { boyutlariAl(m.boyutlar); return kareCalistir(m.dt, m.t); }
+    if (m.tur === "calistir" && m.ekran) ekranBoyutu = { en: sayi(m.ekran.en, 360) || 360, boy: sayi(m.ekran.boy, 640) || 640 }; // başlatıcı da dinler
     if (m.tur === "girdi") return girdiAl(m.olay);
     if (m.tur === "olay") {
       if (olayBekleyen) { const coz = olayBekleyen; olayBekleyen = null; coz(m.olay); }
@@ -155,6 +156,14 @@
   }
 
   const dokunmalar = new Map(); // parmak → { parmak, tuval, x, y, ilkX, ilkY }
+  // Tuvallerin gerçek boyutu (mantıksal birim). Tam ekran tuvalde ekranın boyutudur; uygulama her karede ve boyut
+  // değişince gönderir. Tuval henüz ekranda değilse uygulama ekranının boyutu kullanılır.
+  const boyutlar = new Map();   // tuval → { en, boy }
+  let ekranBoyutu = { en: 360, boy: 640 };
+  function boyutlariAl(b) {
+    if (!b || typeof b !== "object") return;
+    for (const [id, v] of Object.entries(b)) if (Array.isArray(v)) boyutlar.set(id, { en: sayi(v[0], 360), boy: sayi(v[1], 640) });
+  }
   const tuslar = new Set();
   const dinleyiciler = new Map(); // tur → Set<fn>
   let donguFn = null, karede = false;
@@ -183,6 +192,7 @@
     else if (o.tur === "tus") tuslar.add(o.tus);
     else if (o.tur === "tus_birak") tuslar.delete(o.tus);
     else if (o.tur === "odak_kaybi") { tuslar.clear(); dokunmalar.clear(); }
+    else if (o.tur === "boyut" && o.tuval != null) boyutlar.set(String(o.tuval), { en: sayi(o.en, 360), boy: sayi(o.boy, 640) });
     yay(o.tur, { ...o });
   }
 
@@ -205,6 +215,11 @@
     },
     dokunmalar: (tuval) => [...dokunmalar.values()].filter((d) => tuval == null || d.tuval === String(tuval)).map((d) => ({ ...d })),
     tus: (ad) => tuslar.has(String(ad)),
+    /** Tuvalin şu anki gerçek boyutu { en, boy }: tam ekran tuvalde ekranın boyutu. Her karede oku, yerleşimi buna göre kur. */
+    boyut: (tuval) => {
+      const b = (tuval != null && boyutlar.get(String(tuval))) || (tuval == null && boyutlar.values().next().value) || ekranBoyutu;
+      return { en: b.en, boy: b.boy };
+    },
     dinle(tur, fn) {
       if (typeof fn !== "function") return () => {};
       if (!dinleyiciler.has(tur)) dinleyiciler.set(tur, new Set());

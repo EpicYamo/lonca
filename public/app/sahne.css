@@ -509,6 +509,15 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 :is(.s-kart, .s-izgara, .s-satir, .s-kapak-dugmeler) .s-kaydirma { margin-inline: 0; padding-inline: 0; }
 /* Yalnızca kapaktan oluşan açılış ekranı ekranı doldurur; altında boş zemin kalmaz. */
 .s-kok-tam > .s-kapak:only-child, .s-kok-tam > .s-sutun:only-child > .s-kapak:only-child { min-height: 100vh; min-height: 100dvh; margin-bottom: -1rem; }
+/* Sabit ekran (sahne.js sabitle): yalnızca kapaktan oluşan açılış ve tuvalli oyun ekranı tam bir ekrandır. Altta sekme payı
+   bırakılmaz, sayfa aşağı kaymaz; kenarda lastik gibi esneyip arkadaki siyah zemini göstermez (web, Android, Studio önizlemesi).
+   Kapağın içeriği küçük bir ekrana sığmazsa kapak uzar ve yine kaydırılabilir; düğmeler kesilmez. */
+body.uygulama-modu .modul-ekrani .sahne.s-sabit { padding-bottom: 0; }
+.sahne.s-sabit > .s-kok-tam:has(> .s-kapak:only-child, > .s-sutun:only-child > .s-kapak:only-child) { padding-bottom: 0; }
+.sahne.s-sabit :is(.s-kok-tam > .s-kapak:only-child, .s-kok-tam > .s-sutun:only-child > .s-kapak:only-child) { margin-bottom: 0; }
+html.modul-sabit, html.modul-sabit body { overscroll-behavior: none; }
+/* Modül açıkken hiçbir ekran kenarda esneyip arkadaki zemini göstermez (uzun listeler yine kayar). */
+html:has(> body.uygulama-modu) { overscroll-behavior-y: none; }
 /* Studio önizlemesi (telefon çerçevesi): masaüstü tarayıcının kalıcı kaydırma çubuğu içeriğin genişliğini yemesin;
    telefonlarda olduğu gibi kaydırma çubuğu görünmez, sayfa yine kaydırılır. */
 html.onizleme { scrollbar-width: none; }
@@ -525,6 +534,10 @@ html.onizleme::-webkit-scrollbar { display: none; }
 .s-tuval-katman > * { pointer-events: auto; max-width: min(100%, 26rem); width: 100%; }
 .s-tuval-katman > :is(.s-kart, .s-eser, .s-sutun) { box-shadow: 0 18px 48px rgba(0, 0, 0, .45); }
 .s-kok-tam > .s-tuval:first-child, .s-kok-tam > .s-sutun > .s-tuval:first-child { margin-top: 0; }
+/* Tam ekran tuval (en/boy verilmeyen): kapak gibi ekran kenarına kadar uzanır, altında zemin payı kalmaz. */
+.s-kok-tam > .s-tuval.tam, .s-kok-tam > .s-sutun > .s-tuval.tam { width: auto; max-width: none; margin-inline: -1rem; }
+.sahne.s-sabit > .s-kok-tam:has(.s-tuval.tam) { padding-bottom: 0; }
+body.uygulama-modu .sahne.s-sabit:has(.s-tuval.tam) { max-width: none; }
 /* Tuvalli ekranda sayfa kaymaz: sekme çubuğu payı yok (tuval yüksekliğini tuval.js hesaplar), katmanın kaydırması sayfaya geçmez. */
 body.uygulama-modu .modul-ekrani #sahne:has(.s-tuval) { padding-bottom: 0; }
 .s-tuval-katman { overscroll-behavior: contain; }
