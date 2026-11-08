@@ -122,14 +122,16 @@ test("admin: modüle özel dış içerik bağlantı ve uyarı ister; okunmamış
   const kod = (ek) => `import { sahne } from "@lonca/sdk";\n${ek}\nexport default async function basla() {\n  await sahne.ayarla({ baslik: "Kule", tema: { zemin: "gece" } });\n  await sahne.ciz({ tip: "metin", metin: "x" });\n}\n`;
   const modul = (k2) => ["modul_yaz", { id: "galata", ad: "Galata", aciklama: "x", aciklama_ustaya: "x", kod: k2 }];
   const s = saglayici([
-    modul(kod("const DIS_ICERIK = { ad: \"Galata Kulesi\" };")),
+    modul(kod("const DIS_ICERIK = { ad: \"Galata Kulesi\", etiket: \"Kaynak doğrulanmamış\" };")),
     modul(kod(`const DIS_ICERIK = { kaynak: { ad: "Vikipedi", url: "https://tr.wikipedia.org/wiki/Uydurma" } };`)),
-    modul(kod(`const DIS_ICERIK = { uyari: "Kaynak doğrulanmamış: Vikipedi", kaynak: { ad: "Vikipedi", url: "${MADDE_URL}" } };`)),
+    modul(kod(`const DIS_ICERIK = { etiket: "Kaynak: Vikipedi", kaynak: { ad: "Vikipedi", url: "${MADDE_URL}" } };`)),
   ]);
   let r;
   try { r = await k.calistir([{ rol: "usta", metin: "Modüle özel kalsın, yap" }], undefined, { admin: true, izinDurumu: durum, insa: true }); } finally { s.geri(); }
   assert.match(s.aracYaniti(1), /bağlantısını/);
   assert.match(s.aracYaniti(2), /Uydurma: bu madde okunmadı/);
+  assert.match(s.aracYaniti(1), /"Kaynak: Vikipedi" etiketini göster/); // eski "Kaynak doğrulanmamış" yetmez
+  assert.doesNotMatch(s.aracYaniti(1), /ekrana yaz/);
   assert.equal(r.tur, "modul");
   assert.deepEqual(r.disKaynaklar.map((d) => d.url), [MADDE_URL]);
 });
@@ -151,7 +153,7 @@ test("API: usta eser isteği gönderir, admin listede görür; modül kaydı do�
   const kod = (ek) => `import { sahne } from "@lonca/sdk";\nexport default async function basla() {\n  await sahne.ayarla({ baslik: "T", tema: { zemin: "gece" } });\n  await sahne.ciz({ tip: "metin", metin: "${ek}" });\n}\n`;
   const m1 = await s.istek("POST", "/api/moduller", { yonetici: true, govde: { id: "vakif-m", ad: "V", kod: kod("x") } });
   assert.deepEqual(m1.json().dogrulama, { dogrulanmis: true, kaynaklar: [] });
-  const m2 = await s.istek("POST", "/api/moduller", { yonetici: true, govde: { id: "viki-m", ad: "W", kod: kod(`Kaynak doğrulanmamış: Vikipedi ${MADDE_URL}`) } });
+  const m2 = await s.istek("POST", "/api/moduller", { yonetici: true, govde: { id: "viki-m", ad: "W", kod: kod(`Kaynak: Vikipedi ${MADDE_URL}`) } });
   assert.deepEqual(m2.json().dogrulama, { dogrulanmis: false, kaynaklar: ["Vikipedi"] });
 });
 
@@ -362,4 +364,12 @@ test("admin: adım sınırı aşılınca hata okunan maddeleri taşır (oturum y
   assert.match(hata.message, /yanıt üretemedi/);
   assert.deepEqual(hata.kalfaDurumu.disKaynaklar.map((d) => d.baslik), ["Hisar Camii"]);
   assert.equal(izmirIstekleri.filter((x) => x.titles === "Hisar Camii").length >= 1, true);
+});
+
+test("etiket: dış kaynak yalnızca \"Kaynak: Vikipedi\", doğrulanmış eser ✓", async () => {
+  const { dogrulanmamisMetni, eserDogrulamaMetni } = await import("../public/ortak/dogrulama.js");
+  assert.equal(dogrulanmamisMetni(["Vikipedi"]), "Kaynak: Vikipedi");
+  assert.equal(dogrulanmamisMetni(), "Kaynak: Vikipedi");
+  assert.equal(eserDogrulamaMetni({ dogrulanmis: false, kaynakTuru: "Vikipedi" }), "Kaynak: Vikipedi");
+  assert.equal(eserDogrulamaMetni({ id: "x" }), "✓ Doğrulanmış vakıf eseri");
 });

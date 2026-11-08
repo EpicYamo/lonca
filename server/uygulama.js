@@ -768,7 +768,7 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
     const kaynak = kaynakBul(kod, onceki);
     kayit.kaynak = { ...kaynak, ozet: kodOzeti(kod) };
     // Doğrulama işareti: modül yalnızca bilgi bankasının doğrulanmış (Vakıf Katılım) kayıtlarına dayanıyorsa ✓;
-    // dış kaynaklı içerik (Vikipedi) varsa uygulama kartta "Kaynak doğrulanmamış: Vikipedi" yazar.
+    // dış kaynaklı içerik (Vikipedi) varsa uygulama kartta ✓ yerine "Kaynak: Vikipedi" yazar.
     kayit.dogrulama = modulDogrulamasi({ kod, eserler, disKaynaklar: kaynak.disKaynaklar ?? [] });
     const i = liste.findIndex((m) => m.id === id);
     if (i >= 0) liste[i] = kayit; else liste.push(kayit);

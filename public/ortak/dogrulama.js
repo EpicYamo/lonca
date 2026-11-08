@@ -1,11 +1,11 @@
 // Doğrulama işareti: Vakıf Katılım envanterine dayanan modül ve eserlerde "Vakıf Katılım eseri" mührü; dış kaynaklı (ör. Vikipedi)
-// içerikte tik yoktur, yerine "Kaynak doğrulanmamış: <kaynak>" yazılır. Alan yoksa (eski kayıtlar) doğrulanmış sayılır.
+// içerikte tik yoktur, yerine yalnızca kaynağın adı yazılır ("Kaynak: Vikipedi"). Alan yoksa (eski kayıtlar) doğrulanmış sayılır.
 // Sunucu modül kaydına { dogrulama: { dogrulanmis, kaynaklar } }, eser kaydına { dogrulanmis: false, kaynakTuru } yazar.
 
 export const modulDogrulandi = (m) => m?.dogrulama?.dogrulanmis !== false;
 export const eserDogrulandi = (e) => e?.dogrulanmis !== false;
 const kaynakAdi = (liste) => (liste?.length ? liste.join(", ") : "Vikipedi");
-export const dogrulanmamisMetni = (kaynaklar) => `Kaynak doğrulanmamış: ${kaynakAdi(kaynaklar)}`;
+export const dogrulanmamisMetni = (kaynaklar) => `Kaynak: ${kaynakAdi(kaynaklar)}`;
 
 // ---------- Vakıf Katılım eseri mührü ----------
 // Doğrulanmış içerik düz bir ✓ yerine pasaport mührü gibi damgalanır. İki biçim birlikte üretilir, hangisinin
@@ -63,7 +63,7 @@ export function modulRozeti(m) {
   return s;
 }
 
-// Eserin kaynak satırı: doğrulanmışsa "✓ Doğrulanmış vakıf eseri", değilse "Kaynak doğrulanmamış: Vikipedi".
+// Eserin kaynak satırı: doğrulanmışsa "✓ Doğrulanmış vakıf eseri", değilse "Kaynak: Vikipedi".
 export function eserDogrulamaMetni(e) {
   return eserDogrulandi(e) ? "✓ Doğrulanmış vakıf eseri" : dogrulanmamisMetni(e?.kaynakTuru ? [e.kaynakTuru] : null);
 }

@@ -231,10 +231,10 @@ modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1�
 Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle de modül yapabilirsin; ama her adımda adminden izin alırsın ve UYDURMAZSIN.
 - Bilgi bankasında olmayan bir eser, il ya da bölge istenirse yönlendirme yapma: izin_iste (tur: "dis_kaynak", konu: eserin ya da ilin adı) ile Vikipedi'den bilgi toplamak için izin iste. İzin verilmeden dis_kaynak_liste / dis_kaynak_ara / dis_kaynak_oku çağıramazsın. Admin reddederse bilgi bankasındaki en yakın eserleri öner.
 - İzin verilince: bir il ya da bölge istendiyse ÖNCE dis_kaynak_liste (il, isteğe bağlı tur) ile o ildeki tarihî yapıların maddelerini listele; tek bir eser istendiyse dis_kaynak_ara ile maddeyi bul. Sonra uygun maddeleri dis_kaynak_oku ile oku (okuyacağın maddelerin hepsini AYNI yanıtta birlikte çağır; bir oturumda en çok ${MAKS_DIS_KAYNAK} madde; vakıf eserlerine (cami, han, hamam, türbe, çeşme, medrese…) öncelik ver). Yalnızca okuduğun maddede AÇIKÇA geçen bilgiyi kullan; ezberinden ya da başka bir yerden hiçbir ad, tarih, kişi ekleme. Uygun madde yoksa bunu söyle.
-- Maddeleri okuduktan sonra içeriğin nereye gideceğini izin_iste (tur: "kayit", konu, kaynak_urller: okuduğun maddelerin adresleri, en çok ${MAKS_TOPLU_KAYIT}) ile TEK kartta sor: bilgi bankasına mı eklensin (herkes kullanır; "doğrulanmamış" işaretlenir, kaynak bağlantısı kayıtta kalır) yoksa yalnızca bu modüle mi özel kalsın. Tek madde için kaynak_url de verebilirsin. İzin her madde için bir eklemeliktir.
+- Maddeleri okuduktan sonra içeriğin nereye gideceğini izin_iste (tur: "kayit", konu, kaynak_urller: okuduğun maddelerin adresleri, en çok ${MAKS_TOPLU_KAYIT}) ile TEK kartta sor: bilgi bankasına mı eklensin (herkes kullanır; ✓ almaz, "Kaynak: Vikipedi" ile gösterilir, kaynak bağlantısı kayıtta kalır) yoksa yalnızca bu modüle mi özel kalsın. Tek madde için kaynak_url de verebilirsin. İzin her madde için bir eklemeliktir.
 - Admin "bilgi bankasına ekle" derse her madde için ayrı bilgi_bankasina_ekle çağır: tarihçe maddedeki cümlelere sadık bir özet (maddede olmayan yıl yazma), yüzyıl yalnızca maddede açıkça geçiyorsa. Konum ve kaynak künyesini sunucu maddeden alır. Sonra modülde o eserleri dönen kimliklerle eserler.getir ile oku.
-- Admin "yalnızca bu modüle" derse maddedeki bilgiyi modülün koduna sabit olarak koy: const DIS_ICERIK = [{ ad, metin, kaynak: { ad: "Vikipedi", url: "<okuduğun maddenin adresi>" } }, …]. Bu içeriği gösterdiğin her ekranın başında "Kaynak doğrulanmamış: Vikipedi" yaz ve bağlantıyı göster. Ölçülü ol: madde başına 2–4 kısa bilgi ya da soru, modül en çok ~${MAKS_MODUL_HEDEF} satır.
-- Bilgi bankasında "dogrulanmis: false" taşıyan kayıtlar dış kaynaktan gelmiştir; ekranda "Doğrulanmamış (Vikipedi)" ya da "Kaynak doğrulanmamış: <kaynak>" göster. Vakıf Katılım envanterinden gelen kayıtlar "Doğrulanmış vakıf eseri ✓" sayılır.
+- Admin "yalnızca bu modüle" derse maddedeki bilgiyi modülün koduna sabit olarak koy: const DIS_ICERIK = [{ ad, metin, kaynak: { ad: "Vikipedi", url: "<okuduğun maddenin adresi>" } }, …]. Adres yalnızca bu sabitte kalır; ekranda çıplak adres (https://…) YAZMA. Bu içeriği gösterdiğin her ekranda kısa "Kaynak: Vikipedi" etiketi göster; "doğrulanmamış" deme. Ölçülü ol: madde başına 2–4 kısa bilgi ya da soru, modül en çok ~${MAKS_MODUL_HEDEF} satır.
+- Bilgi bankasında "dogrulanmis: false" taşıyan kayıtlar dış kaynaktan gelmiştir; ekranda ✓ koyma, yalnızca "Kaynak: <kaynakTuru>" (ör. "Kaynak: Vikipedi") göster. Vakıf Katılım envanterinden gelen kayıtlar "Doğrulanmış vakıf eseri ✓" sayılır.
 - Yanıtlarında izin istemek için yanit_ver değil izin_iste kullan; admin kartta bir düğmeye basarak yanıt verir.`;
 
   // Admin istemi: yalnızca ek yazmak yetmiyor; model temel istemdeki "yalnızca bilgi bankası / kayıtlı iller" satırlarını
@@ -573,7 +573,7 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
     const kayitIzni = (url, karar) => durumK.izinler.find((i) => i.tur === "kayit" && i.durum === "verildi" && i.karar === karar
       && izinUrlleri(i).some((u) => ayniAdres(u, url)) && !(i.kullanilanlar ?? []).some((u) => ayniAdres(u, url)));
     // Koddaki dış kaynak bağlantıları: usta için hiç yok; admin için yalnızca okunmuş ve izin verilmiş maddeler.
-    // Yalnızca modüle özel izni verilen maddenin bağlantısı ve "Kaynak doğrulanmamış" uyarısı kodda bulunmalı.
+    // Yalnızca modüle özel izni verilen maddenin bağlantısı (koddaki sabitte, denetim için) ve "Kaynak: Vikipedi" etiketi kodda bulunmalı.
     function disKaynakDenetimi(kod) {
       const hatalar = [];
       const baglantilar = koddakiDisBaglantilar(kod);
@@ -589,10 +589,10 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
       const moduleOzel = durumK.izinler.filter((x) => x.tur === "kayit" && x.durum === "verildi" && x.karar === "modul");
       for (const i of moduleOzel) {
         for (const url of izinUrlleri(i)) {
-          if (!baglantilar.some((u) => ayniAdres(u, url))) hatalar.push(`Modüle özel dış içerik (${maddeAdi(i, url)}) kullanılıyor: kaynağın bağlantısını (${url}) koda ve ekrana yaz`);
+          if (!baglantilar.some((u) => ayniAdres(u, url))) hatalar.push(`Modüle özel dış içerik (${maddeAdi(i, url)}) kullanılıyor: kaynağın bağlantısını (${url}) koddaki DIS_ICERIK sabitine yaz (ekranda gösterme)`);
         }
       }
-      if (moduleOzel.length && !/Kaynak doğrulanmamış/i.test(kod)) hatalar.push("Dış kaynaklı içeriği gösterdiğin ekranın başına \"Kaynak doğrulanmamış: Vikipedi\" yaz");
+      if (moduleOzel.length && !/Kaynak:\s*Vikipedi/i.test(kod)) hatalar.push("Dış kaynaklı içeriği gösterdiğin ekranlarda \"Kaynak: Vikipedi\" etiketini göster");
       return hatalar;
     }
     const disKullan = (d) => { if (d && !izler.disKullanilan.some((x) => x.url === d.url)) izler.disKullanilan.push(d); };
@@ -715,7 +715,7 @@ Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle d
           if (!izler.okunan.includes(r.eser.id)) izler.okunan.push(r.eser.id);
           disKullan(kaynak);
           aramalar.push({ eklenen: r.eser.id, ad: r.eser.ad, kaynak: DIS_KAYNAK_ADI });
-          sonuclar.push({ id: c.id, icerik: JSON.stringify({ eklendi: true, id: r.eser.id, not: "Kayıt doğrulanmamış (kaynak: Vikipedi) olarak eklendi; modülde eserler.getir ile oku." }) });
+          sonuclar.push({ id: c.id, icerik: JSON.stringify({ eklendi: true, id: r.eser.id, not: "Kayıt ✓ almadan (Kaynak: Vikipedi) eklendi; modülde eserler.getir ile oku." }) });
         } else if (c.ad === "yanit_ver") {
           const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim() : "";
           if (m) { yanit = sohbetYaniti(c.girdi, m); sonuclar.push({ id: c.id, icerik: "Yanıt iletildi." }); }
