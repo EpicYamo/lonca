@@ -60,7 +60,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen, tuval = n
       case "afis": {
         const d = el("header", { className: "s-afis" });
         const foto = n.eser?.fotograflar?.find?.((f) => typeof f === "string");
-        if (foto) d.style.backgroundImage = `linear-gradient(180deg, rgba(10,18,40,.05), rgba(10,18,40,.82)), url("${encodeURI(foto)}")`;
+        if (foto) { d.style.backgroundImage = `linear-gradient(180deg, rgba(10,18,40,.05), rgba(10,18,40,.82)), url("${encodeURI(foto)}")`; d.style.backgroundSize = "cover"; }
         else d.style.backgroundImage = `linear-gradient(180deg, rgba(10,18,40,.15), rgba(10,18,40,.78)), ${ciniArkaPlan(metin(n.desen ?? n.eser?.id ?? n.baslik), RENKLER.includes(n.renk) ? n.renk : undefined)}`;
         d.append(el("h2", { className: "s-afis-baslik", textContent: metin(n.baslik) }));
         if (n.alt) d.append(el("p", { className: "s-afis-alt", textContent: metin(n.alt) }));
