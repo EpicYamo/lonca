@@ -1,7 +1,7 @@
 // Eser sayfası (#eser-penceresi): fotoğraflar + tam ekran galeri, TR/EN metin, mini harita ve "yaklaşık konum" notu,
 // kaynaklı tarihsel bağlar ve yakındaki eserler, "Dalışı var" rozeti, paylaş.
 import { TUR_ADI } from "./ekranlar.js";
-import { haritaAc, isaretKoy, daireCokgen, bagTuruAdi } from "./harita.js";
+import { haritaAc, haritaHatasiGoster, isaretKoy, daireCokgen, bagTuruAdi } from "./harita.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { dilAl } from "/ortak/dil.js";
 import { eserRozeti } from "/ortak/dogrulama.js";
@@ -106,7 +106,7 @@ export function eserSayfasiKur({ el, api, seslendir, bildir, katkiAc, hataYazisi
       isaret.setAttribute("aria-hidden", "true");
       isaretKoy(h, nokta, isaret);
       requestAnimationFrame(() => h.resize());
-    } catch { kutu.hidden = true; }
+    } catch (h) { if (bu === istekNo && d.open) haritaHatasiGoster(kutu, h); }
   }
 
   // ---------- İlişkili eserler ----------
