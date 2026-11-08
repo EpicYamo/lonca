@@ -80,3 +80,17 @@
 :root.hareket-az :is(.kabuk .uygulama-satiri, .oc-kart) .vakif-muhur { animation: none; }
 /* Etiket büyük başlıklarda da küçük ve düz yazıyla kalır; dar kartta kırılır, kartı taşırmaz. */
 .dogrulama-yok { display: inline-block; max-inline-size: 100%; margin-inline-start: .6em; padding: .1em .55em; border: 1px solid currentColor; border-radius: 999px; font-family: var(--sans, var(--yazi-govde, system-ui, sans-serif)); font-size: min(.72em, .78rem); font-weight: 500; letter-spacing: normal; line-height: 1.35; opacity: .8; vertical-align: .15em; white-space: normal; overflow-wrap: anywhere; }
+
+/* Harita açılamadığında (ör. WebGL2 yok) kutunun içinde gösterilen okunur ileti: uygulama ve web sitesi ortak. */
+.harita-hata {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  margin: 0;
+  padding: 1.25rem;
+  text-align: center;
+  line-height: 1.45;
+  background: var(--yuzey);
+  color: var(--metin);
+}

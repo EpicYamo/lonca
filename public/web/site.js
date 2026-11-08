@@ -384,7 +384,7 @@ function haritaBolumu() {
   const gozcu = new IntersectionObserver((g) => {
     if (!g.some((x) => x.isIntersecting)) return;
     gozcu.disconnect();
-    haritaKur(kap, konumlu).catch(() => kap.replaceChildren(el("p", { sinif: "bos", metin: "Harita yüklenemedi." })));
+    haritaKur(kap, konumlu).catch((h) => kap.replaceChildren(el("p", { sinif: "bos harita-hata", role: "status", metin: h?.message || "Harita yüklenemedi." })));
   }, { rootMargin: "300px" });
   gozcu.observe(kap);
 }
@@ -481,7 +481,7 @@ function eserSayfasi(id) {
       el("h2", { id: "es-benzer-baslik", metin: `Diğer ${turAdi(e.tur).toLocaleLowerCase("tr")} eserleri` }),
       el("ul", { sinif: "eser-satiri" }, benzer.map(eserTasi))) : null,
   ].filter(Boolean));
-  if (haritaKap) haritaKur(haritaKap, [e], { yakinlik: 16 }).catch((h) => { console.warn("Harita açılamadı:", h.message); haritaKap.remove(); });
+  if (haritaKap) haritaKur(haritaKap, [e], { yakinlik: 16 }).catch((h) => haritaKap.replaceChildren(el("p", { sinif: "bos harita-hata", role: "status", metin: h?.message || "Harita yüklenemedi." })));
 }
 
 // ---------- Yönlendirme ----------

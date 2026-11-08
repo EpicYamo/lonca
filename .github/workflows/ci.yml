@@ -152,7 +152,7 @@ jobs:
           ADET=$(node -e 'const j=require(process.argv[1]);process.stdout.write(String(Array.isArray(j)?j.length:(j.eserler?.length??0)))' "$RUNNER_TEMP/eserler.json")
           echo "eser sayısı: $ADET"
           test "$ADET" -gt 0
-          for yol in /app/ /studio/ /sdk/lonca-sdk.js /vendor/maplibre/maplibre-gl.js /vendor/three/build/three.module.js; do
+          for yol in /app/ /studio/ /sdk/lonca-sdk.js /vendor/maplibre/maplibre-gl.mjs /vendor/maplibre/maplibre-gl-worker.mjs /vendor/three/build/three.module.js; do
             curl -fsS -o /dev/null "http://127.0.0.1:3000$yol" || { echo "::error::$yol yanıt vermedi"; exit 1; }
           done
           # node_modules dışına çıkış yok

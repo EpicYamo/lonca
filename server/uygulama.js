@@ -130,8 +130,8 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const yenidenDogrula = (rep, yol) => { if (kodDosyasi.test(yol)) rep.header("cache-control", "no-cache"); };
   app.register(fastifyStatic, { root: path.join(kok, "public"), prefix: "/", setHeaders: yenidenDogrula });
   app.register(fastifyStatic, { root: path.join(kok, "sdk"), prefix: "/sdk/", decorateReply: false, setHeaders: yenidenDogrula });
-  // Uygulamanın ve web sitesinin tek haritası (MapLibre GL, public/app/harita.js): yalnızca derlenmiş betik ve stil.
-  app.register(fastifyStatic, { root: path.join(kok, "node_modules", "maplibre-gl", "dist"), prefix: "/vendor/maplibre/", decorateReply: false, allowedPath: (p) => ["/maplibre-gl.js", "/maplibre-gl.css"].includes(p) });
+  // Uygulamanın ve web sitesinin tek haritası (MapLibre GL, public/app/harita.js): yalnızca derlenmiş modül, çizim işçisi ve stil.
+  app.register(fastifyStatic, { root: path.join(kok, "node_modules", "maplibre-gl", "dist"), prefix: "/vendor/maplibre/", decorateReply: false, allowedPath: (p) => ["/maplibre-gl.mjs", "/maplibre-gl-worker.mjs", "/maplibre-gl-shared.mjs", "/maplibre-gl.css"].includes(p) });
   app.register(fastifyStatic, { root: path.join(kok, "node_modules", "three"), prefix: "/vendor/three/", decorateReply: false, allowedPath: (p) => p.startsWith("/build/") || p.startsWith("/examples/jsm/") });
   // Web sitesi kökte (public/web/), Android uygulamasından ayrı. Uygulama sayfası (public/app/) /app/ adresinde kalır:
   // modüller orada çalışır (sitenin "Modülü aç" bağlantısı /app/?modul=<id>&gomulu=1), Studio önizlemesi (/app/?onizleme)
