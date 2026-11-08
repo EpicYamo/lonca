@@ -61,7 +61,8 @@ export async function modulCalistir(kod, yontemlerYap, { iptal } = {}) {
       const m = e.data;
       if (!m || m.lonca !== 1) return;
 
-      if (m.tur === "hazir") return cerceve.contentWindow.postMessage({ lonca: 1, tur: "calistir", kod }, "*");
+      // ekran: modülün gördüğü ekran boyutu (tam ekran tuval ekranda belirmeden önce oyun.boyut bunu döndürür).
+      if (m.tur === "hazir") return cerceve.contentWindow.postMessage({ lonca: 1, tur: "calistir", kod, ekran: { en: innerWidth, boy: window.visualViewport?.height ?? innerHeight } }, "*");
       if (m.tur === "bitti") return bitir();
       if (m.tur === "hata") return bitir(new Error(m.mesaj));
       // Çizim komutları ve kare onayı: yanıtsız, sıradan SDK çağrısı değil.

@@ -16,9 +16,12 @@ const baslikYap = (metin) => { const t = String(metin).replace(/\s+/g, " ").trim
 const hataVer = (mesaj, kod) => Object.assign(new Error(mesaj), { kod });
 
 // Admin'in izin kartındaki kararı sohbete bu cümleyle girer (istemcinin yazdığı metin değil): kalfa kararı her zaman aynı biçimde okur.
-const IZIN_KARARLARI = { dis_kaynak: ["ver", "reddet"], kayit: ["bilgi-bankasi", "modul", "reddet"] };
+const IZIN_KARARLARI = { dis_kaynak: ["ver", "reddet"], kayit: ["bilgi-bankasi", "modul", "reddet"], genis_mod: ["ac", "standart"] };
 function kararCumlesi(izin, karar) {
   const ad = `“${izin.konu}”`;
+  if (izin.tur === "genis_mod") return karar === "ac"
+    ? `Genişletilmiş modu aç: ${ad} için tuval, oyun döngüsü, dokunma/sürükleme, ses ve titreşimi kullanabilirsin. Modülü yaz.`
+    : `Standart kalsın: ${ad} için genişletilmiş modu açma; standart düğümlerle isteğe en yakın modülü yaz.`;
   if (izin.tur === "dis_kaynak") return karar === "ver"
     ? `İzin veriyorum: ${ad} için Vikipedi'den bilgi çekebilirsin.`
     : `İzin vermiyorum: ${ad} için dış kaynak kullanma; bilgi bankasındaki eserlerle devam et.`;
@@ -157,7 +160,7 @@ export function atolyeKur(dizin) {
         if (!i) throw hataVer("izin bulunamadı", 404);
         if (i.durum !== "bekliyor") throw hataVer("Bu izin zaten yanıtlandı", 409);
         if (!IZIN_KARARLARI[i.tur]?.includes(izin.karar)) throw hataVer(`karar: ${IZIN_KARARLARI[i.tur]?.join(" | ")}`, 400);
-        i.durum = izin.karar === "reddet" ? "reddedildi" : "verildi";
+        i.durum = izin.karar === "reddet" || izin.karar === "standart" ? "reddedildi" : "verildi";
         i.karar = izin.karar;
         i.yanit = simdi();
         istek = kararCumlesi(i, izin.karar);
@@ -184,7 +187,7 @@ export function atolyeKur(dizin) {
         }
         if (sonuc.kalfaDurumu) o.kalfaDurumu = sonuc.kalfaDurumu;
         const ek = {
-          aramalar: sonuc.aramalar ?? [], model: sonuc.model ?? null, kaynaklar: sonuc.kaynaklar ?? null, oneriler: sonuc.oneriler ?? [],
+          aramalar: sonuc.aramalar ?? [], model: sonuc.model ?? null, kaynaklar: sonuc.kaynaklar ?? null, oneriler: sonuc.oneriler ?? [], ...(sonuc.genisMod && { genisMod: true }),
           ...(sonuc.izin && { izin: sonuc.izin }), ...(sonuc.eserIstegi && { eserIstegi: sonuc.eserIstegi }),
           ...(sonuc.disKaynaklar?.length && { disKaynaklar: sonuc.disKaynaklar }),
         };

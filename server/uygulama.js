@@ -970,13 +970,13 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
   const kalfaUretimleri = new Map();
   const kodOzeti = (kod) => createHash("sha256").update(String(kod).replace(/\r\n/g, "\n")).digest("hex");
   function kalfaUretiminiKaydet(sonuc) {
-    kalfaUretimleri.set(kodOzeti(sonuc.kod), { model: sonuc.model ?? kalfa.model, sahte: sonuc.model === "sahte", tarih: new Date().toISOString(),
+    kalfaUretimleri.set(kodOzeti(sonuc.kod), { model: sonuc.model ?? kalfa.model, sahte: sonuc.model === "sahte", tarih: new Date().toISOString(), ...(sonuc.genisMod && { genisMod: true }),
       ...(sonuc.disKaynaklar?.length && { disKaynaklar: sonuc.disKaynaklar }) });
     while (kalfaUretimleri.size > 200) kalfaUretimleri.delete(kalfaUretimleri.keys().next().value);
   }
   function kaynakBul(kod, onceki) {
     const uretim = kalfaUretimleri.get(kodOzeti(kod));
-    if (uretim) return { tur: "kalfa", model: uretim.model, ...(uretim.sahte && { sahte: true }), uretim: uretim.tarih, ...(uretim.disKaynaklar && { disKaynaklar: uretim.disKaynaklar }) };
+    if (uretim) return { tur: "kalfa", model: uretim.model, ...(uretim.sahte && { sahte: true }), ...(uretim.genisMod && { genisMod: true }), uretim: uretim.tarih, ...(uretim.disKaynaklar && { disKaynaklar: uretim.disKaynaklar }) };
     // Aynı kod yeniden gönderildiyse (ör. sunucu yeniden başladıktan sonra) önceki kaynak korunur.
     if (onceki?.kaynak?.ozet === kodOzeti(kod)) return onceki.kaynak;
     return { tur: "elle" };
@@ -1073,13 +1073,14 @@ export async function uygulamaKur({ kok, veri = path.join(kok, "data"), ortam = 
       if (hatalar.length) return rep.code(400).send({ hata: hatalar[0], ayrintilar: hatalar });
       // Dış kaynak (Vikipedi) ve bilgi bankasına ekleme yalnızca admin'in kalfasında; izin kartını da yalnızca admin yanıtlar.
       const admin = await editorMi(req);
-      if (izin && !admin) return rep.code(403).send({ hata: "İzin kartlarını yalnızca admin yanıtlayabilir" });
+      // Genişletilmiş mod kartını (ac | standart) usta da yanıtlar; kararın kartın türüne uyduğunu atolye.kalfaBaslat denetler.
+      if (izin && !admin && !["ac", "standart"].includes(izin.karar)) return rep.code(403).send({ hata: "İzin kartlarını yalnızca admin yanıtlayabilir" });
       const sahip = await atolyeSahibi(req);
       let sohbet, kalfaDurumu;
       try { ({ sohbet, kalfaDurumu } = await atolye.kalfaBaslat(sahip, oturum, { istek: istek.trim(), kod: kod ?? null, izin: izin ?? null })); }
       catch (h) { return atolyeHatasi(rep, h); }
       try {
-        const sonuc = await kalfa.calistir(sohbet, kod || undefined, { dil: dil ?? "tr", admin, izinDurumu: admin ? kalfaDurumu : null });
+        const sonuc = await kalfa.calistir(sohbet, kod || undefined, { dil: dil ?? "tr", admin, izinDurumu: kalfaDurumu });
         if (sonuc.kod) kalfaUretiminiKaydet(sonuc);
         await atolye.kalfaBitir(sahip, oturum, { sonuc });
         const { kalfaDurumu: _durum, ...yanit } = sonuc;
