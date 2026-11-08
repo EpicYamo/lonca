@@ -54,7 +54,8 @@ function ac(yeni, yon = 1) {
 
   gecis = gsap.timeline({ defaults: { ease: "sinema" } });
   if (eski && !hareketAz) {
-    gecis.to(eski, { opacity: 0, scale: 0.96, xPercent: -4 * yon, filter: "blur(10px)", duration: 0.55 }, 0);
+    // Çıkış animasyonu sayfa değişmeden biter; yoksa temizlenen bulanıklık geri yazılır ve o sayfaya dönünce bulanık kalır.
+    gecis.to(eski, { opacity: 0, scale: 0.96, xPercent: -4 * yon, filter: "blur(10px)", duration: 0.45 }, 0);
   }
   gecis.add(() => {
     if (eski) { eski.classList.remove("etkin"); gsap.set(eski, { clearProps: "opacity,transform,filter" }); }
@@ -72,7 +73,7 @@ function ac(yeni, yon = 1) {
       if (hareketAz) tl.progress(1);
     }, gelen);
   }, eski && !hareketAz ? 0.45 : 0);
-  if (!hareketAz) gecis.fromTo(gelen, { opacity: 0, scale: 1.04, xPercent: 3 * yon }, { opacity: 1, scale: 1, xPercent: 0, duration: 0.75, clearProps: "opacity,transform" }, eski ? 0.45 : 0);
+  if (!hareketAz) gecis.fromTo(gelen, { opacity: 0, scale: 1.04, xPercent: 3 * yon }, { opacity: 1, scale: 1, xPercent: 0, filter: "blur(0px)", duration: 0.75, clearProps: "opacity,transform,filter" }, eski ? 0.45 : 0);
 }
 
 const ileri = () => ac(sira + 1, 1);
