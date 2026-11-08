@@ -64,7 +64,8 @@ test("usta: dış kaynak araçları yok; bilgi bankasında olmayan eser için ö
     assert.match(s.aracYaniti(1), /Bilinmeyen araç/);
     assert.equal(r.tur, "sohbet");
     assert.deepEqual(r.eserIstegi, { ad: "Galata Kulesi", il: "İstanbul", not: "Çocuklar için kule oyunu" });
-    assert.equal(r.kalfaDurumu, undefined);
+    // Usta da oturum durumu taşır (genişletilmiş mod kartı için) ama içinde hiçbir dış kaynak izni ya da madde yoktur.
+    assert.deepEqual(r.kalfaDurumu, { izinler: [], disKaynaklar: [] });
   } finally { s.geri(); }
 });
 

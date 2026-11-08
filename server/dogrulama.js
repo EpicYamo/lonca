@@ -298,12 +298,12 @@ export function eserIstegiDogrula(veri) {
   return { hatalar, istek: hatalar.length ? null : istek };
 }
 
-// Admin'in kalfa izin kartındaki yanıtı: { id, karar }.
+// Kalfa izin kartındaki yanıt: { id, karar }. Dış kaynak/kayıt kartlarını admin, genişletilmiş mod kartını (ac | standart) usta da yanıtlar.
 export function izinKarariDogrula(izin) {
   if (izin == null) return [];
   if (typeof izin !== "object" || Array.isArray(izin)) return ["izin: { id, karar } olmalı"];
   const hatalar = [];
   if (typeof izin.id !== "string" || !/^[a-f0-9-]{4,40}$/.test(izin.id)) hatalar.push("izin.id geçersiz");
-  if (!["ver", "reddet", "bilgi-bankasi", "modul"].includes(izin.karar)) hatalar.push("izin.karar: ver | reddet | bilgi-bankasi | modul");
+  if (!["ver", "reddet", "bilgi-bankasi", "modul", "ac", "standart"].includes(izin.karar)) hatalar.push("izin.karar: ver | reddet | bilgi-bankasi | modul | ac | standart");
   return hatalar;
 }

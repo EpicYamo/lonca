@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import vm from "node:vm";
-import { kalfaHazirla } from "../server/kalfa.js";
-import { KOK } from "./yardimci.mjs";
+import { kalfaHazirla, eksikAdlariTamamla } from "../server/kalfa.js";
+import { KOK, deneySunucusu } from "./yardimci.mjs";
 
 const { eserler } = JSON.parse(await readFile(path.join(KOK, "data", "eserler.json"), "utf8"));
 const kalfa = kalfaHazirla({ kok: KOK, eserler, ortam: { KALFA_SAHTE: "1" } });
@@ -128,8 +128,8 @@ test("usta ve admin istemi gerçek zamanlı oyunu anlatır, oyunu quiz'e indirge
   };
   try {
     const k = kalfaHazirla({ kok: KOK, eserler, ortam: { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "m" } });
-    await k.calistir([{ rol: "usta", metin: "ping pong oyunu nasıl olur?" }]);
-    await k.calistir([{ rol: "usta", metin: "ping pong oyunu nasıl olur?" }], undefined, { admin: true });
+    await k.calistir([{ rol: "usta", metin: "ping pong oyunu nasıl olur?" }], undefined, { genis: true });
+    await k.calistir([{ rol: "usta", metin: "ping pong oyunu nasıl olur?" }], undefined, { admin: true, genis: true });
     const [usta, admin] = istekler.map((i) => i.messages[0].content);
     for (const istem of [usta, admin]) {
       assert.match(istem, /Uygulama içinde uygulama/);
@@ -146,4 +146,126 @@ test("usta ve admin istemi gerçek zamanlı oyunu anlatır, oyunu quiz'e indirge
     assert.match(admin, /ADMİN KİPİ/);
     assert.doesNotMatch(admin, /admin'e öneri gönderebileceğini/);
   } finally { globalThis.fetch = asilFetch; }
+});
+
+// ---------- Genişletilmiş mod onayı ----------
+const TUVAL_KODU = `import { sahne, oyun } from "@lonca/sdk";
+export default async function basla() {
+  await sahne.ayarla({ baslik: "Pong", tema: { zemin: "gece" } });
+  await sahne.ciz({ tip: "tuval", id: "masa", en: 360, boy: 640 });
+  oyun.dongu(() => oyun.ciz("masa", (k) => k.temizle("#000")));
+}
+`;
+const SAGLAYICI_ORTAMI = { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: "http://saglayici.test/v1", KALFA_MODEL: "m" };
+// Sahte sağlayıcı: sırayla verilen araç çağrıları; istekler (sistem istemi ve araçlar dahil) kaydedilir.
+function saglayici(adimlar) {
+  const istekler = [];
+  const asil = globalThis.fetch;
+  globalThis.fetch = async (_url, { body }) => {
+    istekler.push(JSON.parse(body));
+    const [ad, girdi] = adimlar[Math.min(istekler.length, adimlar.length) - 1];
+    const mesaj = { role: "assistant", content: "", tool_calls: [{ id: String(istekler.length), type: "function", function: { name: ad, arguments: JSON.stringify(girdi) } }] };
+    return Response.json({ choices: [{ message: mesaj }] });
+  };
+  return { istekler, geri: () => { globalThis.fetch = asil; } };
+}
+const istem = (i) => i.messages[0].content;
+const araclar = (i) => i.tools.map((t) => t.function.name);
+
+test("standart mod: oyun adı geçen istekte kart sunucudan çıkar; onaysız tuvalli kod da kart açar", async () => {
+  const k = kalfaHazirla({ kok: KOK, eserler, ortam: SAGLAYICI_ORTAMI });
+  // 1) Oyun adı: model hiç çağrılmadan kart (sınıflandırma modele bırakılmaz).
+  let p = saglayici([["yanit_ver", { metin: "x" }]]);
+  try {
+    for (const istek of ["ping pong oyunu yap", "bana half life vakıf eseri yap. benzer olsun", "snake yap", "Mario gibi bir şey hazırla"]) {
+      const r = await k.calistir([{ rol: "usta", metin: istek }]);
+      assert.equal(r.izin?.tur, "genis_mod", istek);
+      assert.equal(r.kalfaDurumu.izinler.at(-1).durum, "bekliyor");
+    }
+    assert.equal(p.istekler.length, 0, "sağlayıcıya istek gitmedi");
+    // Soru turunda kendiliğinden kart yok; kalfa yanıtlar.
+    const soru = await k.calistir([{ rol: "usta", metin: "ping pong oyununun kuralları neler?" }]);
+    assert.equal(soru.izin, undefined);
+  } finally { p.geri(); }
+  // 2) Oyun adı yok ama model onaysız tuval kullandı: modül reddedilmez, ustaya kart gösterilir.
+  p = saglayici([["modul_yaz", { id: "x", ad: "Kayan Toplar", aciklama: "x", kod: TUVAL_KODU, aciklama_ustaya: "x" }], ["genis_mod_iste", { konu: "x", metin: "x" }]]);
+  try {
+    const r = await k.calistir([{ rol: "usta", metin: "eğlenceli bir şey yap" }]);
+    assert.doesNotMatch(istem(p.istekler[0]), /Örnek 2|interface Oyun|export const oyun|tip: "tuval"/);
+    assert.match(istem(p.istekler[0]), /STANDART MOD/);
+    assert.ok(araclar(p.istekler[0]).includes("genis_mod_iste"));
+    assert.equal(r.tur, "sohbet");
+    assert.equal(r.izin.tur, "genis_mod");
+    assert.equal(r.izin.konu, "Kayan Toplar");
+  } finally { p.geri(); }
+  // 3) Model kendisi de kart isteyebilir (özellikleriyle).
+  p = saglayici([["genis_mod_iste", { konu: "kayan toplar", metin: "Genişletilmiş mod gerekiyor.", ozellikler: ["tuval", "oyun döngüsü"] }]]);
+  try {
+    const r = await k.calistir([{ rol: "usta", metin: "eğlenceli bir şey yap" }]);
+    assert.deepEqual(r.izin.ozellikler, ["tuval", "oyun döngüsü"]);
+  } finally { p.geri(); }
+});
+
+test("onaylanınca genişletilmiş istem ve tuval açılır; standart seçilince yeniden sorulmaz", async () => {
+  const k = kalfaHazirla({ kok: KOK, eserler, ortam: SAGLAYICI_ORTAMI });
+  const karar = (karar) => ({ izinler: [{ id: "abcd1234", tur: "genis_mod", konu: "ping pong", durum: karar === "ac" ? "verildi" : "reddedildi", karar }], disKaynaklar: [] });
+  let p = saglayici([["modul_yaz", { id: "pong", ad: "Pong", aciklama: "x", kod: TUVAL_KODU, aciklama_ustaya: "x" }]]);
+  try {
+    const r = await k.calistir([{ rol: "usta", metin: "Genişletilmiş modu aç: ping pong için … Modülü yaz." }], undefined, { izinDurumu: karar("ac") });
+    assert.equal(r.tur, "modul");
+    assert.equal(r.genisMod, true);
+    assert.match(istem(p.istekler[0]), /Örnek 2 — tuval/);
+    assert.ok(!araclar(p.istekler[0]).includes("genis_mod_iste"));
+  } finally { p.geri(); }
+  p = saglayici([["genis_mod_iste", { konu: "ping pong", metin: "Yine sorayım mı?" }], ["yanit_ver", { metin: "Standart bir masa tenisi yapalım." }]]);
+  try {
+    const r = await k.calistir([{ rol: "usta", metin: "Standart kalsın: ping pong için genişletilmiş modu açma." }], undefined, { izinDurumu: karar("standart") });
+    assert.equal(r.tur, "sohbet");
+    assert.match(p.istekler[0].messages.at(-1).content, /genişletilmiş modu açmadı/);
+    assert.match(p.istekler[1].messages.at(-1).content, /standart kalmayı seçti/);
+  } finally { p.geri(); }
+  p = saglayici([["modul_yaz", { id: "pong", ad: "Pong", aciklama: "x", kod: TUVAL_KODU, aciklama_ustaya: "x" }], ["yanit_ver", { metin: "Standart yapayım." }]]);
+  try {
+    const r = await k.calistir([{ rol: "usta", metin: "Standart kalsın: ping pong için genişletilmiş modu açma; standart düğümlerle isteğe en yakın modülü yaz." }], undefined, { izinDurumu: karar("standart") });
+    assert.equal(r.izin, undefined, "standart seçildikten sonra yeni kart yok");
+    assert.match(p.istekler[1].messages.at(-1).content, /Genişletilmiş mod kapalı/);
+  } finally { p.geri(); }
+  // Studio'daki kod zaten tuval kullanıyorsa (onayla ya da elle yazılmış) değiştirmek için aynı sözleşme açılır.
+  p = saglayici([["yanit_ver", { metin: "Tamam." }]]);
+  try {
+    await k.calistir([{ rol: "usta", metin: "rengi değiştir" }], TUVAL_KODU);
+    assert.match(istem(p.istekler[0]), /Örnek 2 — tuval/);
+  } finally { p.geri(); }
+  // Elle yazılan ve hazır modüllerin denetimi (kalfa.dogrula) tam sözleşmeyle yapılır.
+  assert.deepEqual(k.dogrula(TUVAL_KODU), []);
+});
+
+test("API: usta genişletilmiş mod kartını yanıtlar, dış kaynak kartını yanıtlayamaz; karar oturumda saklanır", async () => {
+  const p = saglayici([["modul_yaz", { id: "pong", ad: "Pong", aciklama: "x", kod: TUVAL_KODU, aciklama_ustaya: "x" }]]);
+  const s = await deneySunucusu({ ...SAGLAYICI_ORTAMI, KALFA_SAHTE: "" });
+  try {
+    const o = (await s.istek("POST", "/api/atolye/oturumlar", { usta: true, govde: {} })).json();
+    const y1 = await s.istek("POST", "/api/kalfa", { usta: true, govde: { oturum: o.id, istek: "ping pong oyunu yap" } });
+    assert.equal(y1.statusCode, 200);
+    const izin = y1.json().izin;
+    assert.equal(p.istekler.length, 0, "kartı sunucu çıkardı");
+    assert.equal(izin.tur, "genis_mod");
+    // Usta dış kaynak kararı veremez; genişletilmiş mod kartında da yalnızca ac | standart geçerlidir.
+    assert.equal((await s.istek("POST", "/api/kalfa", { usta: true, govde: { oturum: o.id, istek: "evet", izin: { id: izin.id, karar: "ver" } } })).statusCode, 403);
+    const y2 = await s.istek("POST", "/api/kalfa", { usta: true, govde: { oturum: o.id, istek: "Genişletilmiş modu aç", izin: { id: izin.id, karar: "ac" } } });
+    assert.equal(y2.statusCode, 200);
+    assert.equal(y2.json().tur, "modul");
+    assert.equal(y2.json().genisMod, true);
+    assert.match(y2.json().istek, /Genişletilmiş modu aç/);
+    assert.match(istem(p.istekler.find((i) => araclar(i).includes("modul_yaz"))), /Örnek 2 — tuval/, "onay oturumdan okundu");
+    // Aynı kart ikinci kez yanıtlanamaz.
+    assert.equal((await s.istek("POST", "/api/kalfa", { usta: true, govde: { oturum: o.id, istek: "x", izin: { id: izin.id, karar: "standart" } } })).statusCode, 409);
+  } finally { p.geri(); }
+});
+
+test("modul_yaz'da unutulan ad ve açıklama koddan ve ustaya açıklamadan tamamlanır", () => {
+  const g = eksikAdlariTamamla({ kod: TUVAL_KODU, aciklama_ustaya: "Gerçek bir ping pong yaptım. Raketi sürükle." });
+  assert.equal(g.ad, "Pong");
+  assert.equal(g.aciklama, "Gerçek bir ping pong yaptım.");
+  assert.equal(eksikAdlariTamamla({ kod: TUVAL_KODU, ad: "Benim", aciklama: "x" }).ad, "Benim");
 });

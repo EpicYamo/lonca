@@ -138,11 +138,18 @@ let izinDurumlari = new Map();
 const KARAR_DUGMELERI = {
   dis_kaynak: [["ver", "Vikipedi'den çek", "birincil"], ["reddet", "Hayır, bilgi bankasıyla devam", "ikincil"]],
   kayit: [["bilgi-bankasi", "Bilgi bankasına ekle", "birincil"], ["modul", "Yalnızca bu modüle özel", "ikincil"], ["reddet", "Hiçbir yere ekleme", "ikincil"]],
+  genis_mod: [["ac", "Genişletilmiş modu aç", "birincil"], ["standart", "Standart kalsın", "ikincil"]],
 };
-const KARAR_ADI = { ver: "İzin verildi", reddet: "Reddedildi", "bilgi-bankasi": "Bilgi bankasına eklenecek", modul: "Yalnızca bu modüle özel" };
+const KARAR_ADI = { ver: "İzin verildi", reddet: "Reddedildi", "bilgi-bankasi": "Bilgi bankasına eklenecek", modul: "Yalnızca bu modüle özel", ac: "Genişletilmiş mod açıldı", standart: "Standart kaldı" };
+// Genişletilmiş mod kartı (usta ve admin): kalfa standart SDK'nın dışına (tuval, oyun döngüsü, dokunma, ses…) çıkmadan önce sorar.
+const IZIN_BASLIGI = { dis_kaynak: "İzin isteği · dış kaynak: {0}", genis_mod: "Onay · genişletilmiş mod: {0}" };
 function izinKarti(izin) {
   const kart = el("div", { className: "izin-karti" },
-    el("p", { className: "izin-baslik", textContent: izin.tur === "dis_kaynak" ? `İzin isteği · dış kaynak: ${izin.konu}` : `Karar isteği · ${izin.konu}` }));
+    el("p", { className: "izin-baslik", textContent: (IZIN_BASLIGI[izin.tur] ?? "Karar isteği · {0}").replace("{0}", izin.konu) }));
+  if (izin.tur === "genis_mod") {
+    kart.append(el("p", { className: "izin-not", textContent: "Bu istek standart SDK'nın dışına çıkıyor. Genişletilmiş modda kalfa tuval, oyun döngüsü, dokunma/sürükleme, ses ve titreşim kullanabilir; modül yine Lonca'nın içinde, aynı güvenlik sınırlarıyla çalışır." }));
+    if (izin.ozellikler?.length) kart.append(el("p", { className: "izin-kaynak", textContent: `Gerekenler: ${izin.ozellikler.join(" · ")}` }));
+  }
   if (izin.maddeler?.length > 1) {
     // Toplu kayıt izni: kart bütün maddeleri listeler; karar her maddeye ayrı uygulanır.
     kart.append(el("p", { className: "izin-kaynak", textContent: `Kaynak doğrulanmamış · ${izin.maddeler.length} madde:` }),
@@ -157,7 +164,7 @@ function izinKarti(izin) {
   const durum = izinDurumlari.get(izin.id);
   if (durum && durum.durum !== "bekliyor") {
     dugmeler.append(el("span", { className: "izin-sonuc", textContent: KARAR_ADI[durum.karar] ?? durum.durum }));
-  } else if (!yoneticiMi()) {
+  } else if (!yoneticiMi() && izin.tur !== "genis_mod") {
     dugmeler.append(el("span", { className: "izin-sonuc", textContent: "Bu kararı admin verir." }));
   } else {
     for (const [karar, metin, sinif] of KARAR_DUGMELERI[izin.tur] ?? []) {
@@ -354,7 +361,7 @@ async function dalisOnizle() {
 }
 
 // Kalfanın yanıtındaki iz (veri aramaları, deneme sayısı, model) sohbette adım listesi olarak gösterilir.
-function adimlarYap({ tur = "modul", aramalar = [], deneme = 1, model = null } = {}) {
+function adimlarYap({ tur = "modul", aramalar = [], deneme = 1, model = null, genisMod = false } = {}) {
   const adimlar = aramalar.map((a) => {
     if (a.okunan) return [`Bilgi bankasından okudu: ${a.ad ?? a.okunan}`];
     if (a.dis != null) return [`${a.kaynak}'de aradı: ${a.dis} → ${a.bulunan} madde`];
@@ -369,6 +376,7 @@ function adimlarYap({ tur = "modul", aramalar = [], deneme = 1, model = null } =
   }
   if (deneme > 1) adimlar.push([`Denetimde hata buldu, ${deneme}. denemede düzeltti`, "duzeltme"]);
   adimlar.push(["SDK tip denetiminden geçti"]);
+  if (genisMod) adimlar.push(["Genişletilmiş mod: tuval ve oyun.* kullanıldı"]);
   if (model) adimlar.push([model === "sahte" ? "Sahte kalfa: yapay zekâ bağlı değil, hazır şablon" : `Kodu yazan model: ${model}`]);
   return adimlar;
 }
