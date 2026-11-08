@@ -19,6 +19,15 @@ test("Studio ve site kodu her açılışta yeniden doğrulanır (Cloudflare 4 sa
   }
 });
 
+test("sunum /sunum adresinde açılır, GSAP ve Three.js yerelden gelir", async () => {
+  const y = await s.istek("GET", "/sunum");
+  assert.equal(y.statusCode, 302);
+  assert.equal(y.headers.location, "/sunum/");
+  for (const yol of ["/sunum/", "/sunum/sunum.js", "/sunum/sahneler.js", "/sunum/uc.js", "/sunum/veri.js", "/vendor-yerel/gsap/gsap.min.js", "/vendor/three/build/three.module.min.js"]) {
+    assert.equal((await s.istek("GET", yol)).statusCode, 200, yol);
+  }
+});
+
 test("eserler listelenir ve her eserde kaynak vardır", async () => {
   const y = await s.istek("GET", "/api/eserler");
   assert.equal(y.statusCode, 200);

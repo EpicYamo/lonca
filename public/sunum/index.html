@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#081227">
+  <title>Lonca · Sunum</title>
+  <meta name="description" content="Lonca: vakıf eserleri için yapay zekâ destekli modül platformu. Takım Kozmos, KÖK&KOD Hackathon sunumu.">
+  <link rel="icon" href="/simgeler/lonca-192.png">
+  <link rel="stylesheet" href="/sunum/sunum.css">
+  <script type="importmap">{ "imports": { "three": "/vendor/three/build/three.module.min.js" } }</script>
+  <!-- GSAP depoda (public/vendor-yerel/gsap), sunum anında internete ihtiyaç yok. -->
+  <script src="/vendor-yerel/gsap/gsap.min.js" defer></script>
+  <script src="/vendor-yerel/gsap/Flip.min.js" defer></script>
+  <script src="/vendor-yerel/gsap/SplitText.min.js" defer></script>
+  <script src="/vendor-yerel/gsap/MotionPathPlugin.min.js" defer></script>
+  <script src="/vendor-yerel/gsap/DrawSVGPlugin.min.js" defer></script>
+  <script src="/vendor-yerel/gsap/CustomEase.min.js" defer></script>
+  <script type="module" src="/sunum/sunum.js"></script>
+</head>
+<body>
+<div class="ekran" id="ekran">
+  <canvas class="uc-tuval" id="uc-tuval" aria-hidden="true"></canvas>
+  <main class="sahne" id="sahne" aria-live="polite">
+
+    <!-- 1 · KAPAK ------------------------------------------------------------------------------- -->
+    <section class="sayfa s-kapak" data-ad="Kapak" data-uc="duvar" aria-label="Kapak">
+      <div class="kapak-perde"></div>
+      <p class="ust-etiket kapak-etiket"><span>KÖK&amp;KOD HACKATHON</span><i></i><span>TAKIM KOZMOS</span><i></i><span>42 KOCAELİ</span></p>
+      <div class="kapak-marka">
+        <span class="kapak-logo" data-logo="150"></span>
+        <h1 class="kapak-baslik">Lonca</h1>
+      </div>
+      <p class="kapak-alt">Vakıf eserleri için yapay zekâ destekli modül platformu</p>
+      <p class="kapak-soz"><span class="soz-metin">“Sen ustasın, yapay zekâ kalfan.”</span>
+        <svg class="soz-cizgi" viewBox="0 0 620 24" aria-hidden="true"><path d="M4 16 C 140 4, 300 22, 616 8"/></svg></p>
+      <ul class="kapak-kunye">
+        <li><b>Alan</b>Serbest · Oyunlaştırma</li>
+        <li><b>Platform</b>Android uygulaması · Web sitesi</li>
+        <li><b>Üretim</b>Lonca Studio (web)</li>
+      </ul>
+    </section>
+
+    <!-- 2 · KÜNYE VE EKİP ----------------------------------------------------------------------- -->
+    <section class="sayfa s-ekip" data-ad="Künye ve ekip" aria-label="Proje künyesi ve ekip">
+      <p class="ust-etiket"><b>01</b> Proje künyesi ve takım</p>
+      <h2 class="baslik">Takım <em>Kozmos</em></h2>
+      <div class="ekip-satir">
+        <article class="kisi">
+          <div class="kisi-foto"><img src="/sunum/gorsel/ekip-sevilay.webp" alt="Sevilay Üngör"><span class="kisi-halka"></span></div>
+          <h3>Sevilay Üngör</h3>
+          <p class="kisi-rol">Lonca mobil</p>
+          <ul class="kisi-is"><li>Android uygulaması</li><li>Modül oynatıcısı</li><li>Amiral gemisi modülü</li><li>Erişilebilirlik</li></ul>
+        </article>
+        <article class="kisi kaptan">
+          <div class="kisi-foto"><img src="/sunum/gorsel/ekip-arda.webp" alt="Mehmet Arda Aycan"><span class="kisi-halka"></span></div>
+          <h3>Mehmet Arda Aycan</h3>
+          <p class="kisi-rol">Lonca Studio ve yapay zekâ · Takım kaptanı</p>
+          <ul class="kisi-is"><li>Yapay zekâ entegrasyonu</li><li>Canlı önizleme</li><li>Eser düzenleyici</li><li>SDK</li></ul>
+        </article>
+        <article class="kisi">
+          <div class="kisi-foto"><img src="/sunum/gorsel/ekip-ibrahim.webp" alt="İbrahim Taşkıran"><span class="kisi-halka"></span></div>
+          <h3>İbrahim Taşkıran</h3>
+          <p class="kisi-rol">Çekirdek servisler, veri ve test</p>
+          <ul class="kisi-is"><li>Eser API'si</li><li>Veri setinin dönüştürülmesi</li><li>Onay ve yayın akışı</li><li>Testler</li></ul>
+        </article>
+      </div>
+      <div class="kunye-serit">
+        <span><b>Proje</b> Lonca</span><span><b>Kampüs</b> 42 Kocaeli · 42 Network</span><span><b>Alan</b> Serbest · Oyunlaştırma</span><span><b>Platform</b> Android (mobil) · Web</span>
+      </div>
+    </section>
+
+    <!-- 3 · PROBLEM ----------------------------------------------------------------------------- -->
+    <section class="sayfa s-problem" data-ad="Problem" aria-label="Problem tanımı">
+      <p class="ust-etiket"><b>02</b> Problem tanımı ve çözümün değeri</p>
+      <h2 class="baslik">Miras var, <em>ulaşan yok.</em></h2>
+      <div class="sorunlar">
+        <div class="sorun" data-i="0"><div class="sorun-ic">
+          <div class="yuz on"><div class="sorun-cizim c-dagınik"><i></i><i></i><i></i><i></i><i></i></div><h3>Bilgi dağınık</h3><p>Müze, vakıf, belediye, üniversite: ayrı sistemler.</p></div>
+          <div class="yuz arka"><s class="eski">Bilgi dağınık</s><span class="ok">→</span><h3>Tek şema</h3><p>Bütün eserler şehirden bağımsız tek bir şemada.</p></div>
+        </div></div>
+        <div class="sorun" data-i="1"><div class="sorun-ic">
+          <div class="yuz on"><div class="sorun-cizim c-kilit"><span class="pdf">PDF</span><span class="kilit"></span></div><h3>Kilitli format</h3><p>Taranmış kitap, PDF envanter: aranamıyor, haritada yok.</p></div>
+          <div class="yuz arka"><s class="eski">Kilitli format</s><span class="ok">→</span><h3>Aranabilir kayıt</h3><p>Kitapları ayrıştırıp haritada görünen kayıtlara çevirdik.</p></div>
+        </div></div>
+        <div class="sorun" data-i="2"><div class="sorun-ic">
+          <div class="yuz on"><div class="sorun-cizim c-guven"><span class="soru">?</span><span class="soru">?</span><span class="soru">?</span></div><h3>Güven sorunu</h3><p>Kaynaksız içerik; yapay zekâ bilgi uydurabiliyor.</p></div>
+          <div class="yuz arka"><s class="eski">Güven sorunu</s><span class="ok">→</span><h3>Kaynaklı ve onaylı</h3><p>Her bilgi kaynaklı, modüller yalnızca doğrulanmış veriyi okur, editör onaylar.</p></div>
+        </div></div>
+        <div class="sorun" data-i="3"><div class="sorun-ic">
+          <div class="yuz on"><div class="sorun-cizim c-sikici"><i></i><i></i><i></i><i></i></div><h3>Gençlerle bağ yok</h3><p>Uzun metin ve statik katalog gençlere ulaşmıyor.</p></div>
+          <div class="yuz arka"><s class="eski">Gençlerle bağ yok</s><span class="ok">→</span><h3>Yaşanabilir miras</h3><p>Aynı veri oyun, atlas, dalış ve başarımlarla yaşanır.</p></div>
+        </div></div>
+        <div class="sorun" data-i="4"><div class="sorun-ic">
+          <div class="yuz on"><div class="sorun-cizim c-erisim"><span class="goz"></span><span class="kulak"></span><span class="baston"></span></div><h3>Herkes erişemiyor</h3><p>Görme, işitme engelli ve yaşlı kullanıcıya uygun uygulama az.</p></div>
+          <div class="yuz arka"><s class="eski">Herkes erişemiyor</s><span class="ok">→</span><h3>Erişilebilirlik hazır</h3><p>Her modüle platformdan kendiliğinden gelir.</p></div>
+        </div></div>
+        <div class="sorun" data-i="5"><div class="sorun-ic">
+          <div class="yuz on"><div class="sorun-cizim c-omur"><i></i><i></i><i></i><i></i><i></i><i></i></div><h3>Kısa ömürlü projeler</h3><p>Her fikre ayrı uygulama; proje biter, unutulur.</p></div>
+          <div class="yuz arka"><s class="eski">Kısa ömürlü projeler</s><span class="ok">→</span><h3>Tek platform, kalıcı</h3><p>Modüller tek yerde yaşar; uzman, kalfayla kendi modülünü üretir.</p></div>
+        </div></div>
+      </div>
+    </section>
+
+    <!-- 4 · ÇÖZÜM ------------------------------------------------------------------------------- -->
+    <section class="sayfa s-cozum" data-ad="Çözüm" aria-label="Önerilen çözüm">
+      <p class="ust-etiket"><b>02</b> Çözüm: üretim, altyapı, kullanım</p>
+      <h2 class="baslik">Fikirden <em>cebe</em>, tek hat.</h2>
+      <div class="hat">
+        <div class="istasyon i-studio">
+          <div class="ist-ikon"><svg viewBox="0 0 64 64"><rect x="6" y="10" width="52" height="36" rx="5"/><path d="M22 54h20M32 46v8"/><path class="kivilcim" d="M32 18l2.6 6.4L41 27l-6.4 2.6L32 36l-2.6-6.4L23 27l6.4-2.6z"/></svg></div>
+          <h3>Lonca Studio</h3><p>Usta fikrini yazar, kalfa modülü yazar.</p>
+          <ul class="kisiler"><li>VGM uzmanı</li><li>Öğretmen</li><li>Öğrenci</li><li>Geliştirici</li></ul>
+        </div>
+        <div class="istasyon i-platform">
+          <div class="ist-ikon"><svg viewBox="0 0 64 64"><path d="M32 6l24 12-24 12L8 18z"/><path d="M8 30l24 12 24-12"/><path d="M8 42l24 12 24-12"/></svg></div>
+          <h3>Platform</h3><p>Hazır gelenler:</p>
+          <ul class="damgalar"><li data-d="sdk">SDK</li><li data-d="veri">Eser verisi</li><li data-d="profil">Profil</li><li data-d="erisim">Erişilebilirlik</li><li data-d="onay">Onay</li></ul>
+        </div>
+        <div class="istasyon i-uygulama">
+          <div class="telefon kucuk"><div class="tel-ekran">
+            <div class="mini-liste"><div class="mini-modul m1"><i></i><span>Eser Keşfi</span></div><div class="mini-modul m2"><i></i><span>Vakıf Dalışları</span></div><div class="mini-modul m3"><i></i><span>Payitaht Atlası</span></div></div>
+          </div></div>
+          <h3>Lonca uygulaması</h3><p>Vatandaş hepsine tek uygulamadan ulaşır.</p>
+        </div>
+        <svg class="hat-yol" viewBox="0 0 1600 300" aria-hidden="true" preserveAspectRatio="none"><path id="hat-yolu" d="M250 150 C 520 40, 560 260, 800 150 S 1100 40, 1360 150"/></svg>
+        <div class="paket"><i></i><span>Hanlarda Hazine Avı</span></div>
+      </div>
+    </section>
+
+    <!-- 5 · VİZYON ------------------------------------------------------------------------------ -->
+    <section class="sayfa s-vizyon" data-ad="Vizyon" aria-label="Ürün vizyonu ve değer önerisi">
+      <p class="ust-etiket"><b>03</b> Ürün vizyonu ve değer önerisi</p>
+      <h2 class="baslik">Katalog değil: <em>bir eser, sonsuz deneyim.</em></h2>
+      <div class="vizyon-alan">
+        <div class="katalog">
+          <div class="katalog-satir"><i></i><b></b></div><div class="katalog-satir"><i></i><b></b></div><div class="katalog-satir"><i></i><b></b></div><div class="katalog-satir"><i></i><b></b></div><div class="katalog-satir"><i></i><b></b></div>
+          <span class="katalog-etiket">Standart katalog</span>
+        </div>
+        <div class="merkez-eser"><img src="/medya/eserler/bursa-ulucami-1.jpg" alt=""><span>Ulucami</span></div>
+        <svg class="yorunge" viewBox="0 0 1000 640" aria-hidden="true"><g class="yorunge-cizgi"></g></svg>
+        <div class="deneyim d0" style="--r:-150deg"><img src="/sunum/gorsel/ekran-hazine-oyun.webp" alt=""><span>Oyun</span></div>
+        <div class="deneyim d1" style="--r:-90deg"><img src="/sunum/gorsel/ekran-dalis-uydu.webp" alt=""><span>Dalış</span></div>
+        <div class="deneyim d2" style="--r:-30deg"><img src="/sunum/gorsel/ekran-atlas-oyun.webp" alt=""><span>İmtihan</span></div>
+        <div class="deneyim d3" style="--r:30deg"><img src="/sunum/gorsel/ekran-sisli.webp" alt=""><span>Atlas</span></div>
+        <div class="deneyim d4" style="--r:90deg"><img src="/sunum/gorsel/ekran-dedektif-oyun.webp" alt=""><span>Dedektif</span></div>
+        <div class="deneyim d5" style="--r:150deg"><img src="/sunum/gorsel/ekran-eser-kesfi.webp" alt=""><span>Rehber</span></div>
+        <div class="rozetler"><span class="rozet">İlk Altın</span><span class="rozet">Kervanbaşı</span><span class="rozet">Keskin Göz</span><span class="rozet">+ mühür · seviye · koleksiyon</span></div>
+      </div>
+    </section>
+
+    <!-- 6 · VERİ -------------------------------------------------------------------------------- -->
+    <section class="sayfa s-veri" data-ad="Veri" aria-label="Veri yönetimi ve içerik yapısı">
+      <p class="ust-etiket"><b>04</b> Veri yönetimi ve içerik yapısı</p>
+      <h2 class="baslik">Kitaptan <em>kayda.</em></h2>
+      <div class="veri-alan">
+        <div class="kitap">
+          <div class="kitap-ust">Bursa Vakıf Eserleri Envanteri · Cilt 1 · s. 37</div>
+          <div class="kitap-foto"></div>
+          <p class="kitap-metin"><span data-alan="ad">Ulucami</span>, <span data-alan="ilce">Osmangazi</span> ilçesi, Şehreküstü Mahallesi, Atatürk Caddesi, Cami Sokak’ta yer almaktadır. Osmanlı’nın <span data-alan="il">Bursa</span>’da inşa ettirdiği ilk büyük <span data-alan="tur">camidir</span> ve altı yüzyıl boyunca şehrin en büyük camisi olarak kalmıştır. Yapı <span data-alan="yuzyil">1396-1400</span> arasında…</p>
+          <div class="tarayici"></div>
+        </div>
+        <div class="kayit">
+          <div class="kayit-ust"><span class="kayit-dosya">eserler.json</span><span class="kayit-id">bursa-ulucami</span></div>
+          <dl>
+            <div data-alan="ad"><dt>ad</dt><dd>Ulucami</dd></div>
+            <div data-alan="il"><dt>il</dt><dd>Bursa</dd></div>
+            <div data-alan="ilce"><dt>ilçe</dt><dd>Osmangazi</dd></div>
+            <div data-alan="tur"><dt>tür</dt><dd>cami</dd></div>
+            <div data-alan="yuzyil"><dt>yüzyıl</dt><dd>14</dd></div>
+            <div data-alan="konum"><dt>konum</dt><dd>40.1840, 29.0619 <small>yaklaşık</small></dd></div>
+            <div data-alan="foto"><dt>fotoğraflar</dt><dd class="kayit-fotolar"><img src="/medya/eserler/bursa-ulucami-1.jpg" alt=""><img src="/medya/eserler/bursa-ulucami-2.jpg" alt=""><img src="/medya/eserler/bursa-ulucami-3.jpg" alt=""><img src="/medya/eserler/bursa-ulucami-4.jpg" alt=""></dd></div>
+            <div data-alan="kaynak"><dt>kaynak</dt><dd>Vakıf Katılım, Envanter Cilt 1, s. 37</dd></div>
+          </dl>
+          <div class="muhur"><span>VAKIF KATILIM</span><b>✓ doğrulanmış</b></div>
+        </div>
+        <div class="dis-kaynak">
+          <div class="dk-kart"><span class="dk-kaynak">Vikipedi</span><b>Ulucami: hat levhaları</b><span class="dk-etiket">Kaynak doğrulanmamış: Vikipedi</span></div>
+          <div class="kuyruk"><span>Onay kuyruğu</span><div class="kuyruk-yuva"></div><span class="kuyruk-admin">Admin onayı</span></div>
+        </div>
+        <div class="sayaclar">
+          <div><b data-say="505">0</b><span>eser</span></div>
+          <div><b data-say="3">0</b><span>il</span></div>
+          <div><b data-say="49">0</b><span>ilçe</span></div>
+          <div><b data-say="415">0</b><span>fotoğraflı</span></div>
+          <div><b data-say="78">0</b><span>kaynaklı ilişki</span></div>
+        </div>
+        <p class="kural">Tarih uydurulmaz: her ad, tarih ve kişi bir kaynakta aynen geçmeli.</p>
+      </div>
+    </section>
+
+    <!-- 7 · KULLANICI DENEYİMİ ------------------------------------------------------------------ -->
+    <section class="sayfa s-ux" data-ad="Deneyim" aria-label="Kullanıcı deneyimi ve arayüz">
+      <p class="ust-etiket"><b>05</b> Kullanıcı deneyimi ve arayüz</p>
+      <h2 class="baslik">Üç dokunuşta <em>esere.</em></h2>
+      <div class="ux-alan">
+        <div class="telefon buyuk ux-tel"><div class="tel-ekran">
+          <div class="ux-ust"><b>Haritada keşfet</b><span class="ux-sayi"><i>243</i> eser</span></div>
+          <div class="ux-suzgec">
+            <span class="cip" data-c="il">Bursa ▾</span><span class="cip" data-c="ilce">Osmangazi ▾</span><span class="cip" data-c="tur">Han</span><span class="cip">Cami</span><span class="cip">Türbe</span>
+          </div>
+          <div class="ux-harita"><svg class="ux-yollar" viewBox="0 0 400 520" aria-hidden="true"></svg><div class="ux-noktalar"></div></div>
+          <div class="ux-kart"><img src="/medya/eserler/bursa-koza-hani-1.jpg" alt=""><div><small>HAN · OSMANGAZİ</small><b>Koza Hanı</b><span>Tarihçe · Fotoğraflar · Kaynak</span></div></div>
+          <div class="ux-alt"><span class="on">Ana sayfa</span><span>Keşfet</span><span>Harita</span><span>Profilim</span></div>
+          <div class="parmak"></div>
+        </div></div>
+        <ol class="ux-adimlar">
+          <li><b>1</b><span>İl seç</span><small>Bursa · Konya · Hatay</small></li>
+          <li><b>2</b><span>İlçe ve tür süz</span><small>harita anında süzülür</small></li>
+          <li><b>3</b><span>Esere dokun</span><small>tarihçe, galeri, kaynak, modüller</small></li>
+        </ol>
+        <div class="telefon orta ux-tel2"><div class="tel-ekran"><img src="/sunum/gorsel/ekran-ana.webp" alt="Lonca uygulaması ana sayfa"></div></div>
+      </div>
+    </section>
+
+    <!-- 8 · MODÜLLER ---------------------------------------------------------------------------- -->
+    <section class="sayfa s-moduller" data-ad="Modüller" aria-label="Modüller">
+      <p class="ust-etiket"><b>06</b> Ürün: modüller</p>
+      <h2 class="baslik">Aynı veri, <em>yedi farklı dünya.</em></h2>
+      <div class="deste">
+        <figure class="kart-m"><img src="/sunum/gorsel/ekran-eser-kesfi.webp" alt=""><figcaption><b>Eser Keşfi</b><span>Amiral gemisi: harita, tarihçe, kaynak</span></figcaption></figure>
+        <figure class="kart-m"><img src="/sunum/gorsel/ekran-pusula.webp" alt=""><figcaption><b>Bursa Pusulası</b><span>Yakındakini bul, koleksiyon yap</span></figcaption></figure>
+        <figure class="kart-m"><img src="/sunum/gorsel/ekran-atlas-oyun.webp" alt=""><figcaption><b>Payitaht Atlası</b><span>3B uçuş ve Mimarın İmtihanı</span></figcaption></figure>
+        <figure class="kart-m"><img src="/sunum/gorsel/ekran-sisli.webp" alt=""><figcaption><b>Sisli Vakıf Atlası</b><span>İlçe ilçe sisi aç</span></figcaption></figure>
+        <figure class="kart-m"><img src="/sunum/gorsel/ekran-dalislar.webp" alt=""><figcaption><b>Vakıf Dalışları</b><span>Uzaydan eserin içine</span></figcaption></figure>
+        <figure class="kart-m"><img src="/sunum/gorsel/ekran-hazine-oyun.webp" alt=""><figcaption><b>Hanlarda Hazine Avı</b><span>Çocuklar için süreli av</span></figcaption></figure>
+        <figure class="kart-m"><img src="/sunum/gorsel/ekran-dedektif-oyun.webp" alt=""><figcaption><b>Türbe Dedektifi</b><span>Yüzyılı bul, seriyi koru</span></figcaption></figure>
+      </div>
+      <p class="alt-not">Yeni modül onaylanınca uygulamayı güncellemeden listede belirir.</p>
+    </section>
+
+    <!-- 9 · DALIŞ ------------------------------------------------------------------------------- -->
+    <section class="sayfa s-dalis" data-ad="Dalış" aria-label="Vakıf Dalışları nasıl üretilir">
+      <p class="ust-etiket"><b>06</b> Modül: Vakıf Dalışları · dalış kalfası</p>
+      <h2 class="baslik dalis-baslik"><span class="db db1">4 fotoğraf.</span> <span class="db db2"><em>Yapay zekâ çoğaltır.</em></span> <span class="db db3">Kalfa dizer.</span> <span class="db db4"><em>Sen dalarsın.</em></span></h2>
+      <div class="dalis-masa">
+        <div class="masa-orijinal"></div>
+        <div class="ai-isin"></div>
+        <div class="masa-izgara"></div>
+        <div class="klasorler">
+          <div class="klasor" data-k="uydu"><div class="klasor-ic"></div><span class="klasor-ad">Uydu</span><b class="klasor-sayi">0</b></div>
+          <div class="klasor" data-k="netlestirilmis"><div class="klasor-ic"></div><span class="klasor-ad">Netleştirilmiş</span><b class="klasor-sayi">0</b></div>
+          <div class="klasor" data-k="genisletilmis"><div class="klasor-ic"></div><span class="klasor-ad">Genişletilmiş</span><b class="klasor-sayi">0</b></div>
+          <div class="klasor" data-k="canlandirma"><div class="klasor-ic"></div><span class="klasor-ad">Canlandırma</span><b class="klasor-sayi">0</b></div>
+        </div>
+        <div class="serit"></div>
+        <div class="telefon buyuk dalis-tel"><div class="tel-ekran"><div class="dalis-pencere"></div><p class="dalis-yazi"></p><div class="dalis-ilerleme"><i></i></div></div></div>
+        <div class="dalis-onay"><span>Editör onayı</span><b>✓ Yayında</b></div>
+        <div class="dalis-sayac"><b>4</b><span>fotoğraf</span></div>
+        <ol class="dalis-ozet"><li><b>4</b>fotoğraf</li><li><b>19</b>kare</li><li><b>14</b>adımlık dalış</li><li><b>1</b>editör onayı</li></ol>
+      </div>
+    </section>
+
+    <!-- 10 · KALFA ------------------------------------------------------------------------------ -->
+    <section class="sayfa s-kalfa" data-ad="Kalfa" aria-label="Yapay zekâ kalfası">
+      <p class="ust-etiket"><b>07</b> Lonca Studio · yapay zekâ kalfası</p>
+      <h2 class="baslik">Usta söyler, <em>kalfa yazar,</em> editör onaylar.</h2>
+      <div class="studio">
+        <div class="st-panel st-sohbet">
+          <div class="st-baslik"><i class="nokta"></i>Kalfa <span class="st-mod">Modül</span></div>
+          <div class="mesajlar">
+            <div class="mesaj usta"><span class="yaziyor"></span></div>
+            <div class="mesaj kalfa k1">Bilgi bankasına bakıyorum.</div>
+            <div class="araclar"><span class="arac">eser_ara("han")<b>28 han</b></span><span class="arac">eser_bilgisi("bursa-koza-hani")</span><span class="arac">sdk_bilgisi()</span></div>
+            <div class="izin-kart">
+              <p class="izin-baslik">Onay · genişletilmiş mod: süreli oyun</p>
+              <p class="izin-not">Kalfa tuval, oyun döngüsü, dokunma, ses ve titreşim kullanabilir; modül yine aynı güvenlik sınırlarında çalışır.</p>
+              <div class="izin-dugmeler"><span class="d-birincil">Genişletilmiş modu aç</span><span class="d-ikincil">Standart kalsın</span></div>
+            </div>
+            <div class="mesaj kalfa k2">Modül hazır: 5 tur, 30 saniye, ipucu yalnızca eser kaydından.</div>
+          </div>
+        </div>
+        <div class="st-panel st-kod">
+          <div class="st-baslik">hanlarda-hazine-avi.js</div>
+          <pre class="kod"><code></code></pre>
+          <div class="denetimler"><span data-d="0">Kurallar</span><span data-d="1">Tip denetimi</span><span data-d="2">Yalnızca @lonca/sdk</span></div>
+        </div>
+        <div class="st-panel st-onizleme">
+          <div class="st-baslik"><i class="nokta canli"></i>Önizleme · canlı</div>
+          <div class="telefon orta st-tel"><div class="tel-ekran"><img class="on1" src="/sunum/gorsel/ekran-hazine.webp" alt=""><img class="on2" src="/sunum/gorsel/ekran-hazine-oyun.webp" alt=""></div></div>
+          <div class="gonder">Onaya gönder</div>
+        </div>
+        <div class="imlec"></div>
+        <div class="onay-akisi">
+          <div class="oa-adim" data-a="0"><b>bekliyor</b><span>Onay kuyruğu</span></div>
+          <div class="oa-adim" data-a="1"><b>onaylı</b><span>Editör</span></div>
+          <div class="oa-adim" data-a="2"><b>yayında</b><span>Uygulamada belirdi</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 11 · ERİŞİLEBİLİRLİK -------------------------------------------------------------------- -->
+    <section class="sayfa s-erisim" data-ad="Erişilebilirlik" aria-label="Evrensel erişilebilirlik">
+      <p class="ust-etiket"><b>08</b> Evrensel erişilebilirlik</p>
+      <h2 class="baslik">Herkes için, <em>her modülde.</em></h2>
+      <div class="erisim-alan">
+        <div class="telefon buyuk er-tel"><div class="tel-ekran">
+          <div class="er-sayfa">
+            <div class="er-foto"><img src="/medya/eserler/bursa-ulucami-2.jpg" alt=""></div>
+            <small class="er-tur">CAMİ · OSMANGAZİ · 14. YÜZYIL</small>
+            <h4>Ulucami</h4>
+            <p class="er-metin"><span>Osmanlı’nın</span> <span>Bursa’da</span> <span>inşa</span> <span>ettirdiği</span> <span>ilk</span> <span>büyük</span> <span>camidir.</span> <span>Yirmi</span> <span>kubbesiyle</span> <span>çok</span> <span>ayaklı</span> <span>camilerin</span> <span>en</span> <span>anıtsal</span> <span>örneğidir.</span></p>
+            <div class="er-dugmeler"><span class="er-d">Dalışa gir</span><span class="er-d">Haritada gör</span><span class="er-d">Sesli dinle</span></div>
+          </div>
+          <div class="ses-dalga"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="okuyucu">Düğme: Dalışa gir</div>
+        </div></div>
+        <ul class="ayarlar">
+          <li data-a="yazi"><span class="anahtar"></span><b>Yazı boyutu</b><small>1× → 1,5×</small></li>
+          <li data-a="font"><span class="anahtar"></span><b>Okunaklı yazı tipi</b><small>Atkinson Hyperlegible</small></li>
+          <li data-a="kontrast"><span class="anahtar"></span><b>Yüksek kontrast</b><small>görme zorluğu</small></li>
+          <li data-a="odak"><span class="anahtar"></span><b>Belirgin odak · klavye</b><small>fare olmadan gezinme</small></li>
+          <li data-a="ses"><span class="anahtar"></span><b>Ekranı sesli oku</b><small>kelime kelime vurgu</small></li>
+          <li data-a="okuyucu"><span class="anahtar"></span><b>Ekran okuyucu</b><small>etiketler, alternatif metin</small></li>
+        </ul>
+        <p class="er-not">Renk körlüğü dostu · sade görünüm · hareketi azalt · büyük dokunma alanı. SDK bileşenleri erişilebilir, modül bunları kendiliğinden alır. axe ile otomatik taranır.</p>
+      </div>
+    </section>
+
+    <!-- 12 · MİMARİ ----------------------------------------------------------------------------- -->
+    <section class="sayfa s-mimari" data-ad="Mimari" aria-label="Teknik mimari">
+      <p class="ust-etiket"><b>09</b> Teknik mimari</p>
+      <h2 class="baslik">Derleme adımı yok, <em>saf JavaScript.</em></h2>
+      <div class="mimari">
+        <svg class="mim-cizgiler" viewBox="0 0 1700 760" aria-hidden="true">
+          <path class="mc" d="M300 150 C 300 250, 640 240, 640 325"/>
+          <path class="mc" d="M800 150 L 800 325"/>
+          <path class="mc" d="M1300 150 C 1300 250, 960 240, 960 325"/>
+          <path class="mc" d="M800 460 L 800 572"/>
+          <path class="mc" d="M1160 380 C 1240 380, 1250 330, 1320 330"/>
+          <path class="mc" d="M1160 410 C 1240 410, 1250 470, 1290 470"/>
+          <path class="mc" d="M440 400 L 290 400"/>
+        </svg>
+        <div class="mk k-android" style="--x:300px;--y:110px"><b>Android uygulaması</b><span>Capacitor · yerel köprü</span></div>
+        <div class="mk k-web" style="--x:800px;--y:110px"><b>Web sitesi</b><span>kozmos.itaskira.com</span></div>
+        <div class="mk k-studio" style="--x:1300px;--y:110px"><b>Lonca Studio</b><span>kalfa · kod · önizleme</span></div>
+        <div class="mk k-sunucu" style="--x:800px;--y:390px">
+          <b>Node.js · Fastify API</b>
+          <div class="mk-alt"><span>Eser API</span><span>Hesap ve roller</span><span>Doğrulama</span><span>Modül kalfası</span><span>Dalış kalfası</span></div>
+        </div>
+        <div class="mk k-veri" style="--x:800px;--y:610px"><b>JSON veri deposu + medya</b><span>eserler · ilişkiler · modüller · dalışlar</span></div>
+        <div class="mk k-ai" style="--x:1440px;--y:330px"><b>UstaGPT</b><span>metin ve görsel modeller</span></div>
+        <div class="mk k-harita" style="--x:1440px;--y:470px"><b>MapLibre · OpenFreeMap</b><span>3B: Google 3D Tiles</span></div>
+        <div class="mk k-kum" style="--x:170px;--y:400px"><b>Modül kum havuzu</b><span>iframe · @lonca/sdk</span></div>
+        <div class="mk k-yayin" style="--x:170px;--y:610px"><b>Docker · Cloudflare Tunnel</b><span>tek komutla güncelleme</span></div>
+        <div class="mim-akis"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+    </section>
+
+    <!-- 13 · ÖLÇEK ------------------------------------------------------------------------------ -->
+    <section class="sayfa s-olcek" data-ad="Ölçek" data-uc="harita" aria-label="Ölçeklenebilirlik">
+      <p class="ust-etiket"><b>09</b> Ölçeklenebilirlik</p>
+      <h2 class="baslik">Yeni şehir = <em>yeni veri.</em> Kod değişmez.</h2>
+      <div class="olcek-yan">
+        <div class="il-satir" data-il="Bursa"><b>Bursa</b><span class="il-bar"><i></i></span><em>165</em></div>
+        <div class="il-satir" data-il="Konya"><b>Konya</b><span class="il-bar"><i></i></span><em>263</em></div>
+        <div class="il-satir" data-il="Hatay"><b>Hatay</b><span class="il-bar"><i></i></span><em>77</em></div>
+        <div class="il-satir hayalet" data-il="İzmir"><b>İzmir</b><span class="il-bar"><i></i></span><em>+</em></div>
+        <div class="il-satir hayalet" data-il="Manisa"><b>Manisa</b><span class="il-bar"><i></i></span><em>+</em></div>
+        <div class="boru"><span>Envanter</span><span>İçe aktarma</span><span>Şehirden bağımsız şema</span><span>Tüm modüller</span></div>
+        <p class="olcek-not">Bursa ile başladık. Konya ve Hatay aynı hattan geldi.</p>
+      </div>
+      <div class="olcek-etiketler"></div>
+    </section>
+
+    <!-- 14 · GÜVENLİK, KALİTE, YOL HARİTASI ----------------------------------------------------- -->
+    <section class="sayfa s-guven" data-ad="Güvenlik" aria-label="Güvenlik, kalite ve yol haritası">
+      <p class="ust-etiket"><b>10</b> Güvenlik, kalite ve gelecek</p>
+      <h2 class="baslik">Yapay zekâ yazar, <em>sınırları biz çizeriz.</em></h2>
+      <div class="guven-alan">
+        <div class="kum">
+          <div class="kum-kalkan"></div>
+          <div class="kum-modul"><span>modül.js</span></div>
+          <div class="saldiri s1"><span>fetch()</span></div>
+          <div class="saldiri s2"><span>document</span></div>
+          <div class="saldiri s3"><span>çerez</span></div>
+          <div class="izinli"><span>@lonca/sdk</span></div>
+          <p class="kum-alt">sandbox="allow-scripts" · en çok 2000 satır · TS tip denetimi</p>
+        </div>
+        <ul class="kontrol">
+          <li>Girdi doğrulaması sunucuda</li>
+          <li>Roller: ziyaretçi · usta · admin</li>
+          <li>Yapay zekâ yalnızca taslak üretir, yayın insan onayıyla</li>
+          <li>Hız sınırı, imzalı oturum, e-posta doğrulama</li>
+          <li><span class="sayac-test">150</span>+ otomatik test · ESLint · erişilebilirlik taraması</li>
+          <li>Dal akışı: iş dalı → dev → main (tam CI) → build (APK)</li>
+        </ul>
+        <div class="yol">
+          <div class="yol-cizgi"><i></i></div>
+          <div class="yol-adim" style="--x:0%"><b>Bugün</b><span>3 il · 505 eser · 7 modül</span></div>
+          <div class="yol-adim" style="--x:33%"><b>Sırada</b><span>İzmir, Manisa ve yeni iller</span></div>
+          <div class="yol-adim" style="--x:66%"><b>Sonra</b><span>Tam kod düzenleyici · kapsamlı onay süreci</span></div>
+          <div class="yol-adim" style="--x:100%"><b>Hedef</b><span>iOS · kurumlarla açık modül pazarı</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 15 · DEMO VE KAPANIŞ -------------------------------------------------------------------- -->
+    <section class="sayfa s-kapanis" data-ad="Kapanış" data-uc="duvar" aria-label="Canlı demo ve kapanış">
+      <div class="kapak-perde"></div>
+      <p class="ust-etiket"><b>11</b> Canlı demo · teşekkürler</p>
+      <h2 class="kapanis-baslik">Teşekkürler.</h2>
+      <p class="kapanis-alt">Şimdi canlı: keşif, harita, detay, kalfayla modül üretimi.</p>
+      <div class="qr-kutu">
+        <div class="qr"><svg viewBox="-2 -2 33 33" shape-rendering="crispEdges" aria-hidden="true"><rect x="-2" y="-2" width="33" height="33" fill="#fff"/><path fill="#0b1736" d="M0 0h1v1h-1zM1 0h1v1h-1zM2 0h1v1h-1zM3 0h1v1h-1zM4 0h1v1h-1zM5 0h1v1h-1zM6 0h1v1h-1zM8 0h1v1h-1zM9 0h1v1h-1zM10 0h1v1h-1zM12 0h1v1h-1zM13 0h1v1h-1zM14 0h1v1h-1zM15 0h1v1h-1zM17 0h1v1h-1zM18 0h1v1h-1zM22 0h1v1h-1zM23 0h1v1h-1zM24 0h1v1h-1zM25 0h1v1h-1zM26 0h1v1h-1zM27 0h1v1h-1zM28 0h1v1h-1zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM10 1h1v1h-1zM12 1h1v1h-1zM13 1h1v1h-1zM16 1h1v1h-1zM17 1h1v1h-1zM18 1h1v1h-1zM20 1h1v1h-1zM22 1h1v1h-1zM28 1h1v1h-1zM0 2h1v1h-1zM2 2h1v1h-1zM3 2h1v1h-1zM4 2h1v1h-1zM6 2h1v1h-1zM10 2h1v1h-1zM12 2h1v1h-1zM13 2h1v1h-1zM16 2h1v1h-1zM18 2h1v1h-1zM20 2h1v1h-1zM22 2h1v1h-1zM24 2h1v1h-1zM25 2h1v1h-1zM26 2h1v1h-1zM28 2h1v1h-1zM0 3h1v1h-1zM2 3h1v1h-1zM3 3h1v1h-1zM4 3h1v1h-1zM6 3h1v1h-1zM10 3h1v1h-1zM15 3h1v1h-1zM17 3h1v1h-1zM19 3h1v1h-1zM20 3h1v1h-1zM22 3h1v1h-1zM24 3h1v1h-1zM25 3h1v1h-1zM26 3h1v1h-1zM28 3h1v1h-1zM0 4h1v1h-1zM2 4h1v1h-1zM3 4h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM15 4h1v1h-1zM16 4h1v1h-1zM18 4h1v1h-1zM19 4h1v1h-1zM20 4h1v1h-1zM22 4h1v1h-1zM24 4h1v1h-1zM25 4h1v1h-1zM26 4h1v1h-1zM28 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h1v1h-1zM10 5h1v1h-1zM13 5h1v1h-1zM15 5h1v1h-1zM18 5h1v1h-1zM20 5h1v1h-1zM22 5h1v1h-1zM28 5h1v1h-1zM0 6h1v1h-1zM1 6h1v1h-1zM2 6h1v1h-1zM3 6h1v1h-1zM4 6h1v1h-1zM5 6h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM23 6h1v1h-1zM24 6h1v1h-1zM25 6h1v1h-1zM26 6h1v1h-1zM27 6h1v1h-1zM28 6h1v1h-1zM13 7h1v1h-1zM14 7h1v1h-1zM15 7h1v1h-1zM18 7h1v1h-1zM19 7h1v1h-1zM20 7h1v1h-1zM1 8h1v1h-1zM2 8h1v1h-1zM3 8h1v1h-1zM4 8h1v1h-1zM5 8h1v1h-1zM6 8h1v1h-1zM7 8h1v1h-1zM9 8h1v1h-1zM12 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM19 8h1v1h-1zM23 8h1v1h-1zM24 8h1v1h-1zM28 8h1v1h-1zM0 9h1v1h-1zM2 9h1v1h-1zM4 9h1v1h-1zM5 9h1v1h-1zM7 9h1v1h-1zM8 9h1v1h-1zM9 9h1v1h-1zM11 9h1v1h-1zM12 9h1v1h-1zM17 9h1v1h-1zM18 9h1v1h-1zM19 9h1v1h-1zM20 9h1v1h-1zM21 9h1v1h-1zM22 9h1v1h-1zM23 9h1v1h-1zM24 9h1v1h-1zM28 9h1v1h-1zM3 10h1v1h-1zM5 10h1v1h-1zM6 10h1v1h-1zM8 10h1v1h-1zM13 10h1v1h-1zM16 10h1v1h-1zM20 10h1v1h-1zM21 10h1v1h-1zM22 10h1v1h-1zM25 10h1v1h-1zM0 11h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM7 11h1v1h-1zM8 11h1v1h-1zM9 11h1v1h-1zM10 11h1v1h-1zM11 11h1v1h-1zM12 11h1v1h-1zM13 11h1v1h-1zM14 11h1v1h-1zM19 11h1v1h-1zM20 11h1v1h-1zM21 11h1v1h-1zM22 11h1v1h-1zM24 11h1v1h-1zM25 11h1v1h-1zM27 11h1v1h-1zM0 12h1v1h-1zM3 12h1v1h-1zM5 12h1v1h-1zM6 12h1v1h-1zM7 12h1v1h-1zM9 12h1v1h-1zM10 12h1v1h-1zM13 12h1v1h-1zM16 12h1v1h-1zM17 12h1v1h-1zM19 12h1v1h-1zM21 12h1v1h-1zM23 12h1v1h-1zM25 12h1v1h-1zM26 12h1v1h-1zM27 12h1v1h-1zM28 12h1v1h-1zM4 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM8 13h1v1h-1zM10 13h1v1h-1zM11 13h1v1h-1zM13 13h1v1h-1zM15 13h1v1h-1zM17 13h1v1h-1zM18 13h1v1h-1zM19 13h1v1h-1zM20 13h1v1h-1zM21 13h1v1h-1zM22 13h1v1h-1zM24 13h1v1h-1zM25 13h1v1h-1zM27 13h1v1h-1zM28 13h1v1h-1zM1 14h1v1h-1zM2 14h1v1h-1zM6 14h1v1h-1zM9 14h1v1h-1zM10 14h1v1h-1zM13 14h1v1h-1zM17 14h1v1h-1zM20 14h1v1h-1zM21 14h1v1h-1zM23 14h1v1h-1zM0 15h1v1h-1zM1 15h1v1h-1zM3 15h1v1h-1zM5 15h1v1h-1zM8 15h1v1h-1zM9 15h1v1h-1zM10 15h1v1h-1zM11 15h1v1h-1zM12 15h1v1h-1zM14 15h1v1h-1zM16 15h1v1h-1zM17 15h1v1h-1zM18 15h1v1h-1zM19 15h1v1h-1zM24 15h1v1h-1zM25 15h1v1h-1zM27 15h1v1h-1zM0 16h1v1h-1zM1 16h1v1h-1zM4 16h1v1h-1zM6 16h1v1h-1zM8 16h1v1h-1zM9 16h1v1h-1zM11 16h1v1h-1zM12 16h1v1h-1zM16 16h1v1h-1zM19 16h1v1h-1zM21 16h1v1h-1zM23 16h1v1h-1zM25 16h1v1h-1zM26 16h1v1h-1zM0 17h1v1h-1zM1 17h1v1h-1zM2 17h1v1h-1zM3 17h1v1h-1zM4 17h1v1h-1zM5 17h1v1h-1zM7 17h1v1h-1zM8 17h1v1h-1zM9 17h1v1h-1zM10 17h1v1h-1zM12 17h1v1h-1zM14 17h1v1h-1zM15 17h1v1h-1zM17 17h1v1h-1zM18 17h1v1h-1zM19 17h1v1h-1zM20 17h1v1h-1zM21 17h1v1h-1zM22 17h1v1h-1zM23 17h1v1h-1zM24 17h1v1h-1zM27 17h1v1h-1zM28 17h1v1h-1zM0 18h1v1h-1zM4 18h1v1h-1zM6 18h1v1h-1zM7 18h1v1h-1zM12 18h1v1h-1zM14 18h1v1h-1zM15 18h1v1h-1zM16 18h1v1h-1zM17 18h1v1h-1zM20 18h1v1h-1zM22 18h1v1h-1zM23 18h1v1h-1zM24 18h1v1h-1zM25 18h1v1h-1zM26 18h1v1h-1zM0 19h1v1h-1zM3 19h1v1h-1zM4 19h1v1h-1zM12 19h1v1h-1zM14 19h1v1h-1zM15 19h1v1h-1zM19 19h1v1h-1zM22 19h1v1h-1zM25 19h1v1h-1zM28 19h1v1h-1zM0 20h1v1h-1zM4 20h1v1h-1zM6 20h1v1h-1zM7 20h1v1h-1zM8 20h1v1h-1zM11 20h1v1h-1zM12 20h1v1h-1zM13 20h1v1h-1zM14 20h1v1h-1zM15 20h1v1h-1zM17 20h1v1h-1zM20 20h1v1h-1zM21 20h1v1h-1zM22 20h1v1h-1zM23 20h1v1h-1zM24 20h1v1h-1zM26 20h1v1h-1zM27 20h1v1h-1zM28 20h1v1h-1zM8 21h1v1h-1zM12 21h1v1h-1zM16 21h1v1h-1zM20 21h1v1h-1zM24 21h1v1h-1zM25 21h1v1h-1zM28 21h1v1h-1zM0 22h1v1h-1zM1 22h1v1h-1zM2 22h1v1h-1zM3 22h1v1h-1zM4 22h1v1h-1zM5 22h1v1h-1zM6 22h1v1h-1zM8 22h1v1h-1zM9 22h1v1h-1zM11 22h1v1h-1zM14 22h1v1h-1zM15 22h1v1h-1zM18 22h1v1h-1zM19 22h1v1h-1zM20 22h1v1h-1zM22 22h1v1h-1zM24 22h1v1h-1zM0 23h1v1h-1zM6 23h1v1h-1zM8 23h1v1h-1zM11 23h1v1h-1zM12 23h1v1h-1zM13 23h1v1h-1zM14 23h1v1h-1zM16 23h1v1h-1zM19 23h1v1h-1zM20 23h1v1h-1zM24 23h1v1h-1zM25 23h1v1h-1zM0 24h1v1h-1zM2 24h1v1h-1zM3 24h1v1h-1zM4 24h1v1h-1zM6 24h1v1h-1zM8 24h1v1h-1zM12 24h1v1h-1zM14 24h1v1h-1zM18 24h1v1h-1zM20 24h1v1h-1zM21 24h1v1h-1zM22 24h1v1h-1zM23 24h1v1h-1zM24 24h1v1h-1zM25 24h1v1h-1zM26 24h1v1h-1zM27 24h1v1h-1zM28 24h1v1h-1zM0 25h1v1h-1zM2 25h1v1h-1zM3 25h1v1h-1zM4 25h1v1h-1zM6 25h1v1h-1zM8 25h1v1h-1zM9 25h1v1h-1zM10 25h1v1h-1zM11 25h1v1h-1zM13 25h1v1h-1zM15 25h1v1h-1zM16 25h1v1h-1zM19 25h1v1h-1zM20 25h1v1h-1zM21 25h1v1h-1zM23 25h1v1h-1zM26 25h1v1h-1zM0 26h1v1h-1zM2 26h1v1h-1zM3 26h1v1h-1zM4 26h1v1h-1zM6 26h1v1h-1zM8 26h1v1h-1zM10 26h1v1h-1zM11 26h1v1h-1zM12 26h1v1h-1zM13 26h1v1h-1zM17 26h1v1h-1zM18 26h1v1h-1zM19 26h1v1h-1zM20 26h1v1h-1zM21 26h1v1h-1zM22 26h1v1h-1zM23 26h1v1h-1zM24 26h1v1h-1zM25 26h1v1h-1zM26 26h1v1h-1zM27 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM8 27h1v1h-1zM10 27h1v1h-1zM11 27h1v1h-1zM16 27h1v1h-1zM20 27h1v1h-1zM22 27h1v1h-1zM24 27h1v1h-1zM25 27h1v1h-1zM27 27h1v1h-1zM0 28h1v1h-1zM1 28h1v1h-1zM2 28h1v1h-1zM3 28h1v1h-1zM4 28h1v1h-1zM5 28h1v1h-1zM6 28h1v1h-1zM9 28h1v1h-1zM14 28h1v1h-1zM17 28h1v1h-1zM18 28h1v1h-1zM19 28h1v1h-1zM21 28h1v1h-1zM22 28h1v1h-1zM24 28h1v1h-1zM26 28h1v1h-1z"/></svg></div>
+        <b>kozmos.itaskira.com</b>
+        <span>Studio: kozmos.itaskira.com/studio</span>
+      </div>
+      <div class="kapanis-ekip">
+        <span><img src="/sunum/gorsel/ekip-sevilay.webp" alt="">Sevilay Üngör</span>
+        <span><img src="/sunum/gorsel/ekip-arda.webp" alt="">Mehmet Arda Aycan</span>
+        <span><img src="/sunum/gorsel/ekip-ibrahim.webp" alt="">İbrahim Taşkıran</span>
+      </div>
+      <p class="kapanis-kunye">Takım Kozmos · 42 Kocaeli · KÖK&amp;KOD Hackathon · Sorularınızı bekliyoruz</p>
+    </section>
+
+  </main>
+
+  <nav class="gezinti" aria-label="Sunum gezintisi">
+    <button type="button" class="gz-dugme" id="geri" aria-label="Önceki sayfa"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <span class="gz-sayi" id="gz-sayi">1 / 15</span>
+    <button type="button" class="gz-dugme" id="ileri" aria-label="Sonraki sayfa"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  </nav>
+  <div class="ilerleme" aria-hidden="true"><i id="ilerleme"></i></div>
+  <div class="cevir" role="note">Sunumu tam görmek için telefonu yatay çevir.</div>
+  <div class="ipucu" id="ipucu">← → ile gez · F tam ekran · R sayfayı yeniden oynat</div>
+</div>
+</body>
+</html>
