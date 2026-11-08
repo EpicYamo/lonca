@@ -44,17 +44,17 @@ function ekip(el, tl) {
 // ── 3 · Problem: altı zorluk, her kart dönüp Lonca'nın cevabını gösterir ──────────────────────────
 function problem(el, tl) {
   const kartlar = $$(el, ".sorun");
-  tl.from(kartlar, { y: 80, opacity: 0, scale: 0.9, stagger: 0.12, duration: 0.7, ease: "power3.out" }, 0.3);
+  tl.from(kartlar, { y: 80, opacity: 0, scale: 0.9, stagger: 0.45, duration: 0.9, ease: "power3.out" }, 0.3);
   // Her zorluğun kendi küçük hareketi
   tl.from($$(el, ".c-dagınik i"), { x: () => gsap.utils.random(-60, 60), y: () => gsap.utils.random(-40, 40), rotate: () => gsap.utils.random(-90, 90), opacity: 0, stagger: 0.05, duration: 0.6 }, 0.5)
-    .from($(el, ".c-kilit .kilit"), { y: -60, opacity: 0, duration: 0.5, ease: "bounce.out" }, 0.8)
-    .from($$(el, ".c-guven .soru"), { scale: 0, rotate: 60, stagger: 0.1, duration: 0.5, ease: "back.out(3)" }, 0.9)
-    .from($$(el, ".c-sikici i"), { scaleX: 0, transformOrigin: "100% 50%", stagger: 0.08, duration: 0.5 }, 1)
-    .from($$(el, ".c-erisim span"), { opacity: 0, y: 20, stagger: 0.1, duration: 0.4 }, 1.1)
-    .from($$(el, ".c-omur i"), { scaleY: 0, transformOrigin: "50% 100%", stagger: 0.07, duration: 0.4 }, 1.2);
+    .from($(el, ".c-kilit .kilit"), { y: -60, opacity: 0, duration: 0.5, ease: "bounce.out" }, 0.9)
+    .from($$(el, ".c-guven .soru"), { scale: 0, rotate: 60, stagger: 0.1, duration: 0.5, ease: "back.out(3)" }, 1.3)
+    .from($$(el, ".c-sikici i"), { scaleX: 0, transformOrigin: "100% 50%", stagger: 0.08, duration: 0.5 }, 1.8)
+    .from($$(el, ".c-erisim span"), { opacity: 0, y: 20, stagger: 0.1, duration: 0.4 }, 2.2)
+    .from($$(el, ".c-omur i"), { scaleY: 0, transformOrigin: "50% 100%", stagger: 0.07, duration: 0.4 }, 2.6);
   // Kartlar sırayla döner: zorluk → cevap
   kartlar.forEach((k, i) => {
-    tl.to($(k, ".sorun-ic"), { rotateY: 180, duration: 0.9, ease: "power3.inOut" }, 3 + i * 0.55);
+    tl.to($(k, ".sorun-ic"), { rotateY: 180, duration: 1.2, ease: "power3.inOut" }, 5 + i * 1.8); // yavaş: konuşurken her zorluk ve cevabı okunabilsin
   });
   gsap.to($$(el, ".c-guven .soru"), { y: -8, rotate: 10, duration: 0.6, yoyo: true, repeat: -1, stagger: 0.15, ease: "sine.inOut" });
   gsap.to($$(el, ".c-omur i"), { scaleY: 0.3, transformOrigin: "50% 100%", duration: 0.9, yoyo: true, repeat: -1, stagger: 0.1, ease: "sine.inOut" });

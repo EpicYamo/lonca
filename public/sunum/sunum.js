@@ -58,7 +58,14 @@ function ac(yeni, yon = 1) {
     gecis.to(eski, { opacity: 0, scale: 0.96, xPercent: -4 * yon, filter: "blur(10px)", duration: 0.45 }, 0);
   }
   gecis.add(() => {
-    if (eski) { eski.classList.remove("etkin"); gsap.set(eski, { clearProps: "opacity,transform,filter" }); }
+    // Gelen dışındaki bütün sayfalar: yarım kalan geçiş animasyonları durur, satır içi bulanıklık/saydamlık silinir.
+    // Böylece hızlı ← → basışlarında hiçbir sayfada eski bir blur kalamaz.
+    for (const s of sayfalar) {
+      if (s === gelen) continue;
+      gsap.killTweensOf(s);
+      s.classList.remove("etkin");
+      gsap.set(s, { clearProps: "opacity,transform,filter" });
+    }
     eskiBaglam?.revert();
     gelen.classList.add("etkin");
     uc.sec(gelen.dataset.uc ?? null, gelen);
@@ -73,7 +80,7 @@ function ac(yeni, yon = 1) {
       if (hareketAz) tl.progress(1);
     }, gelen);
   }, eski && !hareketAz ? 0.45 : 0);
-  if (!hareketAz) gecis.fromTo(gelen, { opacity: 0, scale: 1.04, xPercent: 3 * yon }, { opacity: 1, scale: 1, xPercent: 0, filter: "blur(0px)", duration: 0.75, clearProps: "opacity,transform,filter" }, eski ? 0.45 : 0);
+  if (!hareketAz) gecis.fromTo(gelen, { opacity: 0, scale: 1.04, xPercent: 3 * yon, filter: "blur(0px)" }, { opacity: 1, scale: 1, xPercent: 0, filter: "blur(0px)", duration: 0.75, clearProps: "opacity,transform,filter" }, eski ? 0.45 : 0);
 }
 
 const ileri = () => ac(sira + 1, 1);
