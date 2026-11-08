@@ -12,6 +12,7 @@ import * as raf from "./modullerim.js";
 import { modulRozeti } from "/ortak/dogrulama.js";
 import { eserSayfasiKur } from "./eser-sayfasi.js";
 import { kesifHaritasiKur } from "./kesif-haritasi.js";
+import { konumIzniDurumu, konumIzniIste, konumBul, ayarlariAc, uygulamadaMi } from "./konum-izni.js";
 import { googleIleBaslat, googleDonusuOku, uygulamaDonusunuDinle, googleKodTakas } from "/ortak/google-giris.js";
 import { paylasimiDinle } from "./paylasim.js";
 import { t, dilSecimi } from "/ortak/dil.js";
@@ -122,15 +123,14 @@ async function api(yol) {
   if (!y.ok) throw new Error((await y.json().catch(() => ({}))).hata ?? `İstek başarısız (${y.status})`);
   return y;
 }
-function konumAl() {
-  return new Promise((coz) => {
-    if (!navigator.geolocation) return coz({ ...DEMO_KONUM, ornek: true });
-    navigator.geolocation.getCurrentPosition(
-      (p) => coz({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => coz({ ...DEMO_KONUM, ornek: true }),
-      { timeout: 4000, maximumAge: 60000 },
-    );
-  });
+// Cihaz konumu (uygulamada sistemin konum servisinden); alınamazsa örnek konum.
+async function konumAl() {
+  try {
+    const k = await konumBul({ zamanAsimi: 8000 });
+    return { lat: k.lat, lng: k.lng };
+  } catch {
+    return { ...DEMO_KONUM, ornek: true };
+  }
 }
 
 function sahneyeKoy(...dugumler) {
@@ -380,18 +380,50 @@ async function vitrinCiz() {
   }));
 }
 
-let kolajZamanlayici = null;
+// Kapak slaytı: fotoğraflar 6 sn'de bir değişir. Kapağa dokununca o an görünen eser açılır; yana kaydırınca
+// önceki/sonraki fotoğrafa geçilir.
+let kolajZamanlayici = null, kolajListe = [], kolajSira = 0, kolajGoster = () => {};
 function kolajDongusu(liste) {
   clearInterval(kolajZamanlayici);
   const kareler = [...$("#kolaj").children];
-  let i = 0;
-  const goster = () => {
-    kareler.forEach((k, j) => k.classList.toggle("onde", j === i));
-    $("#kolaj-atif").textContent = liste[i] ? `Fotoğraf: ${liste[i].ad}` : "";
+  kolajListe = liste;
+  kolajSira = 0;
+  kolajGoster = () => {
+    kareler.forEach((k, j) => k.classList.toggle("onde", j === kolajSira));
+    const e = liste[kolajSira];
+    $("#kolaj-atif").textContent = e ? `Fotoğraf: ${e.ad}` : "";
+    const v = $("#vitrin");
+    v.classList.toggle("tiklanir", !!e?.id);
+    if (e?.id) v.setAttribute("aria-description", `Dokun: ${e.ad} sayfasını aç`); else v.removeAttribute("aria-description");
   };
-  goster();
-  if (kareler.length < 2 || hareketAzalt()) return;
-  kolajZamanlayici = setInterval(() => { if (!$("#ana-ekran").hidden && !document.hidden) { i = (i + 1) % kareler.length; goster(); } }, 6000);
+  kolajGoster();
+  kolajZamanlayiciKur();
+}
+function kolajZamanlayiciKur() {
+  clearInterval(kolajZamanlayici);
+  if (kolajListe.length < 2 || hareketAzalt()) return;
+  kolajZamanlayici = setInterval(() => { if (!$("#ana-ekran").hidden && !document.hidden) { kolajSira = (kolajSira + 1) % kolajListe.length; kolajGoster(); } }, 6000);
+}
+{
+  const vitrinEl = $("#vitrin");
+  let bas = null, kaydirdi = false;
+  vitrinEl.addEventListener("touchstart", (o) => { bas = o.touches[0]; kaydirdi = false; }, { passive: true });
+  vitrinEl.addEventListener("touchend", (o) => {
+    if (!bas || kolajListe.length < 2) return;
+    const dx = o.changedTouches[0].clientX - bas.clientX, dy = o.changedTouches[0].clientY - bas.clientY;
+    bas = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    kaydirdi = true;
+    kolajSira = (kolajSira + (dx < 0 ? 1 : -1) + kolajListe.length) % kolajListe.length;
+    kolajGoster();
+    kolajZamanlayiciKur();
+  }, { passive: true });
+  vitrinEl.addEventListener("click", (o) => {
+    if (kaydirdi) { kaydirdi = false; return; }
+    if (o.target.closest("button, a, input, select, textarea")) return;
+    const e = kolajListe[kolajSira];
+    if (e?.id) eserPenceresi(e.id);
+  });
 }
 
 const eserSayfasi = eserSayfasiKur({
@@ -603,9 +635,11 @@ function izinSor(m, yalnizca = null) {
   d.returnValue = "";
   d.showModal();
   d.querySelector('button[value="evet"]').focus();
-  return new Promise((coz) => d.addEventListener("close", () => {
+  return new Promise((coz) => d.addEventListener("close", async () => {
     // Pencere bir seçim yapılmadan kapanırsa (Esc, Android geri) karar kaydedilmez; bu açılışta izinsiz çalışır.
     if (d.returnValue === "evet" || d.returnValue === "hayir") for (const iz of sorulacak) raf.izinKaydet(m.id, iz, d.returnValue === "evet");
+    // "İzin ver" denince hemen cihazın kendi izin penceresi açılır.
+    if (d.returnValue === "evet" && sorulacak.includes("konum")) await cihazKonumIzni({ sessiz: true });
     coz();
   }, { once: true }));
 }
@@ -1238,19 +1272,62 @@ function basarimlariGoster(modul, basarimlar) {
       return r;
     })));
 }
+// Cihazın konum iznini ister. Sistem artık sormuyorsa (kalıcı ret) ya da konum servisi kapalıysa ayarları açar.
+const KONUM_DURUM_YAZISI = {
+  verildi: "İzin verildi",
+  sorulacak: "Henüz izin verilmedi",
+  reddedildi: "İzin kapalı. Açmak için ayarlara git",
+  kapali: "Cihazın konum servisi kapalı",
+  yok: "Bu cihazda konum kullanılamıyor",
+};
+async function cihazKonumIzni({ sessiz = false } = {}) {
+  const sonuc = await konumIzniIste();
+  if (sonuc === "reddedildi") {
+    if (await ayarlariAc()) bildir("Ayarlar'da İzinler → Konum'u açabilirsin.", { sure: 4200 });
+    else if (!sessiz) bildir("Konum izni kapalı. Tarayıcının site ayarlarından açabilirsin.", { sure: 4200 });
+  } else if (sonuc === "kapali") {
+    if (await ayarlariAc("konum")) bildir("Konumu açıp uygulamaya geri dön.", { sure: 4200 });
+  } else if (sonuc === "verildi" && !sessiz) bildir("Konum izni verildi.");
+  return sonuc;
+}
 function izinBolumu() {
+  // Cihaz izni satırı: sistemin konum izni. Düğme sistemin izin penceresini (gerekirse ayarları) açar.
+  const cihazAlt = el("small", { textContent: "Denetleniyor…" });
+  const cihazDugme = el("button", { type: "button", className: "dugme ikincil izin-dugme", textContent: "İzin ver", hidden: true });
+  const cihazGuncelle = async () => {
+    const d = await konumIzniDurumu();
+    cihazAlt.textContent = KONUM_DURUM_YAZISI[d] ?? "";
+    cihazDugme.hidden = d === "verildi" || d === "yok" || (d === "reddedildi" && !uygulamadaMi());
+    cihazDugme.textContent = d === "sorulacak" ? "İzin ver" : "Ayarları aç";
+  };
+  cihazDugme.addEventListener("click", async () => { await cihazKonumIzni(); cihazGuncelle(); });
+  // Ayarlardan dönünce durum yenilenir.
+  const yenile = () => {
+    if (!cihazAlt.isConnected) return document.removeEventListener("visibilitychange", yenile);
+    if (!document.hidden) cihazGuncelle();
+  };
+  document.addEventListener("visibilitychange", yenile);
+  cihazGuncelle();
+  const cihazSatiri = el("div", { className: "izin-cihaz" },
+    el("span", {}, "Konum (cihaz izni)", cihazAlt), cihazDugme);
+
   const satirlar = modulListesi.flatMap((m) => raf.istenenIzinler(m).map((iz) => {
     const durum = raf.izinDurumu(m.id, iz);
     const kutu = el("input", { type: "checkbox", checked: durum === true });
-    kutu.addEventListener("change", () => { raf.izinKaydet(m.id, iz, kutu.checked); alt.textContent = kutu.checked ? "İzin verildi" : "İzin verilmedi"; });
     const alt = el("small", { textContent: durum === undefined ? "Henüz sorulmadı" : durum ? "İzin verildi" : "İzin verilmedi" });
+    kutu.addEventListener("change", async () => {
+      raf.izinKaydet(m.id, iz, kutu.checked);
+      alt.textContent = kutu.checked ? "İzin verildi" : "İzin verilmedi";
+      // Modüle izin verilince cihazın izni de istenir; yoksa modül yine örnek konumla çalışırdı.
+      if (kutu.checked && iz === "konum") { await cihazKonumIzni(); cihazGuncelle(); }
+    });
     return el("label", { className: "anahtar" }, kutu, el("span", {}, `${m.ad}: ${raf.IZIN_BILGISI[iz].ad}`, alt));
   }));
   const bolum = el("section", { className: "profil-izinler" });
   bolum.setAttribute("aria-labelledby", "izin-bolum-baslik");
   bolum.append(
     el("h2", { className: "bolum-baslik", id: "izin-bolum-baslik", textContent: "Uygulama izinleri" }),
-    satirlar.length ? el("div", { className: "izin-satirlari" }, ...satirlar) : el("p", { className: "bos", textContent: "Hiçbir uygulama özel izin istemiyor." }));
+    el("div", { className: "izin-satirlari" }, cihazSatiri, ...satirlar));
   return bolum;
 }
 $("#profil-cip").addEventListener("click", () => { profilEkrani(); gecis(() => ekranGoster("profil"), "ileri"); });
