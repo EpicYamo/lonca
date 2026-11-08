@@ -31,7 +31,7 @@
   padding: .3rem .5rem calc(.3rem + env(safe-area-inset-bottom)); border-top: .5px solid color-mix(in srgb, var(--metin) 12%, transparent);
   background: color-mix(in srgb, var(--zemin) 88%, transparent); -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
 }
-.kabuk .sekme { min-height: 60px; font-size: .74rem; font-weight: 600; }
+.kabuk .sekme { min-height: 60px; --sekme-yazi: .74rem; font-weight: 600; }
 .kabuk .sekme .s-ikon { width: 60px; height: 32px; }
 .kabuk .sekme.secili { font-weight: 800; }
 

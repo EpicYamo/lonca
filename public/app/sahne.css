@@ -60,16 +60,19 @@ body.uygulama-modu #sahne { view-transition-name: none; }
 @keyframes s-gel { from { opacity: 0; transform: translateY(12px); } }
 
 .sekme-cubugu {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center; gap: .25rem;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center; gap: calc(.25rem / var(--olcek, 1));
   padding: .45rem .5rem calc(.45rem + env(safe-area-inset-bottom));
   background: color-mix(in srgb, var(--yuzey) 92%, transparent); backdrop-filter: blur(12px);
   border-top: 1px solid var(--cizgi);
 }
 .sekme {
-  flex: 1; max-width: 120px; display: flex; flex-direction: column; align-items: center; gap: .15rem;
-  min-height: 52px; padding: .35rem .25rem; border: 0; border-radius: 14px; background: transparent; color: var(--soluk);
-  font-size: .78rem; font-weight: 650;
+  flex: 1; min-width: 0; max-width: 120px; display: flex; flex-direction: column; align-items: center; gap: .15rem;
+  min-height: 52px; padding: .35rem calc(.25rem / var(--olcek, 1)); border: 0; border-radius: 14px; background: transparent; color: var(--soluk);
+  --sekme-yazi: .78rem; font-size: calc(var(--sekme-yazi) / var(--olcek, 1) * min(var(--olcek, 1), 1.15)); font-weight: 650;
 }
+/* Alt sekme adları (iOS sekme çubuğu gibi) büyük yazıda en çok 1.15× büyür: dört-beş sekme 360 px'e sığar, ad ortadan
+   bölünmez. Simge ve düğmenin erişilebilir adı anlamı taşır; çok uzun bir ad yine de taşmaz, satıra iner. */
+.sekme > span:not(.s-ikon) { max-width: 100%; text-align: center; line-height: 1.15; overflow-wrap: anywhere; }
 .sekme .s-ikon { display: grid; place-items: center; width: 44px; height: 28px; border-radius: 99px; transition: background .25s, color .25s; }
 .sekme.secili { color: var(--kobalt); }
 .sekme.secili .s-ikon { background: color-mix(in srgb, var(--kobalt) 14%, transparent); }
