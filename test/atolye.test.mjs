@@ -171,6 +171,21 @@ test("dalış isteği oturuma iş kimliğiyle yazılır", async () => {
   assert.deepEqual(sohbet, [{ rol: "usta", metin: "şimdi modül" }]);
 });
 
+test("dalış sonucu oturuma yazılır ve sonraki isteğe kısa bağlam olur", async () => {
+  const a = atolyeKur(path.join(s.veri, "atolye-dalis-baglam"));
+  const o = await a.olustur("yonetici");
+  await a.dalisEkle("yonetici", o.id, { istek: "Darülkurra Haziresi dalışı yapalım", is: "is-1" });
+  await a.dalisBitir("yonetici", o.id, { is: "is-1", durum: "bitti", eser: "bursa-darulkurra-haraccioglu-haziresi", ad: "Darülkurra (Haraççıoğlu) Haziresi", odak: "uzaydan başlasın", yanit: "Darülkurra dalışı hazırlandı.", kareSayisi: 20 });
+  await a.dalisEkle("yonetici", o.id, { istek: "ne zaman yapılmış?", is: "is-2" });
+  await a.dalisBitir("yonetici", o.id, { is: "is-2", durum: "yanit", eser: null, ad: null, yanit: "Envantere göre 15. yüzyıl." });
+  const b = await a.dalisBaglami("yonetici", o.id);
+  assert.deepEqual(b.sonEser, { id: "bursa-darulkurra-haraccioglu-haziresi", ad: "Darülkurra (Haraççıoğlu) Haziresi", odak: "uzaydan başlasın" });
+  assert.deepEqual(b.turlar.map((t) => t.yanit), ["Darülkurra dalışı hazırlandı.", "Envantere göre 15. yüzyıl."]);
+  assert.equal(b.turlar[0].istek, "Darülkurra Haziresi dalışı yapalım");
+  const geri = await a.getir("yonetici", o.id);
+  assert.equal(geri.mesajlar[1].dalisSonuc.kareSayisi, 20);
+});
+
 test("taslak doğrulaması", () => {
   assert.equal(atolyeTaslakDogrula(null).hatalar.length, 1);
   assert.deepEqual(atolyeTaslakDogrula({ kod: "a" }).taslak, { kod: "a", ad: "", id: "", aciklama: "", renk: "", ikon: "", kategori: "" });

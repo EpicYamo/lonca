@@ -218,5 +218,40 @@ export function atolyeKur(dizin) {
     });
   }
 
-  return { liste, olustur, getir, taslakYaz, sil, kalfaBaslat, kalfaBitir, dalisEkle };
+  // Dalış işi bitince sonucu ilgili kalfa mesajına yazar (eser, durum, tek cümlelik yanıt). Dalış kalfasının sohbet
+  // hafızası bu kısa kayıtlardan kurulur; sunucu yeniden başlasa da Studio sonucu buradan gösterebilir.
+  async function dalisBitir(sahip, id, sonuc) {
+    return sirayla(sahip, (veri) => {
+      const o = veri.oturumlar.find((x) => x.id === id);
+      const m = o?.mesajlar.findLast((x) => x.dalis === sonuc?.is);
+      if (!m) return { yaz: false };
+      m.dalisSonuc = {
+        durum: String(sonuc.durum ?? ""), eser: sonuc.eser ?? null, ad: sonuc.ad ?? null,
+        odak: sonuc.odak ? String(sonuc.odak).slice(0, 600) : null, yanit: String(sonuc.yanit ?? "").slice(0, 400),
+        ...(Number.isInteger(sonuc.kareSayisi) && { kareSayisi: sonuc.kareSayisi }),
+      };
+      o.guncelleme = simdi();
+      return {};
+    });
+  }
+
+  // Dalış kalfasına gidecek kısa bağlam: son 6 dalış turu (istek → tek cümlelik sonuç) ve son konuşulan eser.
+  // Günlükler ve kartlar gönderilmez; sohbet uzadıkça istek büyümez.
+  async function dalisBaglami(sahip, id) {
+    return sirayla(sahip, (veri) => {
+      const o = bul(veri, id);
+      const turlar = [];
+      let sonEser = null;
+      o.mesajlar.forEach((m, i) => {
+        if (!m.dalis) return;
+        const istek = o.mesajlar[i - 1]?.rol === "usta" ? o.mesajlar[i - 1].metin : "";
+        const s = m.dalisSonuc;
+        turlar.push({ istek: String(istek).slice(0, 300), yanit: s?.yanit ?? "" });
+        if (s?.eser) sonEser = { id: s.eser, ad: s.ad, odak: s.odak };
+      });
+      return { deger: { turlar: turlar.slice(-6), sonEser }, yaz: false };
+    });
+  }
+
+  return { liste, olustur, getir, taslakYaz, sil, kalfaBaslat, kalfaBitir, dalisEkle, dalisBitir, dalisBaglami };
 }
