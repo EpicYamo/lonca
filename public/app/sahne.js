@@ -399,8 +399,19 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen, tuval = n
     return kayit.kap;
   }
 
+  // Sabit ekran: yalnızca kapaktan oluşan açılış ya da tuvalli oyun ekranı. Sayfa kaymaz, altta sekme payı ve boş zemin
+  // kalmaz (web, Android, Studio önizlemesi). Alt sekmeler görünürken kapak onlara pay bırakır, sabitlenmez.
+  function sabitle() {
+    const kok = kap.firstElementChild;
+    const yalnizKapak = !!kok?.matches?.(".s-kok-tam") && !!kok.querySelector(":scope > .s-kapak:only-child, :scope > .s-sutun:only-child > .s-kapak:only-child");
+    const sabit = !!kok && sekmeCubugu.hidden && (yalnizKapak || !!kok.querySelector(".s-tuval"));
+    kap.classList.toggle("s-sabit", sabit);
+    document.documentElement.classList.toggle("modul-sabit", sabit);
+  }
+
   function sekmeleriCiz() {
     sekmeCubugu.hidden = !sekmeler.length;
+    sabitle();
     sekmeCubugu.replaceChildren(...sekmeler.map((s) => {
       const secili = s.id === seciliSekme;
       const d = el("button", { className: `sekme${secili ? " secili" : ""}`, role: "tab", ariaSelected: String(secili) }, ...ikonlu(s.ikon ?? "yildiz", s.ad));
@@ -444,6 +455,7 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen, tuval = n
       const tam = ["ust_cubuk", "afis", "kapak", "dalis", "tuval"].includes(ilkTip) || agac?.tip === "kapak";
       const sarmal = el("div", { className: `s-kok${ilkCizim ? " s-giris" : ""}${tam ? " s-kok-tam" : ""}` }, kok);
       kap.replaceChildren(sarmal);
+      sabitle();
       ilkCizim = false;
       for (const [id, k] of agirlar) if (!k.kullanildi) { k.api?.then?.((a) => a.yokEt()); agirlar.delete(id); }
       kap.scrollTop = kaydirma; scrollTo(0, pencere);
@@ -464,6 +476,8 @@ export function sahneOlustur({ el, kap, sekmeCubugu, gonder, bileşen, tuval = n
     },
     temizle() {
       tuval?.yokEt();
+      kap.classList.remove("s-sabit");
+      document.documentElement.classList.remove("modul-sabit");
       for (const k of agirlar.values()) k.api?.then?.((a) => a.yokEt());
       agirlar.clear();
       sekmeler = []; seciliSekme = null; sekmeleriCiz();

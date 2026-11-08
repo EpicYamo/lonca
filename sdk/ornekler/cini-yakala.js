@@ -1,10 +1,17 @@
 // Örnek gerçek zamanlı oyun: düşen çinileri parmakla sürüklenen sepetle yakala. Her 5 çinide bir vakıf eserinin
 // fotoğrafı tuvalin üstünde kart olarak açılır. Gösterdikleri: tuval düğümü, oyun.dongu (dt), oyun.dokunmalar
 // (tut-sürükle), klavye (ok tuşları), oyun.ses, oyun.titres, kalem.gorsel ile eser fotoğrafı, cocuklar ile katman, rekor.
+// Tuval TAM EKRANDIR (en/boy verilmez): boyutu ekranın gerçek boyutudur (telefonda dar ve uzun, web'de geniş). Her karede
+// oyun.boyut ile okunur; bütün konum ve büyüklükler en/boy'a oranla kurulur, sabit 360 × 640 yoktur.
 import { sahne, eserler, oyun, depo, profil } from "@lonca/sdk";
 
-const EN = 360, BOY = 640;          // tuvalin mantıksal boyutu
+let EN = 360, BOY = 640, O = 1;    // tuvalin gerçek boyutu ve ölçek (her karede oyun.boyut ile güncellenir)
 const SEPET = { en: 84, boy: 18, y: BOY - 70 };
+function olcuOku() {
+  ({ en: EN, boy: BOY } = oyun.boyut("alan"));
+  O = Math.min(EN / 360, BOY / 640);                          // 360 × 640'lık telefonda 1; büyük ekranda büyür
+  SEPET.en = 84 * O; SEPET.boy = 18 * O; SEPET.y = BOY - 70 * O;  // sepet hep altta, parmağın üstünde
+}
 
 export default async function basla() {
   const fotolu = eserler.karistir(await eserler.liste({ gerekli: ["fotograf"] }));
@@ -26,6 +33,7 @@ export default async function basla() {
   }
 
   function yeniOyun() {
+    olcuOku();
     d = { x: EN / 2, cini: [], dogma: 0, puan: 0, can: 3, hiz: 160, sonEser: 0 };
     gorunum = "oyun";
     oyun.dongu(adim);
@@ -33,20 +41,21 @@ export default async function basla() {
 
   // Her karede: girdiyi oku → durumu dt ile güncelle → çiz. Burada await yok.
   function adim(dt) {
+    olcuOku();                                                   // ekran dönebilir, pencere büyüyebilir
     const parmak = oyun.dokunmalar("alan")[0];
     if (parmak) d.x = parmak.x;                                  // tut-sürükle: sepet parmağı izler
-    if (oyun.tus("ArrowLeft")) d.x -= 320 * dt;                 // web: ok tuşları
-    if (oyun.tus("ArrowRight")) d.x += 320 * dt;
+    if (oyun.tus("ArrowLeft")) d.x -= 320 * O * dt;             // web: ok tuşları
+    if (oyun.tus("ArrowRight")) d.x += 320 * O * dt;
     d.x = oyun.sinirla(d.x, SEPET.en / 2, EN - SEPET.en / 2);
 
     d.dogma -= dt;
-    if (d.dogma <= 0) { d.dogma = Math.max(0.35, 1.1 - d.puan * 0.03); d.cini.push({ x: oyun.rastgele(20, EN - 20), y: -20, r: 14 }); }
+    if (d.dogma <= 0) { d.dogma = Math.max(0.35, 1.1 - d.puan * 0.03); d.cini.push({ x: oyun.rastgele(20 * O, EN - 20 * O), y: -20 * O, r: 14 * O }); }
     const sepet = { x: d.x - SEPET.en / 2, y: SEPET.y, en: SEPET.en, boy: SEPET.boy };
     for (const c of d.cini) {
-      c.y += (d.hiz + d.puan * 6) * dt;
+      c.y += (d.hiz + d.puan * 6) * O * dt;
       if (!c.bitti && oyun.carpisir({ x: c.x - c.r, y: c.y - c.r, en: c.r * 2, boy: c.r * 2 }, sepet)) {
         c.bitti = true; d.puan++; oyun.ses("puan"); oyun.titres("hafif");
-      } else if (!c.bitti && c.y > BOY + 20) {
+      } else if (!c.bitti && c.y > BOY + c.r) {
         c.bitti = true; d.can--; oyun.ses("hata"); oyun.titres("orta");
       }
     }
@@ -63,12 +72,13 @@ export default async function basla() {
   function cizAlan() {
     oyun.ciz("alan", (k) => {
       k.temizle("#0b1430");
-      for (let i = 0; i < 6; i++) k.cizgi(0, i * 120, EN, i * 120 + 60, "rgba(255,255,255,.04)", 30);
-      for (const c of d.cini) k.kaydet().tasi(c.x, c.y).dondur(c.y / 60).dikdortgen(-c.r, -c.r, c.r * 2, c.r * 2, "#3fb5a8", { yuvarlak: 4, cizgi: "#e8f6f3", kalinlik: 2 }).geriYukle();
-      k.dikdortgen(d.x - SEPET.en / 2, SEPET.y, SEPET.en, SEPET.boy, "#e8b04a", { yuvarlak: 9 });
-      k.yazi(d.puan, 16, 28, { boyut: 26, kalin: true });
-      k.yazi("♥".repeat(d.can), EN - 16, 28, { boyut: 22, renk: "#ff6b6b", hiza: "sag" });
-      if (fotolu.length) k.gorsel(fotolu[0], EN - 60, BOY - 34, 44, 26, { yuvarlak: 6 });
+      for (let y = 0; y < BOY; y += 120 * O) k.cizgi(0, y, EN, y + 60 * O, "rgba(255,255,255,.04)", 30 * O);
+      for (const c of d.cini) k.kaydet().tasi(c.x, c.y).dondur(c.y / 60).dikdortgen(-c.r, -c.r, c.r * 2, c.r * 2, "#3fb5a8", { yuvarlak: 4 * O, cizgi: "#e8f6f3", kalinlik: 2 }).geriYukle();
+      k.dikdortgen(d.x - SEPET.en / 2, SEPET.y, SEPET.en, SEPET.boy, "#e8b04a", { yuvarlak: SEPET.boy / 2 });
+      // Skor sol üstte, can sağ üstte: uygulamanın köşedeki kapat düğmesinin altına (y = 72) yazılır.
+      k.yazi(d.puan, 18, 72, { boyut: 26 * O, kalin: true });
+      k.yazi("♥".repeat(d.can), EN - 18, 72, { boyut: 22 * O, renk: "#ff6b6b", hiza: "sag" });
+      if (fotolu.length) k.gorsel(fotolu[0], EN - 60 * O, BOY - 34 * O, 44 * O, 26 * O, { yuvarlak: 6 });
     });
   }
 
@@ -103,7 +113,7 @@ export default async function basla() {
       ] });
     }
     return sahne.ciz({ tip: "sutun", aralik: "dar", cocuklar: [
-      { tip: "tuval", id: "alan", en: EN, boy: BOY, arkaplan: "#0b1430", etiket: "Çini yakalama alanı", cocuklar: katman },
+      { tip: "tuval", id: "alan", arkaplan: "#0b1430", etiket: "Çini yakalama alanı", cocuklar: katman }, // en/boy yok: tam ekran
     ] });
   }
 }

@@ -178,7 +178,7 @@ declare module "@lonca/sdk" {
     | { tip: "rozet"; ad: string; aciklama?: string; kazanildi: boolean }
     | { tip: "dalis"; id?: string; etiket?: string; kareler: DalisKaresi[]; cocuklar?: Dugum[] } // kaydırdıkça eserin içine giren tam ekran sahne; cocuklar sahnenin bitiminde gösterilir
     // <genis>
-    | { tip: "tuval"; id: string; en?: number; boy?: number; arkaplan?: string; etiket?: string; cocuklar?: Dugum[] } // oyun alanı: en × boy mantıksal birim (varsayılan 360 × 640), ekrana orantılı sığar; oyun.ciz(id, …) ile çizilir; cocuklar tuvalin ÜSTÜNDE katman (ör. gol kartı, duraklat menüsü); kısa dokunuş { tur:"dokun", id, x, y }
+    | { tip: "tuval"; id: string; en?: number; boy?: number; tam?: boolean; arkaplan?: string; etiket?: string; cocuklar?: Dugum[] } // oyun alanı. en/boy VERME: tuval tam ekrandır, ekranı doldurur ve boyutu ekranın gerçek boyutudur (telefonda dar-uzun, web'de geniş; değişebilir) → her karede const { en, boy } = oyun.boyut(id) ile oku, yerleşimi en/boy oranıyla kur. en/boy verilirse o oranda sabit kalır, ekrana orantılı sığar (kenarlarda boşluk kalır). oyun.ciz(id, …) ile çizilir; cocuklar tuvalin ÜSTÜNDE katman (ör. gol kartı, duraklat menüsü); kısa dokunuş { tur:"dokun", id, x, y }
     // </genis>
     | { tip: "ayrac" }
     | { tip: "bosluk" };
@@ -298,8 +298,10 @@ declare module "@lonca/sdk" {
   export interface Dokunma { parmak: number; tuval: string; x: number; y: number; ilkX: number; ilkY: number; }
   /** Girdi olayı: basla (parmak değdi / fare basıldı), surukle (parmak kayıyor), birak (kalktı), tus / tus_birak (klavye). */
   export interface GirdiOlayi {
-    tur: "basla" | "surukle" | "birak" | "tus" | "tus_birak" | "odak_kaybi";
+    tur: "basla" | "surukle" | "birak" | "tus" | "tus_birak" | "odak_kaybi" | "boyut";
     tuval?: string; parmak?: number; x?: number; y?: number; tip?: "touch" | "mouse" | "pen" | (string & {});
+    /** "boyut": tuvalin yeni gerçek boyutu (ekran döndü, pencere büyüdü). */
+    en?: number; boy?: number;
     /** Klavye: "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space", "Enter", "Escape", harfler küçük ("w", "a"…) */
     tus?: string;
   }
@@ -319,6 +321,12 @@ declare module "@lonca/sdk" {
     ciz(tuval: string, fn: (kalem: Kalem) => void): void;
     /** Şu an tuvale değen parmaklar (çoklu dokunma). Döngüde oku: tut-sürükle için en kolay yol. */
     dokunmalar(tuval?: string): Dokunma[];
+    /**
+     * Tuvalin şu anki gerçek boyutu (mantıksal birim). Tam ekran tuvalde ekranın boyutudur: telefonda ör. 390 × 760,
+     * web'de ör. 1280 × 820. Sabit sayı (360, 640) YAZMA: her karede oku; konum ve büyüklükleri en/boy'a oranla kur
+     * (ör. const o = Math.min(en, boy) / 400; raket genişliği 90 * o; raket y = boy - 80 * o).
+     */
+    boyut(tuval?: string): { en: number; boy: number };
     /** Klavye tuşu şu an basılı mı? (web'de ok tuşları: "ArrowUp"…, boşluk "Space") */
     tus(ad: string): boolean;
     /** Girdi dinleyicisi; dönen işlev dinlemeyi bırakır. Örn. oyun.dinle("basla", (o) => zipla()). */
