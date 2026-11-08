@@ -149,7 +149,7 @@ declare module "@lonca/sdk" {
   export type Dugum =
     // --- Uygulama iskeleti ---
     | { tip: "kapak"; baslik: string; alt?: string; ust?: string; eser?: Eser; renk?: Renk; desen?: string; cocuklar?: Dugum[] } // tam ekran açılış/lobi; cocuklar = alttaki düğmeler
-    | { tip: "ust_cubuk"; baslik: string; alt?: string; geri?: string; sag?: { id: string; ikon: Ikon; etiket: string }[] } // modülün kendi üst çubuğu; geri verilirse ← düğmesi { tur:"dokun", id: geri }
+    | { tip: "ust_cubuk"; baslik: string; alt?: string; geri?: string; sag?: { id: string; ikon: Ikon; etiket: string }[] } // modülün kendi üst çubuğu; geri verilirse ← düğmesi { tur:"dokun", id: geri } (Android uygulamasında bu ← uygulama çubuğundaki tek ← ile birleşir; ayrıca geri düğmesi ekleme)
     // --- Düzen ---
     | { tip: "sutun"; cocuklar: Dugum[]; aralik?: "dar" | "normal" | "genis" }
     | { tip: "satir"; cocuklar: Dugum[]; hizala?: "bas" | "orta" | "son" | "yay" }

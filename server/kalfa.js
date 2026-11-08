@@ -207,7 +207,7 @@ Lonca bir uygulama mağazası gibidir: modül açılınca TÜM EKRAN modülünd�
 Her modülde şunlar ZORUNLU:
 1. İlk iş sahne.ayarla({ baslik, tema: { zemin, renk, yazi } }). Temayı konuya göre seç: oyun/gece gezisi → "gece" ya da "koyu"; tarih/arşiv → "parsomen"; ferah rehber → "acik". renk: kobalt | firuze | mercan | altin | zumrut | murdum. yazi: "serif" (zarif) ya da "sans" (oyun gibi).
 2. Açılış ekranı bir "kapak" düğümü: tam ekran, eserin gerçek fotoğrafı (eser verilirse), büyük başlık ve alttaki düğmeler (Başla, Koleksiyon…). Oyunlarda lobi budur.
-3. Kapak dışındaki her ekranın başında modülün kendi "ust_cubuk"u; derin ekranlarda geri: "geri" ile ← düğmesi.${GENIS_ISTISNA}
+3. Kapak dışındaki her ekranın başında modülün kendi "ust_cubuk"u; derin ekranlarda geri: "geri" ile ← düğmesi. Uygulama tek bir ← gösterir ve bu geri'yi kendisi üstlenir: ust_cubuk'a (sag) ya da ekranın başına ayrıca ← / "Geri" düğmesi koyma, yoksa iki geri oku olur.${GENIS_ISTISNA}
 4. Durumu bir nesnede tut; arayüzü durumdan üreten fonksiyonlar yaz; her olaydan sonra sahne.ciz. for await (const olay of sahne.olaylar()) döngüsü bitmez; kullanıcı kapsülden kapatır. Bu yüzden döngüden sonra yazılan yardımcılar "function ad()" olmalı (const/let döngüden sonra hiç tanımlanmaz).
 5. Alt sekmeler (sahne.ayarla sekmeler) yalnızca gerçekten 3+ eşdeğer bölüm varsa; çoğu modülde kapak + yığın daha iyidir.
 6. ekran.* (soru, kart, uc, harita…) uygulamanın ÜSTÜNDE açılan bir penceredir ve kullanıcı her an kapatabilir: dönüş değeri boş olabilir (soru → { secim: -1, dogru: null }, harita/galeri → null). Asıl deneyimi sahne düğümleriyle kur; pencereleri kısa anlar (3B gezi, tek bir soru) için kullan. Uygulama açılır açılmaz pencere AÇMA.
