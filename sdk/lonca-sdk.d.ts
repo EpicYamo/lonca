@@ -1,4 +1,5 @@
 // Lonca SDK tip tanımları — modüllerin (ve yapay zekâ kalfasının) gördüğü sözleşme.
+// <genis> … </genis> arası "genişletilmiş mod"dur (tuval, oyun.*): kalfa bunları ancak usta onay kartında açınca görür ve kullanır.
 //
 // Her modül kendi başına bir UYGULAMADIR: açılınca tüm ekran onundur (Lonca'dan yalnızca köşede küçük bir kapat
 // kapsülü kalır). Modül kendi temasını seçer, kendi üst çubuğunu / kapağını / sekmelerini çizer ve olayları dinler:
@@ -12,10 +13,12 @@
 //     for await (const olay of sahne.olaylar()) { /* durumu güncelle */ await ciz(); }
 //   }
 //
+// <genis>
 // Gerçek zamanlı oyunlar ve dokunmatik mini uygulamalar (ping pong, yılan, sürükle-bırak, çizim…) için "tuval" düğümü
 // ve oyun.* vardır: oyun.dongu ile her karede güncelle, oyun.ciz ile tuvale çiz, oyun.dokunmalar / oyun.dinle ile
 // parmağı (tut-sürükle) ve klavyeyi oku, oyun.ses ile efekt çal, oyun.titres ile titret (aşağıda "Oyun").
 //
+// </genis>
 // ekran.* (soru, kart, uc gezisi…) uygulamanın üstünde açılan, kullanıcının her an kapatabileceği bir penceredir.
 // Kullanıcı kapatırsa çağrı boş sonuçla döner (soru → { secim: -1, dogru: null }, harita/galeri → null).
 
@@ -174,7 +177,9 @@ declare module "@lonca/sdk" {
     | { tip: "graf"; id?: string; merkez: Eser; iliskiler: { eser: Eser; tur?: IliskiTuru | (string & {}); baslik?: string; aciklama?: string; kaynak?: string }[] } // kaynaklı bağ açıklamaları ve künyeleri; düğüm → { tur:"dokun", id, eser }
     | { tip: "rozet"; ad: string; aciklama?: string; kazanildi: boolean }
     | { tip: "dalis"; id?: string; etiket?: string; kareler: DalisKaresi[]; cocuklar?: Dugum[] } // kaydırdıkça eserin içine giren tam ekran sahne; cocuklar sahnenin bitiminde gösterilir
+    // <genis>
     | { tip: "tuval"; id: string; en?: number; boy?: number; arkaplan?: string; etiket?: string; cocuklar?: Dugum[] } // oyun alanı: en × boy mantıksal birim (varsayılan 360 × 640), ekrana orantılı sığar; oyun.ciz(id, …) ile çizilir; cocuklar tuvalin ÜSTÜNDE katman (ör. gol kartı, duraklat menüsü); kısa dokunuş { tur:"dokun", id, x, y }
+    // </genis>
     | { tip: "ayrac" }
     | { tip: "bosluk" };
 
@@ -257,6 +262,7 @@ declare module "@lonca/sdk" {
     yaz(anahtar: string, deger: unknown): Promise<void>;
   }
 
+  // <genis>
   // ---------- Oyun: tuval, oyun döngüsü, dokunma, klavye, ses, titreşim ----------
   /**
    * Tuval çizim kalemi (oyun.ciz içinde). Koordinatlar tuvalin mantıksal birimidir (0,0 sol üst; tuval en × boy).
@@ -318,9 +324,9 @@ declare module "@lonca/sdk" {
     /** Girdi dinleyicisi; dönen işlev dinlemeyi bırakır. Örn. oyun.dinle("basla", (o) => zipla()). */
     dinle(tur: GirdiOlayi["tur"], fn: (olay: GirdiOlayi) => void): () => void;
     /** Kısa ses efekti ya da ton: { frekans: 440, sure: 0.1, dalga?: "sine" | "square" | "triangle" | "sawtooth", ses?: 0–1, bitis?: frekans }. */
-    ses(efekt: SesEfekti | { frekans: number; sure?: number; dalga?: "sine" | "square" | "triangle" | "sawtooth"; ses?: number; bitis?: number }): void;
+    ses(efekt: SesEfekti | (string & {}) | { frekans: number; sure?: number; dalga?: "sine" | "square" | "triangle" | "sawtooth" | (string & {}); ses?: number; bitis?: number }): void;
     /** Titreşim (Android'de dokunsal geri bildirim; yoksa sessizce geçer). Sayı verilirse milisaniye. */
-    titres(tur?: "hafif" | "orta" | "guclu" | "basari" | "hata" | number): void;
+    titres(tur?: "hafif" | "orta" | "guclu" | "basari" | "hata" | (string & {}) | number): void;
     /** a–b arasında rastgele ONDALIKLI sayı (b yoksa 0–a). Dizi indeksi için KULLANMA: oyun.sec / oyun.tamSayi. */
     rastgele(a: number, b?: number): number;
     /** a–b arasında (ikisi dahil) rastgele tam sayı: ızgara hücresi, zar. */
@@ -333,6 +339,7 @@ declare module "@lonca/sdk" {
     /** Bekler (saniye, en çok 10). setTimeout yerine. */
     bekle(saniye: number): Promise<void>;
   }
+  // </genis>
 
   export const eserler: Eserler;
   export const ekran: Ekran;
@@ -341,5 +348,7 @@ declare module "@lonca/sdk" {
   export const basarim: Basarim;
   export const depo: Depo;
   export const dalislar: Dalislar;
+  // <genis>
   export const oyun: Oyun;
+  // </genis>
 }
