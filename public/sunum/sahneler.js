@@ -40,23 +40,111 @@ function ekip(el, tl) {
   kartlar.forEach((k, i) => gsap.to($(k, ".kk-ikon"), { y: -10, duration: 1.8 + i * 0.2, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 2 }));
 }
 
-// ── 3 · Problem: altı zorluk, her kart dönüp Lonca'nın cevabını gösterir ──────────────────────────
+// ── 3 · Problem: her zorluk kendi sahnesinde gösterilir, sonra Lonca'nın cevabına dönüşür ─────────
+// Sağdaki listede bir satıra tıklanınca o zorluğun sahnesine gidilir (sunum sırasında geri dönmek için).
+const PROBLEM_SAHNE = [
+  // 1 · Bilgi dağınık: kurumlar dağınık, arayan kurumdan kuruma koşar → hepsi tek şemaya toplanır
+  (ps, tl, t) => {
+    const k = $$(ps, ".kurum");
+    const ar = $(ps, ".arayan");
+    tl.from(k, { x: () => gsap.utils.random(-300, 300), y: () => gsap.utils.random(-200, 200), rotate: () => gsap.utils.random(-40, 40), opacity: 0, stagger: 0.1, duration: 0.8, ease: "power3.out" }, t)
+      .from(ar, { scale: 0, duration: 0.4, ease: "back.out(2)" }, t + 0.8);
+    [[-425, -250], [-220, -60], [-15, -260], [190, -50], [395, -230]].forEach(([x, y], j) => tl.to(ar, { x, y, duration: 0.35, ease: "power2.inOut" }, t + 1.2 + j * 0.4));
+    tl.to(ar, { scale: 0, opacity: 0, duration: 0.3 }, t + 3.2)
+      .to(k, { x: (j, e) => 492 - (e.offsetLeft + 80), y: (j, e) => 190 - (e.offsetTop + 65), scale: 0.3, opacity: 0, duration: 0.7, ease: "power3.in", stagger: 0.05 }, t + 3.2)
+      .from($(ps, ".tek-sema"), { scale: 0.4, opacity: 0, duration: 0.6, ease: "back.out(1.8)" }, t + 3.9);
+  },
+  // 2 · Kilitli format: arama sonuç vermez, kilit düşer → tarayıcı okur, alanlar çıkar, sonuç bulunur
+  (ps, tl, t) => {
+    tl.from($(ps, ".tarama"), { y: 40, opacity: 0, duration: 0.6 }, t)
+      .from($(ps, ".arama"), { scaleX: 0.3, opacity: 0, transformOrigin: "0% 50%", duration: 0.5 }, t + 0.4);
+    yaz(tl, $(ps, ".arama-metin"), "Ulucami", t + 0.9, 0.08);
+    tl.from($(ps, ".sonuc-yok"), { scale: 0, opacity: 0, duration: 0.4, ease: "back.out(2.5)" }, t + 1.6)
+      .from($(ps, ".kilit2"), { y: -200, opacity: 0, duration: 0.7, ease: "bounce.out" }, t + 2)
+      .to($(ps, ".kilit2"), { y: -60, x: 60, rotate: 30, opacity: 0, duration: 0.5 }, t + 3.2)
+      .to($(ps, ".sonuc-yok"), { opacity: 0, duration: 0.3 }, t + 3.2)
+      .fromTo($(ps, ".isin"), { top: 0, opacity: 1 }, { top: 370, duration: 1, ease: "none", immediateRender: false }, t + 3.3)
+      .to($(ps, ".isin"), { opacity: 0, duration: 0.2 }, t + 4.3)
+      .to($$(ps, ".tarama i"), { filter: "blur(0px)", backgroundColor: "#6b8f7f", stagger: 0.1, duration: 0.3 }, t + 3.3)
+      .from($$(ps, ".alanlar span"), { x: -60, opacity: 0, stagger: 0.15, duration: 0.5, ease: "power3.out" }, t + 3.6)
+      .from($(ps, ".sonuc-var"), { scale: 0, opacity: 0, duration: 0.5, ease: "back.out(2.5)" }, t + 4.3);
+  },
+  // 3 · Güven: kaynaksız cümle yazılır, soru işaretleri sallanır → kaynaklı, onaylı kayıt gelir
+  (ps, tl, t) => {
+    const m = $(ps, ".yanlis-metin");
+    const metin = m.dataset.metin ?? (m.dataset.metin = m.textContent);
+    m.textContent = "";
+    tl.from($(ps, ".yanlis-balon"), { scale: 0.6, opacity: 0, transformOrigin: "0% 100%", duration: 0.5, ease: "back.out(2)" }, t);
+    yaz(tl, m, metin, t + 0.4, 0.05);
+    tl.from($$(ps, ".soru2"), { scale: 0, rotate: 60, stagger: 0.15, duration: 0.5, ease: "back.out(3)" }, t + 1.8)
+      .from($(ps, ".yanlis-balon em"), { opacity: 0, x: -20, duration: 0.4 }, t + 2.3)
+      .to($$(ps, ".soru2"), { y: -14, duration: 0.2, yoyo: true, repeat: 3, stagger: 0.08 }, t + 2.5)
+      .to($(ps, ".yanlis-balon"), { opacity: 0.35, scale: 0.94, duration: 0.5 }, t + 3.2)
+      .to($$(ps, ".soru2"), { scale: 0, opacity: 0, stagger: 0.05, duration: 0.3 }, t + 3.2)
+      .from($(ps, ".dogru-kart"), { x: 80, opacity: 0, duration: 0.6, ease: "power3.out" }, t + 3.4)
+      .from($$(ps, ".tik"), { scale: 0, opacity: 0, stagger: 0.3, duration: 0.45, ease: "back.out(2.5)" }, t + 4);
+  },
+  // 4 · Gençler: metin duvarı, ilgi düşer, uyku → satırlar dağılır, oyun karoları çıkar, ilgi dolar
+  (ps, tl, t) => {
+    const cubuk = $(ps, ".ilgi-cubuk i");
+    tl.from($(ps, ".metin-duvari"), { y: 30, opacity: 0, duration: 0.5 }, t)
+      .from($$(ps, ".metin-duvari i"), { scaleX: 0, transformOrigin: "0% 50%", stagger: 0.06, duration: 0.3 }, t + 0.2)
+      .from($(ps, ".ilgi"), { opacity: 0, duration: 0.4 }, t + 0.6)
+      .fromTo(cubuk, { width: "80%", backgroundColor: "#ff5d6c" }, { width: "6%", duration: 1.8, ease: "power2.in" }, t + 1)
+      .from($(ps, ".uyku"), { opacity: 0, y: 30, duration: 0.8 }, t + 1.8)
+      .to($$(ps, ".metin-duvari i"), { x: 200, opacity: 0, stagger: 0.03, duration: 0.3 }, t + 3.2)
+      .to($(ps, ".metin-duvari"), { opacity: 0, duration: 0.3 }, t + 3.5)
+      .from($$(ps, ".karolar span"), { scale: 0, rotate: -15, stagger: 0.12, duration: 0.5, ease: "back.out(2)" }, t + 3.6)
+      .to($(ps, ".uyku"), { opacity: 0, duration: 0.3 }, t + 3.6)
+      .to(cubuk, { width: "96%", backgroundColor: "#3fd497", duration: 1, ease: "power2.out" }, t + 3.8);
+  },
+  // 5 · Erişim: yazı küçülür, soluklaşır → büyür, netleşir; erişilebilirlik anahtarları açılır
+  (ps, tl, t) => {
+    const y = $(ps, ".kucuk-yazi");
+    tl.from($$(ps, ".anahtarlar span"), { x: 40, opacity: 0, stagger: 0.12, duration: 0.5 }, t + 0.3)
+      .fromTo(y, { fontSize: 26, color: "#9fb0d4", opacity: 0 }, { fontSize: 14, color: "#4a5a80", opacity: 1, duration: 1.6, ease: "power2.inOut", immediateRender: false }, t)
+      .to(y, { fontSize: 38, color: "#ffffff", duration: 0.9, ease: "power3.inOut" }, t + 3.2)
+      .to($$(ps, ".anahtarlar i"), { backgroundColor: "#3fd497", "--k": "34px", stagger: 0.3, duration: 0.35 }, t + 3.4);
+  },
+  // 6 · Kısa ömür: uygulamalar çıkar ve söner → platform tabanı kurulur, modüller üstüne iner, kalır
+  (ps, tl, t) => {
+    const app = $$(ps, ".eski-app");
+    app.forEach((a, j) => {
+      tl.from(a, { y: 60, opacity: 0, duration: 0.5, ease: "back.out(1.6)" }, t + j * 0.7)
+        .to(a, { filter: "grayscale(1)", opacity: 0.3, rotate: -8, y: 60, duration: 0.6 }, t + j * 0.7 + 0.9);
+    });
+    tl.to(app, { opacity: 0, duration: 0.3 }, t + 3.2)
+      .from($(ps, ".taban"), { scaleX: 0, transformOrigin: "0% 50%", duration: 0.7, ease: "power3.out" }, t + 3.2)
+      .from($$(ps, ".modul-yuva span"), { y: -160, opacity: 0, stagger: 0.12, duration: 0.6, ease: "bounce.out" }, t + 3.7);
+  },
+];
+
 function problem(el, tl) {
-  const kartlar = $$(el, ".sorun");
-  tl.from(kartlar, { y: 80, opacity: 0, scale: 0.9, stagger: 0.45, duration: 0.9, ease: "power3.out" }, 0.3);
-  // Her zorluğun kendi küçük hareketi
-  tl.from($$(el, ".c-dagınik i"), { x: () => gsap.utils.random(-60, 60), y: () => gsap.utils.random(-40, 40), rotate: () => gsap.utils.random(-90, 90), opacity: 0, stagger: 0.05, duration: 0.6 }, 0.5)
-    .from($(el, ".c-kilit .kilit"), { y: -60, opacity: 0, duration: 0.5, ease: "bounce.out" }, 0.9)
-    .from($$(el, ".c-guven .soru"), { scale: 0, rotate: 60, stagger: 0.1, duration: 0.5, ease: "back.out(3)" }, 1.3)
-    .from($$(el, ".c-sikici i"), { scaleX: 0, transformOrigin: "100% 50%", stagger: 0.08, duration: 0.5 }, 1.8)
-    .from($$(el, ".c-erisim span"), { opacity: 0, y: 20, stagger: 0.1, duration: 0.4 }, 2.2)
-    .from($$(el, ".c-omur i"), { scaleY: 0, transformOrigin: "50% 100%", stagger: 0.07, duration: 0.4 }, 2.6);
-  // Kartlar sırayla döner: zorluk → cevap
-  kartlar.forEach((k, i) => {
-    tl.to($(k, ".sorun-ic"), { rotateY: 180, duration: 1.2, ease: "power3.inOut" }, 5 + i * 1.8); // yavaş: konuşurken her zorluk ve cevabı okunabilsin
+  const sahneler = $$(el, ".ps");
+  const satirlar = $$(el, ".p-liste li");
+  const S = 6.2, T0 = 0.9;
+  tl.from(satirlar, { x: 60, opacity: 0, stagger: 0.08, duration: 0.6, ease: "power3.out" }, 0.3);
+  sahneler.forEach((ps, i) => {
+    const t = T0 + i * S;
+    const li = satirlar[i];
+    tl.addLabel(`p${i}`, t)
+      .fromTo(ps, { autoAlpha: 0, y: 40 }, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out", immediateRender: false }, t)
+      .fromTo(li, { borderColor: "rgba(160,190,255,0.16)", backgroundColor: "rgba(15,35,80,0.5)" }, { borderColor: "#e2338a", backgroundColor: "rgba(226,51,138,0.18)", duration: 0.4, immediateRender: false }, t)
+      .from($(ps, ".ps-ust"), { x: -40, opacity: 0, duration: 0.5 }, t + 0.1)
+      .from($(ps, ".ps-not"), { opacity: 0, duration: 0.5 }, t + 0.3);
+    PROBLEM_SAHNE[i](ps, tl, t + 0.4);
+    tl.from($(ps, ".ps-cevap"), { y: 40, opacity: 0, duration: 0.6, ease: "back.out(1.8)" }, t + 3.7)
+      .to($(ps, ".ps-no"), { backgroundColor: "#3fd497", duration: 0.4 }, t + 3.7)
+      .to($(li, "b"), { opacity: 0.55, textDecoration: "line-through", duration: 0.3 }, t + 3.9)
+      .fromTo($(li, "span"), { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.5, immediateRender: false }, t + 3.9)
+      .to(li, { borderColor: "rgba(63,212,151,0.6)", backgroundColor: "rgba(63,212,151,0.08)", duration: 0.4 }, t + S - 0.4);
+    if (i < sahneler.length - 1) tl.to(ps, { autoAlpha: 0, y: -30, duration: 0.4 }, t + S - 0.4);
   });
-  gsap.to($$(el, ".c-guven .soru"), { y: -8, rotate: 10, duration: 0.6, yoyo: true, repeat: -1, stagger: 0.15, ease: "sine.inOut" });
-  gsap.to($$(el, ".c-omur i"), { scaleY: 0.3, transformOrigin: "50% 100%", duration: 0.9, yoyo: true, repeat: -1, stagger: 0.1, ease: "sine.inOut" });
+  // Listeden bir zorluğa tıklayınca o sahneye atla
+  $(el, ".p-liste").onclick = (e) => {
+    const li = e.target.closest("li");
+    if (li) tl.seek(`p${li.dataset.i}`);
+  };
 }
 
 // ── 4 · Çözümün değeri: aynı soru üç yere sorulur; katalog saklar, sıradan yapay zekâ uydurur, Lonca yaşatır ──
@@ -138,7 +226,7 @@ function vizyon(el, tl) {
   const R = { x: 430, y: 205 };
   tl.from($(el, ".katalog"), { x: -80, opacity: 0, duration: 0.7 }, 0.3)
     .from($$(el, ".katalog-satir"), { opacity: 0, x: -20, stagger: 0.08, duration: 0.3 }, 0.6)
-    .to($(el, ".katalog"), { filter: "grayscale(1) blur(2px)", opacity: 0.35, scale: 0.9, duration: 1 }, 1.6)
+    .to($(el, ".katalog"), { filter: "grayscale(1)", opacity: 0.35, scale: 0.9, duration: 1 }, 1.6)
     .from($(el, ".merkez-eser"), { scale: 0, rotate: -10, duration: 0.9, ease: "back.out(1.7)" }, 1.4);
   kartlar.forEach((k, i) => {
     const a = (-180 + i * 60) * Math.PI / 180;
@@ -588,9 +676,7 @@ function guven(el, tl) {
   tl.from($(el, ".kum-kalkan"), { scale: 0.6, opacity: 0, duration: 0.8, ease: "back.out(1.6)" }, 0.3)
     .from($(el, ".kum-modul"), { scale: 0, duration: 0.5, ease: "back.out(2)" }, 0.6)
     .from($(el, ".kum-alt"), { opacity: 0, duration: 0.4 }, 1.2)
-    .from($$(el, ".kontrol li"), { x: 60, opacity: 0, stagger: 0.15, duration: 0.5 }, 0.8)
-    .from($$(el, ".yol-adim"), { y: 30, opacity: 0, stagger: 0.25, duration: 0.5 }, 2.4)
-    .to($(el, ".yol-cizgi i"), { width: "100%", duration: 2, ease: "power1.inOut" }, 2.4);
+    .from($$(el, ".kontrol li"), { x: 60, opacity: 0, stagger: 0.15, duration: 0.5 }, 0.8);
   say(tl, $(el, ".sayac-test"), 150, 1.2, 1.4);
   // Engellenen erişimler kalkana çarpıp geri seker; SDK içeri girer.
   const kalkan = $(el, ".kum-kalkan");
@@ -605,7 +691,62 @@ function guven(el, tl) {
     .to($(el, ".izinli"), { x: 0, y: 0, duration: 0.6 }, 3.4);
 }
 
-// ── 16 · Kapanış: ekip önde, "Teşekkürler" arkada; fare hareketiyle hafif derinlik ───────────────
+// ── 16 · Gelecek: ışık ufuk çizgisinde ilerler; geçtiği her ufukta o dönemin özellikleri canlanır ─
+function gelecek(el, tl) {
+  const kartlar = $$(el, ".fk");
+  const etiketler = $$(el, ".ufuk-etiket");
+  const sure = 4.8;
+  tl.to($(el, ".ufuk-cizgi i"), { width: "100%", duration: sure, ease: "none" }, 0.6)
+    .fromTo($(el, ".ufuk-isik"), { left: "0%" }, { left: "100%", duration: sure, ease: "none" }, 0.6);
+  // Etiketler ışık üstlerinden geçerken belirir (konumları: 0, 16.7, 50, 83.3 %)
+  [0, 0.167, 0.5, 0.833].forEach((oran, i) => tl.from(etiketler[i], { y: 16, opacity: 0, duration: 0.4, ease: "back.out(2)" }, 0.6 + oran * sure));
+  // Her sütun (yakın, orta, uzak) kendi ufkunda açılır
+  [0.167, 0.5, 0.833].forEach((oran, s) => {
+    tl.from(kartlar.slice(s * 2, s * 2 + 2), { y: 90, rotateX: -35, opacity: 0, transformOrigin: "50% 0%", stagger: 0.2, duration: 0.8, ease: "power3.out" }, 0.3 + oran * sure);
+  });
+  tl.from($$(el, ".hedef-serit span"), { y: 30, opacity: 0, stagger: 0.15, duration: 0.5, ease: "back.out(1.8)" }, 0.8 + sure);
+
+  // Sahada keşif: pin düşer, halka nabız atar, bildirim gelir
+  const saha = $(el, ".f-saha");
+  tl.from($(saha, ".pin"), { y: -70, opacity: 0, duration: 0.7, ease: "bounce.out" }, 1.6)
+    .from($(saha, ".bildirim"), { x: 80, opacity: 0, duration: 0.5, ease: "back.out(2)" }, 2.1);
+  gsap.fromTo($(saha, ".halka"), { scale: 0.4, opacity: 1 }, { scale: 1.8, opacity: 0, duration: 1.4, repeat: -1, ease: "power1.out", delay: 2 });
+  // Sesli rehber: ses dalgası oynar, diller sırayla yanar
+  const ses = $(el, ".f-ses");
+  gsap.to($$(ses, ".dalga i"), { scaleY: () => gsap.utils.random(0.15, 1), duration: 0.28, ease: "sine.inOut", repeat: -1, repeatRefresh: true, stagger: 0.04, delay: 1.8 });
+  tl.from($$(ses, ".dil"), { scale: 0, stagger: 0.15, duration: 0.4, ease: "back.out(2.5)" }, 2.1);
+  const dilDongu = gsap.timeline({ repeat: -1, delay: 2.8 });
+  $$(ses, ".dil").forEach((d, i) => dilDongu.to(d, { backgroundColor: "#e6c477", color: "#2a1d05", duration: 0.25, yoyo: true, repeat: 1, repeatDelay: 0.6 }, i * 1.1));
+  // Okul modu: öğretmenden öğrencilere modül gider, ilerleme çubukları dolar
+  const okul = $(el, ".f-okul");
+  tl.from($(okul, ".ogretmen"), { scale: 0, duration: 0.5, ease: "back.out(2)" }, 3)
+    .from($$(okul, ".ogrenci"), { scale: 0, stagger: 0.12, duration: 0.4, ease: "back.out(2.5)" }, 3.2);
+  gsap.timeline({ repeat: -1, repeatDelay: 0.8, delay: 3.8 })
+    .fromTo($$(okul, ".ogrenci i"), { "--d": "0%" }, { "--d": "100%", stagger: 0.35, duration: 1.4, ease: "power1.inOut" })
+    .to($$(okul, ".ogrenci"), { backgroundColor: "#3fd497", stagger: 0.35, duration: 0.3 }, 1.2)
+    .to($$(okul, ".ogrenci"), { backgroundColor: "#8fb4ff", duration: 0.3 }, 3.2);
+  // Topluluk: fotoğraf editöre gider, onaylanır
+  const top = $(el, ".f-topluluk");
+  tl.from($(top, ".foto"), { scale: 0, rotate: -20, duration: 0.5, ease: "back.out(2)" }, 3.2)
+    .from($(top, ".editor"), { opacity: 0, x: 40, duration: 0.5 }, 3.5);
+  gsap.timeline({ repeat: -1, repeatDelay: 0.6, delay: 4 })
+    .fromTo($(top, ".foto"), { x: 0, scale: 1, opacity: 1 }, { x: 250, scale: 0.5, opacity: 0, duration: 1.2, ease: "power2.in" })
+    .to($(top, ".editor"), { scale: 1.15, backgroundColor: "rgba(63,212,151,.45)", duration: 0.2, yoyo: true, repeat: 1 })
+    .set($(top, ".foto"), { x: 0, scale: 1, opacity: 1 }, "+=0.4");
+  // AR: vizör açılır, tarama çizgisi gezer, eski hali üstüne gelir
+  const ar = $(el, ".f-ar");
+  tl.from($$(ar, ".vizor i"), { scale: 2, opacity: 0, stagger: 0.08, duration: 0.5 }, 4.4)
+    .from($(ar, ".kubbe"), { y: 40, opacity: 0, duration: 0.6 }, 4.4);
+  gsap.fromTo($(ar, ".tara"), { y: 0 }, { y: 112, duration: 1.3, yoyo: true, repeat: -1, ease: "sine.inOut", delay: 4.8 });
+  gsap.fromTo($(ar, ".eski-cizim"), { opacity: 0 }, { opacity: 1, duration: 1, yoyo: true, repeat: -1, repeatDelay: 0.8, delay: 5.2 });
+  // 3B: küp döner, API çağrısı çıkar
+  const ucb = $(el, ".f-3b");
+  gsap.to($(ucb, ".kup"), { rotationY: 360, rotationX: 360, duration: 7, repeat: -1, ease: "none" });
+  tl.from($(ucb, ".kup"), { scale: 0, duration: 0.6, ease: "back.out(2)" }, 4.6)
+    .from($(ucb, ".api"), { x: 60, opacity: 0, duration: 0.5 }, 4.9);
+}
+
+// ── 17 · Kapanış: ekip önde, "Teşekkürler" arkada; fare hareketiyle hafif derinlik ───────────────
 function kapanis(el, tl) {
   const dev = $(el, ".kapanis-dev");
   const uyeler = $$(el, ".uye");
@@ -634,4 +775,4 @@ function kapanis(el, tl) {
   };
 }
 
-export const SAHNELER = [kapak, ekip, problem, deger, cozum, vizyon, veri, ux, moduller, dalis, kalfa, erisim, mimari, olcek, guven, kapanis];
+export const SAHNELER = [kapak, ekip, problem, deger, cozum, vizyon, veri, ux, moduller, dalis, kalfa, erisim, mimari, olcek, guven, gelecek, kapanis];

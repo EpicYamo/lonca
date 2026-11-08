@@ -57,32 +57,85 @@
     <section class="sayfa s-problem" data-ad="Problem" aria-label="Problem tanımı">
       <p class="ust-etiket"><b>02</b> Problem tanımı</p>
       <h2 class="baslik">Miras var, <em>ulaşan yok.</em></h2>
-      <div class="sorunlar">
-        <div class="sorun" data-i="0"><div class="sorun-ic">
-          <div class="yuz on"><div class="sorun-cizim c-dagınik"><i></i><i></i><i></i><i></i><i></i></div><h3>Bilgi dağınık</h3><p>Müze, vakıf, belediye, üniversite: ayrı sistemler.</p></div>
-          <div class="yuz arka"><s class="eski">Bilgi dağınık</s><span class="ok">→</span><h3>Tek şema</h3><p>Bütün eserler şehirden bağımsız tek bir şemada.</p></div>
-        </div></div>
-        <div class="sorun" data-i="1"><div class="sorun-ic">
-          <div class="yuz on"><div class="sorun-cizim c-kilit"><span class="pdf">PDF</span><span class="kilit"></span></div><h3>Kilitli format</h3><p>Taranmış kitap, PDF envanter: aranamıyor, haritada yok.</p></div>
-          <div class="yuz arka"><s class="eski">Kilitli format</s><span class="ok">→</span><h3>Aranabilir kayıt</h3><p>Kitapları ayrıştırıp haritada görünen kayıtlara çevirdik.</p></div>
-        </div></div>
-        <div class="sorun" data-i="2"><div class="sorun-ic">
-          <div class="yuz on"><div class="sorun-cizim c-guven"><span class="soru">?</span><span class="soru">?</span><span class="soru">?</span></div><h3>Güven sorunu</h3><p>Kaynaksız içerik; yapay zekâ bilgi uydurabiliyor.</p></div>
-          <div class="yuz arka"><s class="eski">Güven sorunu</s><span class="ok">→</span><h3>Kaynaklı ve onaylı</h3><p>Her bilgi kaynaklı, modüller yalnızca doğrulanmış veriyi okur, editör onaylar.</p></div>
-        </div></div>
-        <div class="sorun" data-i="3"><div class="sorun-ic">
-          <div class="yuz on"><div class="sorun-cizim c-sikici"><i></i><i></i><i></i><i></i></div><h3>Gençlerle bağ yok</h3><p>Uzun metin ve statik katalog gençlere ulaşmıyor.</p></div>
-          <div class="yuz arka"><s class="eski">Gençlerle bağ yok</s><span class="ok">→</span><h3>Yaşanabilir miras</h3><p>Aynı veri oyun, atlas, dalış ve başarımlarla yaşanır.</p></div>
-        </div></div>
-        <div class="sorun" data-i="4"><div class="sorun-ic">
-          <div class="yuz on"><div class="sorun-cizim c-erisim"><span class="goz"></span><span class="kulak"></span><span class="baston"></span></div><h3>Herkes erişemiyor</h3><p>Görme, işitme engelli ve yaşlı kullanıcıya uygun uygulama az.</p></div>
-          <div class="yuz arka"><s class="eski">Herkes erişemiyor</s><span class="ok">→</span><h3>Erişilebilirlik hazır</h3><p>Her modüle platformdan kendiliğinden gelir.</p></div>
-        </div></div>
-        <div class="sorun" data-i="5"><div class="sorun-ic">
-          <div class="yuz on"><div class="sorun-cizim c-omur"><i></i><i></i><i></i><i></i><i></i><i></i></div><h3>Kısa ömürlü projeler</h3><p>Her fikre ayrı uygulama; proje biter, unutulur.</p></div>
-          <div class="yuz arka"><s class="eski">Kısa ömürlü projeler</s><span class="ok">→</span><h3>Tek platform, kalıcı</h3><p>Modüller tek yerde yaşar; uzman, kalfayla kendi modülünü üretir.</p></div>
-        </div></div>
+      <div class="p-sahne">
+        <div class="ps" data-i="0">
+          <div class="ps-ust"><span class="ps-no">1</span><h3>Bilgi dağınık</h3></div>
+          <p class="ps-not">Her kurum kendi sisteminde. Arayan kaybolur.</p>
+          <div class="ps-alan">
+            <div class="kurum"><b>Müze</b><i></i><i></i><i></i></div>
+            <div class="kurum"><b>Vakıf</b><i></i><i></i><i></i></div>
+            <div class="kurum"><b>Belediye</b><i></i><i></i><i></i></div>
+            <div class="kurum"><b>Üniversite</b><i></i><i></i><i></i></div>
+            <div class="kurum"><b>Arşiv</b><i></i><i></i><i></i></div>
+            <div class="arayan">?</div>
+            <div class="tek-sema"><small>tek şema</small><code>eser { ad, il, tür, tarihçe, kaynak }</code><b>505 eser · 3 il</b></div>
+          </div>
+          <p class="ps-cevap"><span>Lonca</span>Hepsi tek şemada, tek yerde.</p>
+        </div>
+        <div class="ps" data-i="1">
+          <div class="ps-ust"><span class="ps-no">2</span><h3>Kilitli format</h3></div>
+          <p class="ps-not">Taranmış kitap, PDF envanter. Bilgi var ama aranamıyor.</p>
+          <div class="ps-alan">
+            <div class="tarama"><span class="tarama-etiket">PDF · taranmış</span><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="isin"></div></div>
+            <div class="kilit2"></div>
+            <div class="arama"><span class="arama-ikon"></span><span class="arama-metin"></span></div>
+            <div class="sonuc sonuc-yok">0 sonuç</div>
+            <div class="alanlar"><span><b>ad</b> Ulucami</span><span><b>il</b> Bursa</span><span><b>kaynak</b> Cilt 1 · s. 37</span></div>
+            <div class="sonuc sonuc-var">✓ 1 sonuç · haritada</div>
+          </div>
+          <p class="ps-cevap"><span>Lonca</span>Kitaplar aranabilir kayıtlara dönüştü.</p>
+        </div>
+        <div class="ps" data-i="2">
+          <div class="ps-ust"><span class="ps-no">3</span><h3>Güven sorunu</h3></div>
+          <p class="ps-not">Kaynaksız içerik, uyduran yapay zekâ.</p>
+          <div class="ps-alan">
+            <div class="yanlis-balon"><small>kaynaksız içerik</small><span class="yanlis-metin">Ulucami 1453'te yapıldı.</span><em>kaynak: —</em></div>
+            <span class="soru2">?</span><span class="soru2">?</span><span class="soru2">?</span>
+            <div class="dogru-kart"><small>Lonca kaydı</small><b>Açılış 1399</b><span class="tik">✓ Envanter Cilt 1 · s. 37</span><span class="tik">✓ Editör onayı</span></div>
+          </div>
+          <p class="ps-cevap"><span>Lonca</span>Her bilgi kaynaklı, editör onaylı.</p>
+        </div>
+        <div class="ps" data-i="3">
+          <div class="ps-ust"><span class="ps-no">4</span><h3>Gençlerle bağ yok</h3></div>
+          <p class="ps-not">Uzun metin, statik katalog. Gençler okumadan geçiyor.</p>
+          <div class="ps-alan">
+            <div class="metin-duvari"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div class="karolar"><span>Oyun</span><span>Atlas</span><span>Dalış</span><span>Rozet</span></div>
+            <div class="ilgi"><b>İlgi</b><div class="ilgi-cubuk"><i></i></div></div>
+            <div class="uyku">z z z</div>
+          </div>
+          <p class="ps-cevap"><span>Lonca</span>Aynı veri oyun, atlas ve dalış olur.</p>
+        </div>
+        <div class="ps" data-i="4">
+          <div class="ps-ust"><span class="ps-no">5</span><h3>Herkes erişemiyor</h3></div>
+          <p class="ps-not">Küçük yazı, düşük kontrast, sesli anlatım yok.</p>
+          <div class="ps-alan">
+            <p class="kucuk-yazi">Ulucami, Osmangazi ilçesinde Bursa'nın en büyük camisidir.</p>
+            <div class="anahtarlar"><span><i></i>Sesli anlatım</span><span><i></i>Büyük yazı</span><span><i></i>Yüksek kontrast</span></div>
+          </div>
+          <p class="ps-cevap"><span>Lonca</span>Erişilebilirlik her modüle hazır gelir.</p>
+        </div>
+        <div class="ps" data-i="5">
+          <div class="ps-ust"><span class="ps-no">6</span><h3>Kısa ömürlü projeler</h3></div>
+          <p class="ps-not">Her fikre ayrı uygulama. Proje biter, unutulur.</p>
+          <div class="ps-alan">
+            <div class="eski-app"><b>2019</b><span>Uygulama A</span></div>
+            <div class="eski-app"><b>2021</b><span>Uygulama B</span></div>
+            <div class="eski-app"><b>2023</b><span>Uygulama C</span></div>
+            <div class="taban"><b>Lonca platformu</b></div>
+            <div class="modul-yuva"><span>Eser Keşfi</span><span>Dalışlar</span><span>Atlas</span><span>Hazine Avı</span><span class="yeni-modul">+ yeni</span></div>
+          </div>
+          <p class="ps-cevap"><span>Lonca</span>Modüller tek platformda kalıcı yaşar.</p>
+        </div>
       </div>
+      <ol class="p-liste" aria-label="Zorluklar">
+        <li data-i="0"><b>Bilgi dağınık</b><span>Tek şema</span></li>
+        <li data-i="1"><b>Kilitli format</b><span>Aranabilir kayıt</span></li>
+        <li data-i="2"><b>Güven sorunu</b><span>Kaynaklı ve onaylı</span></li>
+        <li data-i="3"><b>Gençlerle bağ yok</b><span>Yaşanabilir miras</span></li>
+        <li data-i="4"><b>Herkes erişemiyor</b><span>Erişilebilirlik hazır</span></li>
+        <li data-i="5"><b>Kısa ömürlü projeler</b><span>Tek platform, kalıcı</span></li>
+      </ol>
     </section>
 
     <!-- 4 · ÇÖZÜMÜN DEĞERİ ------------------------------------------------------------------------ -->
@@ -384,8 +437,8 @@
     </section>
 
     <!-- 14 · GÜVENLİK, KALİTE, YOL HARİTASI ----------------------------------------------------- -->
-    <section class="sayfa s-guven" data-ad="Güvenlik" aria-label="Güvenlik, kalite ve yol haritası">
-      <p class="ust-etiket"><b>10</b> Güvenlik, kalite ve gelecek</p>
+    <section class="sayfa s-guven" data-ad="Güvenlik" aria-label="Güvenlik ve kalite">
+      <p class="ust-etiket"><b>10</b> Güvenlik ve kalite</p>
       <h2 class="baslik">Yapay zekâ yazar, <em>sınırları biz çizeriz.</em></h2>
       <div class="guven-alan">
         <div class="kum">
@@ -405,17 +458,33 @@
           <li><span class="sayac-test">150</span>+ otomatik test · ESLint · erişilebilirlik taraması</li>
           <li>Dal akışı: iş dalı → dev → main (tam CI) → build (APK)</li>
         </ul>
-        <div class="yol">
-          <div class="yol-cizgi"><i></i></div>
-          <div class="yol-adim" style="--x:0%"><b>Bugün</b><span>3 il · 505 eser · 7 modül</span></div>
-          <div class="yol-adim" style="--x:33%"><b>Sırada</b><span>İzmir, Manisa ve yeni iller</span></div>
-          <div class="yol-adim" style="--x:66%"><b>Sonra</b><span>Tam kod düzenleyici · kapsamlı onay süreci</span></div>
-          <div class="yol-adim" style="--x:100%"><b>Hedef</b><span>iOS · kurumlarla açık modül pazarı</span></div>
-        </div>
       </div>
     </section>
 
-    <!-- 16 · TEŞEKKÜRLER VE EKİP ------------------------------------------------------------------ -->
+    <!-- 16 · GELECEK ------------------------------------------------------------------------------ -->
+    <section class="sayfa s-gelecek" data-ad="Gelecek" aria-label="Uygulamanın geleceği">
+      <p class="ust-etiket"><b>10</b> Gelecek: Lonca neler kazanabilir?</p>
+      <h2 class="baslik">Bugün keşif, <em>yarın yaşayan miras.</em></h2>
+      <div class="ufuk">
+        <div class="ufuk-cizgi"><i></i></div>
+        <span class="ufuk-isik"></span>
+        <b class="ufuk-etiket" style="--x:0%">Bugün</b>
+        <b class="ufuk-etiket" style="--x:16.7%">Yakın</b>
+        <b class="ufuk-etiket" style="--x:50%">Orta vade</b>
+        <b class="ufuk-etiket" style="--x:83.3%">Uzak hedef</b>
+      </div>
+      <div class="gelecek-izgara">
+        <article class="fk f-saha"><div class="fk-cizim"><span class="harita-zemin"></span><span class="pin"></span><span class="halka"></span><span class="bildirim">Yakınında: Koza Han</span></div><h3>Sahada keşif</h3><p>Rota, çevrimdışı harita, “yakındasın” bildirimi</p></article>
+        <article class="fk f-ses"><div class="fk-cizim"><span class="dalga"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="dil">TR</span><span class="dil">EN</span><span class="dil">AR</span></div><h3>Çok dilli sesli rehber</h3><p>Turiste kendi dilinde anlatım</p></article>
+        <article class="fk f-okul"><div class="fk-cizim"><span class="ogretmen"></span><span class="ogrenci"><i></i></span><span class="ogrenci"><i></i></span><span class="ogrenci"><i></i></span></div><h3>Okul modu</h3><p>Öğretmen sınıfa modül atar, ilerlemeyi görür</p></article>
+        <article class="fk f-topluluk"><div class="fk-cizim"><span class="foto"></span><span class="ok-yol"></span><span class="editor">✓ onay</span></div><h3>Topluluk katkısı</h3><p>Vatandaş fotoğraf ve anı ekler, editör onaylar</p></article>
+        <article class="fk f-ar"><div class="fk-cizim"><span class="kubbe"></span><span class="eski-cizim"></span><span class="vizor"><i></i><i></i><i></i><i></i></span><span class="tara"></span></div><h3>AR ile geçmişi gör</h3><p>Kamerayı tut, eserin eski hali üstüne gelsin</p></article>
+        <article class="fk f-3b"><div class="fk-cizim"><span class="kup"><i></i><i></i><i></i><i></i><i></i><i></i></span><code class="api">GET /api/eserler</code></div><h3>3B eser ve açık veri</h3><p>Fotoğraftan 3B model, araştırmacıya açık API</p></article>
+      </div>
+      <div class="hedef-serit"><span>81 il</span><span>VGM, müze ve üniversitelerle ortak modül pazarı</span><span>iOS</span></div>
+    </section>
+
+    <!-- 17 · TEŞEKKÜRLER VE EKİP ------------------------------------------------------------------ -->
     <section class="sayfa s-kapanis" data-ad="Kapanış" data-uc="duvar" aria-label="Teşekkürler ve ekip">
       <div class="kapak-perde"></div>
       <h2 class="kapanis-dev">Teşekkürler</h2>
@@ -438,7 +507,7 @@
 
   <nav class="gezinti" aria-label="Sunum gezintisi">
     <button type="button" class="gz-dugme" id="geri" aria-label="Önceki sayfa"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
-    <span class="gz-sayi" id="gz-sayi">1 / 16</span>
+    <span class="gz-sayi" id="gz-sayi">1 / 17</span>
     <button type="button" class="gz-dugme" id="ileri" aria-label="Sonraki sayfa"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
   </nav>
   <div class="ilerleme" aria-hidden="true"><i id="ilerleme"></i></div>
