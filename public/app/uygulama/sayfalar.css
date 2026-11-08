@@ -106,6 +106,10 @@
 /* Modülün kendi üst çubuğu (ust_cubuk) uygulama çubuğunun hemen altına yapışır. Web'deki kapsül uygulamada gizli olduğu
    için sağda ona ayrılan 7.6rem pay da kalkar: başlık sığar, sağdaki simgeler kenara yaslanır. */
 .kabuk .modul-ekrani:not(:has(.s-dalis-sahne)) .s-ust-cubuk { top: calc(56px + env(safe-area-inset-top)); min-height: 56px; padding: .4rem .5rem .4rem .35rem; }
+/* Tek geri oku: uygulama çubuğunun ← düğmesi modülün kendi geri düğmesini de üstlenir (kabuk.js modulGeri), bu yüzden
+   ust_cubuk'taki ← uygulamada gizlenir; her modül ayrıca bir şey yapmak zorunda kalmaz. Dalışta uygulama çubuğu gizli, ← kalır. */
+.kabuk .modul-ekrani:not(:has(.s-dalis-sahne)) .s-ust-geri { display: none; }
+.kabuk .modul-ekrani:not(:has(.s-dalis-sahne)) .s-ust-cubuk { padding-left: .7rem; }
 .kabuk .modul-ekrani:has(.s-dalis-sahne) .modul-cubugu { display: none; }
 .kabuk .modul-ekrani:has(.s-dalis-sahne) .kapsul { display: flex; }
 /* Modül ekranları değişirken içerik yerinde solup yükselir (sahne.css: .s-giris); görünüm geçişi kapalı, yana kayma yok. */

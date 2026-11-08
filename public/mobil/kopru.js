@@ -260,6 +260,7 @@
     if (dlg) return dlg.close();
     if (acik("#katman")) return $("#katman-kapat")?.click();
     if (acik("#modul-ekrani")) {
+      if (window.loncaKabuk?.modulGeri) return window.loncaKabuk.modulGeri();
       const ic = [...document.querySelectorAll("#sahne .s-ust-geri")].find(gorunurMu);
       return (ic ?? $("#geri"))?.click();
     }

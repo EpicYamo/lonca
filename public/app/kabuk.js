@@ -392,6 +392,13 @@ function klavyeKur() {
   vv.addEventListener("resize", olc);
   vv.addEventListener("scroll", olc);
 }
+// Modülün o an görünen ekranındaki kendi geri düğmesi (ust_cubuk geri); düğme uygulamada gizli olduğundan çubuğa bakılır.
+function modulIcGeri() {
+  return [...document.querySelectorAll("#sahne .s-ust-cubuk")].find((c) => c.getClientRects().length > 0)?.querySelector(".s-ust-geri") ?? null;
+}
+// Modül açıkken geri: önce modülün içinde bir ekran geri, kök ekranda modülü kapat. Uygulama çubuğu ve Android geri tuşu kullanır.
+function modulGeri() { (modulIcGeri() ?? $("#geri"))?.click(); }
+
 // Android geri tuşu (kopru.js çağırır). Sıra: tanıtım → alttan sayfa → arama → harita kartı/liste → Ana sayfa.
 // İşi yaptıysa true döner; false ise uygulama arka plana alınır.
 function geri() {
@@ -509,8 +516,9 @@ function kur() {
     bak();
   }
 
-  // Modül çubuğu: geri oku modülü kapatır (#geri ile aynı yol), başlık modülün adını izler.
-  $("#modul-geri").addEventListener("click", () => $("#geri").click());
+  // Modül çubuğu: tek geri oku. Modülün ekranında kendi geri düğmesi (ust_cubuk geri) varsa önce modülün içinde geri
+  // gider (o düğme uygulamada gizlidir, sayfalar.css), yoksa modülü kapatır (#geri ile aynı yol). Başlık modülün adını izler.
+  $("#modul-geri").addEventListener("click", () => modulGeri());
   const baslikEsle = () => { $("#modul-baslik").textContent = $("#baslik").textContent; };
   new MutationObserver(baslikEsle).observe($("#baslik"), { childList: true, characterData: true, subtree: true });
   baslikEsle();
@@ -521,7 +529,7 @@ function kur() {
     if (davetKapat() || (kok.classList.contains("arama-sayfasi") && !$("#arama").value && aramaKapat())) e.preventDefault();
   });
 
-  window.loncaKabuk = { geri, sekmeyeGec, aramaAc, davetAc, odagiGoster, get sekme() { return sekme; } };
+  window.loncaKabuk = { geri, modulGeri, sekmeyeGec, aramaAc, davetAc, odagiGoster, get sekme() { return sekme; } };
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", kur, { once: true }); else kur();
