@@ -1,11 +1,13 @@
 // Keşfet haritası: konumu bilinen bütün vakıf eserleri haritada işaretli. İşarete dokununca altta eser kartı açılır:
 // fotoğraf, tür · yüzyıl · ilçe, tarihçeden kısa not, "Ayrıntılar" (eser sayfası), eserin dalışı ve kapağında
 // eserin olduğu modüller. Uygulamada Keşfet sekmesinin kendisi, web'de ana sayfada bir bölüm.
-// Konum yalnızca "Yakınımdaki eserler"e basılınca sorulur.
+// Konum izni yalnızca "Yakınımdaki eserler"e basılınca sorulur; izin zaten verildiyse kullanıcının yeri haritada
+// mavi noktayla kendiliğinden görünür.
 //
 // Harita uygulamanın ortak haritasıdır (harita.js haritaAc: MapLibre GL + OpenFreeMap, 3B binalı): tek parmakla
 // kaydırma, iki parmakla yakınlaştırma, döndürme ve eğme. Açık temada "liberty", koyu temada "dark" stili.
 import { haritaAc, PIN_RENGI } from "./harita.js";
+import { konumIzniDurumu, konumIzniIste, konumBul, ayarlariAc } from "./konum-izni.js";
 
 const KISA_NOT = 230;
 function kisaNot(metin) {
@@ -179,25 +181,53 @@ export function kesifHaritasiKur({ el, api, TUR_ADI, eserAc, modulAc, moduller, 
   }
   const hazirla = () => (kuruldu ??= kur().catch((h) => { kuruldu = null; document.querySelector(".kh-yukleniyor")?.remove(); kap.replaceChildren(el("p", { className: "bos", textContent: `Harita açılamadı: ${h.message}` })); }));
 
-  // Yakınımdaki eserler: konum yalnızca burada sorulur; en yakın 8 eser görünecek biçimde yakınlaşır.
+  // İzin önceden verildiyse kullanıcının yeri sormadan haritaya konur (harita her açılışta en çok dakikada bir yenilenir).
+  let sonKonumZamani = 0;
+  async function konumuGoster() {
+    if (!surucu || Date.now() - sonKonumZamani < 60000) return;
+    if (await konumIzniDurumu() !== "verildi") return;
+    sonKonumZamani = Date.now();
+    try { const k = await konumBul(); surucu.konum([k.lat, k.lng]); } catch { sonKonumZamani = 0; }
+  }
+
+  // Yakınımdaki eserler: konum izni yalnızca burada sorulur; en yakın 8 eser görünecek biçimde yakınlaşır.
   $("#kh-yakin").addEventListener("click", async () => {
     await hazirla();
-    if (!surucu || !navigator.geolocation) return bildir("Bu cihazda konum kullanılamıyor.");
-    navigator.geolocation.getCurrentPosition(async (p) => {
-      const k = [p.coords.latitude, p.coords.longitude];
-      surucu.konum(k);
-      try {
-        const yakin = await (await api(`/api/eserler/yakin?lat=${k[0]}&lng=${k[1]}&limit=8`)).json();
-        surucu.sigdir([{ konum: { lat: k[0], lng: k[1] } }, ...yakin.filter((e) => e.konum)]);
-        if (yakin[0]) bildir(`En yakın eser: ${yakin[0].ad}${yakin[0].mesafe_m != null ? ` (${Math.round(yakin[0].mesafe_m)} m)` : ""}`);
-      } catch { surucu.sigdir([{ konum: { lat: k[0], lng: k[1] } }]); }
-    }, () => bildir("Konum alınamadı. İzin vermediysen Ayarlar'dan açabilirsin."), { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 });
+    if (!surucu) return bildir("Harita açılamadı.");
+    const izin = await konumIzniIste();
+    if (izin === "yok") return bildir("Bu cihazda konum kullanılamıyor.");
+    if (izin === "kapali") {
+      if (await ayarlariAc("konum")) bildir("Konumu açıp uygulamaya geri dön.", { sure: 4200 });
+      else bildir("Cihazın konumu kapalı.");
+      return;
+    }
+    if (izin === "reddedildi") {
+      if (await ayarlariAc()) bildir("Ayarlar'da İzinler → Konum'u açabilirsin.", { sure: 4200 });
+      else bildir("Konum izni kapalı. Tarayıcının site ayarlarından açabilirsin.", { sure: 4200 });
+      return;
+    }
+    if (izin !== "verildi") return bildir("Konum izni verilmedi.");
+    let k;
+    try {
+      const p = await konumBul();
+      k = [p.lat, p.lng];
+    } catch {
+      return bildir("Konum alınamadı. Cihazın konumu açık mı?");
+    }
+    surucu.konum(k);
+    sonKonumZamani = Date.now();
+    try {
+      const yakin = await (await api(`/api/eserler/yakin?lat=${k[0]}&lng=${k[1]}&limit=8`)).json();
+      surucu.sigdir([{ konum: { lat: k[0], lng: k[1] } }, ...yakin.filter((e) => e.konum)]);
+      if (yakin[0]) bildir(`En yakın eser: ${yakin[0].ad}${yakin[0].mesafe_m != null ? ` (${Math.round(yakin[0].mesafe_m)} m)` : ""}`);
+    } catch { surucu.sigdir([{ konum: { lat: k[0], lng: k[1] } }]); }
   });
 
   return {
     // Görünür olunca kurulur; sekme değişiminde boyutunu yeniden hesaplar (gizliyken harita ölçemez).
     goster() {
       hazirla().then(() => {
+        konumuGoster();
         if (kaliciPanel()) listeAc(true, { odakla: false });
         setTimeout(() => surucu?.boyutla(), 60);
       });

@@ -88,6 +88,10 @@
 .profil-izinler { margin-top: 2rem; }
 .profil-izinler .anahtar span { display: grid; gap: .1rem; }
 .profil-izinler .anahtar small { color: var(--soluk); font-size: .82rem; }
+.profil-izinler .izin-cihaz { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 52px; padding: .35rem 0; border-bottom: 1px solid var(--cizgi); font-size: 1rem; }
+.profil-izinler .izin-cihaz > span { display: grid; gap: .1rem; flex: 1; min-width: 0; }
+.profil-izinler .izin-cihaz small { color: var(--soluk); font-size: .82rem; }
+.profil-izinler .izin-dugme { flex: none; width: auto; min-height: 40px; padding: .4rem 1rem; font-size: .9rem; }
 
 /* ---------- Zengin eser sayfası ---------- */
 .ep-foto-alan { position: relative; }

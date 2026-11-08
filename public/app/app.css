@@ -441,6 +441,8 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .vitrin-sayilar li { display: flex; align-items: baseline; gap: .35rem; padding: .32rem .8rem; border-radius: 99px; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .22); backdrop-filter: blur(6px); font-size: .84rem; color: #e6ecfa; }
 .vitrin-sayilar strong { font-family: var(--yazi-baslik); font-weight: 400; font-size: 1.05rem; color: #fff; }
 .kolaj-atif { position: absolute; right: 1rem; top: .9rem; margin: 0; padding: .2rem .6rem; border-radius: 99px; background: rgba(10, 18, 45, .45); color: #e6ecfa; font-size: .72rem; backdrop-filter: blur(6px); }
+.kapak-alani.tiklanir { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.kapak-alani.tiklanir:active .kolaj { filter: brightness(.9); }
 
 .meydan-duzen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; padding: 1.6rem 1rem 0; max-width: 1240px; margin: 0 auto; }
 .meydan-ana, .meydan-yan { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2.2rem; align-content: start; min-width: 0; }
