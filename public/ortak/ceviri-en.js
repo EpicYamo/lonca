@@ -1072,7 +1072,6 @@ export const EN = {
   "Eser metinleri ve fotoğrafları © Vakıf Katılım, Bursa, Konya ve Hatay vakıf eserleri kitapları. Harita verileri © OpenStreetMap katkıcıları.": "Site texts and photos © Vakıf Katılım, Bursa, Konya and Hatay foundation heritage books. Map data © OpenStreetMap contributors.",
   "Modülü aç": "Open module",
   "Tüm modüller": "All modules",
-  "Giriş gerekmez": "No sign-in needed",
   "Konum ister": "Uses location",
   "Eğitim": "Learning",
   "Uydu": "Satellite",
