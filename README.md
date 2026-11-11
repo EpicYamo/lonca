@@ -1,16 +1,21 @@
 # Lonca
 
-AI-assisted mini-apps for foundation heritage. Explore published modules or
-describe an idea for the AI journeyman to build.
+AI mini-apps for foundation heritage, powered by a custom-built AI journeyman.
 
 **KÖK&KOD Hackathon — Team Kozmos.**
 
 > **You are the master. The AI is your journeyman.**
 
+## Explore Lonca
+
+- **[Lonca website](https://kozmos.itaskira.com/)** — start here to explore the project.
+- **[Mobile app](https://kozmos.itaskira.com/app/)** — browse published mini-apps; this is the mobile-first experience.
+- **[Lonca Studio](https://kozmos.itaskira.com/studio/)** — open Studio from the website navigation, or use this direct link. Sign in or register to create and submit modules.
+
 ## Screenshots
 
 <p align="center">
-  <strong>Lonca app</strong>
+  <strong>Lonca mobile app</strong>
 </p>
 
 <p align="center">
@@ -27,23 +32,21 @@ describe an idea for the AI journeyman to build.
 
 <p align="center"><sub>Studio screenshot uses the offline demo journeyman; no AI provider is required to try the project locally.</sub></p>
 
-**Lonca** (`/app/`) is the citizen-facing app. It lists published modules like an
-app store; opening one hands the whole screen to that module, which behaves like
-a standalone app or game.
+## What makes Lonca different?
 
-**Lonca Studio** (`/studio/`) is where anyone with an idea — the master — talks
-to an AI journeyman. The journeyman writes and audits the module, the module runs
-in a live preview, and it is submitted for approval. Editors publish, unpublish
-and archive modules, and manage the heritage content behind them.
-
-The point is not to generate code for its own sake: the platform makes a
-heritage catalogue *playable*. Modules can only read verified data through the
-SDK, so a generated app cannot invent history.
+Lonca's core is its custom-built AI agent: the **journeyman**. In Studio, a maker
+describes an idea; the agent searches verified foundation records, builds a
+mini-app against the Lonca SDK, audits the code, and opens it in a live preview.
+The finished module is submitted for approval before editors publish it in the
+mobile app. Modules read verified records through the SDK, grounding each
+experience in the heritage catalogue instead of invented history.
 
 ## Contents
 
-- [Setup](#setup)
+- [Explore Lonca](#explore-lonca)
 - [Screenshots](#screenshots)
+- [What makes Lonca different?](#what-makes-lonca-different)
+- [Setup](#setup)
 - [Commands](#commands)
 - [Architecture](#architecture)
 - [A module is an independent mini app](#a-module-is-an-independent-mini-app)
