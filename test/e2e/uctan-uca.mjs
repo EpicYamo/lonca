@@ -24,7 +24,8 @@ await app.listen({ port: ${PORT}, host: "127.0.0.1" }); console.log("hazir");`;
 const sunucu = spawn(process.execPath, ["--input-type=module", "-e", baslatici], { env: { ...process.env, KALFA_SAHTE: "1", YONETICI_SIFRE: SIFRE, ILK_KULLANICILAR: "e2e-admin", ILK_SIFRE: "e2e-ilk-sifre", GOOGLE_HARITA_ANAHTARI: "" }, stdio: ["ignore", "pipe", "inherit"] });
 await new Promise((coz, red) => { sunucu.stdout.on("data", (d) => String(d).includes("hazir") && coz()); sunucu.on("exit", red); });
 
-const tarayici = await chromium.launch();
+// CI Playwright'ın kendi Chromium'unu kullanır; yerelde o yoksa kurulu Chrome denenir.
+const tarayici = await chromium.launch().catch(() => chromium.launch({ channel: "chrome" }));
 const hatalar = [];
 const adim = (m) => console.log(`✓ ${m}`);
 try {
@@ -86,8 +87,9 @@ try {
 
   const tel = await (await tarayici.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true })).newPage();
   tel.on("pageerror", (e) => hatalar.push(`Uygulama: ${e.message}`));
-  await tel.goto(`${ADRES}/`);
-  // Web sitesinde giriş ve tanışma zorunlu değil: doğrudan ana sayfa açılır.
+  // Kök adres artık web sitesidir (public/web); uygulama /app/ adresindedir.
+  await tel.goto(`${ADRES}/app/`);
+  // Web'de giriş ve tanışma zorunlu değil: doğrudan ana sayfa açılır.
   assert.ok(!(await tel.isVisible("#karsilama")), "web'de karşılama penceresi çıkmamalı");
   await tel.click("#moduller .karo");
   await tel.waitForSelector(".s-kapak");

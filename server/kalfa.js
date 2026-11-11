@@ -999,8 +999,15 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar, sinyal, zamanAsimiMs 
     async iste(durum) {
       const govde = { model: saglayici.model, messages: durum.mesajlar, tools, tool_choice: "auto", max_tokens: 32000 };
       // Her istek zaman aşımına (ve varsa dışarıdan gelen iptale) bağlıdır; yanıt gövdesi de bu süre içinde okunur.
+      // Zaman aşımı elle kurulur: Node 20'de AbortSignal.any + AbortSignal.timeout birleşimi kimi zaman hiç tetiklenmiyor
+      // (CI'da Node 20.19'da istek askıda kalıyordu); düz bir zamanlayıcı her sürümde güvenilir.
       const gonder = async () => {
-        const isaret = AbortSignal.any([AbortSignal.timeout(zamanAsimiMs), ...(sinyal ? [sinyal] : [])]);
+        const denetci = new AbortController();
+        const zamanlayici = setTimeout(() => denetci.abort(new DOMException("Zaman aşımı", "TimeoutError")), zamanAsimiMs);
+        const iptalEt = () => denetci.abort(sinyal.reason);
+        if (sinyal?.aborted) iptalEt();
+        else sinyal?.addEventListener("abort", iptalEt, { once: true });
+        const isaret = denetci.signal;
         try {
           const y = await fetch(`${saglayici.url}/chat/completions`, {
             method: "POST",
@@ -1013,6 +1020,9 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar, sinyal, zamanAsimiMs 
           if (sinyal?.aborted) throw sinyal.reason instanceof Error ? sinyal.reason : new Error("Kalfa isteği iptal edildi");
           if (h.name === "TimeoutError") throw Object.assign(new Error(`Yapay zekâ sağlayıcısı ${Math.round(zamanAsimiMs / 1000)} sn içinde yanıt vermedi (zaman aşımı)`), { zamanAsimi: true });
           throw new Error(`Yapay zekâ sağlayıcısına ulaşılamadı: ${h.cause?.code ?? h.message}`);
+        } finally {
+          clearTimeout(zamanlayici);
+          sinyal?.removeEventListener("abort", iptalEt);
         }
       };
       const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
