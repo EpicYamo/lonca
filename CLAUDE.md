@@ -14,30 +14,38 @@ Kullanıcı Türkçe yazar; yanıtlar Türkçe olsun.
 ## Proje kuralları
 
 - **Sırlar depoya girmez.** `.env` gitignore'da; anahtarlar yalnızca `.env`'de durur. Yeni bir ayar eklersen `.env.example`'a açıklamasıyla, değeri boş olarak ekle. API anahtarı tarayıcıya gitmez (istisna: `GOOGLE_HARITA_ANAHTARI`, referrer kısıtıyla).
-- **Commit'ten önce `npm test` geçmeli.** Arayüz değişikliğinde sayfayı tarayıcıda açıp gözle doğrula.
+- **Dal akışı:** iş dalları → `dev` (deney, CI zorunlu değil) → `main` (beta, PR'da tam CI) → `build` (birleştirince APK GitHub Release). Ayrıntı: `docs/ci-cd.md`.
+- **Commit'ten önce `npm test` ve `npm run lint` geçmeli.** Arayüz değişikliğinde sayfayı tarayıcıda açıp gözle doğrula.
 - **Tarih uydurulmaz.** Eserlerle ilgili her ad, tarih, kişi bir kaynakta aynen geçmeli. Yüzyıl yalnızca yapım tarihinden gelir (onarım tarihi değil); yoksa `null`. Yaklaşık konum `yaklasik: true` taşır. İçerik işlerinde `.claude/skills/vakif-eseri-icerik` skill'ini kullan.
+- **Dış kaynak ve doğrulama** (`server/dis-kaynak.js`): usta kalfası yalnızca bilgi bankasıyla çalışır; olmayan eser için `eser_istegi` kartıyla admin'e öneri gönderir (`POST /api/eser-oneriler`, `tur: "istek"`; Studio İçerik → Onay kuyruğu). Admin kalfası izin kartlarıyla (`izin_iste`; karar `POST /api/kalfa` `izin: { id, karar }`, oturumda `kalfaDurumu`) Vikipedi'den okur (`dis_kaynak_ara/oku`), her ekleme için ayrı izinle bilgi bankasına `dogrulanmis: false` + `kaynakUrl` kaydı ekler (`bilgi_bankasina_ekle`; metin ve yıllar okunan maddeyle karşılaştırılır) ya da içeriği yalnızca modüle koyar (kodda madde bağlantısı ve "Kaynak doğrulanmamış: Vikipedi" zorunlu). Modül kaydı `dogrulama: { dogrulanmis, kaynaklar }` taşır; uygulama ve web kartlarda ✓ ya da "Kaynak doğrulanmamış: …" gösterir (`public/ortak/dogrulama.js`).
 - **İnsan onayı:** kalfa ve dalış kalfası yalnızca taslak üretir (`durum: "bekliyor"`); yayın editör onayıyla olur (`"onayli"`).
 - **Modül sözleşmesi** `sdk/lonca-sdk.d.ts`'dedir. Modül yalnızca `@lonca/sdk` import eder, ağa/DOM'a erişemez, `sahne.ayarla` zorunlu, en çok 2000 satır. SDK'ya düğüm/ekran eklersen `.d.ts`, `sdk/lonca-sdk.js`, `public/app/sahne.js` ve `server/kalfa.js` denetimini birlikte güncelle.
-- **Girdi doğrulaması sunucuda** (`server/dogrulama.js`). Yeni bir alan/uç nokta eklerken doğrulamasını ve testini de ekle. Yönetici işlemleri `x-yonetici-sifre` başlığıyla korunur (`server/guvenlik.js`).
+- **Girdi doğrulaması sunucuda** (`server/dogrulama.js`). Yeni bir alan/uç nokta eklerken doğrulamasını ve testini de ekle.
+- **Yetki** (`server/uygulama.js`): `editorGerekli` (onay, yayın, içerik ve eser düzenleme, dalış, model ayarları) = yönetici şifresi (`x-yonetici-sifre`) ya da admin (rol `editor`) hesabı; `ustaGerekli` (kalfa, modül gönderme, kendi modüllerini ve eserleri salt okunur görme, kendi modülünü geri çekme (`POST /api/moduller/:id/durum` yalnızca `ozel`) ve silme) = usta/admin hesabı. Onay kuyruğu (`GET /api/eser-oneriler`), değişiklik geçmişi (`GET /api/eser-gecmisi`), dalış yönetimi (`GET /api/dalislar-yonetim`) ve onay bekleyen yüklenen fotoğraflar yalnızca admin'e açıktır; `editorGerekli` girişsize 401, giriş yapmış ustaya 403 döner. Kayıt olan herkes usta olur (rol seçilmez; kayıtta e-posta ve şifre tekrarı zorunlu, girişte kullanıcı adı ya da e-posta); Google ile girişte e-posta kayıtlıysa o hesaba bağlanır, yoksa yeni usta açılır; admin hesapları `ILK_KULLANICILAR`'dan gelir. Şifresini ilk kez belirlememiş hesap (`sifreDegismeli`) hiçbir yetki almaz. Studio'nun tamamı giriş kapısının arkasındadır; arayüzde admin'e özel öğeler `.yalniz-admin` sınıfı taşır. Hesap jetonu `Authorization: Bearer` başlığında; rol her istekte `data/kullanicilar.json`'dan okunur (`server/hesap.js`, `server/guvenlik.js`).
 - **Adlandırma Türkçe.** Değişken, fonksiyon, dosya ve JSON alanları ASCII Türkçe (`eserler`, `yuzyil`, `tarihce`, `kalfaHazirla`, `dalis-kalfasi.js`); kullanıcıya görünen metin düzgün Türkçe (ç, ğ, ı, ö, ş, ü). Kod yorumları Türkçe.
-- **Derleme adımı yok.** Saf ES modülleri (`"type": "module"`), Node ≥ 20.12, tarayıcı tarafı doğrudan `public/`'ten sunulur. TypeScript yalnızca kalfanın tip denetimi için kullanılır. Yeni bağımlılık eklemeden önce gerçekten gerekli mi düşün.
+- **Derleme adımı yok.** Saf ES modülleri (`"type": "module"`), Node ≥ 20.19, tarayıcı tarafı doğrudan `public/`'ten sunulur. TypeScript yalnızca kalfanın tip denetimi için kullanılır. Yeni bağımlılık eklemeden önce gerçekten gerekli mi düşün.
 - **Dosya alanları:**
   - `public/studio/`: Studio. Yerleşim mantığı `duzen.js`'de, iş mantığı `studio.js`'de. Varsayılan açık tema + koyu tema anahtarı (`lonca.studio.tema`).
-  - `public/app/`: vatandaş uygulaması. `public/ortak/` (özellikle `tasarim.css`) iki tarafça paylaşılır; değiştirmeden önce etkisini iki tarafta da kontrol et.
+  - `public/app/`: web sitesi ve Android uygulamasının ortak kodu. Web'e özel düzen `web.js` + `web.css` (`html.web-sekmeli`; sayfalar `/#/kesif`, `/#/moduller`, `/#/profil`), Android kabuğu `kabuk.js` (`html.kabuk`), tasarımı `uygulama/` altında: `temel.css` (belirteçler, sabit üst çubuk ve alt gezinme, geçişler), `ana.css` (Ana sayfa, Modüller, Profil), `harita.css` (Keşfet: ortak MapLibre GL + OpenFreeMap 3B binalı vektör harita; alttan eser kartı), `sayfalar.css` (alttan sayfalar, arama, eser sayfası, modül çubuğu), `modul.css` (bütün modül ekranlarının uygulamadaki görünümü); `kesfet.js` (Keşfet sekmesi: modül/eser araması, Modüller | Eserler bölümleri, eser süzgeci). Alt gezinme: Ana sayfa · Keşfet (`data-sekme="moduller"`) · Harita (`data-sekme="kesif"`) · Profilim; `kabuk.css` yalnızca web ile ortak parçalar. İkisi birbirinden ayrı tutulur. Arayüz işinde `.claude/skills/lonca-arayuz` kurallarına uy (belirteçler `zarif.css`'te). `public/ortak/` (özellikle `tasarim.css`) iki tarafça paylaşılır; değiştirmeden önce etkisini iki tarafta da kontrol et.
   - `server/`: API ve kalfalar. `data/`: içerik (JSON). `mobil/` + `android/`: Capacitor paketi.
-- **Çalışırken oluşan veriler commit'lenmez:** `data/eser-oneriler.json`, `data/yuklenen/`, `data/eser-gecmisi.json`, `data/gecmis/`, `data/moduller/eski/` (gitignore'da). Büyük kaynaklar (`kitaplar/`, `veri-kaynak/`) depoda değil.
-- **Telif:** Bursa metin ve fotoğrafları © Vakıf Katılım (depo bu yüzden özel). Vikipedi/Commons içeriği CC BY-SA; kaynak bağlantısı kayıtta kalır.
+- **Çalışırken oluşan veriler commit'lenmez:** `data/eser-oneriler.json`, `data/yuklenen/`, `data/eser-gecmisi.json`, `data/gecmis/`, `data/moduller/eski/`, `data/kalfa-ayarlari.json`, `data/atolye/`, `data/kullanicilar.json`, `data/.oturum-anahtari` (gitignore'da). Büyük kaynaklar (`kitaplar/`, `veri-kaynak/`) depoda değil.
+- **Telif:** Bursa, Konya ve Hatay metin ve fotoğrafları © Vakıf Katılım (depo bu yüzden özel). Vikipedi/Commons içeriği CC BY-SA; kaynak bağlantısı kayıtta kalır.
 
 ## Komutlar
 
 ```bash
 npm install
 cp .env.example .env      # isteğe bağlı; hiçbir ayar olmadan da çalışır
-npm run dev               # node --watch server/index.js → http://localhost:3000/app · /studio
+npm run dev               # node --watch server/index.js → http://localhost:3000/ (web sitesi) · /studio
 npm start                 # izlemesiz
-npm test                  # node --test "test/*.test.mjs" (API, doğrulama, kalfa denetimi)
+npm test                  # node --test test/*.test.mjs (API, doğrulama, kalfa denetimi)
 npm run test:e2e          # Playwright ile uçtan uca senaryo (test/e2e/uctan-uca.mjs)
+npm run test:erisim       # axe + Playwright erişilebilirlik taraması (uygulama, 4 modül, dalış; klavye, 1.5× yazı, sesli okuma)
+npm run lint              # ESLint
+npm run format:check      # Prettier (yalnızca .prettierignore dışındaki dosyalar)
+npm run denetle           # veri, modül sözleşmesi ve depoya girmemesi gereken dosyalar
 npm run konum             # eser koordinatı bul (-- --dene yalnızca yazdırır)
+node araclar/kalfa-model-tara.mjs [model…]            # UstaGPT modellerini gerçek kalfa isteğiyle sına → data/kalfa-model-durumu.json
 npm run vendor            # gerçek 3B kütüphanesini esbuild ile yeniden paketle
 node araclar/dalis-uret.mjs araclar/dalis/<eser>.json   # elle dalış karelerini üret
 node araclar/dalis-modul.mjs <eser-id> …                # dalış tanımını data/dalislar/'a yaz
@@ -48,7 +56,7 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 
 ## Dış gereksinimler
 
-- Node.js ≥ 20.12.
+- Node.js ≥ 20.19 (`@fastify/static` 10, `require(esm)` ister).
 - Dalış üretimi için: `ffmpeg` ve `ffprobe` PATH'te (`brew install ffmpeg`), `python3` + Pillow (`pip3 install Pillow`). `server/dalis-kalfasi.js` iş başlamadan bunları denetler.
 - Veri hattı (`araclar/*.py`) için python3.
 
@@ -58,28 +66,38 @@ Bu Mac'te Playwright'ın kendi Chromium'u yok; tarayıcı testlerinde `chromium.
 | --- | --- |
 | `PORT` | Sunucu portu (varsayılan 3000) |
 | `KALFA_SAGLAYICI` | `openai-uyumlu` · `anthropic` · `sahte` |
-| `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | Modül kalfası uç noktası (Gemini, OpenCode Go, Ollama…) |
+| `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | İsteğe bağlı: modül kalfasını UstaGPT dışında bir uç noktaya yönlendirir (OpenCode Go, Ollama…) |
 | `ANTHROPIC_API_KEY` | `KALFA_SAGLAYICI=anthropic` için |
 | `KALFA_SAHTE=1` | Kalfayı hazır şablonla çalıştır (çevrimdışı) |
 | `KALFA_SINIR` | IP başına 10 dakikadaki kalfa isteği sınırı |
-| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz) |
-| `GOOGLE_HARITA_ANAHTARI` | Google harita + gerçek 3B; boşsa OpenStreetMap, 3B kapalı |
+| `KALFA_ZAMAN_ASIMI_SN` | Kalfanın sağlayıcıya giden tek isteğinin zaman aşımı (varsayılan 150 sn) |
+| `YONETICI_SIFRE` | Studio yönetici şifresi; boşsa geliştirme modu (şifresiz). Doluysa Studio'nun tamamı hesap ister (admin kendi hesabıyla girer) |
+| `OTURUM_ANAHTARI` | Hesap jetonlarını imzalar; boşsa `data/.oturum-anahtari`'na üretilir |
+| `HESAP_SINIR` | IP başına 10 dakikadaki kayıt/giriş denemesi sınırı |
+| `ILK_SIFRE`, `ILK_KULLANICILAR` | Hazır admin (rol `editor`) hesapları (varsayılan `arda,ibrahim,sevilay`): yalnızca eksik olanlar bu ilk şifreyle açılır; ilk girişte yeni şifre belirlenmeden yetki yok (`PUT /api/hesap/sifre`) |
+| `GOOGLE_ISTEMCI_KIMLIGI`, `GOOGLE_ISTEMCI_SIRRI`, `GOOGLE_DONUS_ADRESI` | Google ile giriş (web, Studio, Android aynı sunucu akışı: `server/google-giris.js`, `public/ortak/google-giris.js`). Boşsa düğme gizli. Dönüş adresi `https://<alan>/api/hesap/google/donus`; Android `com.kozmos.lonca://google` ile döner |
+| `SMTP_SUNUCU`, `SMTP_PORT`, `SMTP_KULLANICI`, `SMTP_SIFRE`, `EPOSTA_GONDEREN`, `LONCA_GENEL_ADRES` | Kayıtta e-posta doğrulaması (24 saatlik bağlantı, doğrulanmadan giriş yok, Google ile gelene gerekmez) ve "Şifremi unuttum" (1 saatlik tek kullanımlık bağlantı) (`server/eposta.js`, nodemailer). `SMTP_SUNUCU` boşsa ikisi de kapalı. Bağlantı adresi `LONCA_GENEL_ADRES` (yoksa `https://LONCA_ALAN_ADI`), Host başlığından alınmaz |
+| `GOOGLE_HARITA_ANAHTARI` | Yalnızca gerçek 3B tur (Google 3D Tiles); boşsa 3B kapalı. Haritalar her durumda OpenFreeMap |
+| `ANDROID_IMZA_SHA256` | APK imza sertifikasının SHA-256 parmak izi; doluysa `/.well-known/assetlinks.json` yayımlanır ve `/m/<anahtar>` paylaşım bağlantıları Android'de uygulamayı açar |
 | `DALIS_API_URL`, `DALIS_API_ANAHTARI` | Dalış kalfası (OpenAI uyumlu, görsel üretebilen uç nokta) |
 | `DALIS_MODELLER`, `DALIS_METIN_MODELLERI` | Dalışta sırayla denenen görsel / metin modelleri |
-| `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Ortak yedek: `DALIS_*` boşsa dalış kalfası, `KALFA_*` boşsa modül kalfası bunu kullanır |
+| `DALIS_VIKIPEDI=1` | Dalış kalfası Vikipedi'yi ek kaynak olarak kullanır; boşsa yalnızca bilgi bankası |
+| `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Birincil sağlayıcı (UstaGPT, OpenAI uyumlu): `KALFA_API_URL` / `DALIS_API_URL` boşsa iki kalfa da bunu kullanır. Modeller Studio'da seçilir (`data/kalfa-ayarlari.json`, `.env` modellerini geçersiz kılar) |
 | `LONCA_API_ANAHTARI` | `mobil/hazirla.mjs`'nin mobil pakete koyduğu API anahtarı |
+| `LONCA_ALAN_ADI`, `LONCA_EPOSTA`, `LONCA_YOL_ONEKI` | İnternette yayın: Nginx + Let's Encrypt (`docker-compose.sunucu.yml`, `docker/`) |
 
-`KALFA_*` yalnızca modül kalfası, `DALIS_*` yalnızca dalış kalfası içindir.
+`KALFA_*` yalnızca modül kalfası, `DALIS_*` yalnızca dalış kalfası içindir. Sağlayıcı/model çözümü tek yerde: `server/kalfa-ayarlari.js` (uç noktalar: `GET /api/kalfa/modeller`, `PUT /api/kalfa/ayarlar`, yönetici korumalı).
 
 ## Mimari
 
-- **Sunucu** (Fastify): `server/index.js` → `server/uygulama.js` (tüm rotalar), `kalfa.js` (modül kalfası: `eser_ara` / `modul_yaz` araçları, kurallar + TS tip denetimi, en çok 3 deneme), `dalis-kalfasi.js` + `dalis-uretim.js` (dalış ajanı ve görüntü üretimi), `dogrulama.js`, `guvenlik.js`, `depo.js` (JSON dosya deposu).
-- **Başlıca API'ler:** `/api/eserler` (+`/yakin`, `/:id`, tamlık filtreleri), `/api/eser-iliskileri`, `/api/eser-oneriler`, `/api/eser-gecmisi`, `/api/moduller`, `/api/kalfa`, `/api/dalislar`, `/api/dalis-kalfasi`, `/api/medya`.
+- **Sunucu** (Fastify): `server/index.js` → `server/uygulama.js` (tüm rotalar), `kalfa.js` (modül kalfası: önce sohbet eder (`yanit_ver`), kodu usta herhangi bir biçimde isteyince yazar (`modul_yaz`; niyeti model okur, sunucu yalnızca düz soruda kodu reddeder: `insaIzniVar`); bilgi bankası araçları `eser_ara` (ad + tarihçede TR/EN metin araması) / `eser_bilgisi` (TR/EN alanlar) / `sdk_bilgisi`; ustanın dilinde (TR/EN) yanıt ve modül; yanıtta kaynaklar + öneri düğmeleri (model vermezse `onerileriUret` ayrıca sorar; açılış önerileri `GET /api/kalfa/oneriler` bilgi bankasından); kurallar + TS tip denetimi, en çok 3 deneme), `dalis-kalfasi.js` + `dalis-uretim.js` (dalış ajanı ve görüntü üretimi), `dogrulama.js`, `guvenlik.js`, `depo.js` (JSON dosya deposu).
+- **Başlıca API'ler:** `/api/eserler` (+`/yakin`, `/:id`, tamlık filtreleri), `/api/eser-iliskileri`, `/api/eser-oneriler`, `/api/eser-gecmisi`, `/api/moduller`, `/api/kalfa`, `/api/dalislar`, `/api/dalis-kalfasi`, `/api/medya`, `/api/hesap` (kayıt, giriş, ben, profil, rol, `google/baslat|donus|takas`, `sifre-sifirla/iste`, `sifre-sifirla`, `eposta-dogrula`, `eposta-dogrula/yeniden`), `/api/atolye/oturumlar` (Studio kalfa sohbeti + modül taslağı, kullanıcı başına; `server/atolye.js`).
 - **SDK** (`sdk/`): `lonca-sdk.js` modül iframe'inde çalışır; `lonca-sdk.d.ts` sözleşme; `ornekler/` kalfanın öğrendiği örnekler (`hanlar-rehberi.js`, `yuzyil-avi.js`).
-- **Uygulama** (`public/app/`): modül sandbox iframe'de çalışır (`calistirici.js`), arayüz ağacını `sahne.js` çizer; `ekranlar.js`, `harita.js` (Leaflet), `uc-gercek.js` (Google 3D Tiles), `dalis.js` (dalış oynatıcı), `profil.js`.
+- **Uygulama** (`public/app/`): modül sandbox iframe'de çalışır (`calistirici.js`), arayüz ağacını `sahne.js` çizer; `ekranlar.js`, `harita.js` (tek harita: MapLibre GL + OpenFreeMap; Keşfet, eser sayfası, modüller ve web sitesi `haritaAc`ı kullanır), `tuval.js` ("tuval" düğümü ve `oyun.*`: oyun döngüsü, dokunma/klavye, ses, titreşim; modül çizim komutu gönderir, tuvali uygulama çizer), `uc-gercek.js` (Google 3D Tiles), `dalis.js` (dalış oynatıcı), `profil.js`.
 - **Studio** (`public/studio/`): Atölye (kalfa | kod | önizleme), Modüller, İçerik, Dalışlar.
 - **Veri** (`data/`): `eserler.json` (eser kayıtları), `eser-iliskileri.json` (kaynaklı tarihsel bağlar), `moduller/` (`index.json` + modül JS), `dalislar/` (dalış tanımları). Medya `public/medya/`.
-- **Durumlar:** modül ve dalış `bekliyor` → `onayli`; ayrıca `kaldirildi`, `arsiv`, `reddedildi`.
+- **Durumlar:** modül ve dalış `bekliyor` → `onayli`; ayrıca `kaldirildi`, `arsiv`, `reddedildi`. Usta modülü özel kaydederse `ozel`: onay kuyruğuna girmez, uygulamada listelenmez, yalnızca paylaşım bağlantısıyla açılır.
+- **Paylaşım:** `/m/<anahtar>` → `/app/?modul=<anahtar>` (`public/app/paylasim.js`); anahtar özel modülde `paylasim` alanı, yayındaki modülde kimlik. Özel modül ayrıca kısa `davetKodu` (`ABCD-EFGH`) taşır; uygulamada "Modüllerim → Davet kodu" ile açılır. API: `GET /api/paylasim/:anahtar` (+`/kod`). Android'de App Links + `lonca://m/<anahtar>` (`public/mobil/kopru.js`).
 - **Mobil:** Capacitor (`capacitor.config.json`, `webDir: mobil/www`), `public/mobil/` köprü ve yerel API.
 
 Ayrıntılı anlatım için `README.md`.

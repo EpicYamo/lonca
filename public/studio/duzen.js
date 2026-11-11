@@ -35,7 +35,7 @@ const telefonMu = matchMedia("(max-width: 767px)");
 const tekSutunMu = matchMedia("(max-width: 1199px)");
 
 function gorunumSec(g, { odak = false } = {}) {
-  if (!telefonMu.matches && g === "kalfa") g = tezgah.dataset.gorunum === "onizleme" ? "onizleme" : "kod";
+  if (!telefonMu.matches && g === "kalfa") g = tezgah.dataset.gorunum === "kod" ? "kod" : "onizleme";
   tezgah.dataset.gorunum = g;
   for (const b of sekmeler) {
     const secili = b.dataset.gorunum === g;
@@ -65,7 +65,10 @@ new MutationObserver(() => { if ($(".telefon").classList.contains("parla")) isar
   .observe($(".telefon"), { attributes: true, attributeFilter: ["class"] });
 new MutationObserver(() => isaretle("kalfa")).observe($("#mesajlar"), { childList: true });
 telefonMu.addEventListener("change", () => gorunumSec(tezgah.dataset.gorunum));
-gorunumSec(telefonMu.matches ? "kalfa" : "kod");
+// Tablette sağ sütun önizlemeyle açılır (usta yazdığının sonucunu görür); telefonda sohbetle.
+gorunumSec(telefonMu.matches ? "kalfa" : "onizleme");
+// Kalfa modülü bitirince (ya da dalış hazır olunca) tek sütunlu düzende önizlemeye geçilir; sohbete Kalfa sekmesiyle dönülür.
+document.addEventListener("studio:onizleme-hazir", () => { if (tekSutunMu.matches) gorunumSec("onizleme"); });
 if (telefonMu.matches) $("#bilgi-kutu").open = false;
 
 // ---------- Boyutlanan paneller (masaüstü) ----------
@@ -124,7 +127,6 @@ function olcekle() {
   tel.style.setProperty("--olcek", String(Math.max(.4, olcek)));
 }
 new ResizeObserver(olcekle).observe($("#sahne"));
-$("#onizleme-yenile").addEventListener("click", () => $("#onizle").click());
 
 // ---------- İçerik: dar ekranda seçilen eserin formuna kaydır ----------
 new MutationObserver(() => {

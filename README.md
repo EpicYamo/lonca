@@ -5,6 +5,20 @@ An AI-assisted mini-app platform for foundation heritage sites.
 
 > **You are the master. The AI is your journeyman.**
 
+## Live presentation
+
+<p align="center">
+  <a href="https://kozmos.itaskira.com/sunum/"><strong>▶ Open the interactive presentation</strong></a>
+</p>
+
+<p align="center">
+  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-ana.webp" width="180" alt="Lonca app home screen"></a>
+  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-atlas-oyun.webp" width="180" alt="Lonca heritage atlas game"></a>
+  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-dalis-uydu.webp" width="180" alt="Lonca AI-assisted heritage dive"></a>
+</p>
+
+<p align="center"><sub>Click any screenshot to open the live, interactive presentation.</sub></p>
+
 **Lonca** (`/app/`) is the citizen-facing app. It lists published modules like an
 app store; opening one hands the whole screen to that module, which behaves like
 a standalone app or game.
@@ -21,6 +35,7 @@ SDK, so a generated app cannot invent history.
 ## Contents
 
 - [Setup](#setup)
+- [Live presentation](#live-presentation)
 - [Commands](#commands)
 - [Architecture](#architecture)
 - [A module is an independent mini app](#a-module-is-an-independent-mini-app)
@@ -33,9 +48,12 @@ SDK, so a generated app cannot invent history.
 - [Folders](#folders)
 - [Licenses](#licenses)
 
+The presentation can also be deployed as a standalone static site on Netlify; see
+[docs/sunum-deploy.md](docs/sunum-deploy.md).
+
 ## Setup
 
-Requires Node.js 20.12 or newer.
+Requires Node.js 20.19 or newer.
 
 ```bash
 npm install
@@ -46,17 +64,24 @@ npm run dev              # http://localhost:3000/app  ·  Studio: http://localho
 Everything works without any configuration:
 
 - The journeyman answers from built-in templates ("fake mode").
-- The map uses dark-filtered OpenStreetMap tiles.
+- Every map (Explore tab, work pages, modules, website) is the same MapLibre GL vector map on free OpenFreeMap tiles.
 - Real 3D is disabled, and modules hide the 3D button.
 - Admin actions are open (development mode).
 
 | Setting (`.env`) | What it does |
 | --- | --- |
-| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | The AI journeyman: free Gemini, OpenCode Go, Claude, or offline Ollama |
+| `USTAGPT_BASE_URL`, `USTAGPT_API_KEY` | Primary AI provider (UstaGPT, OpenAI-compatible) for both the module journeyman and the dive journeyman. Models are picked in Studio (Atölye → model badge or the sliders button); the choice is stored in `data/kalfa-ayarlari.json` and overrides `.env` without a restart |
+| `KALFA_SAGLAYICI`, `KALFA_API_URL`, `KALFA_API_ANAHTARI`, `KALFA_MODEL` | Optional: point the module journeyman at another endpoint (OpenCode Go, Claude, offline Ollama) |
 | `KALFA_SAHTE=1` | Offline fallback: the journeyman returns a prepared template |
 | `YONETICI_SIFRE` | Password for publishing, removing, deleting and editing content in Studio |
-| `GOOGLE_HARITA_ANAHTARI` | Google Maps and real 3D (Photorealistic 3D Tiles) |
+| `GOOGLE_HARITA_ANAHTARI` | Real 3D tours (Photorealistic 3D Tiles); maps always use OpenFreeMap |
 | `KALFA_SINIR` | Journeyman requests allowed per IP in ten minutes |
+| `KALFA_ZAMAN_ASIMI_SN` | Timeout for a single journeyman request to the provider (default 150 s) |
+| `OTURUM_ANAHTARI` | Signs Studio account tokens; generated into `data/.oturum-anahtari` when empty |
+| `HESAP_SINIR` | Sign-up / login attempts allowed per IP in ten minutes |
+| `ILK_SIFRE`, `ILK_KULLANICILAR` | Ready-made admin (role `editor`) accounts (default `arda,ibrahim,sevilay`) created with the initial password; each must set a new password on first login |
+| `GOOGLE_ISTEMCI_KIMLIGI`, `GOOGLE_ISTEMCI_SIRRI` | "Google ile devam et" on the web app, Studio and Android app (one Web OAuth client; redirect URI `https://<host>/api/hesap/google/donus`). A Google e-mail that is already registered signs into that account; otherwise a new usta account is created. Empty = button hidden. `GOOGLE_DONUS_ADRESI` optionally fixes the redirect URI |
+| `SMTP_SUNUCU`, `SMTP_PORT`, `SMTP_KULLANICI`, `SMTP_SIFRE`, `EPOSTA_GONDEREN`, `LONCA_GENEL_ADRES` | Sign-up e-mail verification (24-hour link; sign-in blocked until verified, not needed for Google) and "Forgot password" (one-hour, single-use reset link) (`/api/hesap/sifre-sifirla/iste`, `/api/hesap/sifre-sifirla`). Empty `SMTP_SUNUCU` = both off. Links use `LONCA_GENEL_ADRES` (or `https://LONCA_ALAN_ADI`), never the request's Host header |
 | `LONCA_API_ANAHTARI` | API key: when set, every `/api` request needs the `x-lonca-anahtar` header (or a paired device key / browser login) |
 
 To try it on a phone, connect to the same Wi-Fi and open
@@ -77,31 +102,113 @@ docker compose up -d --build                           # listens on 0.0.0.0:3000
 docker compose exec lonca node araclar/eslestir.mjs    # 6-digit pairing code for a phone
 ```
 
-**Connecting the Android app on the same Wi-Fi:** the app finds the server by
-probing `GET /api/merhaba` (always open, returns `{ lonca, anahtarGerekli }`), so
-the key is never sent to every address on the network. It then either sends the
-main key in `x-lonca-anahtar`, or exchanges a pairing code for its own device key
+**Connecting the Android app:** the app checks its fixed server with
+`GET /api/merhaba` (always open, returns `{ lonca, anahtarGerekli }`). It then
+either sends the main key in `x-lonca-anahtar`, or exchanges a pairing code for its own device key
 with `POST /api/eslestir { kod, ad }` → `{ anahtar }`. Codes are single-use and
 expire after five minutes. List or revoke devices with
 `node araclar/eslestir.mjs --liste` / `--sil <id>`. In a browser, `/app/` and
 `/studio/` redirect to `/giris` once; the key is exchanged for a revocable
 HttpOnly cookie (`/cikis` logs out).
 
+### Internet deployment behind Cloudflare (recommended)
+
+`docker-compose.cloudflare.yml` runs a Cloudflare Tunnel (`cloudflared`) next to
+Lonca. No port is published on the server and no certificate is needed:
+Cloudflare terminates HTTPS and the tunnel connects outwards.
+
+1. Cloudflare dashboard → Zero Trust → Networks → Tunnels → create a Cloudflared
+   tunnel and copy its token. Add a public hostname: `kozmos.itaskira.com` → `HTTP`,
+   `lonca:3000`.
+2. In `.env`: `CLOUDFLARE_TUNNEL_TOKEN`, a strong `LONCA_API_ANAHTARI`,
+   `YONETICI_SIFRE` and the UstaGPT key.
+3. Start:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.cloudflare.yml up -d --build
+curl https://kozmos.itaskira.com/api/merhaba
+```
+
+**Updating from GitHub:** the server keeps a clone of the repository, read through
+a read-only deploy key (`~/.ssh/config` host alias `github-lonca` →
+`git clone github-lonca:EpicYamo/lonca.git /opt/lonca`). Then:
+
+```bash
+cd /opt/lonca && ./docker/guncelle.sh      # LONCA_DAL=main for another branch; default dev
+```
+
+It fast-forwards the branch, rebuilds and waits for `/api/merhaba`. Studio edits
+made on the server (tracked files in `data/` or `public/medya/`, e.g. a newly
+drafted module in `data/moduller/index.json`) are kept: the script copies `data/`
+to `/opt/lonca-yedek/<time>/`, stashes those changes, fast-forwards and re-applies
+them. Only if GitHub changed the same lines does it stop, leaving the server on
+the old commit with its data untouched. Uncommitted changes to code files stop it
+before anything happens.
+
+The overlay sets `LONCA_IP_BASLIGI=cf-connecting-ip` so rate limits count the
+real visitor instead of the tunnel. Cloudflare waits at most 100 s for response
+headers (free plan); a single request that takes longer gets a 524.
+
+### Internet deployment (Nginx + HTTPS)
+
+On a server with a domain, `docker-compose.sunucu.yml` puts Nginx in front of
+Lonca: it terminates HTTPS with a Let's Encrypt certificate, redirects HTTP to
+HTTPS and proxies `/api`, `/medya`, `/sdk`, `/app` and `/studio` to the Lonca
+container, whose port 3000 is no longer published.
+
+1. Point the domain's DNS `A` record (and `AAAA` if any) at the server's public IP.
+   Open ports 80 and 443.
+2. In `.env`: `LONCA_EPOSTA=…` and a strong `LONCA_API_ANAHTARI`. The domain
+   defaults to the project's `kozmos.itaskira.com`; set `LONCA_ALAN_ADI` to use another. Optional
+   `LONCA_YOL_ONEKI=/lonca` serves under
+   `https://domain/lonca/` (the API works there; browser redirects of
+   `/app`/`/studio` assume the root).
+3. Start, then get the first certificate (once; renewal is automatic, Nginx
+   reloads by itself):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.sunucu.yml up -d --build
+./docker/sertifika-al.sh            # SERTIFIKA_DENEME=1 for a Let's Encrypt staging run
+```
+
+Until the certificate exists Nginx serves a temporary self-signed one, so it
+can start and answer the HTTP-01 challenge. Needs Docker Compose 2.24+.
+
+The Android app connects to exactly one server, fixed at build time: `./apk.sh`
+embeds `LONCA_SUNUCU_URL` (default `https://kozmos.itaskira.com`; a full `http://IP:3000`
+works for local testing, `yok` builds an offline-only app). There is no network
+scanning. The app sends the API key in `x-lonca-anahtar`, falls back to the bundled
+offline snapshot when the server cannot be reached and retries once a minute.
+
+Build and run on a USB-connected phone (enable USB debugging under Developer
+options first, then accept the "Trust this computer?" prompt):
+
+```bash
+./apk.sh                                      # debug build → dist/lonca.apk
+adb install -r dist/lonca.apk                 # or: ./apk.sh --kur
+adb shell monkey -p com.kozmos.lonca -c android.intent.category.LAUNCHER 1  # launch it
+```
+
 ## Commands
 
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Runs the server with restart on file changes |
-| `npm test` | API, authorisation, moderation, validation and journeyman-audit tests (25) |
+| `npm test` | Unit, API, authorisation, validation and AI journeyman tests |
 | `npm run test:e2e` | End-to-end scenario in a real browser (run `npx playwright install chromium` first) |
+| `npm run test:erisim` | Browser-based accessibility checks (axe and keyboard flows) |
 | `npm run konum` | Finds work coordinates through Google Places / OpenStreetMap (`-- --dene` only prints) |
 | `npm run vendor` | Re-bundles the real 3D library for the browser |
+| `npm run build:sunum` | Builds a presentation-only static site in `dist/sunum-netlify/` |
+| `npm run lint` · `npm run format:check` · `npm run denetle` | ESLint, Prettier and data/module consistency checks (all run in CI) |
+
+Branch flow (`dev` → `main` → `build`), CI jobs and APK releases are described in [docs/ci-cd.md](docs/ci-cd.md).
 
 ## Architecture
 
 ```
                        ┌─────────────── Lonca Studio (/studio) ───────────────┐
- master: "a timed game │ chat → POST /api/kalfa → AI (Gemini/Claude)          │
+ master: "a timed game │ chat → POST /api/kalfa → AI (UstaGPT/Claude)         │
  about Bursa hans"     │   ↳ eser_ara tool: looks at real data                  │
                        │   ↳ modul_yaz → rules + TypeScript type check          │
                        │       (on failure: back to the model, max 3 tries)     │
@@ -182,14 +289,13 @@ published). It demonstrates almost the entire SDK in one standalone app:
   through `depo`.
 
 **Showcase: Sisli Vakıf Atlası** (`data/moduller/sisli-vakif-haritasi.js`, published).
-A dark, globe-like fog-of-war atlas across nine cities: Bursa, İzmir, Edirne,
-İstanbul, Konya, Mardin, Balıkesir, Kütahya and Bilecik. Opened cities glow in
-the dark; clusters become glowing dots and split as you zoom. Curated historical
-links are drawn as curved arcs (same külliye, patron, architect, endowed han,
+A dark fog-of-war atlas of Bursa's districts (Osmangazi, Yıldırım, İznik,
+Yenişehir, İnegöl and more). Opened districts glow in the dark; clusters become
+glowing dots and split as you zoom. Curated historical links are drawn as curved arcs (same külliye, patron, architect, endowed han,
 dynasty, trade network, explicit textual mention, historic neighbourhood).
-Opening a work shows its photos, inventory/Wikipedia text, source, a radial
+Opening a work shows its photos, inventory text, source, a radial
 relationship graph and a link list with the explanation and source behind every
-relationship. A mühür economy lets you reveal the next hidden city when stuck.
+relationship. A mühür economy lets you reveal the next hidden district when stuck.
 
 **Completeness filters:** `eserler.liste({ tam: true })` returns works with every
 core field (name, category, province, district, century, location, address,
@@ -203,9 +309,14 @@ and absent fields. The same filters are available over HTTP through
 
 1. The chat and the current code go to `POST /api/kalfa`. The API key stays on
    the server.
-2. The journeyman knows the SDK contract, the rules and the two example apps. It
-   uses the `eser_ara` tool to look at what is actually in the database, and
-   delivers the module through the `modul_yaz` tool.
+2. The journeyman knows the SDK contract, the rules and the two example apps. By
+   default it converses (`yanit_ver`): it answers questions and discusses the
+   idea, and writes code (`modul_yaz`) when the usta asks for it in any wording
+   ("yap", "hazırla", "başlayalım", "şunu da ekleyelim", "evet"…): the model reads
+   the intent, the server only refuses code for a plain question. It looks things up in the knowledge base with
+   `eser_ara` and `eser_bilgisi` (full record, history, source, relations). Every
+   reply carries the sources it drew from (work records with their citation, SDK
+   parts) and 2–3 suggested follow-ups shown as buttons in Studio.
 3. The code is audited:
    - Only `@lonca/sdk` may be imported; `eval` and dynamic import are forbidden.
    - Unknown node types, icons, 3D focus and theme names are rejected.
@@ -220,21 +331,31 @@ and absent fields. The same filters are available over HTTP through
    submitted for approval goes through the same audit.
 5. History is never invented: every fact about a work (name, century, history,
    source, photo) is read from the data while the module runs.
+6. Studio keeps each master's conversations and the module on the workbench on
+   the server, per account (`/api/atolye/oturumlar`, stored in `data/atolye/`).
+   Reloading the page restores the last conversation, the code and the preview;
+   if the page is reloaded while the journeyman is still working, the server
+   writes the answer into the conversation and Studio picks it up. Past
+   conversations are listed under the history button in the Kalfa panel.
 
 ## Data
 
-`data/eserler.json`: **187 works** across nine cities. **165 works** come from
-Vakıf Katılım's *Bursa Vakıf Eserleri Envanteri* (three volumes); **22 works**
-from İzmir, Edirne, İstanbul, Konya, Mardin, Balıkesir, Kütahya and Bilecik were
-curated with Turkish Wikipedia text, coordinates and Wikimedia Commons photos
-(CC BY-SA). 49 works currently have coordinates and appear on the atlas.
+`data/eserler.json`: **505 works** from Vakıf Katılım's foundation heritage
+books: **Bursa** 165 (*Bursa Vakıf Eserleri Envanteri*, three volumes),
+**Konya** 263 (*Konya Vakıf Eserleri*, two volumes, 2024) and **Hatay** 77
+(*Hatay İli Vakıf Eserleri*). These are all the cities Vakıf Katılım has
+published. Works from other sources (for example Wikipedia) are not added:
+every record must come from a Vakıf Katılım book. Only works with coordinates
+appear on the map.
+
+The Hatay book is undated and may describe buildings before the 6 February 2023
+earthquakes; its "current state" sentences are the book's, not verified today.
 
 - **History and source:** Turkish and English history text, plus the source
   (volume and page).
 - **Century:** filled only when the book states a construction date. Repair
   dates are not construction dates; without a date the field stays empty.
-- **Photos:** **480 photos** across 187 works. Bursa photos come from the books;
-  the new city photos come from Wikimedia Commons and are stored locally.
+- **Photos:** all taken from the books (up to two per work for Konya and Hatay).
 - **Location:** the books carry no coordinates. Manually entered approximate
   locations are used for known buildings, together with positions found by
   `npm run konum`. Approximate locations are labelled as such in the app
@@ -253,12 +374,21 @@ Data pipeline (`araclar/`):
 | `kitap-ice-aktar.py` | Reads PDF text with positions. Splits two-page spreads, TR/EN columns and complex sub-sections, and repairs broken "Ş/İ" characters. |
 | `foto-cikar.py` | Extracts photos with their position on the page and attaches each to the work that starts before it. Section covers go to the next work. |
 | `veri-olustur.py` | Merges manual corrections (`data/bursa-ek.json`) with the photos. |
-| `sehir-ekle.mjs` | Adds the curated city records from Turkish Wikipedia + Wikimedia Commons (text, coordinates, local photos). |
+| `envanter-ice-aktar.py` | Same as `kitap-ice-aktar.py` for the Konya and Hatay books (different layout: titles found by font size, vertical titles in Hatay). |
+| `veri-olustur-envanter.py` | Turns Konya/Hatay output into records (century only from a construction sentence, with checked corrections) and writes them into `data/eserler.json`. |
+| `konum-bul.mjs` | Searches OpenStreetMap for each work (name near its district centre, else the neighbourhood in its address). All results are approximate. |
 
 ```bash
 python3 araclar/kitap-ice-aktar.py kitaplar/bursa-envanteri-cilt-*.pdf > /tmp/ham.json
 python3 araclar/foto-cikar.py /tmp/ham.json kitaplar/bursa-envanteri-cilt-*.pdf > data/bursa-fotograflar.json
 python3 araclar/veri-olustur.py /tmp/ham.json data/bursa-ek.json data/bursa-fotograflar.json > data/eserler.json
+
+# Konya and Hatay
+python3 araclar/envanter-ice-aktar.py konya kitaplar/konya-envanteri-{1,2}_cilt-web.pdf > /tmp/konya-ham.json
+python3 araclar/veri-olustur-envanter.py /tmp/konya-ham.json > /tmp/konya-kayit.json
+FOTO_SINIRI=2 python3 araclar/foto-cikar.py /tmp/konya-kayit.json kitaplar/konya-envanteri-{1,2}_cilt-web.pdf > /tmp/konya-foto.json
+python3 araclar/veri-olustur-envanter.py /tmp/konya-ham.json /tmp/konya-foto.json --ekle data/eserler.json
+npm run konum -- --il Konya
 ```
 
 Adding another city only needs records with the same fields: `il`, `ilce`, `ad`,
@@ -334,10 +464,9 @@ test/         node:test suites · e2e/ end-to-end scenario
 
 - **Code:** Team Kozmos.
 - **Fonts:** SIL OFL (`public/ortak/fontlar/LICENSE.md`).
-- **Libraries:** Leaflet BSD-2; three.js and 3d-tiles-renderer MIT.
-- **Bursa work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*.
-  Used within the scope of the hackathon; the repository is private for this
-  reason.
-- **New city texts and photos:** Turkish Wikipedia and Wikimedia Commons,
-  CC BY-SA 4.0; each record carries its page/source link.
-- **Map data:** © OpenStreetMap contributors or © Google.
+- **Libraries:** MapLibre GL BSD-3 (map data © OpenFreeMap, OpenMapTiles, OpenStreetMap contributors); three.js and 3d-tiles-renderer MIT.
+- **Work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*,
+  *Konya Vakıf Eserleri* and *Hatay İli Vakıf Eserleri*.
+  The GitHub repository is currently public. Check the source permissions before
+  reusing or redistributing this material.
+- **Map data:** © OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors (3D tours: © Google).

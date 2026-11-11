@@ -7,9 +7,11 @@ export function loncaLogo({ boyut = 32, baslik = "Lonca" } = {}) {
     <filter id="${id}g" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="1.2" stdDeviation="1.1" flood-color="#04140d" flood-opacity=".55"/></filter>
   </defs>
   <g filter="url(#${id}g)">
-    <g opacity=".78"><path d="M18 5 L4 31 L18 31 Z" fill="url(#${id}b)"/><path d="M18 5 L32 31 L18 31 Z" fill="#11654a"/></g>
-    <g><path d="M30 16 L16 43 L30 43 Z" fill="url(#${id}a)"/><path d="M30 16 L44 43 L30 43 Z" fill="url(#${id}b)"/>
-      <path d="M30 16 L16 43 M30 16 L44 43" stroke="#c9ffe6" stroke-opacity=".45" stroke-width=".7" fill="none"/></g>
+    <path d="M24 6C15.5 7.7 9.5 14.9 9.5 24.5V41H24Z" fill="url(#${id}b)"/>
+    <path d="M24 6C32.5 7.7 38.5 14.9 38.5 24.5V41H24Z" fill="url(#${id}a)"/>
+    <path d="M24 6V41" stroke="#c9ffe6" stroke-opacity=".4" stroke-width=".8" fill="none"/>
+    <path d="M24 6V4.4" stroke="url(#${id}a)" stroke-width="1.1" fill="none"/>
+    <circle cx="24" cy="4" r="1.7" fill="url(#${id}a)"/>
   </g>
 </svg>`;
 }

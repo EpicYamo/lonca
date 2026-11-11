@@ -14,9 +14,7 @@
 .mobil-baglanti[data-durum="araniyor"] .baglanti-nokta { background: #c98a12; animation: baglanti-nabiz 1s ease-in-out infinite alternate; }
 .hareket-az .mobil-baglanti .baglanti-nokta { animation: none; }
 @keyframes baglanti-nabiz { to { opacity: .35; } }
-.mobil-baglanti .baglanti-girdi { font-family: var(--yazi-mono, ui-monospace, monospace); }
-.mobil-baglanti .baglanti-ipucu { font-size: .875rem; margin: .5rem 0 .8rem; opacity: .85; }
-.mobil-baglanti .baglanti-dugmeler { display: flex; gap: .6rem; flex-wrap: wrap; }
+.mobil-baglanti .baglanti-dugmeler { margin-top: .8rem; display: flex; gap: .6rem; flex-wrap: wrap; }
 .mobil-baglanti .baglanti-dugmeler .dugme { min-height: 48px; flex: 1 1 8rem; }
 
 /* Android dokunma hedefi: en az 48dp */

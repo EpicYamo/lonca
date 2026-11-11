@@ -2,15 +2,23 @@
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#f4f5f7">
   <script>try { if (localStorage.getItem("lonca.studio.tema") === "koyu") document.documentElement.dataset.tema = "koyu"; } catch {}</script>
+  <script>try { if (localStorage.getItem("lonca.dil") === "en") { document.documentElement.lang = "en"; document.documentElement.classList.add("dil-bekle"); setTimeout(() => document.documentElement.classList.remove("dil-bekle"), 1500); } } catch {}</script>
+  <style>.dil-bekle body { visibility: hidden; }</style>
   <title>Lonca Studio</title>
   <link rel="icon" href="/simgeler/lonca-192.png">
   <link rel="stylesheet" href="/ortak/tasarim.css">
   <link rel="stylesheet" href="/studio/studio.css">
+  <script src="/ortak/klavye.js" defer></script>
 </head>
 <body>
+  <!-- Studio girişi: oturum yoksa Studio gizlenir, yalnızca bu zemin ve giriş penceresi görünür. -->
+  <div class="giris-kapisi" id="giris-kapisi" hidden>
+    <div class="kapi-marka"><span class="amblem" id="kapi-amblem" aria-hidden="true"></span><span class="kapi-ad">Lonca <span>Studio</span></span></div>
+    <p class="kapi-slogan">Vakıf mirası için mini uygulama atölyesi</p>
+  </div>
   <svg class="ikon-seti" hidden aria-hidden="true">
     <symbol id="i-atolye" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.7 1.8 1.8.7-1.8.7L19 20l-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
     <symbol id="i-moduller" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
@@ -30,6 +38,10 @@
     <symbol id="i-dosya" viewBox="0 0 24 24"><path d="M14 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M14 3.5v5h5"/></symbol>
     <symbol id="i-gunes" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></symbol>
     <symbol id="i-ay" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></symbol>
+    <symbol id="i-ayar" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="i-kisi" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/></symbol>
+    <symbol id="i-gecmis" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-kilit" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></symbol>
     <symbol id="i-foto" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/></symbol>
   </svg>
 
@@ -42,11 +54,15 @@
     </div>
     <p class="baglam" aria-live="polite"><span class="baglam-ayrac" aria-hidden="true">/</span><span id="baglam-ad">Atölye</span></p>
     <span class="bosluk-esnek"></span>
-    <p id="model" class="rozet" title="Kalfanın kullandığı yapay zekâ modeli"><span class="nokta" aria-hidden="true"></span><span id="model-ad">Kalfa bağlanıyor…</span></p>
+    <button id="model" class="rozet model-d" type="button" title="Kalfanın kullandığı yapay zekâ modeli; değiştirmek için tıkla"><span class="nokta" aria-hidden="true"></span><span id="model-ad">Kalfa bağlanıyor…</span></button>
+    <button id="dil-d" class="ikon-d dil-d" type="button" data-dil-dugmesi>EN</button>
     <button id="tema-d" class="ikon-d" type="button" aria-label="Koyu temaya geç" title="Tema">
       <svg class="ik tema-ay" aria-hidden="true"><use href="#i-ay"/></svg><svg class="ik tema-gunes" aria-hidden="true"><use href="#i-gunes"/></svg>
     </button>
-    <button id="yonetici" class="rozet yonetici" type="button" title="Yönetici girişi">Yönetici</button>
+    <button id="hesap-d" class="rozet yonetici hesap-d" type="button" hidden>
+      <svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-ad">Giriş yap</span>
+    </button>
+    <span id="yonetici" class="rozet yonetici canli" hidden>Geliştirme modu</span>
   </header>
 
   <nav class="sekmeler" aria-label="Studio bölümleri">
@@ -54,10 +70,10 @@
       <svg class="ik" aria-hidden="true"><use href="#i-atolye"/></svg><span class="sekme-ad">Atölye</span>
     </button>
     <button class="sekme-d" data-sayfa="moduller">
-      <svg class="ik" aria-hidden="true"><use href="#i-moduller"/></svg><span class="sekme-ad">Modüller</span><span class="sayac" id="sayac-modul" hidden></span>
+      <svg class="ik" aria-hidden="true"><use href="#i-moduller"/></svg><span class="sekme-ad">Modüller</span><span class="sayac yalniz-admin" id="sayac-modul" hidden></span>
     </button>
     <button class="sekme-d" data-sayfa="icerik">
-      <svg class="ik" aria-hidden="true"><use href="#i-icerik"/></svg><span class="sekme-ad">İçerik</span><span class="sayac" id="sayac-oneri" hidden></span>
+      <svg class="ik" aria-hidden="true"><use href="#i-icerik"/></svg><span class="sekme-ad">İçerik</span><span class="sayac yalniz-admin" id="sayac-oneri" hidden></span>
     </button>
   </nav>
 
@@ -83,15 +99,33 @@
           <button type="button" role="radio" aria-checked="true" data-kip="modul" class="secili">Modül</button>
           <button type="button" role="radio" aria-checked="false" data-kip="dalis">Dalış</button>
         </div>
+        <button id="sohbetler-d" type="button" class="ikon-d" aria-label="Geçmiş sohbetler" title="Geçmiş sohbetler">
+          <svg class="ik" aria-hidden="true"><use href="#i-gecmis"/></svg>
+        </button>
+        <button id="yeni-sohbet-d" type="button" class="ikon-d" aria-label="Yeni sohbet" title="Yeni sohbet">
+          <svg class="ik" aria-hidden="true"><use href="#i-arti"/></svg>
+        </button>
+        <button id="kalfa-ayar-d" type="button" class="ikon-d yalniz-admin" aria-label="Kalfa modelleri" title="Kalfa modelleri">
+          <svg class="ik" aria-hidden="true"><use href="#i-ayar"/></svg>
+        </button>
       </div>
       <ol id="mesajlar" class="mesajlar" aria-live="polite">
         <li class="mesaj kalfa">
-          <p>Hoş geldin usta. Vakıf eserleriyle ilgili bir fikir anlat; modülünü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
+          <p>Hoş geldin usta. Vakıf eserlerini ya da yapmak istediğin modülü konuşalım: sorularını bilgi bankasından ve SDK'dan yanıtlarım. Hazır olduğunda yazmamı iste (“yap”, “hazırla”, “başlayalım”, “şunu da ekle”…); modülü yazayım, denetleyeyim, telefonda çalıştırayım.</p>
         </li>
       </ol>
+      <div class="kilit-karti" id="atolye-kilit" hidden>
+        <span class="kilit-ikon" aria-hidden="true"><svg class="ik"><use href="#i-kilit"/></svg></span>
+        <h3>Kalfayla çalışmak için giriş yap</h3>
+        <p class="aciklama">Modül yazdırmak ve onaya göndermek usta hesabı ister. Taslakların hesabına bağlanır; yayın admin onayıyla olur.</p>
+        <div class="eylemler">
+          <button type="button" class="birincil" id="kilit-giris">Giriş yap</button>
+          <button type="button" class="ikincil" id="kilit-kayit">Hesap oluştur</button>
+        </div>
+      </div>
       <div class="besteci">
         <div id="oneriler" class="oneriler" aria-label="Örnek fikirler">
-          <button type="button">Çocuklar için Bursa hanlarında süreli bir hazine avı oyunu</button>
+          <button type="button">Çocuklar için hanlarda hazine avı</button>
           <button type="button">Bursa türbelerini gece temasıyla gezdiren, haritalı ve 3B bir rehber</button>
           <button type="button">Eserleri yüzyıllara göre gezdiren, koleksiyonlu bir zaman yolculuğu</button>
         </div>
@@ -102,9 +136,9 @@
         </div>
         <form id="sohbet-formu" class="sohbet-formu">
           <label for="istek" class="gizli">Kalfaya mesaj</label>
-          <textarea id="istek" rows="2" placeholder="Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
+          <textarea id="istek" rows="2" placeholder="Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" required></textarea>
           <div class="besteci-alt">
-            <span class="kip-not" id="kip-not">Fikrini mini uygulamaya çevirir</span>
+            <span class="kip-not" id="kip-not">Soru sor, fikrini konuş; yazmasını isteyince mini uygulamaya çevirir</span>
             <button id="gonder" class="birincil gonder-d" aria-label="Gönder">
               <svg class="ik" aria-hidden="true"><use href="#i-gonder"/></svg>
             </button>
@@ -128,7 +162,7 @@
       <details class="bilgi-kutu" id="bilgi-kutu" open>
         <summary><svg class="ik" aria-hidden="true"><use href="#i-asagi"/></svg>Modül bilgileri</summary>
         <div class="bilgi">
-          <label>Kimlik <input id="id" placeholder="ornek-modul" pattern="[a-z0-9-]{1,64}" autocapitalize="off" spellcheck="false"></label>
+          <label>Kimlik <input id="id" placeholder="ornek-modul" pattern="[a-z0-9\-]{1,64}" autocapitalize="off" spellcheck="false"></label>
           <label>Karo rengi
             <select id="renk">
               <option value="">Otomatik</option><option value="kobalt">Kobalt</option><option value="firuze">Firuze</option>
@@ -147,6 +181,11 @@
               <option value="gezi">Gezi</option><option value="ogren">Öğren</option>
             </select>
           </label>
+          <label>Görünürlük
+            <select id="gorunurluk" title="Herkese açık modül onaydan geçip uygulamada yayımlanır; özel modül yalnızca bağlantısını paylaştığın kişilerce açılır">
+              <option value="herkes">Herkese açık</option><option value="ozel">Özel (bağlantıyla)</option>
+            </select>
+          </label>
           <label class="genis">Açıklama <input id="aciklama" placeholder="Uygulamada görünecek tek cümle"></label>
         </div>
       </details>
@@ -160,7 +199,6 @@
       </div>
       <div class="eylemler panel-alt">
         <div id="durum" class="durum" role="status"></div>
-        <button id="onizle" type="button" class="ikincil"><svg class="ik" aria-hidden="true"><use href="#i-oynat"/></svg>Önizle</button>
         <button id="onaya-gonder" type="button" class="birincil">Onaya gönder</button>
       </div>
     </section>
@@ -181,8 +219,9 @@
           <div class="telefon-ust" aria-hidden="true"><span id="saat">09:41</span><span class="centik"></span><span class="pil"></span></div>
           <iframe id="cerceve" title="Modülün telefondaki önizlemesi" src="/app/?onizleme=1"></iframe>
         </div>
+        <div class="sahne-durum" role="status" aria-live="polite"><div class="yaziyor"><i></i><i></i><i></i><span id="sahne-durum-metin"></span></div></div>
       </div>
-      <p class="onizleme-not">Modül, uygulamanın gerçek çalışma ortamında çalışır.</p>
+      <p class="onizleme-not">Kalfa yazdıkça ve sen kodu değiştirdikçe önizleme kendiliğinden yenilenir.</p>
     </section>
   </main>
 
@@ -190,7 +229,7 @@
     <div class="sayfa-baslik">
       <div>
         <h2 class="sayfa-h">Modüller</h2>
-        <p class="aciklama">Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür.</p>
+        <p class="aciklama" id="moduller-aciklama">Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür.</p>
       </div>
     </div>
     <div class="suzgec" id="modul-suzgec" role="group" aria-label="Duruma göre süz"></div>
@@ -201,12 +240,12 @@
     <div class="sayfa-baslik icerik-baslik">
       <div>
         <h2 class="sayfa-h">İçerik</h2>
-        <p class="aciklama">Vakıf eserlerinin verisi, uygulamadan gelen öneriler ve her değişikliğin geçmişi.</p>
+        <p class="aciklama" id="icerik-aciklama">Vakıf eserlerinin verisi, uygulamadan gelen öneriler ve her değişikliğin geçmişi.</p>
       </div>
     </div>
-    <section class="panel kuyruk" aria-labelledby="kuyruk-baslik">
+    <section class="panel kuyruk yalniz-admin" aria-labelledby="kuyruk-baslik">
       <h3 id="kuyruk-baslik" class="bolum-h">Onay kuyruğu</h3>
-      <p class="aciklama">Uygulamadan gelen yeni eser önerileri, düzenlemeler ve hata bildirimleri. Onaylanmadan hiçbiri yayına girmez.</p>
+      <p class="aciklama">Uygulamadan gelen yeni eser önerileri, düzenlemeler, hata bildirimleri ve ustaların kalfayla konuşurken eklenmesini istediği eserler. Onaylanmadan hiçbiri yayına girmez.</p>
       <ul id="oneriler-listesi" class="oneri-listesi"></ul>
       <h3 id="gecmis-baslik" class="bolum-h ikinci">Değişiklik geçmişi</h3>
       <p class="aciklama">Her kayıt, silme, onay ve içe aktarma burada. Herhangi birini geri alabilirsin; geri alma da geri alınabilir.</p>
@@ -217,10 +256,10 @@
       <div class="bolum-ust">
         <h3 id="eser-baslik" class="bolum-h">Eserler</h3>
         <div class="ust-eylemler">
-          <button id="disa-aktar" class="ikincil kucuk-d" type="button" title="Bütün eserleri JSON dosyası olarak indir"><svg class="ik" aria-hidden="true"><use href="#i-indir"/></svg>Dışa aktar</button>
-          <button id="ice-aktar" class="ikincil kucuk-d" type="button" title="Dışa aktarılmış bir JSON dosyasını yükle"><svg class="ik" aria-hidden="true"><use href="#i-yukle"/></svg>İçe aktar</button>
+          <button id="disa-aktar" class="ikincil kucuk-d yalniz-admin" type="button" title="Bütün eserleri JSON dosyası olarak indir"><svg class="ik" aria-hidden="true"><use href="#i-indir"/></svg>Dışa aktar</button>
+          <button id="ice-aktar" class="ikincil kucuk-d yalniz-admin" type="button" title="Dışa aktarılmış bir JSON dosyasını yükle"><svg class="ik" aria-hidden="true"><use href="#i-yukle"/></svg>İçe aktar</button>
           <input id="ice-dosya" type="file" accept="application/json,.json" hidden>
-          <button id="yeni-eser" class="birincil kucuk-d" type="button"><svg class="ik" aria-hidden="true"><use href="#i-arti"/></svg>Yeni eser</button>
+          <button id="yeni-eser" class="birincil kucuk-d yalniz-admin" type="button"><svg class="ik" aria-hidden="true"><use href="#i-arti"/></svg>Yeni eser</button>
         </div>
       </div>
       <div id="aktar-durum" class="durum" role="status"></div>
@@ -228,6 +267,7 @@
       <div class="eser-duzen">
         <div class="eser-sutun">
           <input id="eser-ara" class="arama" type="search" placeholder="Eser ara…" aria-label="Eser ara">
+          <select id="eser-il" class="arama" aria-label="İle göre süz"><option value="">Tüm iller</option></select>
           <ul id="eser-listesi" class="eser-listesi"></ul>
         </div>
         <form id="eser-formu" class="eser-formu" hidden>
@@ -254,17 +294,27 @@
           <div class="fotolar">
             <div class="fotolar-baslik"><span>Fotoğraflar <span id="foto-sayi"></span></span><span id="foto-ipucu">ilk fotoğraf kapak olur</span></div>
             <ul id="foto-listesi" class="foto-listesi" aria-label="Fotoğraflar"></ul>
-            <label class="foto-birak" id="foto-birak">
+            <label class="foto-birak yalniz-admin" id="foto-birak">
               <svg class="ik buyuk" aria-hidden="true"><use href="#i-foto"/></svg>
               <span><b>Fotoğrafları sürükle bırak</b> ya da tıklayıp seç (birden çok seçilebilir)</span>
               <span class="mono kucuk-yazi">JPEG · PNG · WebP · en fazla 6 MB</span>
               <input id="foto-sec" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
             </label>
           </div>
+          <fieldset id="oneri-kutusu" class="oneri-kutusu" hidden disabled>
+            <legend>Onaya gönder</legend>
+            <p class="aciklama">Değişikliğin hemen yayına girmez; editör kaynağı kontrol edip onaylar. Eklediğin bilginin kaynağını yaz.</p>
+            <div class="form-izgara">
+              <label class="genis">Eklenen bilginin kaynağı <input name="oneri_kaynak" required minlength="3" maxlength="240" placeholder="Ör. Bursa Vakıf Eserleri, Cilt 2, s. 114 · cami kitabesi"></label>
+              <label>Adın (isteğe bağlı) <input name="oneri_oneren" maxlength="80" autocomplete="name"></label>
+              <label class="genis">Editöre not (isteğe bağlı) <textarea name="oneri_not" rows="2" maxlength="1500"></textarea></label>
+            </div>
+          </fieldset>
           <div class="eylemler form-eylemler">
-            <button class="birincil" type="submit">Kaydet ve yayınla</button>
+            <button class="birincil yalniz-admin" type="submit">Kaydet ve yayınla</button>
+            <button class="ikincil" type="button" id="eser-onaya" hidden>Onaya gönder</button>
             <button class="ikincil" type="button" id="eser-vazgec">Vazgeç</button>
-            <button class="tehlike" type="button" id="eser-sil">Sil</button>
+            <button class="tehlike yalniz-admin" type="button" id="eser-sil">Sil</button>
             <div id="eser-durum" class="durum" role="status"></div>
           </div>
         </form>
@@ -295,13 +345,102 @@
   </dialog>
   <div id="bildirimler" class="bildirimler" aria-live="polite"></div>
 
-  <dialog id="giris" class="giris">
-    <form method="dialog" id="giris-formu">
-      <h2 class="pencere-h"><svg class="ik" aria-hidden="true"><use href="#i-kalkan"/></svg>Yönetici girişi</h2>
-      <p class="aciklama">Onay, yayından kaldırma, silme ve içerik düzenleme için gerekli. Şifre sunucudaki .env dosyasında (YONETICI_SIFRE).</p>
-      <label>Şifre <input id="giris-sifre" type="password" autocomplete="current-password" required></label>
-      <p id="giris-hata" class="durum kotu" role="alert"></p>
-      <div class="eylemler"><button class="birincil" value="giris">Giriş</button><button class="ikincil" value="iptal" formnovalidate>Vazgeç</button></div>
+  <dialog id="kalfa-ayarlari" class="giris model-pencere" aria-labelledby="model-pencere-h">
+    <form method="dialog" id="model-formu">
+      <div class="model-ust">
+        <h2 class="pencere-h" id="model-pencere-h"><svg class="ik" aria-hidden="true"><use href="#i-ayar"/></svg>Kalfa modelleri</h2>
+        <button id="model-tara" type="button" class="ikincil model-tara-d" title="Her metin modeline gerçek bir kalfa isteği gönderir; dakikalar sürebilir">Modelleri test et</button>
+        <button id="model-yenile" type="button" class="ikon-d" aria-label="Model listesini UstaGPT'den yenile" title="Listeyi yenile">
+          <svg class="ik" aria-hidden="true"><use href="#i-yenile"/></svg>
+        </button>
+      </div>
+      <p class="aciklama">Modeller UstaGPT'den gelir. Kaydedince kalfalar bir sonraki istekte bunları kullanır; sunucuyu yeniden başlatmak gerekmez.</p>
+      <div class="model-sekmeler" role="tablist" aria-label="Hangi kalfanın modeli?">
+        <button type="button" role="tab" data-alan="kalfaModeli" aria-selected="true" class="secili">Modül kalfası</button>
+        <button type="button" role="tab" data-alan="dalisMetinModelleri" aria-selected="false">Dalış · metin</button>
+        <button type="button" role="tab" data-alan="dalisGorselModelleri" aria-selected="false">Dalış · görsel</button>
+      </div>
+      <p class="aciklama model-ipucu" id="model-ipucu"></p>
+      <p class="aciklama kucuk-yazi model-tarama" id="model-tarama" role="status" aria-live="polite"></p>
+      <ol class="model-secili" id="model-secili" aria-label="Seçili modeller (deneme sırası)"></ol>
+      <div class="model-suzgec">
+        <input id="model-ara" class="arama" type="search" placeholder="Model ara… (ör. gpt, gemini, claude)" aria-label="Model ara" autocomplete="off" spellcheck="false">
+        <select id="model-sahip" aria-label="Sağlayıcıya göre süz"><option value="">Tüm sağlayıcılar</option></select>
+      </div>
+      <ul class="model-listesi" id="model-listesi" role="listbox" aria-label="Modeller"></ul>
+      <p class="aciklama kucuk-yazi" id="model-bilgi"></p>
+      <p id="model-durum" class="durum" role="status"></p>
+      <div class="eylemler">
+        <button class="birincil" type="button" id="model-kaydet">Kaydet</button>
+        <button class="ikincil" value="kapat" formnovalidate>Kapat</button>
+        <button class="metin-d" type="button" id="model-sifirla" title="Bu sekmedeki seçimi sil; .env ya da varsayılan geçerli olur">.env'e dön</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="hesap-pencere" class="giris hesap-pencere" aria-labelledby="hesap-baslik">
+    <form method="dialog" id="hesap-formu">
+      <h2 class="pencere-h" id="hesap-baslik"><svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-baslik-metin">Giriş yap</span></h2>
+      <p class="aciklama" id="hesap-kip-aciklama" hidden></p>
+      <div class="kip hesap-kip" id="hesap-kip" role="radiogroup" aria-label="Giriş ya da kayıt">
+        <button type="button" role="radio" aria-checked="true" data-hesap-kip="giris" class="secili">Giriş yap</button>
+        <button type="button" role="radio" aria-checked="false" data-hesap-kip="kayit">Hesap oluştur</button>
+      </div>
+      <div class="hesap-google" id="hesap-google-kap" hidden>
+        <button type="button" class="ikincil google-dugme" id="hesap-google"><span class="google-g" id="hesap-google-g" aria-hidden="true"></span>Google ile devam et</button>
+        <p class="hesap-ya-da" aria-hidden="true"><span>ya da</span></p>
+      </div>
+      <label id="hesap-kimlik-alan"><span id="hesap-kimlik-etiket">Kullanıcı adı ya da e-posta</span> <input id="hesap-kimlik" name="kimlik" autocomplete="username" autocapitalize="off" spellcheck="false" required maxlength="254" placeholder="su.gungor"></label>
+      <label id="hesap-eposta-alan" hidden>E-posta <input id="hesap-eposta" name="eposta" type="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="ornek@eposta.com"></label>
+      <label id="hesap-sifre-alan"><span id="hesap-sifre-etiket">Şifre</span> <input id="hesap-sifre" name="sifre" type="password" autocomplete="current-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter"></label>
+      <button type="button" class="metin-d hesap-unuttum" id="hesap-unuttum" hidden>Şifremi unuttum</button>
+      <label id="hesap-sifre2-alan" hidden><span id="hesap-sifre2-etiket">Şifre (tekrar)</span> <input id="hesap-sifre2" name="sifreTekrar" type="password" autocomplete="new-password" minlength="8" maxlength="200" placeholder="Şifreyi yeniden yaz"></label>
+      <p class="aciklama" id="hesap-kayit-notu" hidden>Yeni hesaplar usta olur: kalfayla modül yazar, onaya gönderir ve eserleri görür. Onay kuyruğu, değişiklik geçmişi ve düzenleme admin hesaplarındadır.</p>
+      <p id="hesap-hata" class="durum kotu" role="alert"></p>
+      <p id="hesap-bilgi" class="durum iyi" role="status" hidden></p>
+      <button type="button" class="metin-d hesap-unuttum" id="hesap-yeniden" hidden>Doğrulama bağlantısını yeniden gönder</button>
+      <div class="eylemler">
+        <button class="birincil" value="gonder" id="hesap-gonder">Giriş yap</button>
+        <button class="ikincil" type="button" id="hesap-girise-don" hidden>Girişe dön</button>
+        <button class="ikincil" value="iptal" formnovalidate id="hesap-vazgec">Vazgeç</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="sifre-pencere" class="giris" aria-labelledby="sifre-baslik" aria-describedby="sifre-aciklama">
+    <form method="dialog" id="sifre-formu">
+      <h2 class="pencere-h" id="sifre-baslik"><svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span>Yeni şifreni belirle</span></h2>
+      <p class="aciklama" id="sifre-aciklama"></p>
+      <input type="text" id="sifre-kimlik" autocomplete="username" hidden>
+      <label id="sifre-eski-etiketi">Mevcut şifre <input id="sifre-eski" type="password" autocomplete="current-password" maxlength="200"></label>
+      <label>Yeni şifre <input id="sifre-yeni" type="password" autocomplete="new-password" required minlength="8" maxlength="200" placeholder="En az 8 karakter"></label>
+      <label>Yeni şifre (tekrar) <input id="sifre-tekrar" type="password" autocomplete="new-password" required minlength="8" maxlength="200"></label>
+      <p id="sifre-hata" class="durum kotu" role="alert"></p>
+      <div class="eylemler">
+        <button class="birincil" value="gonder" id="sifre-gonder">Şifreyi kaydet</button>
+        <button class="ikincil" value="iptal" formnovalidate id="sifre-vazgec">Vazgeç</button>
+        <button class="metin-d" value="cikis" formnovalidate id="sifre-cikis">Çıkış yap</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="sohbetler-pencere" class="giris sohbetler-pencere" aria-labelledby="sohbetler-h">
+    <form method="dialog">
+      <h2 class="pencere-h" id="sohbetler-h"><svg class="ik" aria-hidden="true"><use href="#i-gecmis"/></svg>Geçmiş sohbetler</h2>
+      <p class="aciklama">Kalfayla konuşmaların ve üzerinde çalıştığın modül hesabına kaydedilir; sayfayı yenilesen de kaldığın yerden devam edersin.</p>
+      <ul id="sohbet-listesi" class="sohbet-listesi"></ul>
+      <div class="eylemler"><button class="birincil" value="yeni">Yeni sohbet</button><button class="ikincil" value="kapat">Kapat</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="hesap-kart" class="giris" aria-labelledby="hesap-kart-h">
+    <form method="dialog">
+      <h2 class="pencere-h" id="hesap-kart-h"><svg class="ik" aria-hidden="true"><use href="#i-kisi"/></svg><span id="hesap-kart-ad"></span></h2>
+      <p class="aciklama" id="hesap-kart-rol"></p>
+      <label>E-posta <input id="hesap-kart-eposta" type="email" autocomplete="email" maxlength="254" placeholder="ornek@eposta.com"></label>
+      <p class="aciklama" id="hesap-kart-eposta-not">Aynı e-postayla "Google ile devam et" dersen bu hesaba girersin.</p>
+      <p id="hesap-kart-hata" class="durum kotu" role="alert"></p>
+      <div class="eylemler"><button class="birincil" value="eposta" id="hesap-kart-eposta-kaydet">E-postayı kaydet</button><button class="ikincil" value="sifre" formnovalidate>Şifreyi değiştir</button><button class="tehlike" value="cikis" formnovalidate>Çıkış yap</button><button class="ikincil" value="kapat" formnovalidate>Kapat</button></div>
     </form>
   </dialog>
 
@@ -310,6 +449,7 @@
     <span class="sag" id="dc-saat"></span>
   </footer>
 
+  <script type="module" src="/ortak/dil.js"></script>
   <script type="module" src="/studio/studio.js"></script>
   <script type="module" src="/studio/duzen.js"></script>
 </body>

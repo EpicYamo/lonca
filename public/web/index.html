@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f4ef">
+  <!-- Hesap bağlantıları (şifre sıfırlama, e-posta doğrulama, Google dönüşü) uygulamanın hesap pencerelerinde işlenir. -->
+  <script>try { if (/^#(sifre-sifirla|eposta-dogrula|google-kod|google-hata)=/.test(location.hash)) location.replace("/app/" + location.hash); } catch {}</script>
+  <script>try { if (localStorage.getItem("lonca.tema") === "koyu") document.documentElement.dataset.tema = "koyu"; } catch {}</script>
+  <script>try { if (localStorage.getItem("lonca.dil") === "en") { document.documentElement.lang = "en"; document.documentElement.classList.add("dil-bekle"); setTimeout(() => document.documentElement.classList.remove("dil-bekle"), 1500); } } catch {}</script>
+  <style>.dil-bekle body { visibility: hidden; }</style>
+  <title>Lonca · Vakıf eserleri</title>
+  <meta name="description" content="Türkiye’deki vakıf eserlerini rehberler, oyunlar, haritalar ve dalışlarla keşfet.">
+  <link rel="icon" href="/simgeler/lonca-192.png">
+  <link rel="apple-touch-icon" href="/simgeler/apple-touch-icon.png">
+  <link rel="stylesheet" href="/ortak/tasarim.css">
+  <link rel="stylesheet" href="/web/site.css">
+</head>
+<body>
+  <a class="atla" href="#icerik">İçeriğe geç</a>
+
+  <header class="ust" id="ust">
+    <a class="ust-marka" href="/#" aria-label="Lonca ana sayfa"><span id="logo" aria-hidden="true"></span><span>Lonca</span></a>
+    <nav class="ust-gezinme" id="ust-gezinme" aria-label="Site bölümleri">
+      <a href="/#moduller">Modüller</a>
+      <a href="/#eserler">Eserler</a>
+      <a href="/#harita">Harita</a>
+      <a href="/#dalislar">Dalışlar</a>
+      <a href="/#gunun-eseri">Günün eseri</a>
+    </nav>
+    <div class="ust-araclar">
+      <button type="button" class="ust-dugme" id="ara-ac" aria-label="Eser ara">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+      </button>
+      <button type="button" class="ust-dugme dil" data-dil-dugmesi>EN</button>
+      <button type="button" class="ust-dugme" id="tema" aria-label="Koyu temaya geç" aria-pressed="false">
+        <svg class="ay" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+        <svg class="gunes" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
+      </button>
+      <button type="button" class="ust-dugme" id="erisim-ac" aria-expanded="false" aria-controls="erisim" aria-label="Erişilebilirlik ayarları">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="1.6"/><path d="M4 8.5l8 1.5 8-1.5M12 10v4.5m0 0l-3.5 6m3.5-6l3.5 6"/></svg>
+      </button>
+      <a class="ust-studio" href="/studio/" target="_blank" rel="noopener">Studio<span class="gizli"> (yeni sekmede açılır)</span></a>
+      <button type="button" class="ust-dugme menu" id="menu-ac" aria-expanded="false" aria-controls="ust-gezinme" aria-label="Menüyü aç">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Arama: üst çubuktaki büyüteçle ya da "/" tuşuyla açılır. -->
+  <div class="arama-perde" id="arama" hidden>
+    <div class="arama-kutu" role="dialog" aria-modal="true" aria-labelledby="arama-baslik">
+      <h2 id="arama-baslik" class="gizli">Eser ara</h2>
+      <label class="arama-girdi">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+        <input id="arama-metin" type="search" autocomplete="off" maxlength="80" placeholder="Eser, il, ilçe ya da tür ara" aria-label="Eser, il, ilçe ya da tür ara" aria-controls="arama-sonuc">
+        <button type="button" class="arama-kapat" id="arama-kapat">Kapat</button>
+      </label>
+      <p class="arama-durum" id="arama-durum" role="status"></p>
+      <ul class="arama-sonuc" id="arama-sonuc"></ul>
+    </div>
+  </div>
+
+  <!-- Erişilebilirlik: tercihler uygulamayla aynı anahtarda (lonca.erisim) durur, modül açılınca da geçerli. -->
+  <div class="erisim-perde" id="erisim" hidden>
+    <div class="erisim-kutu" role="dialog" aria-modal="true" aria-labelledby="erisim-baslik">
+      <div class="erisim-ust">
+        <h2 id="erisim-baslik">Erişilebilirlik</h2>
+        <button type="button" class="metin-dugme" id="erisim-sifirla">Varsayılana dön</button>
+        <button type="button" class="ust-dugme" id="erisim-kapat" aria-label="Kapat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <fieldset>
+        <legend>Yazı boyutu</legend>
+        <div class="bolumlu" id="yazi-boyutu">
+          <label><input type="radio" name="yazi" value="1"><span style="font-size:.9rem">A</span></label>
+          <label><input type="radio" name="yazi" value="1.15"><span style="font-size:1.05rem">A</span></label>
+          <label><input type="radio" name="yazi" value="1.3"><span style="font-size:1.2rem">A</span></label>
+          <label><input type="radio" name="yazi" value="1.5"><span style="font-size:1.35rem">A</span></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>Görünüm</legend>
+        <label class="anahtar"><input type="checkbox" data-tercih="okunakli"><span>Okunaklı yazı tipi</span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="aralik"><span>Geniş satır ve harf aralığı</span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="kontrast"><span>Yüksek kontrast</span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="sade"><span>Sade görünüm (çini desenlerini gizle)</span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="odak"><span>Belirgin odak çerçevesi</span></label>
+        <label class="anahtar"><input type="checkbox" data-tercih="hareket"><span>Hareketi azalt</span></label>
+      </fieldset>
+    </div>
+  </div>
+
+  <main id="icerik" tabindex="-1">
+    <div id="ana-sayfa">
+      <!-- 1. Modül vitrini: her modül kendi sahnesiyle. -->
+      <section class="vitrin" id="vitrin" aria-roledescription="carousel" aria-label="Modüller vitrini">
+        <h1 class="gizli">Lonca: vakıf eserleri için modüller, eserler ve haritalar</h1>
+        <div class="vitrin-sahneler" id="vitrin-sahneler" aria-live="off">
+          <div class="vitrin-iskelet" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
+        </div>
+        <div class="vitrin-alt">
+          <div class="vitrin-sekmeler" id="vitrin-sekmeler" role="tablist" aria-label="Modül seç"></div>
+          <div class="vitrin-oklar">
+            <button type="button" class="vitrin-ok" id="vitrin-onceki" aria-label="Önceki modül"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+            <button type="button" class="vitrin-ok" id="vitrin-durdur" aria-label="Vitrini durdur" aria-pressed="false"><svg class="dur" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg><svg class="oynat" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z"/></svg></button>
+            <button type="button" class="vitrin-ok" id="vitrin-sonraki" aria-label="Sonraki modül"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Sayılar -->
+      <section class="sayilar" aria-label="Lonca'da neler var">
+        <ul id="sayilar">
+          <li class="iskelet-satir"></li><li class="iskelet-satir"></li><li class="iskelet-satir"></li><li class="iskelet-satir"></li><li class="iskelet-satir"></li><li class="iskelet-satir"></li>
+        </ul>
+        <button type="button" class="sayilar-ara" id="sayilar-ara">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+          <span>Eser, il, ilçe ya da tür ara</span><kbd>/</kbd>
+        </button>
+      </section>
+
+      <!-- 3. Modüller -->
+      <section class="bolum" id="moduller" aria-labelledby="moduller-baslik">
+        <header class="bolum-ust">
+          <p class="bolum-ust-yazi">Mini uygulamalar</p>
+          <h2 id="moduller-baslik">Modüller</h2>
+          <p class="bolum-aciklama">Her modül gerçek envanter verisiyle çalışan küçük bir uygulama: rehber, oyun, harita ya da dalış. Kalfa ile yenileri ekleniyor.</p>
+        </header>
+        <ul class="modul-izgara" id="modul-izgara">
+          <li class="iskelet-kart"></li><li class="iskelet-kart"></li><li class="iskelet-kart"></li><li class="iskelet-kart"></li>
+        </ul>
+        <!-- Ustanın bireysel (özel) modülü listede yoktur; paylaştığı davet koduyla açılır. -->
+        <div class="davet" id="davet" aria-labelledby="davet-baslik" role="region">
+          <div class="davet-yazi">
+            <h3 id="davet-baslik">Davet kodun mu var?</h3>
+            <p id="davet-aciklama">Bir usta seninle özel modülünü paylaştıysa sana verdiği kodu yaz, modül hemen açılsın.</p>
+          </div>
+          <form class="davet-form" id="davet-form" novalidate>
+            <label class="gizli" for="davet-kodu">Davet kodu</label>
+            <input id="davet-kodu" name="kod" placeholder="ABCD-EFGH" maxlength="9" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" aria-describedby="davet-aciklama davet-hata">
+            <button type="submit" class="dugme">Modülü aç <span class="ok" aria-hidden="true">→</span></button>
+            <p class="davet-hata" id="davet-hata" role="alert"></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- 4. Eserler -->
+      <section class="bolum eserler" id="eserler" aria-labelledby="eserler-baslik">
+        <header class="bolum-ust">
+          <p class="bolum-ust-yazi">Envanter</p>
+          <h2 id="eserler-baslik">Eserler</h2>
+          <p class="bolum-aciklama" id="eserler-ozet">Camiler, türbeler, hanlar, hamamlar… Kayıtlı vakıf eserleri.</p>
+        </header>
+        <div class="eserler-duzen">
+          <aside class="suzgec" aria-label="Eserleri süz">
+            <div class="suzgec-grup">
+              <h3 id="tur-baslik">Tür</h3>
+              <div class="cipler" id="tur-cipleri" role="group" aria-labelledby="tur-baslik"></div>
+            </div>
+            <div class="suzgec-grup">
+              <label for="il-sec"><h3>İl</h3></label>
+              <select id="il-sec"><option value="">Tüm iller</option></select>
+            </div>
+            <div class="suzgec-grup">
+              <label for="ilce-sec"><h3>İlçe</h3></label>
+              <select id="ilce-sec"><option value="">Tüm ilçeler</option></select>
+            </div>
+            <div class="suzgec-grup">
+              <h3 id="yuzyil-baslik">Yüzyıl</h3>
+              <div class="cipler" id="yuzyil-cipleri" role="group" aria-labelledby="yuzyil-baslik"></div>
+            </div>
+          </aside>
+          <div class="eser-akisi">
+            <p class="eser-sayaci" id="eser-sayaci" role="status"></p>
+            <ul class="eser-duvari" id="eser-duvari">
+              <li class="iskelet-tas" style="--o:1.33"></li><li class="iskelet-tas" style="--o:.8"></li><li class="iskelet-tas" style="--o:1.5"></li><li class="iskelet-tas" style="--o:1"></li><li class="iskelet-tas" style="--o:1.2"></li><li class="iskelet-tas" style="--o:.9"></li>
+            </ul>
+            <button type="button" class="dugme ikincil" id="daha-fazla" hidden>Daha fazla göster</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. Harita -->
+      <section class="harita-bolum" id="harita" aria-labelledby="harita-baslik">
+        <div class="harita-panel">
+          <p class="bolum-ust-yazi">Haritada</p>
+          <h2 id="harita-baslik">Eserler nerede?</h2>
+          <p class="bolum-aciklama" id="harita-ozet">Konumu kayıtlı eserler haritada. Bir işarete dokun, eserin sayfasına geç.</p>
+          <ul class="harita-lejant" id="harita-lejant"></ul>
+        </div>
+        <div class="harita-alan" id="harita-alan" role="region" aria-label="Vakıf eserleri haritası"><div class="iskelet-dolgu"></div></div>
+      </section>
+
+      <!-- 6. Dalışlar -->
+      <section class="bolum dalislar" id="dalislar" aria-labelledby="dalislar-baslik">
+        <header class="bolum-ust">
+          <p class="bolum-ust-yazi">Vakıf Dalışları</p>
+          <h2 id="dalislar-baslik">Uzaydan eserin içine</h2>
+          <p class="bolum-aciklama">Kaydırdıkça uydudan çatıya, çatıdan içeri inen dalışlar. Her durakta eserin kaydından kısa notlar.</p>
+        </header>
+        <ul class="dalis-seridi" id="dalis-seridi">
+          <li class="iskelet-dikey"></li><li class="iskelet-dikey"></li><li class="iskelet-dikey"></li><li class="iskelet-dikey"></li>
+        </ul>
+      </section>
+
+      <!-- 7. Günün eseri -->
+      <section class="gunun-eseri" id="gunun-eseri" aria-labelledby="gunun-baslik">
+        <div class="ge-foto" id="ge-foto"><div class="iskelet-dolgu"></div></div>
+        <div class="ge-yazi">
+          <p class="bolum-ust-yazi">Günün eseri</p>
+          <h2 id="gunun-baslik">…</h2>
+          <p class="ge-kunye" id="ge-kunye"></p>
+          <p class="ge-ozet" id="ge-ozet"></p>
+          <a class="dugme" id="ge-bag" href="/#eserler">Eseri incele</a>
+        </div>
+      </section>
+
+      <!-- 8. Studio çağrısı -->
+      <section class="studio-cagri" aria-labelledby="studio-baslik">
+        <div class="studio-desen" id="studio-desen" aria-hidden="true"></div>
+        <div class="studio-yazi">
+          <h2 id="studio-baslik">Kendi modülünü yap</h2>
+          <p>Lonca Studio'da kalfa ile konuş; eser verisini kullanan rehberini, oyununu ya da haritanı birlikte yazın. Onaylanınca burada yayına girer.</p>
+          <a class="dugme acik" href="/studio/" target="_blank" rel="noopener">Studio'yu aç<span class="gizli"> (yeni sekmede açılır)</span></a>
+        </div>
+      </section>
+    </div>
+
+    <!-- Eser sayfası: /#/eser/<kimlik> -->
+    <article class="eser-sayfa" id="eser-sayfa" hidden aria-labelledby="es-ad"></article>
+  </main>
+
+  <footer class="alt">
+    <div class="alt-marka">
+      <p class="alt-logo"><span id="alt-logo" aria-hidden="true"></span>Lonca</p>
+      <p>Vakıf mirası için yapay zekâ destekli mini uygulama platformu. KÖK&KOD Hackathon · Takım Kozmos.</p>
+    </div>
+    <nav aria-label="Keşfet">
+      <h2>Keşfet</h2>
+      <a href="/#moduller">Modüller</a><a href="/#eserler">Eserler</a><a href="/#harita">Harita</a><a href="/#dalislar">Dalışlar</a>
+    </nav>
+    <nav aria-label="Lonca">
+      <h2>Lonca</h2>
+      <a href="/studio/" target="_blank" rel="noopener">Studio</a>
+    </nav>
+    <p class="alt-telif">Eser metinleri ve fotoğrafları © Vakıf Katılım, Bursa, Konya ve Hatay vakıf eserleri kitapları. Harita verileri © OpenStreetMap katkıcıları.</p>
+  </footer>
+
+  <script type="module" src="/web/site.js"></script>
+</body>
+</html>

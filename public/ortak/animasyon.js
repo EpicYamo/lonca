@@ -99,6 +99,8 @@ export function gecis(degistir, tur) {
   if (hareketAzalt() || !document.startViewTransition) { degistir(); return null; }
   if (tur) document.documentElement.dataset.gecis = tur;
   const g = document.startViewTransition(degistir);
-  g.finished.finally(() => { delete document.documentElement.dataset.gecis; });
+  // Art arda geçişte önceki geçiş atlanır ("Transition was skipped"): bu beklenen bir durumdur, hata olarak düşmesin.
+  g.ready.catch(() => {});
+  g.finished.catch(() => {}).finally(() => { delete document.documentElement.dataset.gecis; });
   return g;
 }

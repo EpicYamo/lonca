@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deneySunucusu } from "./yardimci.mjs";
+import { deneySunucusu, kayitGovdesi } from "./yardimci.mjs";
 
 const ANA = "ana-anahtar-123";
 
@@ -23,6 +23,18 @@ test("anahtar varsa /api korunur, merhaba açıktır", async () => {
   const y = await istek("GET", "/studio/");
   assert.equal(y.statusCode, 302);
   assert.match(y.headers.location, /^\/giris\?devam=/);
+});
+
+test("hesapla giriş ana API anahtarını istemez; geçerli Bearer jetonu API erişimi sağlar", async () => {
+  const { istek } = await deneySunucusu({ LONCA_API_ANAHTARI: ANA });
+  const kayit = await istek("POST", "/api/hesap/kayit", { govde: kayitGovdesi({ kimlik: "app-kullanicisi", sifre: "guclu-sifre-123", rol: "vatandas" }) });
+  assert.equal(kayit.statusCode, 201);
+  const { jeton } = kayit.json();
+  const bearer = { authorization: `Bearer ${jeton}` };
+  assert.equal((await istek("GET", "/api/hesap/ben", { basliklar: bearer })).statusCode, 200);
+  assert.equal((await istek("GET", "/api/eserler", { basliklar: bearer })).statusCode, 200);
+  assert.equal((await istek("GET", "/api/eserler")).statusCode, 401);
+  assert.equal((await istek("POST", "/api/hesap/giris", { govde: { kimlik: "app-kullanicisi", sifre: "guclu-sifre-123" } })).statusCode, 200);
 });
 
 test("eşleştirme kodu tek kullanımlık cihaz anahtarı verir, cihaz silinince geçersizleşir", async () => {
@@ -52,6 +64,31 @@ test("tarayıcı girişi çerezle çalışır", async () => {
   const cerez = g.headers["set-cookie"].split(";")[0];
   assert.equal((await istek("GET", "/api/eserler", { basliklar: { cookie: cerez } })).statusCode, 200);
   assert.equal((await istek("GET", "/studio/", { basliklar: { cookie: cerez } })).statusCode, 200);
+  assert.doesNotMatch(g.headers["set-cookie"], /Secure/, "düz HTTP'de Secure yok");
+  const h = await istek("POST", "/giris", { govde: `anahtar=${ANA}`, basliklar: { ...form, "x-forwarded-proto": "https" } });
+  assert.match(h.headers["set-cookie"], /; Secure$/, "Nginx arkasında HTTPS'te Secure");
   const d = await istek("POST", "/giris", { govde: `anahtar=${ANA}&devam=%2F%2Fkotu.example`, basliklar: form });
-  assert.equal(d.headers.location, "/app/", "dış adrese yönlendirmez");
+  assert.equal(d.headers.location, "/", "dış adrese yönlendirmez");
+});
+
+test("hız sınırı vekil arkasında LONCA_IP_BASLIGI'ndaki gerçek istemci IP'sini sayar", async () => {
+  const { hizSiniri, istemciIp } = await import("../server/guvenlik.js");
+  const onceki = process.env.LONCA_IP_BASLIGI;
+  const sahteYanit = () => ({ kod: 200, header() { return this; }, code(k) { this.kod = k; return this; }, send() { return this; } });
+  const istek = (ip) => ({ ip: "172.18.0.5", headers: { "cf-connecting-ip": ip, "x-forwarded-for": "1.1.1.1" } });
+  try {
+    delete process.env.LONCA_IP_BASLIGI;
+    assert.equal(istemciIp(istek("203.0.113.7")), "172.18.0.5", "başlık ayarlı değilken req.ip kullanılır");
+    process.env.LONCA_IP_BASLIGI = "CF-Connecting-IP";
+    assert.equal(istemciIp(istek("203.0.113.7")), "203.0.113.7");
+    assert.equal(istemciIp({ ip: "172.18.0.5", headers: {} }), "172.18.0.5", "başlık yoksa req.ip'ye düşer");
+    const sinir = hizSiniri({ adet: 1, pencereMs: 60_000 });
+    const a = sahteYanit(), b = sahteYanit(), c = sahteYanit();
+    await sinir(istek("203.0.113.7"), a);
+    await sinir(istek("198.51.100.9"), b);
+    await sinir(istek("203.0.113.7"), c);
+    assert.deepEqual([a.kod, b.kod, c.kod], [200, 200, 429], "aynı vekil IP'sinden gelen farklı istemciler ayrı sayılır");
+  } finally {
+    if (onceki === undefined) delete process.env.LONCA_IP_BASLIGI; else process.env.LONCA_IP_BASLIGI = onceki;
+  }
 });

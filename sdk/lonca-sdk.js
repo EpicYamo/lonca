@@ -18,6 +18,9 @@
     if (e.source !== parent) return;
     const m = e.data;
     if (!m || m.lonca !== 1) return;
+    if (m.tur === "kare") { boyutlariAl(m.boyutlar); return kareCalistir(m.dt, m.t); }
+    if (m.tur === "calistir" && m.ekran) ekranBoyutu = { en: sayi(m.ekran.en, 360) || 360, boy: sayi(m.ekran.boy, 640) || 640 }; // başlatıcı da dinler
+    if (m.tur === "girdi") return girdiAl(m.olay);
     if (m.tur === "olay") {
       if (olayBekleyen) { const coz = olayBekleyen; olayBekleyen = null; coz(m.olay); }
       else olayKuyrugu.push(m.olay);
@@ -121,5 +124,117 @@
     yaz: (anahtar, deger) => cagir("depo.yaz", String(anahtar), deger),
   };
 
-  Object.defineProperty(globalThis, "lonca", { value: Object.freeze({ eserler, ekran, sahne, profil, basarim, depo, dalislar }) });
+  // ---------- Oyun: tuval, oyun döngüsü, dokunma, klavye, ses, titreşim ----------
+  // Modül görünmez bir çerçevede çalışır; tuvali uygulama çizer. Modül çizim komutlarını gönderir, uygulama her karede
+  // { tur:"kare" } ve dokunma/klavye girdisini { tur:"girdi" } iletir. Kare onayı (kare_tamam) gelmeden yeni kare gönderilmez.
+  const akis = (veri) => parent.postMessage({ lonca: 1, tur: "akis", veri }, "*");
+  const MAKS_KOMUT = 4000;
+  const sayi = (x, v = 0) => (Number.isFinite(+x) ? +x : v);
+  const yaziMi = (x) => (x == null ? "" : String(x));
+  function kalemYap() {
+    const k = [];
+    const ekle = (c) => { if (k.length < MAKS_KOMUT) k.push(c); return kalem; };
+    const kalem = {
+      temizle: (renk) => ekle(["temizle", renk == null ? null : yaziMi(renk)]),
+      dikdortgen: (x, y, en, boy, renk, s = {}) => ekle(["dikdortgen", sayi(x), sayi(y), sayi(en), sayi(boy), yaziMi(renk ?? "#fff"), sayi(s.yuvarlak), s.cizgi == null ? null : yaziMi(s.cizgi), sayi(s.kalinlik, 2)]),
+      daire: (x, y, r, renk, s = {}) => ekle(["daire", sayi(x), sayi(y), Math.max(0, sayi(r)), yaziMi(renk ?? "#fff"), s.cizgi == null ? null : yaziMi(s.cizgi), sayi(s.kalinlik, 2)]),
+      cizgi: (x1, y1, x2, y2, renk, kalinlik = 2, s = {}) => ekle(["cizgi", sayi(x1), sayi(y1), sayi(x2), sayi(y2), yaziMi(renk ?? "#fff"), sayi(kalinlik, 2), sayi(s.kesikli)]),
+      yol: (noktalar, renk, s = {}) => ekle(["yol", (Array.isArray(noktalar) ? noktalar : []).slice(0, 400).map((n) => [sayi(n?.[0] ?? n?.x), sayi(n?.[1] ?? n?.y)]), yaziMi(renk ?? "#fff"), !!s.kapali, !!s.dolgu, sayi(s.kalinlik, 2)]),
+      yazi: (metin, x, y, s = {}) => ekle(["yazi", yaziMi(metin).slice(0, 300), sayi(x), sayi(y), sayi(s.boyut, 16), yaziMi(s.renk ?? "#fff"), yaziMi(s.hiza ?? "sol"), !!s.kalin, yaziMi(s.yazi ?? "sans"), yaziMi(s.taban ?? "orta")]),
+      gorsel: (kaynak, x, y, en, boy, s = {}) => {
+        const url = typeof kaynak === "string" ? kaynak : Array.isArray(kaynak?.fotograflar) ? kaynak.fotograflar.find((f) => typeof f === "string") : null;
+        return url ? ekle(["gorsel", url, sayi(x), sayi(y), sayi(en), sayi(boy), sayi(s.yuvarlak), s.kirp === "sigdir" ? "sigdir" : "kapla"]) : kalem;
+      },
+      saydamlik: (a) => ekle(["saydamlik", Math.max(0, Math.min(1, sayi(a, 1)))]),
+      kaydet: () => ekle(["kaydet"]),
+      geriYukle: () => ekle(["geri"]),
+      tasi: (x, y) => ekle(["tasi", sayi(x), sayi(y)]),
+      dondur: (aci) => ekle(["dondur", sayi(aci)]),
+      olcekle: (sx, sy) => ekle(["olcekle", sayi(sx, 1), sayi(sy ?? sx, 1)]),
+    };
+    return { kalem, komutlar: k };
+  }
+
+  const dokunmalar = new Map(); // parmak → { parmak, tuval, x, y, ilkX, ilkY }
+  // Tuvallerin gerçek boyutu (mantıksal birim). Tam ekran tuvalde ekranın boyutudur; uygulama her karede ve boyut
+  // değişince gönderir. Tuval henüz ekranda değilse uygulama ekranının boyutu kullanılır.
+  const boyutlar = new Map();   // tuval → { en, boy }
+  let ekranBoyutu = { en: 360, boy: 640 };
+  function boyutlariAl(b) {
+    if (!b || typeof b !== "object") return;
+    for (const [id, v] of Object.entries(b)) if (Array.isArray(v)) boyutlar.set(id, { en: sayi(v[0], 360), boy: sayi(v[1], 640) });
+  }
+  const tuslar = new Set();
+  const dinleyiciler = new Map(); // tur → Set<fn>
+  let donguFn = null, karede = false;
+  const kareCizimleri = new Map();  // döngü içinde çizilenler kare onayıyla birlikte gider
+
+  function hataBildir(hata) {
+    parent.postMessage({ lonca: 1, tur: "hata", mesaj: String(hata && hata.message || hata) }, "*");
+  }
+  function kareCalistir(dt, t) {
+    const fn = donguFn;
+    karede = true;
+    try { if (fn) fn(sayi(dt, 0.016), sayi(t)); } catch (h) { donguFn = null; hataBildir(h); }
+    karede = false;
+    const cizimler = Object.fromEntries(kareCizimleri);
+    kareCizimleri.clear();
+    akis({ tur: "kare_tamam", cizimler, devam: !!donguFn });
+  }
+  function yay(tur, olay) {
+    for (const fn of dinleyiciler.get(tur) ?? []) { try { fn(olay); } catch (h) { hataBildir(h); } }
+  }
+  function girdiAl(o) {
+    if (!o || typeof o !== "object") return;
+    if (o.tur === "basla") dokunmalar.set(o.parmak, { parmak: o.parmak, tuval: o.tuval, x: o.x, y: o.y, ilkX: o.x, ilkY: o.y });
+    else if (o.tur === "surukle") { const d = dokunmalar.get(o.parmak); if (d) { d.x = o.x; d.y = o.y; } }
+    else if (o.tur === "birak") dokunmalar.delete(o.parmak);
+    else if (o.tur === "tus") tuslar.add(o.tus);
+    else if (o.tur === "tus_birak") tuslar.delete(o.tus);
+    else if (o.tur === "odak_kaybi") { tuslar.clear(); dokunmalar.clear(); }
+    else if (o.tur === "boyut" && o.tuval != null) boyutlar.set(String(o.tuval), { en: sayi(o.en, 360), boy: sayi(o.boy, 640) });
+    yay(o.tur, { ...o });
+  }
+
+  const oyun = {
+    /** Oyun döngüsünü başlatır: fn(dt saniye, t saniye) her karede çağrılır. Dönen işlev döngüyü durdurur. */
+    dongu(fn) {
+      donguFn = typeof fn === "function" ? fn : null;
+      akis({ tur: "dongu", acik: !!donguFn });
+      const bu = donguFn;
+      return () => { if (donguFn === bu) { donguFn = null; akis({ tur: "dongu", acik: false }); } };
+    },
+    durdur() { donguFn = null; akis({ tur: "dongu", acik: false }); },
+    get calisiyor() { return !!donguFn; },
+    /** Tuvale çizer: fn(kalem) içinde kalem.temizle / dikdortgen / daire / yazi / gorsel… çağır. */
+    ciz(id, fn) {
+      const { kalem, komutlar } = kalemYap();
+      if (typeof fn === "function") fn(kalem);
+      if (karede) kareCizimleri.set(String(id), komutlar);
+      else akis({ tur: "ciz", id: String(id), komutlar });
+    },
+    dokunmalar: (tuval) => [...dokunmalar.values()].filter((d) => tuval == null || d.tuval === String(tuval)).map((d) => ({ ...d })),
+    tus: (ad) => tuslar.has(String(ad)),
+    /** Tuvalin şu anki gerçek boyutu { en, boy }: tam ekran tuvalde ekranın boyutu. Her karede oku, yerleşimi buna göre kur. */
+    boyut: (tuval) => {
+      const b = (tuval != null && boyutlar.get(String(tuval))) || (tuval == null && boyutlar.values().next().value) || ekranBoyutu;
+      return { en: b.en, boy: b.boy };
+    },
+    dinle(tur, fn) {
+      if (typeof fn !== "function") return () => {};
+      if (!dinleyiciler.has(tur)) dinleyiciler.set(tur, new Set());
+      dinleyiciler.get(tur).add(fn);
+      return () => dinleyiciler.get(tur)?.delete(fn);
+    },
+    ses: (ad) => { akis({ tur: "ses", ses: ad && typeof ad === "object" ? { ...ad } : String(ad ?? "bip") }); },
+    titres: (tur) => { akis({ tur: "titres", titres: typeof tur === "number" ? tur : String(tur ?? "hafif") }); },
+    rastgele: (a, b) => (b == null ? Math.random() * sayi(a, 1) : sayi(a) + Math.random() * (sayi(b) - sayi(a))),
+    tamSayi: (a, b) => { const x = Math.ceil(sayi(a)), y = Math.floor(sayi(b)); return y < x ? x : x + Math.floor(Math.random() * (y - x + 1)); },
+    sec: (dizi) => (Array.isArray(dizi) && dizi.length ? dizi[Math.floor(Math.random() * dizi.length)] : undefined),
+    sinirla: (x, a, b) => Math.max(a, Math.min(b, x)),
+    carpisir: (a, b) => a.x < b.x + b.en && a.x + a.en > b.x && a.y < b.y + b.boy && a.y + a.boy > b.y,
+    bekle: (sn) => cagir("oyun.bekle", sayi(sn)),
+  };
+
+  Object.defineProperty(globalThis, "lonca", { value: Object.freeze({ eserler, ekran, sahne, profil, basarim, depo, dalislar, oyun }) });
 })();

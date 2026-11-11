@@ -21,6 +21,28 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Modül paylaşım bağlantısı: https://kozmos.itaskira.com/m/<anahtar> uygulamayı açar (App Links).
+                 Doğrulama için sunucu /.well-known/assetlinks.json'u ANDROID_IMZA_SHA256 ile yayımlar; doğrulanmazsa
+                 Android bağlantıyı tarayıcıda açar ve web sayfası "Uygulamada aç" (lonca://) şeridini gösterir. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="kozmos.itaskira.com" android:pathPrefix="/m/" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="lonca" android:host="m" />
+            </intent-filter>
+            <!-- Google ile giriş: Custom Tab'daki akış bitince sunucu com.kozmos.lonca://google?kod=… adresine döner. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.kozmos.lonca" android:host="google" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -34,11 +56,15 @@
 
     <!-- Permissions -->
 
+    <!-- Sunucuyla (kozmos.itaskira.com) konuşmak için; kullanıcıya sorulmaz. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Çevrimdışı ↔ çevrimiçi geçişini fark etmek için (@capacitor/network); kullanıcıya sorulmaz. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <!-- "Yakınımdaki eserler" için. Uygulama açılışında değil, yalnızca bu özellik kullanıldığı an sorulur.
+         Android 12+ kullanıcıya "yaklaşık konum" seçeneğini de sunar; o da yeterlidir. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Dalışta durak değişince hafif titreşim (@capacitor/haptics); kullanıcıya sorulmaz. -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
     <!-- Android 11+: metin okuma (TTS) motorunu bulabilmek için -->
