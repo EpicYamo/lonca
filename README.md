@@ -5,6 +5,20 @@ An AI-assisted mini-app platform for foundation heritage sites.
 
 > **You are the master. The AI is your journeyman.**
 
+## Live presentation
+
+<p align="center">
+  <a href="https://kozmos.itaskira.com/sunum/"><strong>▶ Open the interactive presentation</strong></a>
+</p>
+
+<p align="center">
+  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-ana.webp" width="180" alt="Lonca app home screen"></a>
+  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-atlas-oyun.webp" width="180" alt="Lonca heritage atlas game"></a>
+  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-dalis-uydu.webp" width="180" alt="Lonca AI-assisted heritage dive"></a>
+</p>
+
+<p align="center"><sub>Click any screenshot to open the live, interactive presentation.</sub></p>
+
 **Lonca** (`/app/`) is the citizen-facing app. It lists published modules like an
 app store; opening one hands the whole screen to that module, which behaves like
 a standalone app or game.
@@ -21,6 +35,7 @@ SDK, so a generated app cannot invent history.
 ## Contents
 
 - [Setup](#setup)
+- [Live presentation](#live-presentation)
 - [Commands](#commands)
 - [Architecture](#architecture)
 - [A module is an independent mini app](#a-module-is-an-independent-mini-app)
@@ -32,6 +47,9 @@ SDK, so a generated app cannot invent history.
 - [Real 3D](#real-3d)
 - [Folders](#folders)
 - [Licenses](#licenses)
+
+The presentation can also be deployed as a standalone static site on Netlify; see
+[docs/sunum-deploy.md](docs/sunum-deploy.md).
 
 ## Setup
 
@@ -176,10 +194,12 @@ adb shell monkey -p com.kozmos.lonca -c android.intent.category.LAUNCHER 1  # la
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Runs the server with restart on file changes |
-| `npm test` | API, authorisation, moderation, validation and journeyman-audit tests (25) |
+| `npm test` | Unit, API, authorisation, validation and AI journeyman tests |
 | `npm run test:e2e` | End-to-end scenario in a real browser (run `npx playwright install chromium` first) |
+| `npm run test:erisim` | Browser-based accessibility checks (axe and keyboard flows) |
 | `npm run konum` | Finds work coordinates through Google Places / OpenStreetMap (`-- --dene` only prints) |
 | `npm run vendor` | Re-bundles the real 3D library for the browser |
+| `npm run build:sunum` | Builds a presentation-only static site in `dist/sunum-netlify/` |
 | `npm run lint` · `npm run format:check` · `npm run denetle` | ESLint, Prettier and data/module consistency checks (all run in CI) |
 
 Branch flow (`dev` → `main` → `build`), CI jobs and APK releases are described in [docs/ci-cd.md](docs/ci-cd.md).
@@ -447,6 +467,6 @@ test/         node:test suites · e2e/ end-to-end scenario
 - **Libraries:** MapLibre GL BSD-3 (map data © OpenFreeMap, OpenMapTiles, OpenStreetMap contributors); three.js and 3d-tiles-renderer MIT.
 - **Work texts and photos:** © Vakıf Katılım, *Bursa Vakıf Eserleri Envanteri*,
   *Konya Vakıf Eserleri* and *Hatay İli Vakıf Eserleri*.
-  Used within the scope of the hackathon; the repository is private for this
-  reason.
+  The GitHub repository is currently public. Check the source permissions before
+  reusing or redistributing this material.
 - **Map data:** © OpenFreeMap, © OpenMapTiles, © OpenStreetMap contributors (3D tours: © Google).
