@@ -1,0 +1,535 @@
+// Uygulama kabuğu: Android uygulamasında (html.kabuk) Lonca'yı tek uzun sayfa yerine yerel bir uygulama gibi gösterir.
+//  - Açılış ekranı: Android'in kendi açılış görselinden (aynı logo) devralır, veriler gelince solarak kapanır.
+//  - İlk açılışta kaydırmalı tanıtım (3 sayfa, noktalar, Atla/İleri/Başla); sonra karşılama (giriş) ekranı.
+//  - Üst uygulama çubuğu: sayfanın adı + sağda simge eylemleri (Ara, Davet kodu, tema, erişilebilirlik).
+//  - Alt gezinme: Ana sayfa · Keşfet (modüller + eserler) · Harita · Profilim. Her sekme kendi kaydırma konumunu hatırlar;
+//    Android geri tuşu geldiğin sekmeye, bıraktığın yere döner. Modülden dönünce de aynı yere gelinir.
+//  - Tam ekran arama sayfası, alttan açılan davet kodu sayfası, sağdan kayan tam ekran eser sayfası.
+//  - Dokunma dalgası (Material ripple) ve hafif titreşim.
+// Web'de yalnızca ?kabuk ile açılır (deneme için). app.js'e dokunmaz: profil ve ana ekran geçişleri onun kendi
+// düğmeleriyle (#profil-cip, #profil-geri) yapılır, böylece veri yükleme ve hesap mantığı tek yerde kalır.
+import { loncaLogo } from "/ortak/logo.js";
+import { kesfetKur } from "/app/uygulama/kesfet.js";
+
+const kok = document.documentElement;
+if (kok.classList.contains("lonca-native")) kok.classList.add("kabuk");
+const etkin = kok.classList.contains("kabuk") && !new URLSearchParams(location.search).has("onizleme");
+
+const $ = (s) => document.querySelector(s);
+// Alt gezinme sırası: Ana sayfa · Keşfet (modüller ve eserler, data-sekme="moduller") · Harita (data-sekme="kesif") · Profilim.
+const SEKMELER = ["ana", "moduller", "kesif", "profil"];
+const BASLIK = { ana: "Lonca", kesif: "Harita", moduller: "Keşfet", profil: "Profilim" };
+const hareketAz = () => kok.classList.contains("hareket-az") || matchMedia("(prefers-reduced-motion: reduce)").matches;
+const titret = (tur = "secim") => window.loncaMobil?.titret?.(tur);
+const depoOku = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const depoYaz = (k, v) => { try { localStorage.setItem(k, v); } catch { /* gizli sekme */ } };
+
+let sekme = "ana";
+// Her sekmenin kaydırma konumu ve gezinme geçmişi (geri tuşu geldiğin sekmeye döner).
+const konum = { ana: 0, kesif: 0, moduller: 0, profil: 0 };
+const gecmis = [];
+// Geçişler sırasında tarayıcının kendi kaydırma düzeltmeleri kayda geçmesin.
+let kilit = false, sonKaydirma = 0;
+
+const SVG = {
+  ara: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  anahtar: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 20 3m-4 4 3 3m-5-1 2 2"/></svg>',
+  geri: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5M11 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+
+function acilisKapat() {
+  const a = $("#acilis-ekrani");
+  if (!a || a.classList.contains("gidiyor")) return;
+  a.classList.add("gidiyor");
+  setTimeout(() => a.classList.add("bitti"), hareketAz() ? 0 : 420);
+}
+
+// Sayfa geçişi: üst çubuk ve alt gezinme sabit kalır, yalnızca içerik kısa bir solup kayma ile gelir.
+// Görünüm geçişi (startViewTransition) kullanılmaz: bütün sayfanın anlık görüntüsünü aldığı için sabit çubuklar da
+// titriyor, art arda dokunuşlarda geçiş atlanıp sayfa yarım kalıyordu. Burada yalnızca CSS animasyonu var; bir
+// sonraki dokunuş önceki animasyonu keser, içerik hiçbir zaman görünmez kalmaz.
+function icerikGir(yon) {
+  if (hareketAz()) return;
+  const kap = sekme === "profil" ? $("#profil-ekrani") : $("#ana-ekran");
+  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.classList.remove("sayfa-gir", "yon-ileri", "yon-geri");
+  void kap.offsetWidth; // animasyonu baştan başlat
+  // Yön sınıfı önekli: düz "geri" app.css'teki geri düğmesi kuralına (44px kutu) takılıp sayfayı geçiş boyunca bozuyordu.
+  kap.classList.add("sayfa-gir", `yon-${yon}`);
+  const ad = $("#marka-ad");
+  ad.classList.remove("baslik-gir");
+  void ad.offsetWidth;
+  ad.classList.add("baslik-gir");
+}
+
+function ciz() {
+  $("#ana-ekran").dataset.sekme = sekme === "profil" ? "ana" : sekme;
+  kok.dataset.sekme = sekme;
+  $("#marka-ad").textContent = BASLIK[sekme];
+  // Ana sayfanın büyük başlığı (h1) yalnızca orada görünür; diğer sayfalarda başlık çubuktaki sayfa adıdır.
+  const ad = $("#marka-ad");
+  if (sekme === "ana") { ad.removeAttribute("role"); ad.removeAttribute("aria-level"); }
+  else { ad.setAttribute("role", "heading"); ad.setAttribute("aria-level", "1"); }
+  // app.js harita gibi görünür olunca kurulan bölümler için dinler.
+  dispatchEvent(new CustomEvent("lonca:sekme", { detail: sekme }));
+  for (const b of document.querySelectorAll("#alt-gezinme [data-sekme]")) {
+    if (b.dataset.sekme === sekme) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  }
+}
+
+// İçerik geç dolabilir (profil, liste yeniden çizimi): hedef konuma inene kadar birkaç kare dener.
+function konumaDon(y) {
+  kilit = true;
+  let deneme = 0;
+  const adim = () => {
+    scrollTo(0, y);
+    if (Math.abs(scrollY - y) > 2 && deneme++ < 40) return requestAnimationFrame(adim);
+    sonKaydirma = scrollY;
+    requestAnimationFrame(() => { kilit = false; });
+  };
+  adim();
+}
+
+function sekmeyeGec(hedef, { geriDonus = false } = {}) {
+  if (!SEKMELER.includes(hedef)) return;
+  const profilAcik = !$("#profil-ekrani").hidden;
+  if (hedef === sekme && (hedef === "profil") === profilAcik) {
+    // Aynı sekmeye yeniden dokunmak sayfanın başına götürür (Android alışkanlığı).
+    scrollTo({ top: 0, behavior: hareketAz() ? "auto" : "smooth" });
+    return;
+  }
+  aramaKapat({ sessiz: true });
+  davetKapat();
+  konum[sekme] = sonKaydirma;
+  if (!geriDonus && hedef !== sekme) {
+    gecmis.push(sekme);
+    if (gecmis.length > 12) gecmis.shift();
+  }
+  const yon = geriDonus || SEKMELER.indexOf(hedef) < SEKMELER.indexOf(sekme) ? "geri" : "ileri";
+  sekme = hedef;
+  titret();
+  const uyg = window.loncaUygulama;
+  // Profil ile diğer sayfalar arasında veri yeniden yüklenmez (app.js'in hafif geçişleri).
+  if (hedef === "profil") { if (uyg) uyg.profilGoster(); else $("#profil-cip").click(); }
+  else if (profilAcik) { if (uyg) uyg.anaGoster(); else $("#profil-geri").click(); }
+  ciz();
+  icerikGir(yon);
+  konumaDon(hedef === "profil" ? 0 : konum[hedef] ?? 0);
+}
+
+// ---------- Tam ekran arama (Material arama görünümü) ----------
+let aramaOncesi = 0;
+function aramaAc() {
+  if (kok.classList.contains("arama-sayfasi")) return;
+  davetKapat();
+  aramaOncesi = sonKaydirma;
+  kilit = true;
+  kok.classList.add("arama-sayfasi");
+  $("#arama")?.focus({ preventScroll: true });
+  requestAnimationFrame(() => { kilit = false; });
+}
+function aramaKapat({ sessiz = false } = {}) {
+  if (!kok.classList.contains("arama-sayfasi")) return false;
+  const girdi = $("#arama");
+  if (girdi?.value) $("#arama-temizle")?.click();
+  girdi?.blur();
+  kok.classList.remove("arama-sayfasi");
+  if (!sessiz) konumaDon(aramaOncesi);
+  return true;
+}
+
+// ---------- Alttan açılan sayfa: davet kodu ----------
+let perde = null;
+function perdeyiKur() {
+  perde = document.createElement("div");
+  perde.className = "kabuk-perde";
+  perde.hidden = true;
+  perde.addEventListener("click", () => davetKapat());
+  document.body.append(perde);
+}
+function davetAc() {
+  const kart = $("#davet-karti");
+  if (!kart) return;
+  aramaKapat({ sessiz: true });
+  perde.hidden = false;
+  kart.classList.add("acik");
+  kart.setAttribute("role", "dialog");
+  kart.setAttribute("aria-modal", "true");
+  kok.classList.add("sayfa-acik");
+  $("#kabuk-davet")?.setAttribute("aria-expanded", "true");
+  titret();
+  setTimeout(() => $("#davet-girdi")?.focus(), hareketAz() ? 0 : 260);
+}
+function davetKapat() {
+  const kart = $("#davet-karti");
+  if (!kart?.classList.contains("acik")) return false;
+  kart.classList.remove("acik");
+  kart.style.transform = "";
+  kart.removeAttribute("role");
+  kart.removeAttribute("aria-modal");
+  perde.hidden = true;
+  kok.classList.remove("sayfa-acik");
+  $("#davet-girdi")?.blur();
+  const d = $("#kabuk-davet");
+  d?.setAttribute("aria-expanded", "false");
+  if (sekme === "moduller") d?.focus({ preventScroll: true });
+  return true;
+}
+// Alttan sayfayı aşağı çekince kapanır (tutamaçtan ya da üst kısımdan); kapatma ayrıca perdeye dokunarak ve geri
+// tuşuyla. İçi kaydırılabilen sayfada yalnızca en üstteyken çekmek kapatır.
+function surukleKur(kart, kapat) {
+  let bas = null, son = 0;
+  kart.addEventListener("touchstart", (o) => {
+    if (o.target.closest("input, select, textarea, button, a") || kart.scrollTop > 0) return;
+    bas = o.touches[0].clientY; son = bas;
+  }, { passive: true });
+  kart.addEventListener("touchmove", (o) => {
+    if (bas === null) return;
+    son = o.touches[0].clientY;
+    const fark = Math.max(0, son - bas);
+    if (!fark) return;
+    kart.classList.add("suruklen");
+    kart.style.transform = `translateY(${fark}px)`;
+  }, { passive: true });
+  const birak = () => {
+    if (bas === null) return;
+    const fark = son - bas;
+    bas = null;
+    kart.classList.remove("suruklen");
+    if (fark > 90) { kart.style.transform = ""; kapat(); return; }
+    kart.classList.add("donuyor");
+    kart.style.transform = "";
+    setTimeout(() => kart.classList.remove("donuyor"), 260);
+  };
+  kart.addEventListener("touchend", birak);
+  kart.addEventListener("touchcancel", birak);
+}
+
+// ---------- Üst çubuk eylemleri ----------
+function ustEylemleriKur() {
+  const kap = $("#ust-bar .vitrin-dugmeler");
+  if (!kap || $("#kabuk-ara")) return;
+  const dugme = (id, ad, svg) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.id = id; b.className = "kabuk-ikon"; b.setAttribute("aria-label", ad); b.title = ad;
+    b.innerHTML = svg;
+    return b;
+  };
+  const ara = dugme("kabuk-ara", "Ara", SVG.ara);
+  ara.addEventListener("click", aramaAc);
+  const davet = dugme("kabuk-davet", "Davet koduyla modül aç", SVG.anahtar);
+  davet.setAttribute("aria-haspopup", "dialog");
+  davet.setAttribute("aria-expanded", "false");
+  davet.addEventListener("click", davetAc);
+  kap.prepend(ara, davet);
+
+  // Ana sayfadaki arama kutusuna dokunmak tam ekran aramayı açar.
+  $("#arama")?.addEventListener("focus", aramaAc);
+  // Arama sayfasının geri oku (kutunun solunda, büyütecin yerinde).
+  const kutu = $(".arama-kutu");
+  if (kutu && !$("#arama-geri")) {
+    const g = document.createElement("button");
+    g.type = "button"; g.id = "arama-geri"; g.className = "arama-geri"; g.setAttribute("aria-label", "Aramayı kapat");
+    g.innerHTML = SVG.geri;
+    g.addEventListener("click", (e) => { e.preventDefault(); aramaKapat(); });
+    kutu.prepend(g);
+  }
+}
+
+// Eser sayfası: uygulamada tam ekran, kapatma düğmesi sol üstte geri oku.
+function eserSayfasiKur() {
+  const x = $("#ep-x");
+  if (!x) return;
+  x.innerHTML = SVG.geri;
+  x.setAttribute("aria-label", "Geri");
+  // Alttan gelen sayfa kapanırken de aşağı iner (Android sayfa kapanışı); hareketi azaltta hemen kapanır.
+  x.addEventListener("click", (o) => {
+    const d = $("#eser-penceresi");
+    if (!d?.open || hareketAz() || !d.animate) return;
+    o.stopImmediatePropagation();
+    const a = d.animate([{ transform: "none" }, { transform: "translateY(100%)" }], { duration: 240, easing: "cubic-bezier(.3, 0, .8, .15)" });
+    a.finished.then(() => d.close(), () => d.close());
+  }, { capture: true });
+}
+
+// ---------- Kaydırmalı tanıtım (yalnızca ilk açılışta, karşılamadan önce) ----------
+const TANITIM = [
+  { baslik: "Vakıf eserleri, cebinde", metin: "Camiler, hanlar, türbeler ve çeşmeler: envanter kaydı, fotoğrafları ve tarihçesiyle." },
+  { baslik: "Haritada keşfet", metin: "Yakınındaki eserleri bul, haritada gez, bir eserden ilişkili eserlere geç." },
+  { baslik: "Rehberler, oyunlar ve dalışlar", metin: "Modülleri aç, eserlerin içine dal; puan ve başarım topla, ilerlemen seninle kalsın." },
+];
+let tanitim = null;
+function tanitimKur() {
+  if (depoOku("lonca.tanitim") || tanitim) return;
+  tanitim = document.createElement("section");
+  tanitim.id = "tanitim";
+  tanitim.className = "tanitim";
+  tanitim.setAttribute("role", "dialog");
+  tanitim.setAttribute("aria-modal", "true");
+  tanitim.setAttribute("aria-label", "Lonca'yı tanı");
+  tanitim.innerHTML = `
+    <button type="button" class="tn-atla">Atla</button>
+    <div class="tn-serit" tabindex="0" aria-label="Tanıtım sayfaları, yana kaydır">${TANITIM.map((s, i) => `
+      <article class="tn-sayfa" aria-label="${i + 1} / ${TANITIM.length}">
+        <div class="tn-gorsel" aria-hidden="true"><span class="tn-sayi">${String(i + 1).padStart(2, "0")}</span></div>
+        <div class="tn-metin"><h2>${s.baslik}</h2><p>${s.metin}</p></div>
+      </article>`).join("")}
+    </div>
+    <div class="tn-alt">
+      <div class="tn-noktalar" aria-hidden="true">${TANITIM.map(() => "<i></i>").join("")}</div>
+      <button type="button" class="dugme tn-ileri">İleri</button>
+    </div>`;
+  document.body.append(tanitim);
+  const serit = tanitim.querySelector(".tn-serit");
+  const noktalar = [...tanitim.querySelectorAll(".tn-noktalar i")];
+  const sayfalar = [...tanitim.querySelectorAll(".tn-sayfa")];
+  const ileri = tanitim.querySelector(".tn-ileri");
+  const indeks = () => Math.round(serit.scrollLeft / Math.max(1, serit.clientWidth));
+  const guncelle = () => {
+    const i = indeks();
+    noktalar.forEach((n, j) => n.classList.toggle("secili", j === i));
+    // Ekran okuyucu yalnızca görünen sayfayı okur.
+    sayfalar.forEach((s, j) => s.setAttribute("aria-hidden", String(j !== i)));
+    ileri.textContent = i === TANITIM.length - 1 ? "Başla" : "İleri";
+  };
+  serit.addEventListener("scroll", () => requestAnimationFrame(guncelle), { passive: true });
+  ileri.addEventListener("click", () => {
+    const i = indeks();
+    titret();
+    if (i >= TANITIM.length - 1) return tanitimBitir();
+    serit.scrollTo({ left: (i + 1) * serit.clientWidth, behavior: hareketAz() ? "auto" : "smooth" });
+  });
+  tanitim.querySelector(".tn-atla").addEventListener("click", tanitimBitir);
+  guncelle();
+  // Görseller: vitrinin fotoğrafları (çevrimdışı da pakette).
+  fetch("/api/vitrin").then((y) => y.json()).then((v) => {
+    const fotolar = [...new Set([v?.gununEseri?.foto, ...(v?.secki ?? []).map((s) => s.foto), ...Object.values(v?.kapaklar ?? {}).map((k) => k?.foto)].filter(Boolean))];
+    tanitim?.querySelectorAll(".tn-gorsel").forEach((g, i) => { if (fotolar[i]) g.style.backgroundImage = `url("${fotolar[i]}")`; });
+  }).catch(() => {});
+  ileri.focus({ preventScroll: true });
+}
+function tanitimBitir() {
+  if (!tanitim) return;
+  depoYaz("lonca.tanitim", "1");
+  const t = tanitim;
+  tanitim = null;
+  const sil = () => { t.remove(); $("#ks-giris")?.focus({ preventScroll: true }); };
+  if (hareketAz()) return sil();
+  t.classList.add("gidiyor");
+  setTimeout(sil, 280);
+}
+function tanitimGeri() {
+  if (!tanitim) return null;
+  const serit = tanitim.querySelector(".tn-serit");
+  const i = Math.round(serit.scrollLeft / Math.max(1, serit.clientWidth));
+  if (i === 0) return false;
+  serit.scrollTo({ left: (i - 1) * serit.clientWidth, behavior: hareketAz() ? "auto" : "smooth" });
+  return true;
+}
+
+// ---------- Dokunma dalgası (Material ripple) ----------
+const DALGA = ".kabuk-ikon, .pl-satir, .uygulama-satiri, .dugme, .kh-arac, .mc-geri, .mc-dugme, .ayar-dugme, .tema-dugme, .ag-ikon, .as-satir, .kh-liste button, .devam-karti, .gunun-karti, .kategori-cip, .arama-geri, .ep-x, .tn-atla, .metin-dugme, .secki-karti, .oc-kart, .pk-duzenle, .ks-devam, .bolumlu button";
+function dalgaKur() {
+  document.addEventListener("pointerdown", (o) => {
+    if (o.button !== 0 || hareketAz()) return;
+    let h = o.target.closest?.(DALGA);
+    const nav = o.target.closest?.("#alt-gezinme button");
+    if (nav) h = nav.querySelector(".ag-ikon");
+    if (!h || h.disabled || h.closest("#sahne")) return;
+    const r = h.getBoundingClientRect();
+    const boyut = Math.max(r.width, r.height) * 2.2;
+    const d = document.createElement("span");
+    d.className = "dalga";
+    d.setAttribute("aria-hidden", "true");
+    d.style.cssText = `width:${boyut}px;height:${boyut}px;left:${o.clientX - r.left - boyut / 2}px;top:${o.clientY - r.top - boyut / 2}px`;
+    // Konumlandırılmamış öğe dalgayı içine alsın diye göreli olur; zaten konumluysa (absolute/fixed) dokunulmaz.
+    if (!h.classList.contains("dalgali") && getComputedStyle(h).position === "static") h.style.position = "relative";
+    h.classList.add("dalgali");
+    h.append(d);
+    let bitti = false;
+    const bitir = () => { if (bitti) return; bitti = true; d.classList.add("bitiyor"); setTimeout(() => d.remove(), 320); };
+    addEventListener("pointerup", bitir, { once: true });
+    addEventListener("pointercancel", bitir, { once: true });
+    setTimeout(bitir, 900);
+  }, { passive: true });
+}
+
+// ---------- Klavye: odaktaki alan görünür kalsın ----------
+// Android'de kopru.js klavye açılınca odagiGoster'i çağırır ve --klavye'yi ayarlar. Tarayıcıda (?kabuk) klavye
+// yalnızca görsel alanı küçültür: --klavye görsel alandan hesaplanır. Alan sayfada da, alttan sayfanın içinde de
+// (kaydırılabilir her ata ile) ortaya kaydırılır.
+const yaziAlani = (e) => e instanceof HTMLElement && (e.matches("input:not([type=checkbox], [type=radio], [type=range], [type=button], [type=submit], [type=file]), textarea, select") || e.isContentEditable);
+let klavyePayi = 0;
+function odagiGoster() {
+  const e = document.activeElement;
+  if (!yaziAlani(e)) return;
+  requestAnimationFrame(() => {
+    // Alan zaten görünüyorsa kaydırma: yazarken art arda gelen çağrılar sayfayı oynatıp yazmayı yavaşlatmasın.
+    const vv = window.visualViewport;
+    const alt = (vv ? vv.offsetTop + vv.height : innerHeight) - (parseFloat(kok.style.getPropertyValue("--klavye")) || 0);
+    const r = e.getBoundingClientRect();
+    if (r.top >= 8 && r.bottom <= alt - 8) return;
+    e.scrollIntoView({ block: "center", inline: "nearest", behavior: hareketAz() ? "auto" : "smooth" });
+  });
+}
+function klavyeKur() {
+  // Klavye açıkken başka bir alana geçince de (ör. formda bir sonraki alan) görünür yere gel.
+  document.addEventListener("focusin", (o) => {
+    if (!yaziAlani(o.target)) return;
+    setTimeout(() => { if (document.activeElement === o.target && (kok.classList.contains("klavye-acik") || klavyePayi > 0)) odagiGoster(); }, 120);
+  });
+  const vv = window.visualViewport;
+  if (!vv || kok.classList.contains("lonca-native")) return;
+  const olc = () => {
+    const pay = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop));
+    const acik = pay > 120; // adres çubuğu oynamaları klavye sayılmaz
+    const yeni = acik ? pay : 0;
+    if (yeni === klavyePayi) return;
+    klavyePayi = yeni;
+    kok.style.setProperty("--klavye", `${yeni}px`);
+    kok.classList.toggle("klavye-acik", acik);
+    if (acik) odagiGoster();
+  };
+  vv.addEventListener("resize", olc);
+  vv.addEventListener("scroll", olc);
+}
+// Modülün o an görünen ekranındaki kendi geri düğmesi (ust_cubuk geri); düğme uygulamada gizli olduğundan çubuğa bakılır.
+function modulIcGeri() {
+  return [...document.querySelectorAll("#sahne .s-ust-cubuk")].find((c) => c.getClientRects().length > 0)?.querySelector(".s-ust-geri") ?? null;
+}
+// Modül açıkken geri: önce modülün içinde bir ekran geri, kök ekranda modülü kapat. Uygulama çubuğu ve Android geri tuşu kullanır.
+function modulGeri() { (modulIcGeri() ?? $("#geri"))?.click(); }
+
+// Android geri tuşu (kopru.js çağırır). Sıra: tanıtım → alttan sayfa → arama → harita kartı/liste → Ana sayfa.
+// İşi yaptıysa true döner; false ise uygulama arka plana alınır.
+function geri() {
+  if (!$("#modul-ekrani").hidden) return false;
+  const t = tanitimGeri();
+  if (t !== null) return t;
+  if (davetKapat()) return true;
+  if (aramaKapat()) return true;
+  if ($("#kh-kart") && !$("#kh-kart").hidden) { $("#kh-kapat").click(); return true; }
+  if ($("#kh-liste") && !$("#kh-liste").hidden) { $("#kh-liste-dugme")?.click(); return true; }
+  // Alt gezinmeli Android uygulamalarındaki gibi: diğer sekmelerden geri Ana sayfaya, Ana sayfadan uygulama dışına.
+  if (sekme !== "ana") { gecmis.length = 0; sekmeyeGec("ana", { geriDonus: true }); return true; }
+  if (scrollY > 200) { scrollTo({ top: 0, behavior: hareketAz() ? "auto" : "smooth" }); return true; }
+  return false;
+}
+
+// Sabit çubukların gerçek yüksekliği (Android'de sistem yazı boyutu büyütülünce çubuklar da büyür): içerik
+// payları ve Keşfet haritasının boyu bu değişkenlerden hesaplanır, böylece hiçbir şey çubuğun altında kalmaz.
+function cubukBoylariniIzle() {
+  const yaz = () => {
+    const ust = $("#ust-bar"), alt = $("#alt-gezinme");
+    if (ust?.offsetHeight) kok.style.setProperty("--ust-h", `${ust.offsetHeight}px`);
+    if (alt?.offsetHeight) kok.style.setProperty("--alt-h", `${alt.offsetHeight}px`);
+  };
+  yaz();
+  if ("ResizeObserver" in window) { const g = new ResizeObserver(yaz); for (const s of ["#ust-bar", "#alt-gezinme"]) if ($(s)) g.observe($(s)); }
+  addEventListener("resize", yaz);
+}
+
+function kur() {
+  const logo = $("#ae-logo");
+  if (logo) logo.innerHTML = loncaLogo({ boyut: 84 });
+  if (!etkin) { $("#acilis-ekrani")?.remove(); $("#alt-gezinme")?.remove(); return; }
+
+  perdeyiKur();
+  ustEylemleriKur();
+  cubukBoylariniIzle();
+  kesfetKur();
+  for (const k of [$("#ana-ekran"), $("#profil-ekrani")]) k.addEventListener("animationend", (o) => { if (o.target === k) k.classList.remove("sayfa-gir", "yon-ileri", "yon-geri"); });
+  eserSayfasiKur();
+  dalgaKur();
+  // Haritadaki eser kartı alttan sayfa: aşağı çekince kapanır.
+  if ($("#kh-kart")) surukleKur($("#kh-kart"), () => $("#kh-kapat")?.click());
+  klavyeKur();
+
+  $("#alt-gezinme").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-sekme]");
+    if (b) sekmeyeGec(b.dataset.sekme);
+  });
+
+  // Davet kartı paylasim.js tarafından sonradan eklenir: gelince alttan sayfaya dönüştür.
+  const davetHazirla = () => {
+    const kart = $("#davet-karti");
+    if (!kart) return false;
+    if (kart.dataset.kabuk) return true;
+    kart.dataset.kabuk = "1";
+    const tutamac = document.createElement("span");
+    tutamac.className = "kabuk-tutamac";
+    tutamac.setAttribute("aria-hidden", "true");
+    kart.prepend(tutamac);
+    surukleKur(kart, davetKapat);
+    document.body.append(kart);
+    return true;
+  };
+  if (!davetHazirla()) {
+    const mo = new MutationObserver(() => { if (davetHazirla()) mo.disconnect(); });
+    mo.observe(document.body, { childList: true, subtree: true });
+  }
+
+  // Alt çubuk yalnızca Lonca'nın kendi sayfalarında; modül açıkken modül tam ekrandır.
+  const nav = $("#alt-gezinme");
+  let modulde = false;
+  const gozle = () => {
+    const simdiModulde = !$("#modul-ekrani").hidden;
+    if (simdiModulde !== modulde) {
+      modulde = simdiModulde;
+      if (modulde) { kilit = true; konum[sekme] = sonKaydirma; davetKapat(); }
+      // Modülden dönünce bıraktığın yere.
+      else konumaDon(konum[sekme] ?? 0);
+    }
+    nav.hidden = modulde;
+    kok.classList.toggle("kabuk-modulde", modulde);
+    const profilde = !$("#profil-ekrani").hidden;
+    kok.classList.toggle("kabuk-profilde", profilde && !modulde);
+    // Profil başka yoldan açıldı/kapandıysa (ör. hesap işlemi sonrası ana ekrana dönüş) sekmeyi eşitle.
+    if (profilde && sekme !== "profil") { gecmis.push(sekme); sekme = "profil"; ciz(); }
+    else if (!profilde && sekme === "profil" && !$("#ana-ekran").hidden) { sekme = gecmis.pop() ?? "ana"; ciz(); }
+  };
+  const o = new MutationObserver(gozle);
+  for (const s of ["#modul-ekrani", "#profil-ekrani", "#ana-ekran"]) o.observe($(s), { attributes: true, attributeFilter: ["hidden"] });
+  gozle();
+  ciz();
+
+  // Sayfa kayınca üst çubuk yüzey rengine geçer ve altına ince çizgi gelir (Material "kaydırınca yüksel").
+  let kaydirildi = false;
+  addEventListener("scroll", () => {
+    if (!kilit && !modulde && !kok.classList.contains("arama-sayfasi")) sonKaydirma = scrollY;
+    const k = scrollY > 4;
+    if (k !== kaydirildi) { kaydirildi = k; kok.classList.toggle("kaydirildi", k); }
+  }, { passive: true });
+
+  // Açılış ekranı: uygulama listesi dolunca (en geç 4,5 sn) kapanır; çok hızlı yanıtta logo bir an görünür kalır.
+  const baslangic = performance.now();
+  const kapat = () => setTimeout(acilisKapat, Math.max(0, 650 - (performance.now() - baslangic)));
+  const liste = $("#moduller");
+  if (liste.childElementCount) kapat();
+  else new MutationObserver((_, mo) => { if (liste.childElementCount) { mo.disconnect(); kapat(); } }).observe(liste, { childList: true });
+  setTimeout(acilisKapat, 4500);
+
+  // Karşılama ilk kez açılınca önce kaydırmalı tanıtım gelir.
+  const ks = $("#karsilama");
+  if (ks) {
+    const bak = () => { if (!ks.hidden) tanitimKur(); };
+    new MutationObserver(bak).observe(ks, { attributes: true, attributeFilter: ["hidden"] });
+    bak();
+  }
+
+  // Modül çubuğu: tek geri oku. Modülün ekranında kendi geri düğmesi (ust_cubuk geri) varsa önce modülün içinde geri
+  // gider (o düğme uygulamada gizlidir, sayfalar.css), yoksa modülü kapatır (#geri ile aynı yol). Başlık modülün adını izler.
+  $("#modul-geri").addEventListener("click", () => modulGeri());
+  const baslikEsle = () => { $("#modul-baslik").textContent = $("#baslik").textContent; };
+  new MutationObserver(baslikEsle).observe($("#baslik"), { childList: true, characterData: true, subtree: true });
+  baslikEsle();
+
+  // Escape (klavye/erişilebilirlik): açık alttan sayfa ya da boş arama kapanır.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (davetKapat() || (kok.classList.contains("arama-sayfasi") && !$("#arama").value && aramaKapat())) e.preventDefault();
+  });
+
+  window.loncaKabuk = { geri, modulGeri, sekmeyeGec, aramaAc, davetAc, odagiGoster, get sekme() { return sekme; } };
+}
+
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", kur, { once: true }); else kur();

@@ -1,4 +1,5 @@
 // Lonca SDK tip tanımları — modüllerin (ve yapay zekâ kalfasının) gördüğü sözleşme.
+// <genis> … </genis> arası "genişletilmiş mod"dur (tuval, oyun.*): kalfa bunları ancak usta onay kartında açınca görür ve kullanır.
 //
 // Her modül kendi başına bir UYGULAMADIR: açılınca tüm ekran onundur (Lonca'dan yalnızca köşede küçük bir kapat
 // kapsülü kalır). Modül kendi temasını seçer, kendi üst çubuğunu / kapağını / sekmelerini çizer ve olayları dinler:
@@ -12,6 +13,12 @@
 //     for await (const olay of sahne.olaylar()) { /* durumu güncelle */ await ciz(); }
 //   }
 //
+// <genis>
+// Gerçek zamanlı oyunlar ve dokunmatik mini uygulamalar (ping pong, yılan, sürükle-bırak, çizim…) için "tuval" düğümü
+// ve oyun.* vardır: oyun.dongu ile her karede güncelle, oyun.ciz ile tuvale çiz, oyun.dokunmalar / oyun.dinle ile
+// parmağı (tut-sürükle) ve klavyeyi oku, oyun.ses ile efekt çal, oyun.titres ile titret (aşağıda "Oyun").
+//
+// </genis>
 // ekran.* (soru, kart, uc gezisi…) uygulamanın üstünde açılan, kullanıcının her an kapatabileceği bir penceredir.
 // Kullanıcı kapatırsa çağrı boş sonuçla döner (soru → { secim: -1, dogru: null }, harita/galeri → null).
 
@@ -65,8 +72,8 @@ declare module "@lonca/sdk" {
   }
   /** Tek eser için bağ listesi: diğer eser ve bağın yönü eklenir. */
   export interface IliskiDetay extends Iliski { diger: Eser | null; yon: "a" | "b"; }
-  /** Haritada çizilecek bağ. Uçlardan biri haritadaki eserlerde yoksa çizilmez. */
-  export interface HaritaBaglantisi { a: string; b: string; tur?: IliskiTuru | (string & {}); etiket?: string; }
+  /** Haritada çizilecek kaynaklı bağ. id verilirse çizgiye dokununca bag olayı gönderilir; bu çizgi bir rota değildir. */
+  export interface HaritaBaglantisi { id?: string; a: string; b: string; tur?: IliskiTuru | (string & {}); etiket?: string; baslik?: string; aciklama?: string; kaynak?: string; }
   /** Sis perdesinin açık kalan alanı (metre yarıçaplı daire). */
   export interface SisAlani { lat: number; lng: number; yaricap: number; }
   /** Haritada şehir/alan etiketi. */
@@ -142,7 +149,7 @@ declare module "@lonca/sdk" {
   export type Dugum =
     // --- Uygulama iskeleti ---
     | { tip: "kapak"; baslik: string; alt?: string; ust?: string; eser?: Eser; renk?: Renk; desen?: string; cocuklar?: Dugum[] } // tam ekran açılış/lobi; cocuklar = alttaki düğmeler
-    | { tip: "ust_cubuk"; baslik: string; alt?: string; geri?: string; sag?: { id: string; ikon: Ikon; etiket: string }[] } // modülün kendi üst çubuğu; geri verilirse ← düğmesi { tur:"dokun", id: geri }
+    | { tip: "ust_cubuk"; baslik: string; alt?: string; geri?: string; sag?: { id: string; ikon: Ikon; etiket: string }[] } // modülün kendi üst çubuğu; geri verilirse ← düğmesi { tur:"dokun", id: geri } (Android uygulamasında bu ← uygulama çubuğundaki tek ← ile birleşir; ayrıca geri düğmesi ekleme)
     // --- Düzen ---
     | { tip: "sutun"; cocuklar: Dugum[]; aralik?: "dar" | "normal" | "genis" }
     | { tip: "satir"; cocuklar: Dugum[]; hizala?: "bas" | "orta" | "son" | "yay" }
@@ -167,9 +174,12 @@ declare module "@lonca/sdk" {
     | { tip: "harita"; id: string; eserler: Eser[]; rota?: boolean; secili?: string;
         baglantilar?: HaritaBaglantisi[]; hayaletBaglantilar?: HayaletBaglanti[]; sis?: { acik: SisAlani[]; opaklik?: number; minPiksel?: number };
         etiketler?: HaritaEtiketi[]; odak?: { lat: number; lng: number; zoom?: number } } // pin → { tur:"dokun", id, eser }
-    | { tip: "graf"; id?: string; merkez: Eser; iliskiler: { eser: Eser; tur?: IliskiTuru | (string & {}); baslik?: string }[] } // düğüm → { tur:"dokun", id, eser }
+    | { tip: "graf"; id?: string; merkez: Eser; iliskiler: { eser: Eser; tur?: IliskiTuru | (string & {}); baslik?: string; aciklama?: string; kaynak?: string }[] } // kaynaklı bağ açıklamaları ve künyeleri; düğüm → { tur:"dokun", id, eser }
     | { tip: "rozet"; ad: string; aciklama?: string; kazanildi: boolean }
     | { tip: "dalis"; id?: string; etiket?: string; kareler: DalisKaresi[]; cocuklar?: Dugum[] } // kaydırdıkça eserin içine giren tam ekran sahne; cocuklar sahnenin bitiminde gösterilir
+    // <genis>
+    | { tip: "tuval"; id: string; en?: number; boy?: number; tam?: boolean; arkaplan?: string; etiket?: string; cocuklar?: Dugum[] } // oyun alanı. en/boy VERME: tuval tam ekrandır, ekranı doldurur ve boyutu ekranın gerçek boyutudur (telefonda dar-uzun, web'de geniş; değişebilir) → her karede const { en, boy } = oyun.boyut(id) ile oku, yerleşimi en/boy oranıyla kur. en/boy verilirse o oranda sabit kalır, ekrana orantılı sığar (kenarlarda boşluk kalır). oyun.ciz(id, …) ile çizilir; cocuklar tuvalin ÜSTÜNDE katman (ör. gol kartı, duraklat menüsü); kısa dokunuş { tur:"dokun", id, x, y }
+    // </genis>
     | { tip: "ayrac" }
     | { tip: "bosluk" };
 
@@ -214,7 +224,7 @@ declare module "@lonca/sdk" {
   export type GevsekDugum = { tip: string; [alan: string]: any };
 
   export type Olay =
-    | { tur: "dokun"; id: string; eser?: Eser }
+    | { tur: "dokun"; id: string; eser?: Eser; x?: number; y?: number } // tuvalde kısa dokunuşta x, y tuval koordinatıdır
     | { tur: "sekme"; id: string }
     | { tur: "sec"; id: string; deger: string }
     | { tur: "gonder"; id: string; deger: string }
@@ -252,6 +262,93 @@ declare module "@lonca/sdk" {
     yaz(anahtar: string, deger: unknown): Promise<void>;
   }
 
+  // <genis>
+  // ---------- Oyun: tuval, oyun döngüsü, dokunma, klavye, ses, titreşim ----------
+  /**
+   * Tuval çizim kalemi (oyun.ciz içinde). Koordinatlar tuvalin mantıksal birimidir (0,0 sol üst; tuval en × boy).
+   * renk: CSS rengi ("#ffcc00", "rgba(0,0,0,.5)", "white"); "yok" dolgu yapmaz. Her çağrı kalemi döndürür (zincirlenebilir).
+   */
+  export interface Kalem {
+    /** Bütün tuvali bu renkle doldurur (renk yoksa saydam temizler). Her karenin başında çağır. */
+    temizle(renk?: string): Kalem;
+    dikdortgen(x: number, y: number, en: number, boy: number, renk: string, secenek?: { yuvarlak?: number; cizgi?: string; kalinlik?: number }): Kalem;
+    /** x, y merkez; r yarıçap. */
+    daire(x: number, y: number, r: number, renk: string, secenek?: { cizgi?: string; kalinlik?: number }): Kalem;
+    cizgi(x1: number, y1: number, x2: number, y2: number, renk: string, kalinlik?: number, secenek?: { kesikli?: number }): Kalem;
+    /** Çokgen / çizgi dizisi: noktalar [[x, y], …]. dolgu: true ise içi boyanır. */
+    yol(noktalar: [number, number][], renk: string, secenek?: { kapali?: boolean; dolgu?: boolean; kalinlik?: number }): Kalem;
+    /** Yazı: hiza x'e göre (sol | orta | sag), taban y'ye göre (ust | orta | alt; varsayılan orta). */
+    yazi(metin: string | number, x: number, y: number, secenek?: { boyut?: number; renk?: string; hiza?: "sol" | "orta" | "sag"; kalin?: boolean; yazi?: "sans" | "serif" | "mono"; taban?: "ust" | "orta" | "alt" }): Kalem;
+    /**
+     * Eserin gerçek fotoğrafını (ya da sunucudaki bir /medya/... görselini) dikdörtgene çizer. kaynak bir Eser ise ilk
+     * fotoğrafı kullanılır; fotoğrafı yoksa hiçbir şey çizilmez. kirp: "kapla" (doldurur, kırpar; varsayılan) | "sigdir".
+     * Görsel ilk çizimde yüklenir, yüklenince tuval kendiliğinden yenilenir.
+     */
+    gorsel(kaynak: Eser | string, x: number, y: number, en: number, boy: number, secenek?: { yuvarlak?: number; kirp?: "kapla" | "sigdir" }): Kalem;
+    /** Bundan sonraki çizimlerin saydamlığı (0–1). */
+    saydamlik(a: number): Kalem;
+    /** Dönüşümler: kaydet → tasi/dondur(radyan)/olcekle → çiz → geriYukle. */
+    kaydet(): Kalem;
+    geriYukle(): Kalem;
+    tasi(x: number, y: number): Kalem;
+    dondur(aci: number): Kalem;
+    olcekle(sx: number, sy?: number): Kalem;
+  }
+  /** Tuvale değen bir parmak (ya da basılı fare). x, y: şimdiki konum; ilkX, ilkY: dokunuşun başladığı yer (tuval koordinatı). */
+  export interface Dokunma { parmak: number; tuval: string; x: number; y: number; ilkX: number; ilkY: number; }
+  /** Girdi olayı: basla (parmak değdi / fare basıldı), surukle (parmak kayıyor), birak (kalktı), tus / tus_birak (klavye). */
+  export interface GirdiOlayi {
+    tur: "basla" | "surukle" | "birak" | "tus" | "tus_birak" | "odak_kaybi" | "boyut";
+    tuval?: string; parmak?: number; x?: number; y?: number; tip?: "touch" | "mouse" | "pen" | (string & {});
+    /** "boyut": tuvalin yeni gerçek boyutu (ekran döndü, pencere büyüdü). */
+    en?: number; boy?: number;
+    /** Klavye: "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space", "Enter", "Escape", harfler küçük ("w", "a"…) */
+    tus?: string;
+  }
+  /** Hazır ses efektleri (WebAudio ile üretilir, dosya gerekmez). */
+  export type SesEfekti = "bip" | "tik" | "vurus" | "duvar" | "puan" | "para" | "zipla" | "gol" | "kazandin" | "kaybettin" | "hata" | "patlama";
+  export interface Oyun {
+    /**
+     * Oyun döngüsü: fn her ekran karesinde (saniyede ~60) çağrılır. dt: geçen süre (saniye, en çok 0.05), t: toplam süre.
+     * Hareketi dt ile çarp (x += hiz * dt). fn içinde oyun.ciz ile çiz; await KULLANMA. Dönen işlev döngüyü durdurur.
+     * Sekme gizlenince kare gelmez; modül kapanınca döngü durur. Aynı anda tek döngü vardır (yeni çağrı eskisinin yerine geçer).
+     */
+    dongu(fn: (dt: number, t: number) => void): () => void;
+    /** Döngüyü durdurur (duraklatma, oyun sonu). */
+    durdur(): void;
+    readonly calisiyor: boolean;
+    /** "tuval" düğümüne (id) çizer: tuval her seferinde baştan çizilir (kalem.temizle ile başla). */
+    ciz(tuval: string, fn: (kalem: Kalem) => void): void;
+    /** Şu an tuvale değen parmaklar (çoklu dokunma). Döngüde oku: tut-sürükle için en kolay yol. */
+    dokunmalar(tuval?: string): Dokunma[];
+    /**
+     * Tuvalin şu anki gerçek boyutu (mantıksal birim). Tam ekran tuvalde ekranın boyutudur: telefonda ör. 390 × 760,
+     * web'de ör. 1280 × 820. Sabit sayı (360, 640) YAZMA: her karede oku; konum ve büyüklükleri en/boy'a oranla kur
+     * (ör. const o = Math.min(en, boy) / 400; raket genişliği 90 * o; raket y = boy - 80 * o).
+     */
+    boyut(tuval?: string): { en: number; boy: number };
+    /** Klavye tuşu şu an basılı mı? (web'de ok tuşları: "ArrowUp"…, boşluk "Space") */
+    tus(ad: string): boolean;
+    /** Girdi dinleyicisi; dönen işlev dinlemeyi bırakır. Örn. oyun.dinle("basla", (o) => zipla()). */
+    dinle(tur: GirdiOlayi["tur"], fn: (olay: GirdiOlayi) => void): () => void;
+    /** Kısa ses efekti ya da ton: { frekans: 440, sure: 0.1, dalga?: "sine" | "square" | "triangle" | "sawtooth", ses?: 0–1, bitis?: frekans }. */
+    ses(efekt: SesEfekti | (string & {}) | { frekans: number; sure?: number; dalga?: "sine" | "square" | "triangle" | "sawtooth" | (string & {}); ses?: number; bitis?: number }): void;
+    /** Titreşim (Android'de dokunsal geri bildirim; yoksa sessizce geçer). Sayı verilirse milisaniye. */
+    titres(tur?: "hafif" | "orta" | "guclu" | "basari" | "hata" | (string & {}) | number): void;
+    /** a–b arasında rastgele ONDALIKLI sayı (b yoksa 0–a). Dizi indeksi için KULLANMA: oyun.sec / oyun.tamSayi. */
+    rastgele(a: number, b?: number): number;
+    /** a–b arasında (ikisi dahil) rastgele tam sayı: ızgara hücresi, zar. */
+    tamSayi(a: number, b: number): number;
+    /** Diziden rastgele bir öğe (dizi boşsa undefined). */
+    sec<T>(dizi: T[]): T | undefined;
+    sinirla(x: number, en_az: number, en_cok: number): number;
+    /** İki dikdörtgen ({ x, y, en, boy }) çakışıyor mu? */
+    carpisir(a: { x: number; y: number; en: number; boy: number }, b: { x: number; y: number; en: number; boy: number }): boolean;
+    /** Bekler (saniye, en çok 10). setTimeout yerine. */
+    bekle(saniye: number): Promise<void>;
+  }
+  // </genis>
+
   export const eserler: Eserler;
   export const ekran: Ekran;
   export const sahne: Sahne;
@@ -259,4 +356,7 @@ declare module "@lonca/sdk" {
   export const basarim: Basarim;
   export const depo: Depo;
   export const dalislar: Dalislar;
+  // <genis>
+  export const oyun: Oyun;
+  // </genis>
 }

@@ -44,3 +44,53 @@
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Doğrulama işareti (public/ortak/dogrulama.js): doğrulanmış içerik "Vakıf Katılım eseri" mührüyle damgalanır, dış
+   kaynaklı içerikte kaynak etiketi. Mühür iki biçimde gelir: satır içinde okunaklı dikdörtgen damga (varsayılan) ve
+   modül kartlarının fotoğrafı üstünde yuvarlak pasaport mührü. Renkler Vakıf Katılım'ın laciverti ve pembesi. */
+.vakif-muhur { --muhur-murekkep: #274679; --muhur-vurgu: #cc277d; --muhur-kagit: rgba(255, 255, 255, .42); --muhur-damga-zemin: rgba(255, 255, 255, .82); display: inline-flex; flex: none; margin-inline-start: .5em; line-height: 1; vertical-align: .1em; }
+.vakif-muhur .vm-yuvarlak { display: none; }
+.vakif-muhur .vm-damga {
+  display: inline-flex; align-items: center; gap: .4em; padding: .34em .65em .32em .5em; border: 1.5px solid currentColor; border-radius: 5px;
+  background: var(--muhur-damga-zemin); box-shadow: inset 0 0 0 1.5px transparent, inset 0 0 0 2.4px var(--muhur-vurgu);
+  color: var(--muhur-murekkep); font: 800 .64rem/1 var(--yazi-govde, system-ui, sans-serif); letter-spacing: .1em; white-space: nowrap;
+  transform: rotate(-2.5deg);
+}
+/* Ekranların genel "span" kuralları (ör. sahne.css'te soluk renk, büyük yazı) damganın içine sızmasın. */
+.vakif-muhur .vm-yazi { color: inherit; font-size: inherit; }
+.vm-amblem { width: 1.3em; height: 1.3em; flex: none; object-fit: contain; }
+/* Kartın fotoğrafı üstünde, sol üst köşeye basılmış yuvarlak mühür (web'in dar modül satırında damga kalır). */
+:is(.kabuk .uygulama-satiri, .oc-kart) .vakif-muhur {
+  position: absolute; top: .7rem; left: .75rem; z-index: 2; width: 68px; height: 68px; margin: 0; pointer-events: none;
+  transform: rotate(-12deg); border-radius: 50%; box-shadow: 0 6px 16px rgba(0, 0, 0, .25);
+  /* Kâğıt yarı saydam: arkadaki fotoğraf buzlu camdan görünür. */
+  -webkit-backdrop-filter: blur(5px) saturate(1.2) brightness(1.08); backdrop-filter: blur(5px) saturate(1.2) brightness(1.08);
+  animation: muhur-bas .55s cubic-bezier(.2, .9, .3, 1.15) .2s both;
+}
+:is(.kabuk .uygulama-satiri, .oc-kart) .vakif-muhur .vm-yuvarlak { display: block; width: 100%; height: 100%; }
+:is(.kabuk .uygulama-satiri, .oc-kart) .vakif-muhur .vm-damga { display: none; }
+.vm-kagit { fill: var(--muhur-kagit); }
+.vm-murekkep { color: var(--muhur-murekkep); font-family: var(--yazi-govde, system-ui, sans-serif); }
+.vm-murekkep .vm-vurgu { color: var(--muhur-vurgu); }
+@keyframes muhur-bas {
+  0% { opacity: 0; transform: rotate(-3deg) scale(1.75); }
+  55% { opacity: 1; transform: rotate(-13deg) scale(.93); }
+  100% { opacity: 1; transform: rotate(-12deg) scale(1); }
+}
+:root.hareket-az :is(.kabuk .uygulama-satiri, .oc-kart) .vakif-muhur { animation: none; }
+/* Etiket büyük başlıklarda da küçük ve düz yazıyla kalır; dar kartta kırılır, kartı taşırmaz. */
+.dogrulama-yok { display: inline-block; max-inline-size: 100%; margin-inline-start: .6em; padding: .1em .55em; border: 1px solid currentColor; border-radius: 999px; font-family: var(--sans, var(--yazi-govde, system-ui, sans-serif)); font-size: min(.72em, .78rem); font-weight: 500; letter-spacing: normal; line-height: 1.35; opacity: .8; vertical-align: .15em; white-space: normal; overflow-wrap: anywhere; }
+
+/* Harita açılamadığında (ör. WebGL2 yok) kutunun içinde gösterilen okunur ileti: uygulama ve web sitesi ortak. */
+.harita-hata {
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  margin: 0;
+  padding: 1.25rem;
+  text-align: center;
+  line-height: 1.45;
+  background: var(--yuzey);
+  color: var(--metin);
+}

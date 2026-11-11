@@ -8,12 +8,19 @@
 // Her kare bir duraktır: önce başlık; sonra "bakışlar". Bir bakışta kamera karenin bir bölgesine (alan) kayar,
 // isteğe bağlı bir noktaya (nokta) ok ve atan bir halka çıkar, yanında bilgi kartı belirir; kaydırmaya devam
 // edilince kart silinir ve sıradaki bakışa geçilir. Hareketi azalt açıksa canvas kurulmaz; her şey alt alta gösterilir.
+//
+// Kaydırma serbesttir (tarayıcının kendi kaydırması): parmak/tekerlek ne kadar kayarsa kamera o kadar ilerler, eserin
+// içine akarak girilir. Okunabilirlik için yazı aşamaları uzundur (kart ekranda ~1 ekran boyu kaydırma kalır) ve
+// kart okunurken kamera kartın gösterdiği yere yavaşça yaklaşır; kaydırma hiçbir yerde engellenmez.
 import { hareketAzalt } from "/ortak/animasyon.js";
 
 const GORSEL_YOLU = /^\/medya\/[a-z0-9\-_/]+\.(?:jpe?g|png|webp)$/i;
 const BIRIM_VH = 80;                              // bir "birim" kaydırma mesafesi (ekran yüksekliğinin yüzdesi)
-const GIRIS = 0.6, HAREKET = 0.5, OKU = 0.85, DONUS = 0.4, GECIS = 1.35, SON = 0.4; // aşama uzunlukları (birim)
+const GIRIS = 0.8, HAREKET = 0.5, OKU = 1.2, DONUS = 0.4, GECIS = 1.35, SON = 0.4; // aşama uzunlukları (birim)
+const YAKLAS = 0.8, YAKLAS_BASLIK = 0.9;         // okurken kameranın yaklaşma oranı (yeni boyut / eski boyut)
 const MAKS_KARE = 40, MAKS_BAKIS = 6;
+const GENIS = "(min-width: 1180px) and (min-aspect-ratio: 5/4)"; // web düzeni: görüntü ortada, kart yanda
+const GIT_MS = 900;                              // durak noktasına dokununca kaydırma süresi
 const TAM = [0, 0, 1];
 
 export const ETIKETLER = {
@@ -28,6 +35,14 @@ export const ETIKETLER = {
 const kenet = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const yumusak = (a, b, x) => { const t = kenet((x - a) / (b - a)); return t * t * (3 - 2 * t); };
 const yazi = (x, n) => (x == null ? "" : String(x).slice(0, n));
+
+// Kamerayı R içinde n noktasına (yoksa ortaya) doğru oran kadar yaklaştırır; görüntünün dışına taşmaz.
+function yaklastir(R, n, oran) {
+  const g = R[2] * oran;
+  const [cx, cy] = n ?? [R[0] + R[2] / 2, R[1] + R[2] / 2];
+  const ic = (v, bas) => kenet(v - g / 2, bas, bas + R[2] - g);
+  return [ic(cx, R[0]), ic(cy, R[1]), g];
+}
 
 function dortgen(p, varsayilan = null) {
   const d = Array.isArray(p) ? p.map(Number) : null;
@@ -67,12 +82,17 @@ function zamanCizelgesi(kareler) {
   kareler.forEach((k, i) => {
     duraklar.push(s);
     let su = TAM;
-    ekle({ tur: "oku", kare: i, A: su, B: su, bakis: (k.baslik || k.metin) ? { baslik: k.baslik, metin: k.metin, buyuk: true } : null, uzunluk: GIRIS });
+    // Okurken kamera durmaz: kartın gösterdiği noktaya (yoksa ortaya) yavaşça yaklaşır; sıradaki hareket oradan başlar.
+    const baslik = (k.baslik || k.metin) ? { baslik: k.baslik, metin: k.metin, buyuk: true } : null;
+    const ilkB = baslik ? yaklastir(su, null, YAKLAS_BASLIK) : su;
+    ekle({ tur: "oku", kare: i, A: su, B: ilkB, bakis: baslik, uzunluk: GIRIS });
+    su = ilkB;
     for (const b of k.bakislar) {
       const hedef = b.alan ?? su;
       if (hedef !== su) ekle({ tur: "hareket", kare: i, A: su, B: hedef, uzunluk: HAREKET });
-      ekle({ tur: "oku", kare: i, A: hedef, B: hedef, bakis: b, uzunluk: OKU });
-      su = hedef;
+      const yakin = yaklastir(hedef, b.nokta, YAKLAS);
+      ekle({ tur: "oku", kare: i, A: hedef, B: yakin, bakis: b, uzunluk: OKU });
+      su = yakin;
     }
     if (i === kareler.length - 1) {
       if (su !== TAM) ekle({ tur: "hareket", kare: i, A: su, B: TAM, uzunluk: DONUS });
@@ -84,8 +104,20 @@ function zamanCizelgesi(kareler) {
       ekle({ tur: "dis", kare: i, uzunluk: GECIS });
     } else ekle({ tur: "ic", kare: i, A: su, uzunluk: GECIS });
   });
-  return { asamalar, duraklar, toplam: s };
+  // Durak noktalarına dokununca gidilecek yer: o karenin ilk kartının tam okunur olduğu an.
+  const durmalar = asamalar.filter((a) => a.tur === "oku" && a.bakis).map((a) => a.bas + (a.son - a.bas) * 0.35);
+  return { asamalar, duraklar, durmalar, toplam: s };
 }
+
+// Dalışı kaydıran öğe: kaydırılabilir en yakın ata ya da belge.
+function kaydiriciBul(el) {
+  for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+    const o = getComputedStyle(p).overflowY;
+    if ((o === "auto" || o === "scroll") && p.scrollHeight > p.clientHeight + 1) return p;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+const yumusakGecis = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 // İki kamera dikdörtgeni arasında "uçuş": boyut logaritmik, konum hedefe yaklaşma oranıyla.
 function ara(A, B, e) {
@@ -98,7 +130,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   if (hareketAzalt()) return duzKur(kutu, { kareler, etiket, el });
 
   const N = kareler.length;
-  const { asamalar, duraklar, toplam } = zamanCizelgesi(kareler);
+  const { asamalar, duraklar, durmalar, toplam } = zamanCizelgesi(kareler);
   const NS = "http://www.w3.org/2000/svg";
   const iz = el("div", { className: "s-dalis-iz" });
   iz.style.height = `calc(${toplam * BIRIM_VH}vh + 100dvh)`;
@@ -120,10 +152,13 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   const noktalar = el("nav", { className: "s-dalis-noktalar", ariaLabel: "Duraklar" },
     ...kareler.map((k, i) => {
       const d = el("button", { className: "s-dalis-nokta", ariaLabel: `${i + 1}. durak${k.baslik ? `: ${k.baslik}` : ""}` });
-      d.addEventListener("click", () => git(duraklar[i] + 0.3));
+      d.dataset.baslik = k.baslik ?? ""; // web oynatıcısı durak listesinde adı gösterir
+      d.addEventListener("click", () => git(durmalar.find((x) => x >= duraklar[i]) ?? duraklar[i]));
       return d;
     }));
-  const sahne = el("div", { className: "s-dalis-sahne" }, tuval, svg, cubuk,
+  // Geniş ekranda görüntünün iki yanını dolduran bulanık arka plan (o anki karenin kendisi).
+  const fon = el("div", { className: "s-dalis-fon", ariaHidden: "true" });
+  const sahne = el("div", { className: "s-dalis-sahne" }, fon, tuval, svg, cubuk,
     el("div", { className: "s-dalis-ustler" }, rozet, durakYazisi), kart, ipucu, noktalar);
   iz.append(sahne);
   kutu.append(iz);
@@ -142,25 +177,57 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
 
   let hedef = 0, simdiki = 0, cizilecek = true, oncekiBakis, oncekiKare = -1, calisiyor = true, cw = 0, ch = 0, dpr = 1;
 
+  // Web (geniş ekran) düzeni: sahne tam genişlik, görüntü ortada dikey sütun, kart sağda. Telefonda ve Android
+  // uygulamasında kart görüntünün üstünde durur.
+  const genisSorgu = matchMedia(GENIS);
+  const genisle = () => { sahne.classList.toggle("genis", genisSorgu.matches); oncekiBakis = undefined; boyutla(); };
+  genisSorgu.addEventListener("change", genisle);
+  sahne.classList.toggle("genis", genisSorgu.matches);
+  let tuvalSol = 0, tuvalUst = 0;
+
   function boyutla() {
-    dpr = Math.min(2, devicePixelRatio || 1);
-    const r = sahne.getBoundingClientRect();
-    cw = Math.max(1, Math.round(r.width * dpr)); ch = Math.max(1, Math.round(r.height * dpr));
+    // Telefonda tuval 1,5× ile sınırlı: görüntü yine keskin, kare başına çizim yükü belirgin biçimde az.
+    dpr = Math.min(matchMedia("(pointer: coarse)").matches ? 1.5 : 2, devicePixelRatio || 1);
+    const r = sahne.getBoundingClientRect(), t = tuval.getBoundingClientRect();
+    tuvalSol = t.left - r.left; tuvalUst = t.top - r.top;
+    cw = Math.max(1, Math.round(t.width * dpr)); ch = Math.max(1, Math.round(t.height * dpr));
     if (tuval.width !== cw || tuval.height !== ch) { tuval.width = ara2.width = cw; tuval.height = ara2.height = ch; }
     svg.setAttribute("viewBox", `0 0 ${r.width} ${r.height}`);
     ctx.imageSmoothingQuality = actx.imageSmoothingQuality = "high";
     cizilecek = true;
   }
 
-  function konum() {
-    const r = iz.getBoundingClientRect();
-    const yol = r.height - innerHeight;
-    return yol > 0 ? kenet(-r.top / yol) * toplam : 0;
-  }
+  // Kaydırıcı ve onun görünen alanı (belge ise pencere).
+  let kaydirici = null;
+  const kap = () => { if (!kaydirici?.isConnected) kaydirici = kaydiriciBul(iz); return kaydirici; };
+  const belgeMi = () => kap() === document.scrollingElement || kaydirici === document.documentElement;
+  const pencere = () => (belgeMi() ? { top: 0, height: innerHeight } : kaydirici.getBoundingClientRect());
 
+  function konum() {
+    const r = iz.getBoundingClientRect(), p = pencere();
+    const yol = r.height - p.height;
+    return yol > 0 ? kenet((p.top - r.top) / yol) * toplam : 0;
+  }
+  // s konumunun kaydırıcıdaki scrollTop karşılığı.
+  function hedefUst(s) {
+    const r = iz.getBoundingClientRect(), p = pencere();
+    return kap().scrollTop + (r.top - p.top) + ((r.height - p.height) * s) / toplam;
+  }
+  // Durak noktasına dokununca oraya yumuşakça kaydır (kullanıcı kaydırırsa animasyon bırakılır).
+  let animasyon = null;
   function git(s) {
-    const r = iz.getBoundingClientRect();
-    scrollTo({ top: scrollY + r.top + ((r.height - innerHeight) * s) / toplam, behavior: "smooth" });
+    cancelAnimationFrame(animasyon?.kare ?? 0);
+    const bas = kap().scrollTop, son = hedefUst(s), t0 = performance.now();
+    animasyon = {};
+    const birak = () => { cancelAnimationFrame(animasyon?.kare ?? 0); animasyon = null; };
+    const adim = (t) => {
+      if (!animasyon) return;
+      const u = kenet((t - t0) / GIT_MS);
+      kaydirici.scrollTop = bas + (son - bas) * yumusakGecis(u);
+      if (u < 1 && calisiyor) animasyon.kare = requestAnimationFrame(adim); else animasyon = null;
+    };
+    for (const ad of ["wheel", "touchstart"]) addEventListener(ad, birak, { once: true, passive: true });
+    animasyon.kare = requestAnimationFrame(adim);
   }
 
   // Görüntünün normalleştirilmiş bölgesini (x, y, g) tuvale "cover" olarak yerleştiren dönüşüm.
@@ -214,7 +281,9 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
       return { d: null, kare: u > 0.5 ? i + 1 : i };
     }
     if (!hazir(r)) return { d: null, kare: i };
-    const R = a.tur === "ic" ? ara(a.A, kareler[i].portal, e) : ara(a.A, a.B, a.tur === "hareket" ? e : 0);
+    // "oku": kart okunurken kamera A'dan B'ye (ayrıntıya) yavaşça yaklaşır; ikinci durma noktasında yaklaşma tamamlanır.
+    const okuE = yumusak(0.12, 0.88, u);
+    const R = a.tur === "ic" ? ara(a.A, kareler[i].portal, e) : ara(a.A, a.B, a.tur === "hareket" ? e : okuE);
     const d = donusum(r, R);
     resimCiz(r, d);
     if (a.tur === "ic" && hazir(sonraki) && u > 0.1) {
@@ -237,7 +306,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
           b.ust ? el("span", { className: "s-dalis-ust", textContent: b.ust }) : null,
           b.baslik ? el("strong", { textContent: b.baslik }) : null,
           b.metin ? el("p", { textContent: b.metin }) : null,
-          b.kaynak ? el("small", { textContent: `Kaynak: ${b.kaynak}` }) : null].filter(Boolean));
+          b.kaynak ? el("span", { className: "s-dalis-kaynak", textContent: `Kaynak · ${b.kaynak}` }) : null].filter(Boolean));
         // Kart, işaret noktasının karşı yarısına yerleşir; noktasız kartlar karenin tercihine uyar.
         const alan = b.alan ?? TAM;
         const ust = b.nokta ? b.nokta[1] > alan[1] + alan[2] / 2 : k.yazi === "ust";
@@ -250,11 +319,13 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     // Ok: kartın kenarından işaret noktasına doğru çizilir.
     const d = sonuc?.d;
     if (b?.nokta && d && gorunur > 0.01) {
-      const x = ((b.nokta[0] * d.W - d.sx) * d.olcek) / dpr, y = ((b.nokta[1] * d.H - d.sy) * d.olcek) / dpr;
+      const x = tuvalSol + ((b.nokta[0] * d.W - d.sx) * d.olcek) / dpr, y = tuvalUst + ((b.nokta[1] * d.H - d.sy) * d.olcek) / dpr;
       const sk = sahne.getBoundingClientRect(), kk = kart.getBoundingClientRect();
       const ust = kart.classList.contains("ust");
-      const kx = kenet(x, kk.left - sk.left + 22, kk.right - sk.left - 22);
-      const ky = ust ? kk.bottom - sk.top : kk.top - sk.top;
+      // Kart yandaysa (web düzeni) ok kartın sol kenarından, değilse üst/alt kenarından çıkar.
+      const yanda = sahne.classList.contains("genis");
+      const kx = yanda ? kk.left - sk.left : kenet(x, kk.left - sk.left + 22, kk.right - sk.left - 22);
+      const ky = yanda ? kenet(y, kk.top - sk.top + 22, kk.bottom - sk.top - 22) : ust ? kk.bottom - sk.top : kk.top - sk.top;
       const cizim = yumusak(0.04, 0.3, u);
       cizgi.setAttribute("x1", kx); cizgi.setAttribute("y1", ky);
       cizgi.setAttribute("x2", kx + (x - kx) * cizim); cizgi.setAttribute("y2", ky + (y - ky) * cizim);
@@ -270,6 +341,7 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
       oncekiKare = gosterilen;
       const k = kareler[gosterilen];
       rozet.textContent = ETIKETLER[k.etiket];
+      fon.style.backgroundImage = `url("${k.gorsel}")`;
       rozet.classList.toggle("canlandirma", k.etiket !== "gercek");
       durakYazisi.textContent = `${gosterilen + 1}/${N}${k.baslik ? ` · ${k.baslik}` : ""}`;
       noktalar.querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-current", j === gosterilen ? "step" : "false"));
@@ -279,11 +351,13 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
     cubuk.firstChild.style.transform = `scaleX(${s / toplam})`;
   }
 
+
   function dongu() {
     if (!calisiyor) return;
     if (iz.isConnected) {
       hedef = konum();
       const fark = hedef - simdiki;
+      // Kamera kaydırmayı hafif bir gecikmeyle izler (yumuşak, "süzülerek" iniş).
       if (Math.abs(fark) > 0.0008) { simdiki += fark * 0.14; cizilecek = true; }
       else if (simdiki !== hedef) { simdiki = hedef; cizilecek = true; }
       if (cizilecek) {
@@ -303,7 +377,9 @@ export function dalisKur(kutu, { kareler, etiket, el }) {
   simdiki = hedef = konum();
   requestAnimationFrame(dongu);
 
-  return Promise.resolve({ guncelle() {}, yokEt() { calisiyor = false; gozlem.disconnect(); } });
+  return Promise.resolve({ guncelle() {}, yokEt() {
+    calisiyor = false; gozlem.disconnect(); genisSorgu.removeEventListener("change", genisle); cancelAnimationFrame(animasyon?.kare ?? 0);
+  } });
 }
 
 function duzKur(kutu, { kareler, etiket, el }) {
@@ -320,6 +396,6 @@ function duzKur(kutu, { kareler, etiket, el }) {
         b.ust ? el("span", { className: "s-dalis-ust", textContent: b.ust }) : null,
         b.baslik ? el("strong", { textContent: b.baslik }) : null,
         b.metin ? el("p", { textContent: b.metin }) : null,
-        b.kaynak ? el("small", { textContent: `Kaynak: ${b.kaynak}` }) : null))))));
+        b.kaynak ? el("span", { className: "s-dalis-kaynak", textContent: `Kaynak · ${b.kaynak}` }) : null))))));
   return Promise.resolve({ guncelle() {}, yokEt() {} });
 }

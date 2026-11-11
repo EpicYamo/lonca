@@ -1,8 +1,12 @@
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { hareketAzalt } from "/ortak/animasyon.js";
 import { loncaLogo } from "/ortak/logo.js";
+import { googleIleBaslat, googleDonusuOku, googleKodTakas, GOOGLE_SVG } from "/ortak/google-giris.js";
+import { dilAl } from "/ortak/dil.js";
 
 const $ = (s) => document.querySelector(s);
+// Tarih/saat biçimi arayüz diline uyar (metinler /ortak/dil.js ile çevrilir).
+const yerelDil = () => (dilAl() === "en" ? "en-GB" : "tr-TR");
 const el = (etiket, ozellik = {}, ...cocuk) => {
   const d = Object.assign(document.createElement(etiket), ozellik);
   d.append(...cocuk.filter((c) => c != null));
@@ -10,8 +14,6 @@ const el = (etiket, ozellik = {}, ...cocuk) => {
 };
 
 document.querySelector("#amblem").innerHTML = loncaLogo({ boyut: 38, baslik: "Lonca" });
-
-const sohbet = [];
 
 const ANAHTAR = new Set("import export default async function await const let var return if else for of in while break continue true false null undefined new from".split(" "));
 const SDK = new Set(["eserler", "ekran", "sahne", "profil", "basarim", "depo", "dalislar"]);
@@ -53,10 +55,22 @@ $("#kod").addEventListener("keydown", (e) => {
   const t = e.target, b = t.selectionStart;
   t.setRangeText("  ", b, t.selectionEnd, "end");
   editoruGuncelle();
+  canliOnizle();
 });
+
+// Elle düzenleme canlı: yazma durunca (800 ms) modül önizlemede yerinde yeniden çalışır.
+let canliZamanlayici = 0;
+function canliOnizle() {
+  clearTimeout(canliZamanlayici);
+  canliZamanlayici = setTimeout(() => onizle({ yeniden: false, sessiz: true }), 800);
+}
+$("#kod").addEventListener("input", canliOnizle);
+$("#ad").addEventListener("input", canliOnizle);
+for (const s of ["#renk", "#ikon", "#kategori"]) $(s).addEventListener("change", canliOnizle);
 
 let akisNo = 0;
 async function kodAkit(kod) {
+  clearTimeout(canliZamanlayici);
   const kutu = $("#kod");
   const bu = ++akisNo;
   if (hareketAzalt()) { kutu.value = kod; editoruGuncelle(); return true; }
@@ -81,12 +95,113 @@ async function kodAkit(kod) {
 }
 
 const sonaKaydir = () => { const m = $("#mesajlar"); m.scrollTo({ top: m.scrollHeight, behavior: "smooth" }); };
-function mesajEkle(rol, metin, { adimlar = [], hata = false } = {}) {
+function mesajEkle(rol, metin, { adimlar = [], hata = false, kaynaklar = null, izin = null, eserIstegi = null } = {}) {
   const li = el("li", { className: `mesaj ${rol}${hata ? " hata" : ""}` }, el("p", { textContent: metin }));
+  const kutu = kaynakKutusu(kaynaklar);
+  if (kutu) li.append(kutu);
+  if (izin) li.append(izinKarti(izin));
+  if (eserIstegi) li.append(eserIstegiKarti(eserIstegi));
   if (adimlar.length) li.append(el("ul", { className: "adimlar" }, ...adimlar.map(([m, sinif], i) => el("li", { className: `adim ${sinif ?? ""}`, textContent: m, style: `--i:${i}` }))));
   $("#mesajlar").append(li);
   sonaKaydir();
   return li;
+}
+
+// Kalfanın yanıtının dayandığı kaynaklar: bilgi bankasındaki eser kayıtları (künyesiyle) ve SDK sözleşmesinin parçaları.
+// Sunucu bunları yalnızca araçların gerçekten döndürdüğü eserlerden ve sözleşmede bulunan adlardan kurar (server/kalfa.js).
+function kaynakKutusu(k) {
+  const eserler = k?.eserler ?? [], sdk = k?.sdk ?? [], dis = k?.dis ?? [];
+  if (!eserler.length && !sdk.length && !dis.length) return null;
+  const kutu = el("details", { className: "kaynaklar" },
+    el("summary", { textContent: `Kaynaklar · ${[eserler.length && `${eserler.length} eser kaydı`, sdk.length && "SDK", dis.length && `${dis.length} dış kaynak`].filter(Boolean).join(" + ")}` }));
+  if (eserler.length) {
+    kutu.append(el("p", { className: "kaynak-baslik", textContent: "Bilgi bankası" }), el("ul", { className: "kaynak-listesi" },
+      ...eserler.map((e) => {
+        const ac = el("button", { type: "button", className: "kaynak-eser", textContent: `${e.ad}${e.il ? ` (${e.il})` : ""}`, title: "Eser kaydını aç" });
+        ac.addEventListener("click", () => eserDuzenlemeyeAc(e.id));
+        return el("li", {}, ac, e.kaynak ? el("small", { textContent: e.dogrulanmis === false ? `Kaynak: ${e.kaynakTuru ?? "Vikipedi"} · ${e.kaynak}` : `✓ ${e.kaynak}` }) : null);
+      })));
+  }
+  if (sdk.length) kutu.append(el("p", { className: "kaynak-baslik", textContent: "SDK sözleşmesi (@lonca/sdk)" }), el("p", { className: "kaynak-sdk" }, ...sdk.map((a) => el("code", { textContent: a }))));
+  if (dis.length) {
+    kutu.append(el("p", { className: "kaynak-baslik", textContent: "Dış kaynak (Vikipedi)" }), el("ul", { className: "kaynak-listesi" },
+      ...dis.map((d) => el("li", {}, el("a", { href: d.url, target: "_blank", rel: "noopener", className: "kaynak-eser", textContent: d.baslik }),
+        el("small", { textContent: `Kaynak: ${d.kaynak}` })))));
+  }
+  return kutu;
+}
+
+// ---------- İzin kartları (yalnızca admin): dış kaynak kullanımı ve okunan maddenin nereye ekleneceği ----------
+// Karar sunucuda oturuma yazılır; kalfa izin verilmeden Vikipedi'ye ulaşamaz, bilgi bankasına ekleyemez (server/kalfa.js).
+// Oturumdaki izinlerin son durumu (sayfa yenilenince yanıtlanmış kartlar yeniden düğme göstermesin).
+let izinDurumlari = new Map();
+const KARAR_DUGMELERI = {
+  dis_kaynak: [["ver", "Vikipedi'den çek", "birincil"], ["reddet", "Hayır, bilgi bankasıyla devam", "ikincil"]],
+  kayit: [["bilgi-bankasi", "Bilgi bankasına ekle", "birincil"], ["modul", "Yalnızca bu modüle özel", "ikincil"], ["reddet", "Hiçbir yere ekleme", "ikincil"]],
+  genis_mod: [["ac", "Genişletilmiş modu aç", "birincil"], ["standart", "Standart kalsın", "ikincil"]],
+};
+const KARAR_ADI = { ver: "İzin verildi", reddet: "Reddedildi", "bilgi-bankasi": "Bilgi bankasına eklenecek", modul: "Yalnızca bu modüle özel", ac: "Genişletilmiş mod açıldı", standart: "Standart kaldı" };
+// Genişletilmiş mod kartı (usta ve admin): kalfa standart SDK'nın dışına (tuval, oyun döngüsü, dokunma, ses…) çıkmadan önce sorar.
+const IZIN_BASLIGI = { dis_kaynak: "İzin isteği · dış kaynak: {0}", genis_mod: "Onay · genişletilmiş mod: {0}" };
+function izinKarti(izin) {
+  const kart = el("div", { className: "izin-karti" },
+    el("p", { className: "izin-baslik", textContent: (IZIN_BASLIGI[izin.tur] ?? "Karar isteği · {0}").replace("{0}", izin.konu) }));
+  if (izin.tur === "genis_mod") {
+    kart.append(el("p", { className: "izin-not", textContent: "Bu istek standart SDK'nın dışına çıkıyor. Genişletilmiş modda kalfa tuval, oyun döngüsü, dokunma/sürükleme, ses ve titreşim kullanabilir; modül yine Lonca'nın içinde, aynı güvenlik sınırlarıyla çalışır." }));
+    if (izin.ozellikler?.length) kart.append(el("p", { className: "izin-kaynak", textContent: `Gerekenler: ${izin.ozellikler.join(" · ")}` }));
+  }
+  if (izin.maddeler?.length > 1) {
+    // Toplu kayıt izni: kart bütün maddeleri listeler; karar her maddeye ayrı uygulanır.
+    kart.append(el("p", { className: "izin-kaynak", textContent: `Kaynak: Vikipedi · ${izin.maddeler.length} madde:` }),
+      el("ul", { className: "izin-maddeler" }, ...izin.maddeler.map((m) => el("li", {},
+        el("a", { href: m.url, target: "_blank", rel: "noopener", textContent: m.baslik })))));
+  } else if (izin.kaynak_url) kart.append(el("p", { className: "izin-kaynak" }, "Kaynak: ",
+    el("a", { href: izin.kaynak_url, target: "_blank", rel: "noopener", textContent: izin.kaynak ?? "Vikipedi" }), ` · ${izin.baslik ?? izin.konu}`));
+  if (izin.tur === "kayit") kart.append(el("p", { className: "izin-not", textContent: izin.maddeler?.length > 1
+    ? "Karar her maddeye ayrı uygulanır. Bilgi bankasına eklenen kayıtlar herkesin modüllerinde kullanılır, ✓ almaz ve \"Kaynak: Vikipedi\" ile gösterilir; kaynak bağlantıları kayıtta kalır."
+    : "Bilgi bankasına eklenen kayıt herkesin modüllerinde kullanılır, ✓ almaz ve \"Kaynak: Vikipedi\" ile gösterilir; kaynak bağlantısı kayıtta kalır." }));
+  const dugmeler = el("div", { className: "dalis-dugmeler" });
+  const durum = izinDurumlari.get(izin.id);
+  if (durum && durum.durum !== "bekliyor") {
+    dugmeler.append(el("span", { className: "izin-sonuc", textContent: KARAR_ADI[durum.karar] ?? durum.durum }));
+  } else if (!yoneticiMi() && izin.tur !== "genis_mod") {
+    dugmeler.append(el("span", { className: "izin-sonuc", textContent: "Bu kararı admin verir." }));
+  } else {
+    for (const [karar, metin, sinif] of KARAR_DUGMELERI[izin.tur] ?? []) {
+      const b = el("button", { type: "button", className: sinif, textContent: metin });
+      b.addEventListener("click", async () => {
+        if ($("#gonder").disabled) return;
+        for (const x of dugmeler.querySelectorAll("button")) x.disabled = true;
+        const tamam = await gonder(metin, { izin: { id: izin.id, karar } });
+        if (tamam) dugmeler.replaceChildren(el("span", { className: "izin-sonuc", textContent: KARAR_ADI[karar] }));
+        else for (const x of dugmeler.querySelectorAll("button")) x.disabled = false;
+      });
+      dugmeler.append(b);
+    }
+  }
+  kart.append(dugmeler);
+  return kart;
+}
+
+// Usta: bilgi bankasında olmayan eser için admin'e öneri. Kalfa yalnızca kartı hazırlar; gönderen ustanın kendisidir.
+function eserIstegiKarti(ist) {
+  const kart = el("div", { className: "izin-karti" },
+    el("p", { className: "izin-baslik", textContent: `Bilgi bankasında yok: ${ist.ad}${ist.il ? ` (${ist.il})` : ""}` }),
+    el("p", { className: "izin-not", textContent: "Eseri sen ya da kalfa ekleyemez; istersen admin'e eklenmesi için öneri gönder. Admin inceler, uygun bulursa ekler." }));
+  const not = el("textarea", { className: "izin-girdi", rows: 2, maxLength: 600, placeholder: "Admin'e not (isteğe bağlı)", value: ist.not ?? "" });
+  const gonderB = el("button", { type: "button", className: "birincil", textContent: "Admin'e öneri gönder" });
+  const dugmeler = el("div", { className: "dalis-dugmeler" }, gonderB);
+  gonderB.addEventListener("click", async () => {
+    gonderB.disabled = true;
+    try {
+      const r = await yApi("/api/eser-oneriler", { method: "POST", govde: { tur: "istek", istek: { ad: ist.ad, il: ist.il, not: not.value.trim() } } });
+      not.remove();
+      dugmeler.replaceChildren(el("span", { className: "izin-sonuc", textContent: r.zatenVar ? "Bu eser zaten önerilmiş; admin'in listesinde bekliyor." : "Öneri admin'e gönderildi ✓" }));
+      if (yoneticiMi()) sayaclariGuncelle();
+    } catch (h) { gonderB.disabled = false; dugmeler.append(el("span", { className: "izin-sonuc hata", textContent: h.message })); }
+  });
+  kart.append(not, dugmeler);
+  return kart;
 }
 
 // ---------- Kalfa kipi: Modül ya da Dalış ----------
@@ -94,71 +209,151 @@ function mesajEkle(rol, metin, { adimlar = [], hata = false } = {}) {
 // kaynakları toplar, geziyi planlar, kareleri üretir ve dalışı onay bekleyen olarak kaydeder.
 let kip = "modul";
 const KIP = {
-  modul: { not: "Fikrini mini uygulamaya çevirir", ipucu: "Fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" },
+  modul: { not: "Soru sor, fikrini konuş; yazmasını isteyince mini uygulamaya çevirir", ipucu: "Sor ya da fikrini anlat… (Enter gönderir, Shift+Enter yeni satır)" },
   dalis: { not: "İsteğini uydudan eserin içine inen bir geziye çevirir (birkaç dakika sürer)", ipucu: "Hangi eser, neler anlatılsın? Örn. \"Ulu Cami'nin minberini ve şadırvanını anlatan bir dalış\"" },
 };
 function kipSec(yeni) {
   kip = yeni;
-  for (const b of document.querySelectorAll(".kip button")) {
+  for (const b of document.querySelectorAll(".kip button[data-kip]")) {
     const secili = b.dataset.kip === kip;
     b.classList.toggle("secili", secili);
     b.setAttribute("aria-checked", String(secili));
   }
   $("#kip-not").textContent = KIP[kip].not;
   $("#istek").placeholder = KIP[kip].ipucu;
-  const ilk = $("#mesajlar").children.length <= 1;
-  $("#oneriler").hidden = kip !== "modul" || !ilk;
-  $("#dalis-oneriler").hidden = kip !== "dalis";
+  onerileriGoster();
+  if (kip === "dalis" && !dalisOnerisiYuklendi) dalisOnerileriniYenile();
 }
-document.querySelectorAll(".kip button").forEach((b) => b.addEventListener("click", () => kipSec(b.dataset.kip)));
-$("#dalis-oneriler").addEventListener("click", (e) => { if (e.target.matches("button")) gonder(e.target.textContent); });
+document.querySelectorAll(".kip button[data-kip]").forEach((b) => b.addEventListener("click", () => kipSec(b.dataset.kip)));
+$("#dalis-oneriler").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) gonder(b.textContent); });
+
+// ---------- Öneri düğmeleri ----------
+// Modül kipinde kalfa her yanıtla 2–3 yeni öneri verir (yanıt vermezse sunucu konuşmaya göre yapay zekâya ayrıca
+// sordurur). Boş sohbetteki örnek fikirler her açılışta bilgi bankasından kurulur; index.html'dekiler yalnızca yedektir.
+// Dalış kipinde öneriler sunucudan (bilgi bankasındaki eserlerden) gelir ve yalnızca sohbet boşken görünür: usta ilk
+// mesajını yazınca kalkar, dalış kalfası sohbeti hatırladığı için sonraki istekler öneri gerektirmez.
+const ILK_ONERILER = [...document.querySelectorAll("#oneriler button")].map((b) => b.textContent);
+let kalfaOnerileri = null; // null: sohbet boş, örnek fikirler gösterilir
+let ilkOneriler = ILK_ONERILER;
+async function baslangicOnerileriniYukle() {
+  try {
+    const { oneriler } = await yApi(`/api/kalfa/oneriler?dil=${dilAl()}`, { yeniden: false });
+    if (oneriler?.length) { ilkOneriler = oneriler; onerileriGoster(); }
+  } catch { /* yedek örnekler kalır */ }
+}
+let dalisOnerisiYuklendi = false;
+const dalisIstenenler = [];
+const dalisOneriEserleri = new Map(); // öneri metni → eser kimliği (gönderilen öneri yeniden önerilmesin)
+function oneriDugmeleri(kutu, metinler) {
+  kutu.replaceChildren(...metinler.map((m) => el("button", { type: "button", textContent: m })));
+}
+function onerileriGoster() {
+  const liste = kalfaOnerileri ?? ilkOneriler;
+  oneriDugmeleri($("#oneriler"), liste);
+  // Sohbet başladıktan sonra kalfanın kısa önerileri yan yana küçük düğmeler olarak durur (mesajlara yer kalsın).
+  $("#oneriler").classList.toggle("kompakt", kalfaOnerileri !== null);
+  $("#oneriler").hidden = kip !== "modul" || !liste.length;
+  $("#dalis-oneriler").hidden = kip !== "dalis" || sohbetBasladi() || !$("#dalis-oneriler").children.length;
+}
+const sohbetBasladi = () => !!$("#mesajlar .mesaj.usta");
+function kalfaOnerileriniAyarla(liste) {
+  kalfaOnerileri = Array.isArray(liste) ? liste : null;
+  onerileriGoster();
+}
+async function dalisOnerileriniYenile() {
+  dalisOnerisiYuklendi = true;
+  try {
+    const { oneriler } = await yApi(`/api/dalis-kalfasi/oneriler?haric=${encodeURIComponent(dalisIstenenler.slice(-10).join(","))}`, { yeniden: false });
+    for (const o of oneriler) dalisOneriEserleri.set(o.metin, o.eser);
+    if (oneriler.length) oneriDugmeleri($("#dalis-oneriler"), oneriler.map((o) => o.metin));
+  } catch { dalisOnerisiYuklendi = false; /* öneriler alınamadı: eldekiler kalır */ }
+  onerileriGoster();
+}
 
 const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
-async function dalisGonder(metin) {
-  mesajEkle("usta", metin);
-  $("#istek").value = "";
-  $("#gonder").disabled = true;
+function dalisKutusu() {
   const cubuk = el("div", { className: "dalis-cubuk" }, el("span", { style: "width:3%" }));
   const gunluk = el("ul", { className: "dalis-gunluk" });
   const baslik = el("p", { textContent: "Dalış kalfası isteğini anlıyor…" });
   const li = el("li", { className: "mesaj kalfa" }, baslik, el("div", { className: "dalis-ilerleme" }, cubuk, gunluk));
   $("#mesajlar").append(li);
   sonaKaydir();
+  return { li, cubuk, gunluk, baslik };
+}
+// Dalış işini sunucudan izler. geriYukleme: sayfa yenilendikten sonra oturumdan açılan eski bir dalış (önizleme kendiliğinden açılmaz).
+// kayit: oturumdaki kısa sonuç (atolye dalisSonuc); iş sunucuda artık yoksa o gösterilir.
+async function dalisIzle(is, { li, cubuk, gunluk, baslik }, { geriYukleme = false, bu = oturumSurumu, kayit = null } = {}) {
+  let goruldu = 0, durum;
   try {
-    const { is } = await yApi("/api/dalis-kalfasi", { method: "POST", govde: { istek: metin } });
-    let goruldu = 0, durum;
-    do {
-      await bekle(1500);
-      durum = await yApi(`/api/dalis-kalfasi/${is}`, { yeniden: false });
+    while (true) {
+      durum = await yApi(`/api/dalis-kalfasi/${encodeURIComponent(is)}`, { yeniden: false });
+      if (bu !== oturumSurumu) return;
       for (const g of durum.gunluk.slice(goruldu)) gunluk.append(el("li", { textContent: `${String(g.t).padStart(3, " ")} sn  ${g.metin}` }));
       goruldu = durum.gunluk.length;
       gunluk.scrollTop = gunluk.scrollHeight;
       cubuk.firstChild.style.width = `${Math.max(3, (durum.adim / durum.toplamAdim) * 100)}%`;
       if (durum.ad) baslik.textContent = `${durum.ad} için dalış hazırlanıyor (adım ${durum.adim}/${durum.toplamAdim})…`;
-    } while (durum.durum === "calisiyor");
-    if (durum.durum === "hata") {
-      li.classList.add("hata");
-      baslik.textContent = durum.hata;
+      if (durum.durum !== "calisiyor") break;
+      await bekle(1500);
+    }
+  } catch (h) {
+    if (geriYukleme && /bulunamadı/.test(h.message)) {
+      li.querySelector(".dalis-ilerleme")?.remove();
+      if (kayit?.yanit) { baslik.textContent = kayit.yanit; li.classList.toggle("hata", kayit.durum === "hata"); return; }
+      baslik.textContent = "Bu dalış işinin kaydı sunucuda artık yok (sunucu yeniden başlamış olabilir). Sonucuna Dalışlar sayfasından bakabilirsin.";
       return;
     }
-    cubuk.firstChild.style.width = "100%";
-    baslik.textContent = `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; kartları kontrol edip yayınla.`;
-    const onizleDugme = el("button", { type: "button", className: "ikincil", textContent: "Önizle" });
-    const yayinla = el("button", { type: "button", className: "birincil", textContent: "Yayınla" });
-    onizleDugme.addEventListener("click", () => dalisOnizle());
-    yayinla.addEventListener("click", async () => {
-      try {
-        await yApi(`/api/dalislar/${durum.eser}/durum`, { method: "POST", govde: { durum: "onayli" } });
-        yayinla.disabled = true; yayinla.textContent = "Yayında ✓";
-      } catch (h) { mesajEkle("kalfa", h.message, { hata: true }); }
-    });
-    li.append(el("div", { className: "dalis-dugmeler" }, onizleDugme, yayinla));
-    dalisOnizle();
-  } catch (h) {
     li.classList.add("hata");
     baslik.textContent = h.message;
+    return;
+  }
+  if (durum.durum === "hata") {
+    li.classList.add("hata");
+    baslik.textContent = durum.hata;
+    return;
+  }
+  // Kalfa dalış başlatmadı, sohbet yanıtı verdi (soru, eksik bilgi): düz bir kalfa mesajı gibi görünür.
+  if (durum.durum === "yanit") {
+    li.querySelector(".dalis-ilerleme")?.remove();
+    baslik.textContent = durum.yanit;
+    return;
+  }
+  cubuk.firstChild.style.width = "100%";
+  baslik.textContent = yoneticiMi()
+    ? `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; kartları kontrol edip yayınla.`
+    : `${durum.ad} dalışı hazır: ${durum.sonuc.kareSayisi} durak. Önizlemede "onay bekliyor" olarak görünüyor; admin kartları kontrol edip onaylayınca yayına girer.`;
+  if (!geriYukleme && durum.eser) dalisIstenenler.push(durum.eser);
+  const onizleDugme = el("button", { type: "button", className: "ikincil", textContent: "Önizle" });
+  const yayinla = el("button", { type: "button", className: "birincil yalniz-admin", textContent: "Yayınla" });
+  onizleDugme.addEventListener("click", () => dalisOnizle());
+  yayinla.addEventListener("click", async () => {
+    try {
+      await yApi(`/api/dalislar/${durum.eser}/durum`, { method: "POST", govde: { durum: "onayli" } });
+      yayinla.disabled = true; yayinla.textContent = "Yayında ✓";
+    } catch (h) { mesajEkle("kalfa", h.message, { hata: true }); }
+  });
+  li.append(el("div", { className: "dalis-dugmeler" }, onizleDugme, yayinla));
+  if (!geriYukleme) dalisOnizle();
+}
+async function dalisGonder(metin) {
+  if (dalisOneriEserleri.has(metin)) dalisIstenenler.push(dalisOneriEserleri.get(metin));
+  mesajEkle("usta", metin);
+  onerileriGoster(); // sohbet başladı: öneri düğmeleri kalkar
+  $("#istek").value = "";
+  $("#gonder").disabled = true;
+  const kutu = dalisKutusu();
+  const bu = oturumSurumu;
+  sahneDurum("Dalış kalfası çalışıyor…");
+  try {
+    const oturum = await oturumGerekli();
+    const { is } = await yApi("/api/dalis-kalfasi", { method: "POST", govde: { istek: metin, oturum } });
+    await dalisIzle(is, kutu, { bu });
+    return;
+  } catch (h) {
+    kutu.li.classList.add("hata");
+    kutu.baslik.textContent = h.message;
   } finally {
-    $("#gonder").disabled = false;
+    if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
     $("#istek").focus();
     sonaKaydir();
   }
@@ -169,64 +364,93 @@ async function dalisOnizle() {
   try {
     const kod = await (await fetch("/api/moduller/vakif-dalislari/kod")).text();
     bekleyen = { kod, ad: "Vakıf Dalışları", id: "vakif-dalislari", renk: "altin", ikon: "cami", kategori: "gezi" };
-    $("#cerceve").src = `/app/?onizleme=1&t=${Date.now()}`;
+    cerceveyiYenile();
+    sahneDurum(null);
+    document.dispatchEvent(new CustomEvent("studio:onizleme-hazir"));
   } catch (h) { mesajEkle("kalfa", `Önizleme açılamadı: ${h.message}`, { hata: true }); }
 }
 
-async function gonder(metin) {
+// Kalfanın yanıtındaki iz (veri aramaları, deneme sayısı, model) sohbette adım listesi olarak gösterilir.
+function adimlarYap({ tur = "modul", aramalar = [], deneme = 1, model = null, genisMod = false } = {}) {
+  const adimlar = aramalar.map((a) => {
+    if (a.okunan) return [`Bilgi bankasından okudu: ${a.ad ?? a.okunan}`];
+    if (a.dis != null) return [`${a.kaynak}'de aradı: ${a.dis} → ${a.bulunan} madde`];
+    if (a.disOkunan) return [`${a.kaynak} maddesini okudu: ${a.disOkunan}`];
+    if (a.eklenen) return [`Bilgi bankasına ekledi (Kaynak: Vikipedi): ${a.ad}`, "duzeltme"];
+    const sorgu = Object.entries(a.sorgu ?? {}).map(([k, v]) => `${k} ${v}`).join(", ") || "tümü";
+    return [`Bilgi bankasında aradı: ${sorgu} → ${a.bulunan} eser`];
+  });
+  if (tur === "sohbet") {
+    if (model) adimlar.push([model === "sahte" ? "Sahte kalfa: yapay zekâ bağlı değil" : `Yanıtlayan model: ${model}`]);
+    return adimlar;
+  }
+  if (deneme > 1) adimlar.push([`Denetimde hata buldu, ${deneme}. denemede düzeltti`, "duzeltme"]);
+  adimlar.push(["SDK tip denetiminden geçti"]);
+  if (genisMod) adimlar.push(["Genişletilmiş mod: tuval ve oyun.* kullanıldı"]);
+  if (model) adimlar.push([model === "sahte" ? "Sahte kalfa: yapay zekâ bağlı değil, hazır şablon" : `Kodu yazan model: ${model}`]);
+  return adimlar;
+}
+const yaziyorEkle = (metin) => {
+  const li = el("li", { className: "mesaj kalfa" }, el("div", { className: "yaziyor" }, el("i"), el("i"), el("i"), el("span", { textContent: metin })));
+  $("#mesajlar").append(li);
+  sonaKaydir();
+  return li;
+};
+// Kalfanın yazdığı modülü editöre akıtır ve önizler.
+async function taslagiAkit(t) {
+  surumSakla("kalfa yazmadan önce");
+  sahneDurum("Kalfa modülü yazıyor…");
+  if (!(await kodAkit(t.kod))) { sahneDurum(null); return; }
+  $("#ad").value = t.ad ?? ""; $("#id").value = t.id ?? ""; $("#aciklama").value = t.aciklama ?? "";
+  $("#renk").value = t.renk ?? ""; $("#ikon").value = t.ikon ?? ""; $("#kategori").value = t.kategori ?? "";
+  editoruGuncelle();
+  taslakDegisti(); // kalfa beklenirken editörde yapılan bir değişiklik oturumdaki sonucu ezmiş olabilir
+  durumYaz("iyi", "Modül hazır, önizlemede çalışıyor.");
+  onizle();
+  sahneDurum(null);
+  document.dispatchEvent(new CustomEvent("studio:onizleme-hazir"));
+}
+
+async function gonder(metin, { izin = null } = {}) {
   metin = metin.trim();
-  if (!metin || $("#gonder").disabled) return;
-  if (kip === "dalis") return dalisGonder(metin);
-  sohbet.push({ rol: "usta", metin });
-  mesajEkle("usta", metin);
+  if (!metin || $("#gonder").disabled) return false;
+  if (kip === "dalis" && !izin) return dalisGonder(metin);
+  const ustaLi = mesajEkle("usta", metin);
   $("#istek").value = "";
   $("#oneriler").hidden = true;
   $("#gonder").disabled = true;
-  const yaziyor = el("li", { className: "mesaj kalfa" },
-    el("div", { className: "yaziyor" }, el("i"), el("i"), el("i"), el("span", { textContent: "Kalfa çalışıyor: veriye bakıyor, yazıyor, denetliyor" })));
-  $("#mesajlar").append(yaziyor);
-  sonaKaydir();
-
+  const yaziyor = yaziyorEkle("Kalfa düşünüyor: bilgi bankasına ve SDK'ya bakıyor");
+  const bu = oturumSurumu;
+  sahneDurum("Kalfa düşünüyor…");
   try {
-    const y = await fetch("/api/kalfa", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ sohbet, kod: $("#kod").value || undefined }),
-    });
-    const s = await y.json();
+    // İstek oturuma yazılır; sayfa bu sırada yenilense de kalfanın yanıtı sunucuda oturuma kaydedilir.
+    const oturum = await oturumGerekli();
+    const s = await yApi("/api/kalfa", { method: "POST", govde: { oturum, istek: metin, kod: $("#kod").value, dil: dilAl(), ...(izin && { izin }) } });
     yaziyor.remove();
-    if (!y.ok) {
-      sohbet.pop();
-      const ayrinti = s.ayrintilar?.length ? `\n• ${s.ayrintilar.join("\n• ")}` : "";
-      mesajEkle("kalfa", `${s.hata}${ayrinti}`, { hata: true });
-      return;
+    if (izin) izinDurumlari.set(izin.id, { durum: izin.karar === "reddet" ? "reddedildi" : "verildi", karar: izin.karar });
+    if (bu !== oturumSurumu) return true;
+    // İzin kararında sohbete giren cümleyi sunucu kurar; ustanın balonunda o görünür.
+    if (s.istek) ustaLi.querySelector("p").textContent = s.istek;
+    kalfaOnerileriniAyarla(s.oneriler ?? []);
+    if (s.tur === "sohbet") {
+      mesajEkle("kalfa", s.metin, { adimlar: adimlarYap(s), kaynaklar: s.kaynaklar, izin: s.izin, eserIstegi: s.eserIstegi });
+      return true;
     }
-    const adimlar = (s.aramalar ?? []).map((a) => {
-      const sorgu = Object.entries(a.sorgu ?? {}).map(([k, v]) => `${k} ${v}`).join(", ") || "tümü";
-      return [`Veriye baktı: ${sorgu} → ${a.bulunan} eser`];
-    });
-    if (s.deneme > 1) adimlar.push([`Denetimde hata buldu, ${s.deneme}. denemede düzeltti`, "duzeltme"]);
-    adimlar.push(["SDK tip denetiminden geçti"]);
-    sohbet.push({ rol: "kalfa", metin: s.aciklama_ustaya });
-    mesajEkle("kalfa", s.aciklama_ustaya, { adimlar });
-
-    surumSakla("kalfa yazmadan önce");
-    if (!(await kodAkit(s.kod))) return;
-    $("#ad").value = s.ad;
-    $("#id").value = s.id;
-    $("#aciklama").value = s.aciklama;
-    $("#renk").value = s.renk ?? "";
-    $("#ikon").value = s.ikon === "genel" ? "" : (s.ikon ?? "");
-    $("#kategori").value = s.kategori ?? "";
-    editoruGuncelle();
-    durumYaz("iyi", "Modül hazır, önizlemede çalışıyor.");
-    onizle();
+    mesajEkle("kalfa", s.aciklama_ustaya, { adimlar: adimlarYap(s), kaynaklar: s.kaynaklar });
+    await taslagiAkit({ ...s, ikon: s.ikon === "genel" ? "" : s.ikon });
+    return true;
   } catch (h) {
     yaziyor.remove();
-    sohbet.pop();
-    mesajEkle("kalfa", `Sunucuya ulaşılamadı: ${h.message}. Sunucunun çalıştığını kontrol et.`, { hata: true });
+    if (bu !== oturumSurumu) return false;
+    // Bağlantı koptu ama kalfa sunucuda sürüyor olabilir (Cloudflare ~100 sn'de vazgeçer): sonuç oturuma yazılır, oradan beklenir.
+    if (oturumId && baglantiKoptu(h) && (await sonucuOturumdanBekle(metin, izin, ustaLi, bu))) return true;
+    if (bu !== oturumSurumu) return false;
+    onerileriGoster();
+    const ayrinti = h.ayrintilar?.length ? `\n• ${h.ayrintilar.join("\n• ")}` : "";
+    mesajEkle("kalfa", h instanceof TypeError ? `Sunucuya ulaşılamadı: ${h.message}. Sunucunun çalıştığını kontrol et.` : `${h.message}${ayrinti}`, { hata: true });
+    return false;
   } finally {
-    $("#gonder").disabled = false;
+    if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
     $("#istek").focus();
   }
 }
@@ -235,14 +459,28 @@ $("#sohbet-formu").addEventListener("submit", (e) => { e.preventDefault(); gonde
 $("#istek").addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); gonder($("#istek").value); }
 });
-$("#oneriler").addEventListener("click", (e) => { if (e.target.matches("button")) gonder(e.target.textContent); });
+$("#oneriler").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) gonder(b.textContent); });
 
+// Önizleme kendiliğinden çalışır: kalfa modülü bitirince, oturum/modül açılınca ve elle düzenlemede (canliOnizle).
+// yeniden: çerçeveyi baştan yükle; false ise hazır çerçevede modül yerinde yeniden çalışır (app.js öncekini iptal eder).
+// sessiz: kod boşsa uyarı yazma, telefonu parlatma (yazarken her değişiklikte).
 let bekleyen = null;
-function onizle() {
-  const kod = $("#kod").value;
-  if (!kod.trim()) return durumYaz("kotu", "Önizlenecek kod yok. Kalfaya bir fikir anlat ya da kodu elle yaz.");
-  bekleyen = { kod, ad: $("#ad").value, id: $("#id").value, renk: $("#renk").value || undefined, ikon: $("#ikon").value || undefined, kategori: $("#kategori").value || undefined };
+let cerceveHazir = false; // çerçeve "onizleme-hazir" dedi; src değişince yeniden beklenir
+function cerceveyiYenile() {
+  cerceveHazir = false;
   $("#cerceve").src = `/app/?onizleme=1&t=${Date.now()}`;
+}
+function onizle({ yeniden = true, sessiz = false } = {}) {
+  clearTimeout(canliZamanlayici);
+  const kod = $("#kod").value;
+  if (!kod.trim()) {
+    if (!sessiz) durumYaz("kotu", "Önizlenecek kod yok. Kalfaya bir fikir anlat ya da kodu elle yaz.");
+    return;
+  }
+  bekleyen = { kod, ad: $("#ad").value, id: $("#id").value, renk: $("#renk").value || undefined, ikon: $("#ikon").value || undefined, kategori: $("#kategori").value || undefined };
+  if (!yeniden && cerceveHazir) $("#cerceve").contentWindow.postMessage({ tur: "onizle", ...bekleyen }, location.origin);
+  else cerceveyiYenile();
+  if (sessiz) return;
   const telefon = $(".telefon");
   telefon.classList.remove("parla");
   void telefon.offsetWidth;
@@ -250,51 +488,629 @@ function onizle() {
 }
 window.addEventListener("message", (e) => {
   if (e.origin !== location.origin || e.source !== $("#cerceve").contentWindow) return;
-  if (e.data?.tur === "onizleme-hazir" && bekleyen) {
-    $("#cerceve").contentWindow.postMessage({ tur: "onizle", ...bekleyen }, location.origin);
+  if (e.data?.tur === "onizleme-hazir") {
+    cerceveHazir = true;
+    if (bekleyen) $("#cerceve").contentWindow.postMessage({ tur: "onizle", ...bekleyen }, location.origin);
   }
+  if (e.data?.tur === "eser-duzenle" && typeof e.data.id === "string") eserDuzenlemeyeAc(e.data.id);
 });
-$("#onizle").addEventListener("click", onizle);
+$("#onizleme-yenile").addEventListener("click", () => onizle());
 
-const SIFRE_ANAHTARI = "lonca.yonetici";
-const sifreOku = () => { try { return sessionStorage.getItem(SIFRE_ANAHTARI) ?? ""; } catch { return ""; } };
+// Kalfa çalışırken önizlemenin üstünde görünen durum (ekran okuyucuya da duyurulur).
+// Canlı bölge hep yerinde durur, yalnızca metni değişir; aria-busy telefonda (güncellenen içerik), bölgede değil.
+function sahneDurum(metin) {
+  $("#sahne").classList.toggle("calisiyor", !!metin);
+  if (metin) $(".telefon").setAttribute("aria-busy", "true"); else $(".telefon").removeAttribute("aria-busy");
+  $("#sahne-durum-metin").textContent = metin ?? "";
+}
+
 let yonetimSifreli = false;
+// Admin: geliştirme modu (şifre tanımlı değil) ya da şifresini belirlemiş editör hesabı.
+// Sunucu her istekte rolü yeniden denetler; bu yalnızca arayüzde neyin gösterileceğini belirler.
+const yoneticiMi = () => !yonetimSifreli || (hesap?.rol === "editor" && !hesap.sifreDegismeli);
 
 async function yApi(yol, { method = "GET", govde, yeniden = true, basliklar = {} } = {}) {
   const y = await fetch(yol, {
-    method, headers: { ...(govde !== undefined ? { "content-type": "application/json" } : {}), "x-yonetici-sifre": sifreOku(), ...basliklar },
+    method, headers: { ...(govde !== undefined ? { "content-type": "application/json" } : {}), ...hesapBasligi(), ...basliklar },
     body: govde !== undefined ? JSON.stringify(govde) : undefined,
   });
-  if (y.status === 401 && yeniden && await girisIste()) return yApi(yol, { method, govde, basliklar, yeniden: false });
+  if (y.status === 401 && yeniden && await oturumIste()) return yApi(yol, { method, govde, basliklar, yeniden: false });
   const veri = y.headers.get("content-type")?.includes("json") ? await y.json() : await y.text();
-  if (!y.ok) throw Object.assign(new Error(veri?.hata ?? `İstek başarısız (${y.status})`), { ayrintilar: veri?.ayrintilar ?? [] });
+  // durum ve jsonsuz: sunucumuzun kendi hatası her zaman { hata } taşır; JSON'suz 502/504/524 aradaki vekilden (Cloudflare) gelir.
+  if (!y.ok) throw Object.assign(new Error(veri?.hata ?? `İstek başarısız (${y.status})`), { ayrintilar: veri?.ayrintilar ?? [], durum: y.status, jsonsuz: typeof veri !== "object" || veri === null });
   return veri;
 }
 
-function girisIste() {
-  const d = $("#giris");
-  $("#giris-hata").textContent = "";
-  $("#giris-sifre").value = "";
+// Geliştirme modu rozeti: YONETICI_SIFRE tanımlı değilken görünür; hesaplı Studio'da yetki hesap rozetindedir.
+function gelistirmeRozeti() {
+  const r = $("#yonetici");
+  r.hidden = yonetimSifreli;
+  r.title = "YONETICI_SIFRE tanımlı değil: onay işlemleri şifresiz";
+}
+
+// ---------- Hesap (usta / admin) ----------
+// Sunucu yönetici şifresiyle çalışıyorsa Studio'nun tamamı hesap ister: kayıt olan usta, hazır hesaplar admin (rol: editor).
+// Jeton localStorage'da durur (bütün sayfalar aynı oturumu kullanır); rol her istekte sunucuda hesaptan okunur.
+const JETON_ANAHTARI = "lonca.studio.hesap";
+const ROL_ADI = { vatandas: "Vatandaş", usta: "Usta", editor: "Admin" };
+const ROL_ACIKLAMA = {
+  vatandas: "Bu hesabın Studio yetkisi yok.",
+  usta: "Kalfayla modül yazıp onaya gönderebilir, eserleri görebilirsin. Onay kuyruğu, değişiklik geçmişi ve düzenleme admin hesaplarındadır.",
+  editor: "Modül yazabilir, onaylayıp yayınlayabilir, içeriği ve ayarları düzenleyebilirsin.",
+};
+let hesapGerekli = false, hesap = null;
+
+const jetonOku = () => { try { return localStorage.getItem(JETON_ANAHTARI) ?? ""; } catch { return ""; } };
+const jetonYaz = (j) => { try { j ? localStorage.setItem(JETON_ANAHTARI, j) : localStorage.removeItem(JETON_ANAHTARI); } catch {} };
+function hesapBasligi() { const j = jetonOku(); return j ? { authorization: `Bearer ${j}` } : {}; }
+const studioHesabi = () => ["usta", "editor"].includes(hesap?.rol) && !hesap.sifreDegismeli;
+// Studio'ya girilmiş mi: geliştirme modu ya da şifresini belirlemiş usta/admin hesabı.
+const oturumVar = () => !hesapGerekli || studioHesabi();
+const atolyeAcik = oturumVar;
+// Rozetler, kilitler ve admin'e özel düğmeler (.yalniz-admin) tek yerden güncellenir.
+function yetkiGuncelle() {
+  document.body.classList.toggle("admin", yoneticiMi());
+  gelistirmeRozeti();
+  hesapRozetiGuncelle();
+  atolyeKilidiGuncelle();
+  karsilamayiGuncelle();
+}
+const acikSayfa = () => document.querySelector(".sekme-d.secili")?.dataset.sayfa ?? "atolye";
+const sayfayiYenile = () => sayfaAc(acikSayfa());
+
+function hesapRozetiGuncelle() {
+  const d = $("#hesap-d");
+  d.hidden = !hesapGerekli;
+  d.classList.toggle("canli", !!hesap);
+  $("#hesap-ad").textContent = hesap ? `${hesap.kimlik} · ${ROL_ADI[hesap.rol] ?? hesap.rol}` : "Giriş yap";
+  d.setAttribute("aria-label", hesap ? `Hesap: ${hesap.kimlik}, ${ROL_ADI[hesap.rol] ?? hesap.rol}` : "Giriş yap ya da hesap oluştur");
+  d.title = hesap ? "Hesap" : "Giriş yap ya da hesap oluştur";
+}
+function atolyeKilidiGuncelle() {
+  const acik = atolyeAcik();
+  $("#pane-kalfa").classList.toggle("kilitli", !acik);
+  $("#atolye-kilit").hidden = acik;
+}
+// Jeton, aynı sitedeki uygulamayla ortak (lonca.studio.hesap): uygulamada çıkış ya da başka hesapla giriş jetonu
+// değiştirir. Bellekteki hesap her zaman jetondan yeniden okunur; jeton yoksa hesap da yoktur.
+async function hesabiYukle() {
+  if (!jetonOku()) { hesap = null; return; }
+  try {
+    const y = await fetch("/api/hesap/ben", { headers: hesapBasligi() });
+    if (y.status === 401) { jetonYaz(""); hesap = null; }
+    else if (y.ok) hesap = await y.json();
+  } catch { /* sunucuya ulaşılamadı: jeton kalır, sonraki açılışta yeniden denenir */ }
+}
+
+// Giriş / kayıt penceresi. Başarılıysa true döner.
+// kapi: Studio'nun giriş kapısı; pencere kapatılamaz (Vazgeç yok, Escape çalışmaz).
+// Kipler: giris · kayit · unuttum (e-postaya sıfırlama bağlantısı) · yenile (bağlantıdaki jetonla yeni şifre).
+let studioGoogleAcik = false, studioSifirlamaAcik = false, studioBekleyenEposta = null;
+const HESAP_KIPLERI = {
+  giris: { baslik: "Giriş yap", gonder: "Giriş yap" },
+  kayit: { baslik: "Hesap oluştur", gonder: "Hesap oluştur" },
+  unuttum: { baslik: "Şifremi unuttum", gonder: "Sıfırlama bağlantısı gönder", aciklama: "Hesabına kayıtlı e-postayı yaz; şifreni yenilemen için bir bağlantı gönderelim." },
+  yenile: { baslik: "Yeni şifre belirle", gonder: "Şifreyi kaydet", aciklama: "Hesabın için yeni bir şifre belirle; kaydedince giriş yapmış olursun." },
+};
+function hesapPenceresiAc({ kip = "giris", kapi = false, jeton = null } = {}) {
+  const d = $("#hesap-pencere"), f = $("#hesap-formu");
+  let simdiki = kip;
+  const uygula = () => {
+    const kayit = simdiki === "kayit", giris = simdiki === "giris", unuttum = simdiki === "unuttum", yenile = simdiki === "yenile";
+    for (const b of d.querySelectorAll("[data-hesap-kip]")) {
+      const secili = b.dataset.hesapKip === simdiki;
+      b.classList.toggle("secili", secili);
+      b.setAttribute("aria-checked", String(secili));
+    }
+    const m = HESAP_KIPLERI[simdiki];
+    $("#hesap-baslik-metin").textContent = m.baslik;
+    $("#hesap-gonder").textContent = m.gonder;
+    $("#hesap-kip-aciklama").textContent = m.aciklama ?? "";
+    $("#hesap-kip-aciklama").hidden = !m.aciklama;
+    $("#hesap-kip").hidden = unuttum || yenile;
+    $("#hesap-google-kap").hidden = !studioGoogleAcik || unuttum || yenile;
+    $("#hesap-kayit-notu").hidden = !kayit;
+    // Kayıtta kullanıcı adı + e-posta + şifre tekrarı; girişte kullanıcı adı ya da e-posta.
+    $("#hesap-kimlik-alan").hidden = unuttum || yenile;
+    $("#hesap-kimlik").required = giris || kayit;
+    $("#hesap-kimlik-etiket").textContent = kayit ? "Kullanıcı adı" : "Kullanıcı adı ya da e-posta";
+    $("#hesap-kimlik").maxLength = kayit ? 32 : 254;
+    if (kayit) Object.assign($("#hesap-kimlik"), { pattern: "[a-z0-9_.\\-]{3,32}", title: "3-32 karakter: küçük harf, rakam ya da . _ -" });
+    else { $("#hesap-kimlik").removeAttribute("pattern"); $("#hesap-kimlik").removeAttribute("title"); }
+    $("#hesap-eposta-alan").hidden = !(kayit || unuttum);
+    $("#hesap-eposta").required = kayit || unuttum;
+    $("#hesap-sifre-alan").hidden = unuttum;
+    $("#hesap-sifre").required = !unuttum;
+    $("#hesap-sifre-etiket").textContent = yenile ? "Yeni şifre" : "Şifre";
+    $("#hesap-sifre2-alan").hidden = !(kayit || yenile);
+    $("#hesap-sifre2").required = kayit || yenile;
+    $("#hesap-sifre2-etiket").textContent = yenile ? "Yeni şifre (tekrar)" : "Şifre (tekrar)";
+    $("#hesap-unuttum").hidden = !giris || !studioSifirlamaAcik;
+    $("#hesap-girise-don").hidden = !unuttum;
+    $("#hesap-sifre").autocomplete = giris ? "current-password" : "new-password";
+    // En az 8 karakter yalnızca yeni şifrede; hazır hesapların ilk şifresi daha kısa olabilir.
+    if (giris) $("#hesap-sifre").removeAttribute("minlength"); else $("#hesap-sifre").minLength = 8;
+    $("#hesap-sifre").placeholder = giris ? "" : "En az 8 karakter";
+    $("#hesap-vazgec").hidden = kapi;
+    $("#hesap-bilgi").hidden = true;
+    $("#hesap-yeniden").hidden = true;
+  };
+  $("#hesap-hata").textContent = "";
+  $("#hesap-sifre").value = "";
+  $("#hesap-sifre2").value = "";
+  uygula();
+  const kipeGec = (yeni) => { simdiki = yeni; $("#hesap-hata").textContent = ""; uygula(); };
+  const kipSec = (e) => { const b = e.target.closest("[data-hesap-kip]"); if (b) kipeGec(b.dataset.hesapKip); };
+  const unuttumTik = () => {
+    const yazilan = $("#hesap-kimlik").value.trim();
+    kipeGec("unuttum");
+    if (yazilan.includes("@")) $("#hesap-eposta").value = yazilan;
+    $("#hesap-eposta").focus();
+  };
+  const geriTik = () => { kipeGec("giris"); $("#hesap-kimlik").focus(); };
+  const iptal = (e) => { if (kapi) e.preventDefault(); };
+  d.addEventListener("click", kipSec);
+  d.addEventListener("cancel", iptal);
+  $("#hesap-unuttum").addEventListener("click", unuttumTik);
+  $("#hesap-girise-don").addEventListener("click", geriTik);
+  const postala = async (yol, govde) => {
+    const y = await fetch(yol, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde) });
+    const veri = await y.json().catch(() => ({}));
+    if (!y.ok) throw Object.assign(new Error(veri.hata ?? `İşlem başarısız (${y.status})`), { sunucu: true, veri });
+    return veri;
+  };
+  // Gönderimi pencere içinde ele al: hata olursa pencere açık kalır, yazılanlar silinmez.
+  const gonder = async (e) => {
+    if (e.submitter?.value !== "gonder") return;
+    e.preventDefault();
+    const kayit = simdiki === "kayit";
+    if ((kayit || simdiki === "yenile") && $("#hesap-sifre").value !== $("#hesap-sifre2").value) {
+      $("#hesap-hata").textContent = "Şifreler eşleşmiyor; iki alana da aynı şifreyi yaz.";
+      $("#hesap-sifre2").focus();
+      return;
+    }
+    $("#hesap-gonder").disabled = true;
+    $("#hesap-hata").textContent = "";
+    try {
+      if (simdiki === "unuttum") {
+        const veri = await postala("/api/hesap/sifre-sifirla/iste", { eposta: $("#hesap-eposta").value.trim(), donus: "/studio/" });
+        $("#hesap-bilgi").textContent = veri.mesaj;
+        $("#hesap-bilgi").hidden = false;
+        return;
+      }
+      let veri;
+      if (simdiki === "yenile") veri = await postala("/api/hesap/sifre-sifirla", { jeton, yeniSifre: $("#hesap-sifre").value, yeniSifreTekrar: $("#hesap-sifre2").value });
+      else {
+        const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
+        if (kayit) Object.assign(govde, { eposta: $("#hesap-eposta").value.trim(), sifreTekrar: $("#hesap-sifre2").value });
+        if (kayit) govde.donus = "/studio/";
+        veri = await postala(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", govde);
+      }
+      // E-posta doğrulaması açıkken kayıt oturum açmaz: girişe dönülür, bağlantı beklenir.
+      if (veri.dogrulamaGerekli) {
+        studioBekleyenEposta = veri.eposta;
+        kipeGec("giris");
+        $("#hesap-sifre").value = "";
+        $("#hesap-bilgi").textContent = veri.mesaj;
+        $("#hesap-bilgi").hidden = false;
+        $("#hesap-yeniden").hidden = false;
+        return;
+      }
+      if (!["usta", "editor"].includes(veri.hesap?.rol)) { $("#hesap-hata").textContent = "Bu hesabın Studio yetkisi yok."; return; }
+      jetonYaz(veri.jeton);
+      hesap = veri.hesap;
+      d.close("tamam");
+    } catch (h) {
+      $("#hesap-hata").textContent = h.sunucu ? h.message : "Sunucuya ulaşılamadı.";
+      if (h.veri?.dogrulamaGerekli) { studioBekleyenEposta = h.veri.eposta; $("#hesap-yeniden").hidden = false; }
+    }
+    finally { $("#hesap-gonder").disabled = false; }
+  };
+  const yenidenTik = async () => {
+    if (!studioBekleyenEposta) return;
+    try {
+      const veri = await postala("/api/hesap/eposta-dogrula/yeniden", { eposta: studioBekleyenEposta, donus: "/studio/" });
+      $("#hesap-hata").textContent = "";
+      $("#hesap-bilgi").textContent = veri.mesaj;
+      $("#hesap-bilgi").hidden = false;
+    } catch (h) { $("#hesap-hata").textContent = h.sunucu ? h.message : "Sunucuya ulaşılamadı."; }
+  };
+  $("#hesap-yeniden").addEventListener("click", yenidenTik);
+  f.addEventListener("submit", gonder);
   d.showModal();
+  (simdiki === "yenile" ? $("#hesap-sifre") : simdiki === "kayit" || !$("#hesap-kimlik").value ? $("#hesap-kimlik") : $("#hesap-sifre")).focus();
   return new Promise((coz) => {
-    d.addEventListener("close", async function kapandi() {
-      d.removeEventListener("close", kapandi);
-      if (d.returnValue !== "giris") return coz(false);
-      try { sessionStorage.setItem(SIFRE_ANAHTARI, $("#giris-sifre").value); } catch {}
-      const y = await fetch("/api/yonetici", { headers: { "x-yonetici-sifre": sifreOku() } });
-      yoneticiRozeti(y.ok);
-      if (!y.ok) { try { sessionStorage.removeItem(SIFRE_ANAHTARI); } catch {} return coz(await girisIste()); }
-      coz(true);
-    });
+    d.addEventListener("close", async () => {
+      d.removeEventListener("click", kipSec);
+      d.removeEventListener("cancel", iptal);
+      f.removeEventListener("submit", gonder);
+      $("#hesap-unuttum").removeEventListener("click", unuttumTik);
+      $("#hesap-girise-don").removeEventListener("click", geriTik);
+      $("#hesap-yeniden").removeEventListener("click", yenidenTik);
+      let tamam = d.returnValue === "tamam";
+      // İlk şifreyle giren hazır hesap, yeni şifresini belirlemeden devam edemez.
+      if (tamam && hesap?.sifreDegismeli) tamam = await sifrePenceresiAc({ zorunlu: true });
+      if (tamam) { yetkiGuncelle(); bildirim(`Hoş geldin, ${hesap.kimlik}.`); }
+      coz(tamam);
+    }, { once: true });
   });
 }
-function yoneticiRozeti(girildi) {
-  const r = $("#yonetici");
-  r.classList.toggle("canli", girildi || !yonetimSifreli);
-  r.textContent = !yonetimSifreli ? "Geliştirme modu" : girildi ? "Yönetici ✓" : "Yönetici girişi";
-  r.title = !yonetimSifreli ? "YONETICI_SIFRE tanımlı değil: onay işlemleri şifresiz" : "";
+// Şifre değiştirme. zorunlu: ilk girişte; pencere kapatılamaz, yalnızca kaydet ya da çıkış.
+function sifrePenceresiAc({ zorunlu = false, ilk = false } = {}) {
+  const d = $("#sifre-pencere"), f = $("#sifre-formu");
+  // ilk: Google'la açılmış, şifresi olmayan hesap; eski şifre sorulmaz.
+  const eskisiz = zorunlu || ilk;
+  $("#sifre-aciklama").textContent = zorunlu
+    ? `Hoş geldin, ${hesap.kimlik}. Bu ilk girişin; devam etmek için kendi şifreni belirle.`
+    : ilk ? "Hesabına şifre ekle; Google'ın yanında kullanıcı adın ya da e-postanla da girebilirsin." : "Mevcut şifreni ve yeni şifreni yaz.";
+  $("#sifre-kimlik").value = hesap.kimlik;
+  $("#sifre-eski-etiketi").hidden = eskisiz;
+  $("#sifre-eski").required = !eskisiz;
+  $("#sifre-vazgec").hidden = zorunlu;
+  $("#sifre-cikis").hidden = !zorunlu;
+  for (const g of ["#sifre-eski", "#sifre-yeni", "#sifre-tekrar"]) $(g).value = "";
+  $("#sifre-hata").textContent = "";
+  const iptal = (e) => { if (zorunlu) e.preventDefault(); };
+  const gonder = async (e) => {
+    if (e.submitter?.value !== "gonder") return;
+    e.preventDefault();
+    const yeniSifre = $("#sifre-yeni").value;
+    if (yeniSifre !== $("#sifre-tekrar").value) { $("#sifre-hata").textContent = "Yeni şifreler birbirini tutmuyor."; $("#sifre-tekrar").focus(); return; }
+    $("#sifre-gonder").disabled = true;
+    $("#sifre-hata").textContent = "";
+    try {
+      const y = await fetch("/api/hesap/sifre", {
+        method: "PUT", headers: { "content-type": "application/json", ...hesapBasligi() },
+        body: JSON.stringify(eskisiz ? { yeniSifre } : { eskiSifre: $("#sifre-eski").value, yeniSifre }),
+      });
+      const veri = await y.json().catch(() => ({}));
+      if (!y.ok) { $("#sifre-hata").textContent = veri.hata ?? `İşlem başarısız (${y.status})`; return; }
+      hesap = veri;
+      d.close("tamam");
+    } catch { $("#sifre-hata").textContent = "Sunucuya ulaşılamadı."; }
+    finally { $("#sifre-gonder").disabled = false; }
+  };
+  d.addEventListener("cancel", iptal);
+  f.addEventListener("submit", gonder);
+  d.showModal();
+  (eskisiz ? $("#sifre-yeni") : $("#sifre-eski")).focus();
+  return new Promise((coz) => {
+    d.addEventListener("close", () => {
+      d.removeEventListener("cancel", iptal);
+      f.removeEventListener("submit", gonder);
+      const tamam = d.returnValue === "tamam";
+      if (tamam) bildirim("Şifren güncellendi.");
+      else if (zorunlu) hesapCikis();
+      coz(tamam);
+    }, { once: true });
+  });
 }
-$("#yonetici").addEventListener("click", () => { if (yonetimSifreli) girisIste().then(() => { modulleriListele(); icerikYukle(); }); });
+// Giriş kapısı: oturum yoksa Studio gizlenir ve giriş (gerekirse ilk şifre değişimi) tamamlanana kadar açık kalır.
+let kapiAcik = false;
+async function kapiyiAc() {
+  if (oturumVar() || kapiAcik) return;
+  kapiAcik = true;
+  document.body.classList.add("kapali");
+  $("#giris-kapisi").hidden = false;
+  $("#kapi-amblem").innerHTML = $("#amblem").innerHTML;
+  while (!oturumVar()) {
+    if (hesap?.sifreDegismeli) await sifrePenceresiAc({ zorunlu: true });
+    else await hesapPenceresiAc({ kapi: true });
+  }
+  document.body.classList.remove("kapali");
+  $("#giris-kapisi").hidden = true;
+  kapiAcik = false;
+  yetkiGuncelle();
+  sayfayiYenile();
+  oturumlariBaslat();
+}
+// Başka bir sekmede (uygulama ya da Studio) jeton değişince oturumu eşitle; düştüyse giriş kapısı açılır.
+window.addEventListener("storage", async (olay) => {
+  if (olay.key !== JETON_ANAHTARI && olay.key !== null) return;
+  if (!hesapGerekli) return;
+  await hesabiYukle();
+  yetkiGuncelle();
+  if (oturumVar()) sayfayiYenile();
+  else kapiyiAc();
+});
+// 401 alan istekler için. Oturum düştüyse (jeton süresi doldu, hesap silindi) giriş kapısı açılır;
+// oturum sürüyorsa 401 yetki yokluğudur (ör. usta bir admin işlemi denedi): yeniden giriş sorulmaz.
+async function oturumIste() {
+  // Geliştirme modunda sunucu her şeye izin verir; 401 burada giriş ile çözülmez.
+  if (!hesapGerekli) return false;
+  await hesabiYukle();
+  yetkiGuncelle();
+  if (oturumVar()) return false;
+  await kapiyiAc();
+  return true;
+}
+// Editör listeleri (Modüller, İçerik) yetki ister; çıkışta onları yeniden istemek yerine atölyeye dönülür.
+function hesapCikis() {
+  taslakKaydet({ sayfaKapaniyor: true });
+  jetonYaz(""); hesap = null;
+  atolyeyiSifirla();
+  yetkiGuncelle();
+  sayfaAc("atolye");
+  bildirim("Çıkış yapıldı.");
+  kapiyiAc();
+}
+$("#hesap-d").addEventListener("click", () => {
+  if (!hesap) return hesapPenceresiAc().then((t) => { if (t) { sayfayiYenile(); oturumlariBaslat(); } });
+  $("#hesap-kart-ad").textContent = `${hesap.kimlik} · ${ROL_ADI[hesap.rol] ?? hesap.rol}`;
+  $("#hesap-kart-rol").textContent = ROL_ACIKLAMA[hesap.rol] ?? "";
+  hesapKartiAc();
+});
+// Hesap kartı: e-posta ekleme/değiştirme (Google girişiyle bağlamak için), şifre, çıkış.
+// Google'a bağlı hesabın e-postası Google'dan gelir, değiştirilemez; şifresi hiç yoksa "Şifre belirle" olur.
+function hesapKartiAc() {
+  const k = $("#hesap-kart"), girdi = $("#hesap-kart-eposta");
+  girdi.value = hesap.eposta ?? "";
+  girdi.readOnly = !!hesap.google;
+  $("#hesap-kart-eposta-kaydet").hidden = !!hesap.google;
+  $("#hesap-kart-eposta-not").textContent = hesap.google ? "Bu hesap Google hesabına bağlı."
+    : hesap.eposta && !hesap.epostaDogrulandi && studioSifirlamaAcik ? "E-postan doğrulanmadı: gelen kutundaki bağlantıyı aç. Doğrulanınca aynı e-postayla \"Google ile devam et\" bu hesaba girer."
+      : "Aynı e-postayla \"Google ile devam et\" dersen bu hesaba girersin.";
+  $("#hesap-kart-hata").textContent = "";
+  k.querySelector('button[value="sifre"]').textContent = hesap.sifreVar === false ? "Şifre belirle" : "Şifreyi değiştir";
+  const gonder = async (e) => {
+    if (e.submitter?.value !== "eposta") return;
+    e.preventDefault();
+    try {
+      const y = await fetch("/api/hesap/profil", { method: "PUT", headers: { "content-type": "application/json", ...hesapBasligi() }, body: JSON.stringify({ eposta: girdi.value.trim(), donus: "/studio/" }) });
+      const veri = await y.json().catch(() => ({}));
+      if (!y.ok) { $("#hesap-kart-hata").textContent = veri.hata ?? `İşlem başarısız (${y.status})`; return; }
+      const degisti = veri.eposta !== hesap.eposta;
+      hesap = veri;
+      $("#hesap-kart-hata").textContent = "";
+      bildirim(degisti && !veri.epostaDogrulandi && studioSifirlamaAcik ? "E-posta kaydedildi; doğrulama bağlantısını gönderdik." : "E-posta kaydedildi.");
+    } catch { $("#hesap-kart-hata").textContent = "Sunucuya ulaşılamadı."; }
+  };
+  const f = k.querySelector("form");
+  f.addEventListener("submit", gonder);
+  k.addEventListener("close", () => {
+    f.removeEventListener("submit", gonder);
+    if (k.returnValue === "cikis") hesapCikis();
+    else if (k.returnValue === "sifre") sifrePenceresiAc({ ilk: hesap.sifreVar === false });
+  }, { once: true });
+  k.returnValue = "";
+  k.showModal();
+}
+$("#kilit-giris").addEventListener("click", () => hesapPenceresiAc({ kip: "giris" }).then((t) => { if (t) oturumlariBaslat(); }));
+$("#kilit-kayit").addEventListener("click", () => hesapPenceresiAc({ kip: "kayit" }).then((t) => { if (t) oturumlariBaslat(); }));
+
+// ---------- Atölye oturumu: sohbet ve taslak sunucuda (issue #26) ----------
+// Kalfa sohbeti ve editördeki modül, hesaba bağlı olarak sunucuda saklanır (server/atolye.js). Studio açılınca son oturum
+// geri gelir; kalfa isteği sürerken sayfa yenilenirse sunucu yanıtı oturuma yazar, Studio bekleyip sonucu gösterir.
+const OTURUM_ANAHTARI = "lonca.studio.oturum";
+const KARSILAMA = $("#mesajlar .mesaj p").textContent;
+$("#mesajlar .mesaj p").dataset.karsilama = "";
+// Admin kalfası bilgi bankasının dışına da (izinle Vikipedi) çıkabilir; karşılama bunu söyler.
+const KARSILAMA_ADMIN = "Hoş geldin. Bilgi bankasındaki vakıf eserleriyle ya da izin verirsen Vikipedi'den toplayacağım eserlerle (ör. “İzmir'deki vakıf eserleri”) modül yapabiliriz. Sorularını yanıtlarım; hazır olduğunda yazmamı iste, modülü yazayım, denetleyeyim, telefonda çalıştırayım.";
+const karsilama = () => (yoneticiMi() ? KARSILAMA_ADMIN : KARSILAMA);
+// Boş sohbetteki karşılama yetkiye göre (giriş/çıkışta yetkiGuncelle çağırır).
+function karsilamayiGuncelle() {
+  const p = $("#mesajlar .mesaj.kalfa:only-child p[data-karsilama]");
+  if (p) p.textContent = karsilama();
+}
+let oturumId = null;
+let oturumSurumu = 0; // oturum değişince eski yoklamalar ve yanıtlar ekrana yazılmasın
+const sonOturumYaz = (id) => { try { localStorage.setItem(OTURUM_ANAHTARI, id); } catch {} };
+const sonOturumOku = () => { try { return localStorage.getItem(OTURUM_ANAHTARI) ?? ""; } catch { return ""; } };
+
+async function oturumGerekli() {
+  if (oturumId) return oturumId;
+  const o = await yApi("/api/atolye/oturumlar", { method: "POST", govde: { taslak: editorHali() } });
+  oturumId = o.id;
+  sonOturumYaz(o.id);
+  taslakBekliyor = false;
+  return o.id;
+}
+
+// Editördeki değişiklikler kısa bir beklemeyle oturuma yazılır; boş editör için oturum açılmaz.
+let taslakZamanlayici = null, taslakBekliyor = false;
+function taslakDegisti() {
+  if (!atolyeAcik()) return;
+  taslakBekliyor = true;
+  clearTimeout(taslakZamanlayici);
+  taslakZamanlayici = setTimeout(() => taslakKaydet(), 1200);
+}
+async function taslakKaydet({ sayfaKapaniyor = false } = {}) {
+  clearTimeout(taslakZamanlayici);
+  if (!taslakBekliyor) return;
+  const hal = editorHali();
+  if (!oturumId && !hal.kod.trim()) return;
+  taslakBekliyor = false;
+  try {
+    if (sayfaKapaniyor) {
+      if (!oturumId) return;
+      fetch(`/api/atolye/oturumlar/${oturumId}/taslak`, {
+        method: "PUT", keepalive: true, body: JSON.stringify(hal),
+        headers: { "content-type": "application/json", ...hesapBasligi() },
+      }).catch(() => {});
+      return;
+    }
+    const id = await oturumGerekli();
+    await yApi(`/api/atolye/oturumlar/${id}/taslak`, { method: "PUT", govde: hal, yeniden: false });
+  } catch { taslakBekliyor = true; }
+}
+$("#kod").addEventListener("input", taslakDegisti);
+for (const s of ["#ad", "#id", "#aciklama"]) $(s).addEventListener("input", taslakDegisti);
+for (const s of ["#renk", "#ikon", "#kategori"]) $(s).addEventListener("change", taslakDegisti);
+window.addEventListener("pagehide", () => taslakKaydet({ sayfaKapaniyor: true }));
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") taslakKaydet(); });
+
+function mesajlariTemizle() {
+  const p = el("p", { textContent: karsilama() });
+  p.dataset.karsilama = "";
+  $("#mesajlar").replaceChildren(el("li", { className: "mesaj kalfa" }, p));
+}
+function editoruDoldur(t = {}) {
+  $("#kod").value = t.kod ?? ""; $("#ad").value = t.ad ?? ""; $("#id").value = t.id ?? ""; $("#aciklama").value = t.aciklama ?? "";
+  $("#renk").value = t.renk ?? ""; $("#ikon").value = t.ikon ?? ""; $("#kategori").value = t.kategori ?? "";
+  editoruGuncelle();
+}
+
+async function oturumuAc(id) {
+  await taslakKaydet();
+  const bu = ++oturumSurumu;
+  akisNo++;
+  const o = await yApi(`/api/atolye/oturumlar/${encodeURIComponent(id)}`, { yeniden: false });
+  if (bu !== oturumSurumu) return;
+  oturumId = o.id;
+  sonOturumYaz(o.id);
+  taslakBekliyor = false;
+  mesajlariTemizle();
+  sahneDurum(null);
+  izinDurumlari = new Map((o.kalfaDurumu?.izinler ?? []).map((i) => [i.id, i]));
+  for (const m of o.mesajlar) {
+    if (m.dalis) dalisIzle(m.dalis, dalisKutusu(), { geriYukleme: true, bu, kayit: m.dalisSonuc });
+    else mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar, izin: m.ek?.izin, eserIstegi: m.ek?.eserIstegi });
+  }
+  kalfaOnerileriniAyarla(o.mesajlar.length ? sonOneriler(o.mesajlar) : null);
+  editoruDoldur(o.taslak ?? {});
+  if (o.taslak?.kod?.trim()) onizle();
+  durumYaz("", "");
+  $("#gonder").disabled = false;
+  if (o.bekleyen) kalfayiBekle(o, bu);
+}
+
+// Ağ hatası ya da aradaki vekilin JSON'suz zaman aşımı/geçit yanıtı: istek sunucuya ulaşmış ve sürüyor olabilir.
+const KOPUK_DURUMLAR = new Set([502, 503, 504, 520, 522, 524]);
+const baglantiKoptu = (h) => h instanceof TypeError || (KOPUK_DURUMLAR.has(h.durum) && h.jsonsuz);
+
+// gonder() bağlantı koptuğunda: istek oturuma yazıldıysa (kalfa sürüyor ya da bitti) sonucu oturumdan bekler.
+// Dönüş: true → sonuç ya da durum hatası gösterildi; false → istek sunucuya hiç ulaşmamış, çağıran asıl hatayı gösterir.
+async function sonucuOturumdanBekle(metin, izin, ustaLi, bu) {
+  let o;
+  try { o = await yApi(`/api/atolye/oturumlar/${encodeURIComponent(oturumId)}`, { yeniden: false }); } catch { return false; }
+  if (bu !== oturumSurumu) return true;
+  // İsteğimiz oturuma yazılmış mı: izin kararında izin artık "bekliyor" değildir, düz istekte son usta mesajı budur.
+  const kayitli = (x) => (izin
+    ? (x.kalfaDurumu?.izinler ?? []).some((i) => i.id === izin.id && i.durum !== "bekliyor")
+    : x.mesajlar.findLast((m) => m.rol === "usta")?.metin === metin);
+  if (!o.bekleyen && !kayitli(o)) return false;
+  const tamam = await kalfayiBekle(o, bu, { yaziyorMetni: "Kalfa uzun bir iş yapıyor; sunucuda sürüyor, sonucu bekliyorum…", kayitli });
+  const istek = o.mesajlar.findLast((m) => m.rol === "usta")?.metin;
+  if (tamam && istek && bu === oturumSurumu) ustaLi.querySelector("p").textContent = istek;
+  return tamam;
+}
+
+// Oturumdaki son kalfa yanıtının önerileri (eski kayıtlarda yoktur: boş liste).
+const sonOneriler = (mesajlar) => [...mesajlar].reverse().find((m) => m.rol === "kalfa" && !m.dalis)?.ek?.oneriler ?? [];
+
+// Kalfa sunucuda çalışırken sayfa yenilendi ya da bağlantı koptu: bitince yanıt ve kod oturumdan alınır.
+// Gösterilenler oturumdaki son usta mesajından (bu istek) sonraki mesajlardır. kayitli: istek oturuma yazılmamışsa false döner.
+async function kalfayiBekle(o, bu, { yaziyorMetni = "Kalfa hâlâ çalışıyor: sayfa yenilendi ama isteğin sunucuda sürüyor", kayitli = () => true } = {}) {
+  const yaziyor = yaziyorEkle(yaziyorMetni);
+  $("#gonder").disabled = true;
+  sahneDurum("Kalfa düşünüyor…");
+  try {
+    let son = o;
+    while (son.bekleyen) {
+      await bekle(3000);
+      if (bu !== oturumSurumu) return true;
+      son = await yApi(`/api/atolye/oturumlar/${o.id}`, { yeniden: false });
+    }
+    if (bu !== oturumSurumu) return true;
+    yaziyor.remove();
+    if (!kayitli(son)) return false;
+    const yeni = son.mesajlar.slice(son.mesajlar.findLastIndex((m) => m.rol === "usta") + 1);
+    izinDurumlari = new Map((son.kalfaDurumu?.izinler ?? []).map((i) => [i.id, i]));
+    for (const m of yeni) mesajEkle(m.rol, m.metin, { adimlar: m.ek ? adimlarYap(m.ek) : [], hata: !!m.hata, kaynaklar: m.ek?.kaynaklar, izin: m.ek?.izin, eserIstegi: m.ek?.eserIstegi });
+    kalfaOnerileriniAyarla(sonOneriler(son.mesajlar));
+    if (yeni.at(-1)?.uretim && son.taslak?.kod) await taslagiAkit(son.taslak);
+    return true;
+  } catch (h) {
+    if (bu !== oturumSurumu) return true;
+    yaziyor.remove();
+    mesajEkle("kalfa", `Kalfanın durumu alınamadı: ${h.message}`, { hata: true });
+    return true;
+  } finally {
+    if (bu === oturumSurumu) { $("#gonder").disabled = false; sahneDurum(null); }
+  }
+}
+
+async function yeniSohbet() {
+  await taslakKaydet();
+  oturumSurumu++;
+  akisNo++;
+  surumSakla("yeni sohbetten önce");
+  oturumId = null;
+  sonOturumYaz("yeni");
+  taslakBekliyor = false;
+  mesajlariTemizle();
+  editoruDoldur();
+  kalfaOnerileriniAyarla(null);
+  baslangicOnerileriniYukle();
+  durumYaz("", "");
+  sahneDurum(null);
+  $("#gonder").disabled = false;
+  $("#istek").focus();
+}
+
+// Açılışta ve girişte: en son açık oturum (yoksa en yenisi) geri yüklenir. Kullanıcı "Yeni sohbet" dediyse boş başlar.
+async function oturumlariBaslat() {
+  if (oturumId || !atolyeAcik()) return;
+  baslangicOnerileriniYukle();
+  try {
+    const { oturumlar } = await yApi("/api/atolye/oturumlar", { yeniden: false });
+    const son = sonOturumOku();
+    const hedef = oturumlar.find((o) => o.id === son) ?? (son === "yeni" ? null : oturumlar[0]);
+    if (hedef && !oturumId) await oturumuAc(hedef.id);
+  } catch { /* oturumlar alınamadı: atölye boş başlar */ }
+}
+function atolyeyiSifirla() {
+  oturumSurumu++;
+  akisNo++;
+  oturumId = null;
+  taslakBekliyor = false;
+  clearTimeout(taslakZamanlayici);
+  clearTimeout(canliZamanlayici);
+  mesajlariTemizle();
+  editoruDoldur();
+  kalfaOnerileriniAyarla(null);
+  sahneDurum(null);
+  $("#gonder").disabled = false;
+}
+
+async function sohbetleriGoster() {
+  const d = $("#sohbetler-pencere"), ul = $("#sohbet-listesi");
+  ul.replaceChildren(el("li", { className: "aciklama", textContent: "Yükleniyor…" }));
+  d.returnValue = "";
+  d.showModal();
+  await taslakKaydet();
+  let liste;
+  try { liste = (await yApi("/api/atolye/oturumlar")).oturumlar; }
+  catch (h) { ul.replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
+  if (!liste.length) { ul.replaceChildren(el("li", { className: "aciklama", textContent: "Henüz kayıtlı sohbet yok. Kalfaya bir fikir anlattığında burada görünür." })); return; }
+  ul.replaceChildren(...liste.map((o) => {
+    const ac = el("button", { type: "button", className: "sohbet-ac" },
+      el("b", { textContent: o.baslik || (o.modul ? `${o.modul} (sohbetsiz taslak)` : "Adsız sohbet") }),
+      el("small", { textContent: [tarihYaz(o.guncelleme), `${o.mesajSayisi} mesaj`, o.modul && o.baslik ? o.modul : null, o.bekliyor ? "kalfa çalışıyor" : null].filter(Boolean).join(" · ") }));
+    ac.addEventListener("click", async () => {
+      d.close("ac");
+      try { await oturumuAc(o.id); } catch (h) { bildirim(h.message); }
+    });
+    const sil = el("button", { type: "button", className: "tehlike", textContent: "Sil" });
+    sil.setAttribute("aria-label", `“${o.baslik || "Adsız sohbet"}” sohbetini sil`);
+    sil.addEventListener("click", async () => {
+      if (!sil.dataset.emin) { sil.dataset.emin = "1"; sil.textContent = "Emin misin?"; setTimeout(() => { delete sil.dataset.emin; sil.textContent = "Sil"; }, 4000); return; }
+      sil.disabled = true;
+      try {
+        await yApi(`/api/atolye/oturumlar/${o.id}`, { method: "DELETE" });
+        li.remove();
+        if (o.id === oturumId) yeniSohbet();
+        if (!ul.children.length) ul.append(el("li", { className: "aciklama", textContent: "Kayıtlı sohbet kalmadı." }));
+      } catch (h) { sil.disabled = false; bildirim(h.message); }
+    });
+    const li = el("li", { className: `sohbet-ogesi${o.id === oturumId ? " secili" : ""}` }, ac, sil);
+    if (o.id === oturumId) ac.setAttribute("aria-current", "true");
+    return li;
+  }));
+}
+$("#sohbetler-d").addEventListener("click", sohbetleriGoster);
+$("#sohbetler-pencere").addEventListener("close", () => { if ($("#sohbetler-pencere").returnValue === "yeni") yeniSohbet(); });
+$("#yeni-sohbet-d").addEventListener("click", yeniSohbet);
 
 // ---------- Sayfalar ----------
 function sayfaAc(ad) {
@@ -316,6 +1132,9 @@ function durumYaz(tur, metin, ayrintilar = [], hedef = "#durum") {
   if (ayrintilar.length) d.append(el("ul", {}, ...ayrintilar.map((a) => el("li", { textContent: a }))));
 }
 
+// Özel modül onaya gitmez: düğme ne yapacağını söylesin.
+function gonderDugmesiniYaz() { $("#onaya-gonder").textContent = $("#gorunurluk").value === "ozel" ? "Kaydet ve paylaş" : "Onaya gönder"; }
+$("#gorunurluk").addEventListener("change", gonderDugmesiniYaz);
 $("#onaya-gonder").addEventListener("click", async (olay) => {
   const kod = $("#kod").value;
   const dugme = olay.currentTarget;
@@ -326,7 +1145,7 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
       dugme.dataset.emin = "1";
       const eski = dugme.textContent;
       dugme.textContent = "Üzerine yaz?";
-      durumYaz("kotu", `“${var_.ad}” (${DURUM_ADI[var_.durum]}) bu kimlikle zaten var. Gönderirsen kodu değişir ve yeniden onay bekler. Yeni bir modül istiyorsan önce kimliği değiştir; yine de göndermek için düğmeye tekrar bas.`);
+      durumYaz("kotu", `“${var_.ad}” (${DURUM_ADI[var_.durum]}) bu kimlikle zaten var. Gönderirsen kodu değişir: yayındaysa ve editörsen uygulamada hemen güncellenir, değilse yeniden onay bekler. Yeni bir modül istiyorsan önce kimliği değiştir; yine de göndermek için düğmeye tekrar bas.`);
       setTimeout(() => { delete dugme.dataset.emin; dugme.textContent = eski; }, 6000);
       return;
     }
@@ -335,11 +1154,22 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
   const govde = {
     id: $("#id").value.trim(), ad: $("#ad").value.trim(), aciklama: $("#aciklama").value.trim(),
     renk: $("#renk").value || undefined, ikon: $("#ikon").value || undefined, kategori: $("#kategori").value || undefined,
-    izinler: /eserler\.yakindaki/.test(kod) ? ["konum"] : [], kod,
+    izinler: /eserler\.yakindaki/.test(kod) ? ["konum"] : [], kod, gorunurluk: $("#gorunurluk").value,
   };
   try {
     const s = await yApi("/api/moduller", { method: "POST", govde });
-    durumYaz("iyi", `“${s.ad}” onaya gönderildi. Yayınlayınca uygulamada hemen görünür.`);
+    if (s.durum === "ozel") {
+      durumYaz("iyi", `“${s.ad}” özel olarak kaydedildi (${kaynakMetni(s.kaynak)}). Uygulamada listelenmez; bağlantıyı ya da davet kodunu paylaştığın herkes açabilir.`);
+      $("#durum").append(el("div", { className: "durum-eylem" }, ...paylasimDugmeleri(s)));
+      return;
+    }
+    if (s.durum === "onayli") {
+      durumYaz("iyi", `“${s.ad}” güncellendi ve yayında kaldı (${kaynakMetni(s.kaynak)}). Uygulama birkaç saniye içinde yeni sürümü görür.`);
+      $("#durum").append(el("div", { className: "durum-eylem" }, ...paylasimDugmeleri(s)));
+      sayaclariGuncelle(); durumCubugu();
+      return;
+    }
+    durumYaz("iyi", `“${s.ad}” onaya gönderildi (${kaynakMetni(s.kaynak)}). ${yoneticiMi() ? "Yayınlayınca" : "Admin onaylayınca"} uygulamada hemen görünür; paylaşım bağlantısı da o zaman açılır.`);
     const yayinla = el("button", { type: "button", className: "birincil kucuk-d", textContent: "Şimdi yayınla" });
     const listeyeGit = el("button", { type: "button", className: "ikincil kucuk-d", textContent: "Modüllerde gör" });
     yayinla.addEventListener("click", async () => {
@@ -351,23 +1181,81 @@ $("#onaya-gonder").addEventListener("click", async (olay) => {
       } catch (h) { yayinla.disabled = false; durumYaz("kotu", h.message, h.ayrintilar); }
     });
     listeyeGit.addEventListener("click", () => sayfaAc("moduller"));
-    $("#durum").append(el("div", { className: "durum-eylem" }, yayinla, listeyeGit));
+    $("#durum").append(el("div", { className: "durum-eylem" }, ...(yoneticiMi() ? [yayinla] : []), listeyeGit));
     sayaclariGuncelle();
   } catch (h) { durumYaz("kotu", h.message, h.ayrintilar); }
 });
 
-const DURUM_ADI = { bekliyor: "Onay bekliyor", onayli: "Yayında", kaldirildi: "Yayından kaldırıldı", arsiv: "Arşivde", reddedildi: "Reddedildi" };
+// Modülün kaynağı sunucuda belirlenir: kod kalfanın ürettiğiyle birebir aynıysa "kalfa", değilse "elle".
+function kaynakMetni(k) {
+  if (k?.tur === "kalfa") return k.sahte ? "sahte kalfa şablonu" : `kalfa yazdı · ${k.model}`;
+  if (k?.tur === "elle") return "elle yazıldı/düzenlendi";
+  return "kaynak kaydı yok";
+}
+// Paylaşım bağlantısı: özel modülde tahmin edilemez anahtar, yayındaki modülde kimlik. Android'de uygulamayı açar.
+const paylasimAdresi = (m) => `${location.origin}/m/${encodeURIComponent(m.durum === "ozel" ? m.paylasim : m.id)}`;
+const paylasilabilir = (m) => m.durum === "onayli" || (m.durum === "ozel" && m.paylasim);
+function kopyalaDugmesi(etiket, deger, baslik) {
+  const b = el("button", { type: "button", className: "ikincil kucuk-d", textContent: etiket, title: deger });
+  b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(deger); b.textContent = "Kopyalandı"; }
+    catch { window.prompt(baslik, deger); }
+    setTimeout(() => { b.textContent = etiket; }, 2000);
+  });
+  return b;
+}
+// Asıl paylaşım yolu: cihazın paylaşım menüsü (Android'de WhatsApp vb.); yoksa bağlantı panoya kopyalanır.
+function paylasDugmesi(m, adres) {
+  const b = el("button", { type: "button", className: "birincil kucuk-d", title: adres });
+  b.replaceChildren("Paylaş");
+  b.addEventListener("click", async () => {
+    const metin = m.durum === "ozel" && m.davetKodu ? `Lonca'da “${m.ad}” modülünü aç. Uygulamada davet kodu: ${m.davetKodu}` : `Lonca'da “${m.ad}” modülünü aç.`;
+    if (navigator.share) {
+      try { await navigator.share({ title: m.ad, text: metin, url: adres }); return; }
+      catch (h) { if (h?.name === "AbortError") return; }
+    }
+    try { await navigator.clipboard.writeText(adres); b.textContent = "Bağlantı kopyalandı"; }
+    catch { window.prompt("Paylaşım bağlantısı", adres); }
+    setTimeout(() => b.replaceChildren("Paylaş"), 2000);
+  });
+  return b;
+}
+function paylasimDugmeleri(m) {
+  if (!paylasilabilir(m)) return [];
+  const adres = paylasimAdresi(m);
+  const ac = el("a", { className: "ikincil kucuk-d dugme-bag", href: adres, target: "_blank", rel: "noopener", textContent: "Aç" });
+  // Özel modül uygulamada ve webde "Davet koduyla eriş" alanına yazılan kısa kodla da açılır.
+  const davet = m.durum === "ozel" && m.davetKodu ? [kopyalaDugmesi(`Davet kodu: ${m.davetKodu}`, m.davetKodu, "Davet kodu")] : [];
+  return [paylasDugmesi(m, adres), kopyalaDugmesi("Bağlantıyı kopyala", adres, "Paylaşım bağlantısı"), ...davet, ac];
+}
+const DURUM_ADI = { bekliyor: "Onay bekliyor", onayli: "Yayında", ozel: "Özel", kaldirildi: "Yayından kaldırıldı", arsiv: "Arşivde", reddedildi: "Reddedildi" };
 const EYLEMLER = {
   bekliyor: [["Atölyede aç", "ac", "ikincil"], ["Yayınla", "onayli", "birincil"], ["Reddet", "reddedildi", "ikincil"], ["Sil", "sil", "tehlike"]],
   onayli: [["Atölyede aç", "ac", "ikincil"], ["Yayından kaldır", "kaldirildi", "ikincil"], ["Arşivle", "arsiv", "ikincil"]],
+  ozel: [["Atölyede aç", "ac", "ikincil"], ["Arşivle", "arsiv", "ikincil"], ["Sil", "sil", "tehlike"]],
   kaldirildi: [["Atölyede aç", "ac", "ikincil"], ["Yeniden yayınla", "onayli", "birincil"], ["Arşivle", "arsiv", "ikincil"], ["Sil", "sil", "tehlike"]],
   arsiv: [["Arşivden çıkar", "kaldirildi", "ikincil"], ["Sil", "sil", "tehlike"]],
   reddedildi: [["Atölyede aç", "ac", "ikincil"], ["Yeniden değerlendir", "bekliyor", "ikincil"], ["Sil", "sil", "tehlike"]],
 };
+// Usta yalnızca kendi modüllerini görür; onaydan ya da yayından geri çekip özel taslağa döndürebilir ve silebilir.
+// Özel taslak uygulamada listelenmez; atölyede açıp "Herkese açık" seçerek yeniden onaya gönderilir.
+const USTA_EYLEMLER = {
+  bekliyor: [["Atölyede aç", "ac", "ikincil"], ["Onaydan geri çek", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+  onayli: [["Atölyede aç", "ac", "ikincil"], ["Yayından geri çek", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+  ozel: [["Atölyede aç", "ac", "ikincil"], ["Sil", "sil", "tehlike"]],
+  kaldirildi: [["Atölyede aç", "ac", "ikincil"], ["Taslağa al", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+  arsiv: [["Sil", "sil", "tehlike"]],
+  reddedildi: [["Atölyede aç", "ac", "ikincil"], ["Taslağa al", "ozel", "ikincil"], ["Sil", "sil", "tehlike"]],
+};
 let modulSuzgeci = "hepsi";
-const tarihYaz = (t) => (t ? new Date(t).toLocaleString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
+const tarihYaz = (t) => (t ? new Date(t).toLocaleString(yerelDil(), { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
 
 async function modulleriListele() {
+  // Sunucu ustaya yalnızca kendi modüllerini döndürür; onay kuyruğu admin'e özeldir.
+  $("#sayfa-moduller .sayfa-h").textContent = yoneticiMi() ? "Modüller" : "Modüllerim";
+  $("#moduller-aciklama").textContent = yoneticiMi()
+    ? "Atölyeden onaya gönderilen modüller. Yayınladığın modül uygulamada hemen görünür."
+    : "Atölyede yazıp onaya gönderdiğin modüller. Admin onaylayınca uygulamada görünür. İstediğin an geri çekip özel taslağa döndürebilir ya da silebilirsin.";
   let moduller;
   try { moduller = await yApi("/api/moduller?durum=hepsi"); }
   catch (h) { $("#liste").replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
@@ -387,10 +1275,13 @@ async function modulleriListele() {
   $("#liste").replaceChildren(...liste.map((m) => {
     const karo = el("span", { className: "mini-karo", ariaHidden: "true" });
     karo.style.backgroundImage = ciniArkaPlan(m.id, m.renk);
-    const eylemler = el("div", { className: "modul-eylemler" }, ...(EYLEMLER[m.durum] ?? []).map(([etiket, eylem, sinif]) => {
+    const admin = yoneticiMi();
+    const eylemler = el("div", { className: "modul-eylemler" }, ...((admin ? EYLEMLER : USTA_EYLEMLER)[m.durum] ?? []).map(([etiket, eylem, sinif]) => {
       const b = el("button", { className: sinif, type: "button", textContent: etiket });
+      // Kalıcı silme ve yayındaki modülü geri çekme ikinci tıklamayla onaylanır.
+      const onayMetni = eylem === "sil" ? "Emin misin? Kalıcı sil" : !admin && m.durum === "onayli" && eylem === "ozel" ? "Emin misin? Uygulamadan kalkar" : null;
       b.addEventListener("click", async () => {
-        if (eylem === "sil" && !b.dataset.emin) { b.dataset.emin = "1"; b.textContent = "Emin misin? Kalıcı sil"; setTimeout(() => { delete b.dataset.emin; b.textContent = etiket; }, 4000); return; }
+        if (onayMetni && !b.dataset.emin) { b.dataset.emin = "1"; b.textContent = onayMetni; setTimeout(() => { delete b.dataset.emin; b.textContent = etiket; }, 4000); return; }
         b.disabled = true;
         try {
           if (eylem === "ac") return await atolyedeAc(m);
@@ -405,9 +1296,11 @@ async function modulleriListele() {
       karo,
       el("div", { className: "modul-bilgi" },
         el("span", { className: "ad", textContent: m.ad }),
-        el("span", { className: "alt", textContent: `${m.id} · ${tarihYaz(m.guncelleme)}${m.aciklama ? ` · ${m.aciklama}` : ""}` })),
+        el("span", { className: "alt", textContent: `${m.id} · ${tarihYaz(m.guncelleme)}${m.aciklama ? ` · ${m.aciklama}` : ""}` }),
+        el("span", { className: `kaynak-etiket${m.kaynak?.tur === "kalfa" && !m.kaynak.sahte ? " kalfa" : ""}`, textContent: kaynakMetni(m.kaynak),
+          title: m.kaynak?.uretim ? `Kalfa üretimi: ${tarihYaz(m.kaynak.uretim)}` : "" })),
       el("span", { className: `etiket ${m.durum}`, textContent: DURUM_ADI[m.durum] ?? m.durum }),
-      eylemler);
+      (eylemler.prepend(...paylasimDugmeleri(m)), eylemler));
   }));
 }
 
@@ -429,7 +1322,7 @@ function surumleriCiz() {
   sec.hidden = !liste.length;
   sec.replaceChildren(el("option", { value: "", textContent: `↶ Önceki sürümler (${liste.length})` }),
     ...liste.map((s, i) => el("option", { value: String(i),
-      textContent: `${new Date(s.zaman).toLocaleTimeString("tr", { hour: "2-digit", minute: "2-digit" })} · ${s.ad || s.id || "adsız"} · ${s.neden} · ${s.kod.split("\n").length} satır` })));
+      textContent: `${new Date(s.zaman).toLocaleTimeString(yerelDil(), { hour: "2-digit", minute: "2-digit" })} · ${s.ad || s.id || "adsız"} · ${s.neden} · ${s.kod.split("\n").length} satır` })));
 }
 $("#surumler").addEventListener("change", (e) => {
   const s = surumleriOku()[Number(e.target.value)];
@@ -440,6 +1333,7 @@ $("#surumler").addEventListener("change", (e) => {
   $("#kod").value = s.kod; $("#ad").value = s.ad; $("#id").value = s.id; $("#aciklama").value = s.aciklama;
   $("#renk").value = s.renk; $("#ikon").value = s.ikon; $("#kategori").value = s.kategori;
   editoruGuncelle();
+  taslakDegisti();
   durumYaz("iyi", `Önceki sürüm geri yüklendi: ${s.ad || s.id} (${s.neden}).`);
   onizle();
 });
@@ -451,7 +1345,9 @@ async function atolyedeAc(m) {
   sayfaAc("atolye");
   $("#kod").value = kod; $("#ad").value = m.ad; $("#id").value = m.id; $("#aciklama").value = m.aciklama ?? "";
   $("#renk").value = m.renk ?? ""; $("#ikon").value = m.ikon ?? ""; $("#kategori").value = m.kategori ?? "";
+  $("#gorunurluk").value = m.durum === "ozel" ? "ozel" : "herkes"; gonderDugmesiniYaz();
   editoruGuncelle();
+  taslakDegisti();
   durumYaz("iyi", `“${m.ad}” atölyede açıldı (${DURUM_ADI[m.durum]}). Değiştirip yeniden onaya gönderebilirsin.`);
   onizle();
 }
@@ -525,6 +1421,9 @@ async function icerikYukle() {
   [tamlikOzeti] = await Promise.all([fetch("/api/eserler-tamlik").then((y) => y.json())]);
   temelAlanlar = tamlikOzeti.temelAlanlar ?? [];
   await eserleriSuz();
+  $("#icerik-aciklama").textContent = yoneticiMi()
+    ? "Vakıf eserlerinin verisi, uygulamadan gelen öneriler ve her değişikliğin geçmişi."
+    : "Vakıf eserlerinin verisi. Bir hata görürsen eseri açıp düzeltmeyi onaya gönderebilirsin.";
   await onerileriCiz();
   await gecmisiCiz();
 }
@@ -533,12 +1432,24 @@ const ALAN_VAR = {
   ad: (e) => !!e.ad, tur: (e) => !!e.tur, il: (e) => !!e.il, ilce: (e) => !!e.ilce, yuzyil: (e) => Number.isInteger(e.yuzyil),
   konum: (e) => Number.isFinite(e.konum?.lat), adres: (e) => !!e.adres?.trim?.(), tarihce: (e) => !!e.tarihce?.tr,
 };
+// İl süzgeci eldeki eserlerden dolar (Bursa, Konya, Hatay…); seçim yeniden çizimde korunur.
+function ilSecimiCiz() {
+  const sec = $("#eser-il"), secili = sec.value;
+  const sayilar = new Map();
+  for (const e of tumEserler) if (e.il) sayilar.set(e.il, (sayilar.get(e.il) ?? 0) + 1);
+  const iller = [...sayilar.keys()].sort((a, b) => a.localeCompare(b, "tr"));
+  sec.replaceChildren(el("option", { value: "", textContent: "Tüm iller" }),
+    ...iller.map((il) => el("option", { value: il, textContent: `${il} (${sayilar.get(il)})` })));
+  sec.value = iller.includes(secili) ? secili : "";
+}
 function eserListesiniCiz() {
+  ilSecimiCiz();
   const kelime = $("#eser-ara").value.trim().toLocaleLowerCase("tr");
-  const liste = tumEserler.filter((e) => !kelime || e.ad.toLocaleLowerCase("tr").includes(kelime));
+  const il = $("#eser-il").value;
+  const liste = tumEserler.filter((e) => (!il || e.il === il) && (!kelime || e.ad.toLocaleLowerCase("tr").includes(kelime)));
   const sonuc = $("#suz-sonuc");
   if (sonuc) sonuc.textContent = `${liste.length} eser listeleniyor`;
-  $("#eser-listesi").replaceChildren(...liste.slice(0, 400).map((e) => {
+  $("#eser-listesi").replaceChildren(...liste.slice(0, 1000).map((e) => {
     const eksik = Object.entries(ALAN_VAR).filter(([, f]) => !f(e)).map(([a]) => ALAN_ADLARI[a]);
     const noktalar = el("span", { className: "noktalar", role: "img", ariaLabel: eksik.length ? `Eksik: ${eksik.join(", ")}` : "Bilgisi tam" },
       ...Object.values(ALAN_VAR).map((f) => el("i", { className: f(e) ? "var" : "" })));
@@ -546,18 +1457,22 @@ function eserListesiniCiz() {
     const b = el("button", { type: "button", className: `eser-satir${seciliEser?.id === e.id ? " secili" : ""}` },
       e.fotograflar?.[0] ? el("img", { src: e.fotograflar[0], alt: "", loading: "lazy" }) : el("span", { className: "foto-yok", textContent: "—" }),
       el("span", {}, el("strong", { textContent: e.ad }),
-        el("small", { textContent: [TUR_ADI[e.tur], e.yuzyil ? `${e.yuzyil}. yy` : null, `${e.fotograflar?.length ?? 0} foto`].filter(Boolean).join(" · ") }),
+        el("small", { textContent: [TUR_ADI[e.tur], [e.ilce, e.il].filter(Boolean).join(", ") || null, e.yuzyil ? `${e.yuzyil}. yy` : null, `${e.fotograflar?.length ?? 0} foto`].filter(Boolean).join(" · ") }),
         noktalar));
     b.addEventListener("click", () => formuAc(e));
     return el("li", {}, b);
   }));
 }
 $("#eser-ara").addEventListener("input", eserListesiniCiz);
+$("#eser-il").addEventListener("change", eserListesiniCiz);
 
 let formIlkHali = "";
 const formAnahtari = () => { const v = formVerisi(); delete v.fotograflar; return JSON.stringify(v); };
 const formKirli = () => !$("#eser-formu").hidden && formAnahtari() !== formIlkHali;
-const fotoAnindaMi = () => !!seciliEser && !formOneri;
+// Yönetici olmayan uzman (ya da "Onaya gönder" diyen yönetici) değişikliği öneri olarak yollar; yayın editör onayıyla olur.
+const onayaGiderMi = () => !formOneri && !yoneticiMi();
+const fotoAnindaMi = () => !!seciliEser && !formOneri && yoneticiMi();
+let formIlkVeri = {};
 
 function kirliIsaretiniGuncelle() {
   const k = formKirli();
@@ -581,7 +1496,10 @@ async function formuAc(eser, { oneri = null, onerilenVeri = null, sorma = false 
   if (!sorma && !(await ayrilabilirMi())) return;
   seciliEser = eser; formOneri = oneri;
   const f = $("#eser-formu"), v = { ...(eser ?? {}), ...(onerilenVeri ?? {}) };
-  $("#form-baslik").textContent = oneri ? "Öneriyi incele ve onayla" : eser ? "Eseri düzenle" : "Yeni eser";
+  // Usta eseri yalnızca görür: alanlar kilitli, kaydet/sil/fotoğraf düğmeleri .yalniz-admin ile gizli.
+  const saltOkunur = !yoneticiMi();
+  for (const a of f.querySelectorAll("input, select, textarea")) a.disabled = saltOkunur;
+  $("#form-baslik").textContent = saltOkunur ? "Eser bilgisi" : oneri ? "Öneriyi incele ve onayla" : eser ? "Eseri düzenle" : "Yeni eser";
   f.elements.ad.value = v.ad ?? ""; f.elements.ad_en.value = v.ad_en ?? ""; f.elements.tur.value = v.tur ?? "cami";
   f.elements.il.value = v.il ?? "Bursa"; f.elements.ilce.value = v.ilce ?? ""; f.elements.yuzyil.value = v.yuzyil ?? "";
   f.elements.lat.value = v.konum?.lat ?? ""; f.elements.lng.value = v.konum?.lng ?? ""; f.elements.yaklasik.checked = !!v.konum?.yaklasik;
@@ -591,17 +1509,66 @@ async function formuAc(eser, { oneri = null, onerilenVeri = null, sorma = false 
   fotolariCiz();
   const eksik = { ad: !v.ad, tur: !v.tur, il: !v.il, ilce: !v.ilce, yuzyil: !Number.isInteger(v.yuzyil), lat: !v.konum, lng: !v.konum, adres: !v.adres, tarihce_tr: !v.tarihce?.tr };
   for (const [ad, yok] of Object.entries(eksik)) f.elements[ad]?.closest("label")?.classList.toggle("eksik-alan", !!eser && yok);
-  $("#eser-sil").hidden = !eser || !!oneri;
-  $("#eser-gecmisi-ac").hidden = !eser || !!oneri;
+  $("#eser-sil").hidden = !eser || !!oneri || !yoneticiMi();
+  $("#eser-gecmisi-ac").hidden = !eser || !!oneri || !yoneticiMi();
+  $("#eser-onaya").hidden = !!oneri || onayaGiderMi();
+  oneriKutusunuAc(!saltOkunur && onayaGiderMi());
+  f.elements.oneri_kaynak.value = ""; f.elements.oneri_not.value = "";
   $("#foto-ipucu").textContent = fotoAnindaMi() ? "değişiklikler hemen kaydedilir · ilk fotoğraf kapaktır" : "ilk fotoğraf kapak olur · kaydedince yayına girer";
-  f.querySelector("[type=submit]").textContent = oneri ? "Onayla ve yayınla" : "Kaydet ve yayınla";
-  durumYaz("", "", [], "#eser-durum");
+  f.querySelector("[type=submit]").textContent = oneri ? "Onayla ve yayınla" : onayaGiderMi() ? "Onaya gönder" : "Kaydet ve yayınla";
+  const kimden = [oneri?.oneren && `Öneren: ${oneri.oneren}`, oneri?.kaynak && `eklenen bilginin kaynağı: ${oneri.kaynak}`].filter(Boolean).join(" · ");
+  durumYaz("", saltOkunur ? "Eserleri yalnızca admin hesapları düzenleyebilir." : kimden, [], "#eser-durum");
   f.hidden = false; $("#eser-bos").hidden = true;
   formIlkHali = formAnahtari();
+  formIlkVeri = formVerisi();
   kirliIsaretiniGuncelle();
   eserListesiniCiz();
   f.elements.ad.focus({ preventScroll: true });
 }
+function oneriKutusunuAc(acik) {
+  const k = $("#oneri-kutusu");
+  k.hidden = !acik; k.disabled = !acik;
+}
+// Atölye önizlemesindeki "Bu eserde eksik var, düzenle" bağlantısı eseri İçerik sayfasında açar.
+async function eserDuzenlemeyeAc(id) {
+  if (!(await ayrilabilirMi())) return;
+  sayfaAc("icerik");
+  let eser = tumEserler.find((x) => x.id === id);
+  if (!eser) { try { const y = await fetch(`/api/eserler/${encodeURIComponent(id)}`); if (y.ok) eser = await y.json(); } catch {} }
+  if (!eser?.id) return durumYaz("kotu", "Önizlemedeki eser bulunamadı.");
+  await formuAc(eser, { sorma: true });
+  if (!yoneticiMi()) return;
+  durumYaz("", onayaGiderMi() ? "Eksik bilgiyi ekle, kaynağını yaz ve onaya gönder." : "Eksik bilgiyi ekle; yayınlamadan önce bir uzman görüşü istersen “Onaya gönder”i kullan.", [], "#eser-durum");
+}
+async function onayaGonder() {
+  const f = $("#eser-formu");
+  if ($("#oneri-kutusu").hidden) {
+    oneriKutusunuAc(true);
+    f.elements.oneri_kaynak.focus();
+    durumYaz("", "Eklediğin bilginin kaynağını yaz, sonra yeniden “Onaya gönder”e bas.", [], "#eser-durum");
+    return false;
+  }
+  if (!f.reportValidity()) return false;
+  const veri = formVerisi();
+  const ek = { kaynak: f.elements.oneri_kaynak.value.trim(), oneren: f.elements.oneri_oneren.value.trim(), not: f.elements.oneri_not.value.trim() };
+  let govde;
+  if (seciliEser) {
+    const fark = Object.fromEntries(Object.entries(veri).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(formIlkVeri[k])));
+    if (!Object.keys(fark).length) { durumYaz("kotu", "Değişiklik yok: önce eksik bilgiyi forma ekle.", [], "#eser-durum"); return false; }
+    govde = { tur: "duzenle", eserId: seciliEser.id, veri: fark, ...ek };
+  } else govde = { tur: "yeni", veri, ...ek };
+  try {
+    await yApi("/api/eser-oneriler", { method: "POST", govde, yeniden: false });
+    formIlkHali = formAnahtari(); formIlkVeri = veri;
+    kirliIsaretiniGuncelle();
+    f.elements.oneri_not.value = "";
+    if (!onayaGiderMi()) oneriKutusunuAc(false);
+    durumYaz("iyi", "Önerin editör onayına gönderildi. Onaylanınca uygulamada yayına girer.", [], "#eser-durum");
+    if (yoneticiMi()) { onerileriCiz(); sayaclariGuncelle(); }
+    return true;
+  } catch (h) { durumYaz("kotu", h.message, h.ayrintilar, "#eser-durum"); return false; }
+}
+$("#eser-onaya").addEventListener("click", onayaGonder);
 $("#yeni-eser").addEventListener("click", () => formuAc(null));
 $("#eser-vazgec").addEventListener("click", async () => {
   if (!(await ayrilabilirMi())) return;
@@ -610,7 +1577,7 @@ $("#eser-vazgec").addEventListener("click", async () => {
 
 async function fotoGoster(img, yol) {
   if (!yol.startsWith("/medya/yuklenen/")) { img.src = yol; return; }
-  try { const y = await fetch(yol, { headers: { "x-yonetici-sifre": sifreOku() } }); if (y.ok) img.src = URL.createObjectURL(await y.blob()); } catch {}
+  try { const y = await fetch(yol, { headers: hesapBasligi() }); if (y.ok) img.src = URL.createObjectURL(await y.blob()); } catch {}
 }
 
 async function fotolariDegistir(yeni, neden) {
@@ -647,7 +1614,7 @@ function fotolariCiz() {
     const img = el("img", { alt: `Fotoğraf ${i + 1}${i === 0 ? " (kapak)" : ""}`, draggable: false });
     fotoGoster(img, yol);
     const tus = (metin, etiket, sinif, f, kapali = false) => {
-      const b = el("button", { type: "button", className: sinif, textContent: metin, ariaLabel: etiket, title: etiket, disabled: kapali });
+      const b = el("button", { type: "button", className: `${sinif} yalniz-admin`, textContent: metin, ariaLabel: etiket, title: etiket, disabled: kapali });
       b.addEventListener("click", f); return b;
     };
     const tasi = (j, neden) => { const yeni = formFotolari.slice(); const [x] = yeni.splice(i, 1); yeni.splice(j, 0, x); fotolariDegistir(yeni, neden); };
@@ -696,6 +1663,7 @@ function formVerisi() {
 }
 async function formuKaydet() {
   const f = $("#eser-formu");
+  if (onayaGiderMi()) return onayaGonder();
   if (!f.reportValidity()) return false;
   const veri = formVerisi();
   try {
@@ -730,7 +1698,7 @@ function bildirim(metin, geriAl) {
   const kutu = $("#bildirimler");
   const geriB = el("button", { type: "button", textContent: "Geri al" });
   const kapatB = el("button", { type: "button", className: "kapat", textContent: "×", ariaLabel: "Kapat" });
-  const b = el("div", { className: "bildirim", role: "status" }, el("span", { textContent: metin }), geriB, kapatB);
+  const b = el("div", { className: "bildirim", role: "status" }, el("span", { textContent: metin }), geriAl ? geriB : null, kapatB);
   const kaldir = () => b.remove();
   const sure = setTimeout(kaldir, 10000);
   kapatB.addEventListener("click", () => { clearTimeout(sure); kaldir(); });
@@ -748,14 +1716,15 @@ let gecmisSuzgeci = false;
 async function gecmisiCiz() {
   const liste = $("#gecmis-listesi");
   if (!liste) return;
+  if (!yoneticiMi()) { liste.replaceChildren(); return; }
   let kayitlar;
   try { kayitlar = await yApi(`/api/eser-gecmisi${gecmisSuzgeci && seciliEser ? `?eser=${encodeURIComponent(seciliEser.id)}` : ""}`, { yeniden: false }); }
   catch (h) { liste.replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
   if (!kayitlar.length) { liste.replaceChildren(el("li", { className: "aciklama", textContent: "Henüz değişiklik yok." })); return; }
   liste.replaceChildren(...kayitlar.slice(0, 40).map((g) => {
-    const saat = new Date(g.zaman).toLocaleString("tr", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    const saat = new Date(g.zaman).toLocaleString(yerelDil(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
     const ayrinti = g.neden ?? (g.ozet?.length ? (g.islem === "ice-aktar" ? g.ozet.join(", ") : `${g.ozet.map((a) => ALAN_ADI[a] ?? a).join(", ")} değişti`) : "");
-    const geriB = el("button", { type: "button", className: "kucuk-d ikincil", textContent: g.geriAlindi ? "geri alındı" : "Geri al", disabled: g.geriAlindi });
+    const geriB = el("button", { type: "button", className: "kucuk-d ikincil yalniz-admin", textContent: g.geriAlindi ? "geri alındı" : "Geri al", disabled: g.geriAlindi });
     geriB.addEventListener("click", async () => {
       if (!(await ayrilabilirMi())) return;
       geriB.disabled = true;
@@ -816,24 +1785,29 @@ $("#ice-aktar-pencere").addEventListener("close", async () => {
 const ALAN_ADI = { ad: "Ad", ad_en: "İngilizce ad", tur: "Tür", il: "İl", ilce: "İlçe", yuzyil: "Yüzyıl", konum: "Konum", adres: "Adres", tarihce: "Tarihçe", kaynak: "Kaynak", fotograflar: "Fotoğraflar" };
 const kisa = (x) => { const s = typeof x === "object" && x ? (x.tr ?? (x.lat != null ? `${x.lat}, ${x.lng}` : Array.isArray(x) ? `${x.length} fotoğraf` : JSON.stringify(x))) : String(x ?? "—"); return s.length > 140 ? s.slice(0, 140) + "…" : s; };
 
+// Onay kuyruğu ve değişiklik geçmişi yalnızca admin'e: usta için hiç istenmez (sunucu da 403 döner).
 async function onerileriCiz() {
+  if (!yoneticiMi()) { $("#oneriler-listesi").replaceChildren(); return; }
   let oneriler;
-  try { oneriler = await yApi("/api/eser-oneriler"); }
+  try { oneriler = await yApi("/api/eser-oneriler", { yeniden: yoneticiMi() }); }
   catch (h) { $("#oneriler-listesi").replaceChildren(el("li", { className: "aciklama", textContent: h.message })); return; }
   if (!oneriler.length) { $("#oneriler-listesi").replaceChildren(el("li", { className: "aciklama", textContent: "Bekleyen öneri yok." })); return; }
   $("#oneriler-listesi").replaceChildren(...oneriler.map((o) => {
-    const baslik = o.tur === "yeni" ? `Yeni eser: ${o.veri?.ad}` : o.tur === "duzenle" ? `Düzenleme: ${o.eser?.ad}` : `Hata bildirimi: ${o.eser?.ad}`;
+    const baslik = o.tur === "istek" ? `Eklenmesi istenen eser: ${o.istek?.ad}${o.istek?.il ? ` (${o.istek.il})` : ""}`
+      : o.tur === "yeni" ? `Yeni eser: ${o.veri?.ad}` : o.tur === "duzenle" ? `Düzenleme: ${o.eser?.ad}` : `Hata bildirimi: ${o.eser?.ad}`;
     const govde = el("div", { className: "oneri-govde" });
     if (o.not) govde.append(el("p", { className: "oneri-not", textContent: `“${o.not}”` }));
+    if (o.kaynak || o.oneren) govde.append(el("p", { className: "oneri-kaynak", textContent: [o.oneren && `Öneren: ${o.oneren}`, o.kaynak && `Kaynak: ${o.kaynak}`].filter(Boolean).join(" · ") }));
     if (o.tur === "duzenle" && o.veri) govde.append(el("ul", { className: "fark" }, ...Object.entries(o.veri).map(([k, v]) =>
       el("li", {}, el("b", { textContent: ALAN_ADI[k] ?? k }), el("del", { textContent: kisa(o.eser?.[k]) }), el("ins", { textContent: kisa(v) })))));
     if (o.tur === "yeni" && o.veri) govde.append(el("p", { className: "aciklama", textContent: `${TUR_ADI[o.veri.tur] ?? o.veri.tur} · ${o.veri.ilce ?? ""} · kaynak: ${o.veri.kaynak}` }));
-    const incele = el("button", { className: "birincil", type: "button", textContent: o.tur === "not" ? "Eseri düzenle" : "İncele ve onayla" });
-    incele.addEventListener("click", () => formuAc(o.eser ?? null, { oneri: o.tur === "not" ? null : o, onerilenVeri: o.veri }));
-    const kapat = el("button", { className: "ikincil", type: "button", textContent: o.tur === "not" ? "Çözüldü" : "Reddet" });
+    if (o.tur === "istek") govde.append(el("p", { className: "aciklama", textContent: "Usta kalfayla konuşurken istedi. Eklemek için eseri kaynağıyla elle ekle ya da Atölye'de kalfaya \"bu eseri ekle\" de (Vikipedi'den, izninle)." }));
+    const incele = el("button", { className: "birincil yalniz-admin", type: "button", textContent: o.tur === "istek" ? "Kalfayla ekle" : o.tur === "not" ? "Eseri düzenle" : "İncele ve onayla" });
+    incele.addEventListener("click", () => (o.tur === "istek" ? kalfaylaEkle(o) : formuAc(o.eser ?? null, { oneri: o.tur === "not" ? null : o, onerilenVeri: o.veri })));
+    const kapat = el("button", { className: "ikincil yalniz-admin", type: "button", textContent: o.tur === "not" || o.tur === "istek" ? "Çözüldü" : "Reddet" });
     kapat.addEventListener("click", async () => {
       kapat.disabled = true;
-      try { await yApi(`/api/eser-oneriler/${o.id}/karar`, { method: "POST", govde: { karar: o.tur === "not" ? "onayla" : "reddet" } }); onerileriCiz(); sayaclariGuncelle(); }
+      try { await yApi(`/api/eser-oneriler/${o.id}/karar`, { method: "POST", govde: { karar: o.tur === "not" || o.tur === "istek" ? "onayla" : "reddet" } }); onerileriCiz(); sayaclariGuncelle(); }
       catch (h) { alert(h.message); kapat.disabled = false; }
     });
     return el("li", { className: `oneri ${o.tur}` },
@@ -844,11 +1818,11 @@ async function onerileriCiz() {
 
 async function sayaclariGuncelle() {
   const yaz = (secici, n) => { const s = $(secici); s.hidden = !n; s.textContent = String(n); };
-  try { yaz("#sayac-modul", (await yApi("/api/moduller?durum=hepsi", { yeniden: false })).filter((m) => m.durum === "bekliyor").length); } catch {}
-  try { yaz("#sayac-oneri", (await yApi("/api/eser-oneriler", { yeniden: false })).length); } catch {}
+  if (yoneticiMi()) try { yaz("#sayac-modul", (await yApi("/api/moduller?durum=hepsi", { yeniden: false })).filter((m) => m.durum === "bekliyor").length); } catch {}
+  if (yoneticiMi()) try { yaz("#sayac-oneri", (await yApi("/api/eser-oneriler", { yeniden: false })).length); } catch {}
 }
 
-const saat = () => { $("#saat").textContent = new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }); };
+const saat = () => { $("#saat").textContent = new Date().toLocaleTimeString(yerelDil(), { hour: "2-digit", minute: "2-digit" }); };
 saat(); setInterval(saat, 30000);
 
 async function durumCubugu() {
@@ -859,18 +1833,332 @@ async function durumCubugu() {
     $("#dc-modul").innerHTML = `modüller: <b>${yayinda}</b> yayında`;
   } catch {}
 }
-setInterval(() => { $("#dc-saat").textContent = new Date().toLocaleString("tr-TR", { weekday: "short", hour: "2-digit", minute: "2-digit" }); }, 1000);
+setInterval(() => { $("#dc-saat").textContent = new Date().toLocaleString(yerelDil(), { weekday: "short", hour: "2-digit", minute: "2-digit" }); }, 1000);
 durumCubugu();
 
-fetch("/api/kalfa").then((y) => y.json()).then((k) => {
-  $("#dc-kalfa").innerHTML = `kalfa: <b>${k.sahte ? "sahte mod" : k.model}</b>`;
-  $("#model").classList.add(k.sahte ? "sahte" : "canli");
-  $("#model-ad").textContent = k.sahte ? "Kalfa: sahte mod (yapay zekâ bağlı değil)" : `Kalfa: ${k.model}`;
-}).catch(() => { $("#model-ad").textContent = "Kalfa: sunucuya ulaşılamadı"; });
+function kalfaDurumu() {
+  return fetch("/api/kalfa").then((y) => y.json()).then((k) => {
+    const dc = $("#dc-kalfa");
+    dc.textContent = "kalfa: ";
+    dc.append(el("b", { textContent: k.sahte ? "sahte mod" : k.model }));
+    $("#model").classList.toggle("sahte", !!k.sahte);
+    $("#model").classList.toggle("canli", !k.sahte);
+    $("#model-ad").textContent = k.sahte ? "Kalfa: sahte mod (yapay zekâ bağlı değil)" : `Kalfa: ${k.model}`;
+  }).catch(() => { $("#model-ad").textContent = "Kalfa: sunucuya ulaşılamadı"; });
+}
+kalfaDurumu();
+
+// ---------- Kalfa modelleri (UstaGPT) ----------
+// Liste ve kayıt sunucudan geçer (/api/kalfa/modeller, /api/kalfa/ayarlar); UstaGPT anahtarı tarayıcıya gelmez.
+const MODEL_ALANLARI = {
+  kalfaModeli: { tur: "metin", coklu: false, ipucu: "Modül kalfasının fikri koda çevirirken kullandığı dil modeli. Araç çağırabilen (tool calling) bir model seç." },
+  dalisMetinModelleri: { tur: "metin", coklu: true, ipucu: "Dalış planı ve fotoğraf tanıma için. Sırayla denenir: ilki yanıt vermezse ikincisine geçilir (en çok 5)." },
+  dalisGorselModelleri: { tur: "gorsel", coklu: true, ipucu: "Dalış karelerini üreten görsel modeller. Sırayla denenir (en çok 5). \"sohbet:\" önekliler sohbet üzerinden görsel üretir." },
+};
+const modelDurumu = { modeller: [], secili: null, taslak: {}, alan: "kalfaModeli", yukleniyor: false, tarama: null };
+
+// Kalfa taraması (/api/kalfa/modeller/tara): her metin modeline gerçek bir kalfa isteği gider. Modül kalfası
+// sekmesinde yalnızca taramada çalışan (doğrulamadan geçen modül üreten) modeller listelenir.
+const saniye = (ms) => `${Math.max(1, Math.round(ms / 1000))} sn`;
+function saglikEtiketi(m) {
+  const s = m.saglik;
+  if (!s) return null;
+  if (modelDurumu.tarama?.ilerleme?.suren?.includes(m.deger)) return { sinif: "suruyor", metin: "sınanıyor…", baslik: "Kalfa isteği sürüyor" };
+  const tarih = s.tarih ? new Date(s.tarih).toLocaleString(yerelDil(), { dateStyle: "short", timeStyle: "short" }) : "";
+  if (s.durum === "calisiyor") return { sinif: "iyi", metin: `✓ çalışıyor · ${saniye(s.sure)}`, baslik: `Kalfa testi ${tarih}: ${saniye(s.sure)}, ${s.deneme ?? "?"} deneme, ${s.satir ?? "?"} satır` };
+  if (s.durum === "hata") return { sinif: "kotu", metin: `✗ ${s.hata}`, baslik: `Kalfa testi ${tarih}: ${s.hata}` };
+  return { sinif: "", metin: "denenmedi", baslik: "Bu model henüz kalfa testinden geçmedi" };
+}
+const saglikSirasi = (m) => (m.saglik?.durum === "calisiyor" ? 0 : m.saglik?.durum === "hata" ? 2 : 1);
+
+let taramaZamanlayici = null;
+function taramaGoster() {
+  const t = modelDurumu.tarama, yazi = $("#model-tarama"), d = $("#model-tara");
+  d.disabled = !!t?.calisiyor;
+  d.textContent = t?.calisiyor ? "Test sürüyor…" : "Modelleri test et";
+  if (t?.calisiyor && t.ilerleme) {
+    const { biten, toplam, suren } = t.ilerleme;
+    yazi.textContent = `Kalfa testi sürüyor: ${biten}/${toplam} model bitti${suren.length ? ` · şu an: ${suren.join(", ")}` : ""}. Pencereyi kapatabilirsin; test arka planda sürer.`;
+  } else if (t?.guncelleme) {
+    const calisan = modelDurumu.modeller.filter((m) => m.saglik?.durum === "calisiyor").length;
+    const denenen = modelDurumu.modeller.filter((m) => m.saglik && m.saglik.durum !== "denenmedi").length;
+    yazi.textContent = `Son kalfa testi ${new Date(t.guncelleme).toLocaleString(yerelDil(), { dateStyle: "short", timeStyle: "short" })}: ${denenen} modelden ${calisan} tanesi modül üretebildi.`;
+  } else yazi.textContent = "";
+}
+async function taramaYokla() {
+  clearTimeout(taramaZamanlayici);
+  try {
+    const t = await yApi("/api/kalfa/modeller/tara");
+    // Biten modellerin sonucunu listeye işle (sunucu sıralaması bir sonraki yüklemede gelir).
+    for (const m of modelDurumu.modeller) if (m.tur === "metin" && t.sonuclar[m.deger]) m.saglik = t.sonuclar[m.deger];
+    modelDurumu.tarama = { calisiyor: t.calisiyor, ilerleme: t.ilerleme, guncelleme: t.guncelleme };
+    taramaGoster(); modelCiz();
+    if (t.calisiyor) taramaZamanlayici = setTimeout(taramaYokla, 4000);
+    else if ($("#kalfa-ayarlari").open) modelleriYukle();
+  } catch (h) {
+    const durum = $("#model-durum"); durum.className = "durum kotu"; durum.textContent = h.message;
+  }
+}
+$("#model-tara").addEventListener("click", async () => {
+  const durum = $("#model-durum");
+  durum.className = "durum"; durum.textContent = "";
+  try {
+    const t = await yApi("/api/kalfa/modeller/tara", { method: "POST", govde: {} });
+    modelDurumu.tarama = { ...modelDurumu.tarama, calisiyor: true, ilerleme: t.ilerleme };
+    taramaGoster(); modelCiz();
+    taramaZamanlayici = setTimeout(taramaYokla, 2000);
+  } catch (h) {
+    durum.className = "durum kotu"; durum.textContent = h.message;
+  }
+});
+
+function fiyatYazisi(f) {
+  if (!f) return "";
+  if (f.per_request != null) return `${f.per_request} / istek`;
+  if (f.input != null) return `${f.input} / ${f.output ?? "?"}`;
+  return "";
+}
+const baglamYazisi = (n) => (!n ? "" : n >= 1e6 ? `${Math.round(n / 1e5) / 10}M` : `${Math.round(n / 1000)}K`);
+
+function modelTaslagi(secili) {
+  return {
+    kalfaModeli: secili.kalfaModeli ?? null,
+    dalisMetinModelleri: [...(secili.dalisMetinModelleri ?? [])],
+    dalisGorselModelleri: [...(secili.dalisGorselModelleri ?? [])],
+  };
+}
+
+async function modelleriYukle({ yenile = false } = {}) {
+  modelDurumu.yukleniyor = true;
+  const durum = $("#model-durum");
+  durum.className = "durum"; durum.textContent = "Model listesi alınıyor…";
+  $("#model-listesi").replaceChildren();
+  try {
+    const v = await yApi(`/api/kalfa/modeller${yenile ? "?yenile=1" : ""}`);
+    modelDurumu.modeller = v.modeller;
+    modelDurumu.secili = v.secili;
+    modelDurumu.taslak = modelTaslagi(v.secili);
+    modelDurumu.tarama = v.tarama ?? null;
+    if (v.tarama?.calisiyor && !taramaZamanlayici) taramaZamanlayici = setTimeout(taramaYokla, 4000);
+    const sahipler = [...new Set(v.modeller.map((m) => m.sahip).filter(Boolean))].sort((a, b) => a.localeCompare(b, "tr"));
+    const sec = $("#model-sahip"), onceki = sec.value;
+    sec.replaceChildren(el("option", { value: "", textContent: "Tüm sağlayıcılar" }), ...sahipler.map((x) => el("option", { value: x, textContent: x })));
+    sec.value = sahipler.includes(onceki) ? onceki : "";
+    const metin = v.modeller.filter((m) => m.tur === "metin").length;
+    $("#model-bilgi").textContent = `UstaGPT: ${metin} metin, ${v.modeller.length - metin} görsel model · liste ${new Date(v.guncelleme).toLocaleTimeString(yerelDil(), { hour: "2-digit", minute: "2-digit" })} itibarıyla`;
+    durum.textContent = "";
+  } catch (h) {
+    modelDurumu.modeller = [];
+    durum.className = "durum kotu"; durum.textContent = h.message;
+  } finally {
+    modelDurumu.yukleniyor = false;
+    taramaGoster();
+    modelCiz();
+  }
+}
+
+function modelCiz() {
+  const { alan, taslak, modeller, secili } = modelDurumu;
+  const tanim = MODEL_ALANLARI[alan];
+  for (const b of document.querySelectorAll(".model-sekmeler button")) {
+    const bu = b.dataset.alan === alan;
+    b.classList.toggle("secili", bu); b.setAttribute("aria-selected", String(bu));
+  }
+  let ipucu = tanim.ipucu;
+  if (alan === "kalfaModeli" && secili?.kalfa) {
+    if (secili.kalfa.saglayici === "sahte") ipucu += " Not: kalfa şu an sahte modda (KALFA_SAHTE); seçim kaydedilir ama sahte mod kapanınca geçerli olur.";
+    else if (!secili.kalfa.ustagpt) ipucu += " Not: modül kalfası şu an UstaGPT'ye bağlı değil (.env'deki KALFA_API_URL başka bir uç nokta); bu seçim uygulanmaz.";
+  }
+  if (alan !== "kalfaModeli" && secili?.dalis && !secili.dalis.ustagpt) ipucu += " Not: dalış kalfası şu an UstaGPT'ye bağlı değil (DALIS_API_URL); bu seçim uygulanmaz.";
+  $("#model-ipucu").textContent = ipucu;
+
+  const secimler = tanim.coklu ? taslak[alan] ?? [] : taslak[alan] ? [taslak[alan]] : [];
+  const kutu = $("#model-secili");
+  kutu.replaceChildren(...secimler.map((deger, i) => {
+    const kaldir = el("button", { type: "button", className: "cip-d", textContent: "×", title: "Çıkar" });
+    kaldir.setAttribute("aria-label", `${deger} modelini çıkar`);
+    kaldir.addEventListener("click", () => modelSec(deger, false));
+    const cip = el("li", { className: "model-cip" }, tanim.coklu ? el("span", { className: "cip-sira", textContent: String(i + 1) }) : null, el("span", { className: "mono", textContent: deger }));
+    if (tanim.coklu && i > 0) {
+      const one = el("button", { type: "button", className: "cip-d", textContent: "↑", title: "Öne al" });
+      one.setAttribute("aria-label", `${deger} modelini öne al`);
+      one.addEventListener("click", () => { const l = taslak[alan]; [l[i - 1], l[i]] = [l[i], l[i - 1]]; modelCiz(); });
+      cip.append(one);
+    }
+    if (tanim.coklu) cip.append(kaldir);
+    return cip;
+  }));
+  kutu.hidden = !secimler.length;
+
+  const ara = $("#model-ara").value.trim().toLocaleLowerCase("tr"), sahip = $("#model-sahip").value;
+  const etkin = new Set(tanim.coklu ? secili?.[alan] ?? [] : [secili?.[alan]]);
+  // Modül kalfası: yalnızca kalfa testinde çalışan modeller (ve şu an seçili/etkin olan, durumu ne olursa olsun).
+  const yalnizCalisan = alan === "kalfaModeli";
+  const gorunur = (m) => !yalnizCalisan || m.saglik?.durum === "calisiyor" || etkin.has(m.deger) || secimler.includes(m.deger);
+  const uygun = modeller
+    .filter((m) => m.tur === tanim.tur && gorunur(m) && (!sahip || m.sahip === sahip) && (!ara || m.deger.toLowerCase().includes(ara) || (m.sahip ?? "").includes(ara)))
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => saglikSirasi(a.m) - saglikSirasi(b.m) || (saglikSirasi(a.m) === 0 ? a.m.saglik.sure - b.m.saglik.sure : 0) || a.i - b.i)
+    .map(({ m }) => m);
+  const liste = $("#model-listesi");
+  if (!modeller.length) { liste.replaceChildren(); return; }
+  const calisanYok = yalnizCalisan && !modeller.some((m) => m.tur === "metin" && m.saglik?.durum === "calisiyor");
+  const not = calisanYok
+    ? el("li", { className: "aciklama model-bos", textContent: modelDurumu.tarama?.guncelleme
+      ? "Son kalfa testinde modül üretebilen model çıkmadı; şimdilik varsayılan model gösteriliyor. Daha sonra yeniden test et."
+      : "Henüz kalfa testi yapılmadı; şimdilik varsayılan model gösteriliyor. Çalışan modelleri görmek için \"Modelleri test et\"." })
+    : null;
+  if (!uygun.length) { liste.replaceChildren(not ?? el("li", { className: "aciklama model-bos", textContent: "Aramaya uyan model yok." })); return; }
+  liste.replaceChildren(...(not ? [not] : []), ...uygun.map((m) => {
+    const secilmis = secimler.includes(m.deger);
+    const girdi = el("input", { type: tanim.coklu ? "checkbox" : "radio", name: "model-sec", value: m.deger, checked: secilmis });
+    girdi.addEventListener("change", () => modelSec(m.deger, girdi.checked));
+    const ek = [m.sahip, m.baglam ? `${baglamYazisi(m.baglam)} bağlam` : "", fiyatYazisi(m.fiyat)].filter(Boolean).join(" · ");
+    const satir = el("label", { className: "model-satir" }, girdi,
+      el("span", { className: "model-ad mono", textContent: m.deger }),
+      etkin.has(m.deger) ? el("span", { className: "model-etkin", textContent: "şu an etkin" }) : null,
+      el("span", { className: "model-ek", textContent: ek, title: "Sağlayıcı · bağlam penceresi · UstaGPT fiyatı (giriş / çıkış)" }));
+    const saglik = m.tur === "metin" ? saglikEtiketi(m) : null;
+    if (saglik) satir.append(el("span", { className: `model-saglik ${saglik.sinif}`, textContent: saglik.metin, title: saglik.baslik }));
+    return el("li", { className: secilmis ? "secili" : "" }, satir);
+  }));
+}
+
+function modelSec(deger, ekle) {
+  const { alan, taslak } = modelDurumu;
+  const tanim = MODEL_ALANLARI[alan];
+  const durum = $("#model-durum");
+  durum.className = "durum"; durum.textContent = "";
+  if (!tanim.coklu) taslak[alan] = ekle ? deger : taslak[alan] === deger ? null : taslak[alan];
+  else {
+    const l = taslak[alan];
+    if (ekle && !l.includes(deger)) {
+      if (l.length >= 5) { durum.className = "durum kotu"; durum.textContent = "En çok 5 model seçilebilir."; modelCiz(); return; }
+      l.push(deger);
+    } else if (!ekle) taslak[alan] = l.filter((x) => x !== deger);
+  }
+  modelCiz();
+}
+
+async function modelKaydet(govde, mesaj) {
+  const durum = $("#model-durum"), d = $("#model-kaydet");
+  d.disabled = true;
+  try {
+    const { secili } = await yApi("/api/kalfa/ayarlar", { method: "PUT", govde });
+    modelDurumu.secili = secili;
+    modelDurumu.taslak = modelTaslagi(secili);
+    durum.className = "durum iyi"; durum.textContent = mesaj;
+    kalfaDurumu();
+  } catch (h) {
+    durum.className = "durum kotu"; durum.textContent = h.message;
+  } finally {
+    d.disabled = false;
+    modelCiz();
+  }
+}
+
+$("#model-kaydet").addEventListener("click", () => {
+  const { taslak, alan } = modelDurumu;
+  const tanim = MODEL_ALANLARI[alan];
+  if (tanim.coklu ? !taslak[alan].length : !taslak[alan]) {
+    const durum = $("#model-durum"); durum.className = "durum kotu"; durum.textContent = "Önce en az bir model seç.";
+    return;
+  }
+  // Yalnızca değişen alanlar gönderilir; öbür sekmelerdeki kaydedilmemiş seçimler de birlikte kaydedilir.
+  const govde = {};
+  for (const [k, t] of Object.entries(MODEL_ALANLARI)) {
+    const yeni = taslak[k], eski = modelDurumu.secili?.[k];
+    if (JSON.stringify(yeni) !== JSON.stringify(eski) && (t.coklu ? yeni.length : yeni)) govde[k] = yeni;
+  }
+  if (!Object.keys(govde).length) { const durum = $("#model-durum"); durum.className = "durum iyi"; durum.textContent = "Seçim zaten bu."; return; }
+  modelKaydet(govde, "Kaydedildi. Kalfa bir sonraki istekte bu modelleri kullanır.");
+});
+$("#model-sifirla").addEventListener("click", () => {
+  modelKaydet({ [modelDurumu.alan]: null }, "Bu sekmenin seçimi silindi; .env ya da varsayılan geçerli.");
+});
+$("#model-yenile").addEventListener("click", () => modelleriYukle({ yenile: true }));
+$("#model-ara").addEventListener("input", modelCiz);
+$("#model-sahip").addEventListener("change", modelCiz);
+document.querySelector(".model-sekmeler").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-alan]");
+  if (!b) return;
+  modelDurumu.alan = b.dataset.alan;
+  $("#model-ara").value = "";
+  $("#model-durum").textContent = "";
+  modelCiz();
+});
+function modelPenceresiniAc(alan) {
+  if (!yoneticiMi()) return bildirim("Kalfa modellerini yalnızca admin hesapları değiştirebilir.");
+  if (alan) modelDurumu.alan = alan;
+  $("#model-durum").textContent = "";
+  $("#kalfa-ayarlari").showModal();
+  modelCiz();
+  modelleriYukle();
+}
+$("#model").addEventListener("click", () => modelPenceresiniAc("kalfaModeli"));
+$("#kalfa-ayar-d").addEventListener("click", () => modelPenceresiniAc(kip === "dalis" ? "dalisMetinModelleri" : "kalfaModeli"));
+
+// ---------- Google ile giriş (public/ortak/google-giris.js) ----------
+// Sunucuda ayar yoksa düğme gizli. Studio sayfası Google'a gidip /studio/#google-kod=… ile döner; kod jetona çevrilir.
+$("#hesap-google-g").innerHTML = GOOGLE_SVG;
+$("#hesap-google").addEventListener("click", () => googleIleBaslat({ donus: "/studio/" }).catch((h) => { $("#hesap-hata").textContent = h.message; }));
+
+async function googleDonusunuIsle() {
+  const d = googleDonusuOku();
+  if (!d) return;
+  if (d.hata) { bildirim(d.hata); return; }
+  try {
+    const veri = await googleKodTakas(d.kod);
+    jetonYaz(veri.jeton);
+    hesap = veri.hesap;
+    bildirim(`Hoş geldin, ${hesap.kimlik}.`);
+  } catch (h) { bildirim(h.message); }
+}
 
 editoruGuncelle();
-fetch("/api/ayarlar").then((y) => y.json()).then((a) => {
+fetch("/api/ayarlar").then((y) => y.json()).then(async (a) => {
   yonetimSifreli = !!a.yonetim?.sifreli;
-  yoneticiRozeti(!!sifreOku());
+  hesapGerekli = !!a.hesap?.gerekli;
+  // Google ve şifre sıfırlama düğmeleri sunucunun ayarına göre görünür.
+  studioGoogleAcik = a.hesap?.google === true;
+  studioSifirlamaAcik = a.hesap?.sifreSifirlama === true;
+  $("#hesap-google-kap").hidden = !studioGoogleAcik;
+  await googleDonusunuIsle();
+  // E-postadaki doğrulama bağlantısı: /studio/#eposta-dogrula=<jeton> → hesap doğrulanır, oturum açılır.
+  const dogrulama = /^#eposta-dogrula=([A-Za-z0-9_-]{10,200})$/.exec(location.hash);
+  if (dogrulama) {
+    history.replaceState(null, "", location.pathname + location.search);
+    try {
+      const y = await fetch("/api/hesap/eposta-dogrula", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jeton: dogrulama[1] }) });
+      const veri = await y.json().catch(() => ({}));
+      if (!y.ok) throw new Error(veri.hata ?? `İşlem başarısız (${y.status})`);
+      jetonYaz(veri.jeton);
+      hesap = veri.hesap;
+      bildirim(`E-postan doğrulandı. Hoş geldin, ${hesap.kimlik}.`);
+    } catch (h) { bildirim(h.message); }
+  }
+  // E-postadaki sıfırlama bağlantısı: /studio/#sifre-sifirla=<jeton> → yeni şifre.
+  const sifirlama = /^#sifre-sifirla=([A-Za-z0-9_-]{10,200})$/.exec(location.hash);
+  if (sifirlama) {
+    history.replaceState(null, "", location.pathname + location.search);
+    await hesapPenceresiAc({ kip: "yenile", jeton: sifirlama[1] });
+  }
+  if (hesapGerekli) await hesabiYukle();
+  yetkiGuncelle();
+  // Oturum yoksa (ya da ilk şifre değiştirilmemişse) Studio'nun yerine giriş kapısı.
+  kapiyiAc();
   sayaclariGuncelle();
+  oturumlariBaslat();
 }).catch(() => {});
+
+// Ustanın eser isteğini admin Atölye'de yeni bir sohbette kalfaya açar: istek kutusu hazır gelir, admin gönderir.
+// Kalfa dış kaynak için izin kartı çıkarır; admin izin vermeden hiçbir şey eklenmez.
+async function kalfaylaEkle(o) {
+  if (!(await ayrilabilirMi())) return;
+  sayfaAc("atolye");
+  kipSec("modul");
+  await yeniSohbet();
+  const ad = `${o.istek?.ad ?? ""}${o.istek?.il ? ` (${o.istek.il})` : ""}`;
+  $("#istek").value = `${ad} bilgi bankamızda yok; bir usta eklenmesini istedi${o.not ? ` (“${o.not}”)` : ""}. Vikipedi'ye bakıp bilgi bankasına eklemek istiyorum.`;
+  $("#istek").focus();
+}

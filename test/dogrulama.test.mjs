@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { eserDogrula, kimlikUret } from "../server/dogrulama.js";
+import { eserDogrula, kimlikUret, oneriEkiDogrula } from "../server/dogrulama.js";
 
 const tam = { ad: "Koza Hanı", tur: "han", tarihce: { tr: "İpek ticaretinin merkezi olan han." }, kaynak: "Envanter, Cilt 1" };
 
@@ -42,4 +42,20 @@ test("tamlık: eksik temel alanlar ve süzgeç", async () => {
   assert.equal(tamlikSuzgeci({ tam: "1" })(tamEser), true);
   assert.equal(tamlikSuzgeci({ gerekli: "fotograf" })(tamEser), false);
   assert.equal(tamlikSuzgeci({ olmayan: "fotograf" })(tamEser), true);
+});
+
+test("uzman düzenleme önerisi kaynak ve en az bir değişiklik ister", () => {
+  assert.ok(oneriEkiDogrula("duzenle", { kaynak: "Envanter, Cilt 1, s. 37" }, {}).hatalar.length);
+  assert.ok(oneriEkiDogrula("duzenle", { kaynak: " " }, { yuzyil: 15 }).hatalar.length);
+  const r = oneriEkiDogrula("duzenle", { kaynak: "  Envanter, Cilt 1, s. 37 ", oneren: "Dr. Ayşe" }, { yuzyil: 15 });
+  assert.deepEqual(r, { hatalar: [], kaynak: "Envanter, Cilt 1, s. 37", oneren: "Dr. Ayşe" });
+  assert.deepEqual(oneriEkiDogrula("not", {}).hatalar, []);
+});
+
+test("davet kodu karıştırılan harf içermez, yazım farklarını tolere eder", async () => {
+  const { davetKoduUret, davetKoduCoz } = await import("../server/dogrulama.js");
+  for (let i = 0; i < 200; i++) assert.match(davetKoduUret(), /^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/);
+  assert.equal(davetKoduCoz(" abcd efgh "), "ABCD-EFGH");
+  assert.equal(davetKoduCoz("ABCD-EFG0"), null);
+  assert.equal(davetKoduCoz("hanlar-rehberi"), null);
 });

@@ -6,12 +6,12 @@
 #   ./apk.sh --kur       → derledikten sonra USB/kablosuz bağlı telefona adb ile kurar
 #
 # Ortam değişkenleri (isteğe bağlı):
-#   LONCA_SUNUCU=http://192.168.1.20:3000   APK'nın önce deneyeceği sunucu (yoksa bu bilgisayarın IP'leri gömülür)
-#   PORT=3000                               sunucunun portu (ağ taraması da bu portta yapılır)
+#   LONCA_SUNUCU_URL=https://kozmos.itaskira.com   uygulamanın bağlanacağı tek sunucu (varsayılan; .env'den de okunur).
+#                                           Yerel deneme için tam adres verilebilir: http://192.168.1.20:3000
+#                                           "yok" verilirse sunucu gömülmez, uygulama yalnızca çevrimdışı çalışır
 #   LONCA_API_ANAHTARI=...                  sunucu API anahtarı istiyorsa (.env'den de okunur)
 #
-# Uygulama açılınca aynı Wi-Fi'deki Lonca sunucusunu (npm run dev / Docker) kendisi bulur; bulamazsa
-# APK içindeki verilerle çevrimdışı çalışır.
+# Uygulama yalnızca bu adrese bağlanır (ağ taraması yok); ulaşamazsa APK içindeki verilerle çevrimdışı çalışır.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -30,7 +30,7 @@ bilgi() { printf '\033[1;34m▸ %s\033[0m\n' "$*"; }
 hata() { printf '\033[1;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------- Araçlar ----------
-command -v node >/dev/null || hata "Node.js gerekli (20.12+)."
+command -v node >/dev/null || hata "Node.js gerekli (20.19+)."
 
 if [[ -z "${JAVA_HOME:-}" || ! -x "${JAVA_HOME}/bin/java" ]] || ! "${JAVA_HOME}/bin/java" -version 2>&1 | grep -qE 'version "(2[1-9]|1[7-9])'; then
   JAVA_HOME=""
@@ -57,24 +57,16 @@ bilgi "Android SDK: $ANDROID_HOME"
 
 [[ -d node_modules/@capacitor/android ]] || { bilgi "Bağımlılıklar kuruluyor"; npm install; }
 
-# ---------- Sunucu adayları: bu bilgisayarın yerel ağ IP'leri ----------
-PORT="${PORT:-3000}"
-SUNUCU_ARG=()
-[[ -n "${LONCA_SUNUCU:-}" ]] && SUNUCU_ARG+=(--sunucu "$LONCA_SUNUCU")
-IPLER=""
-if command -v ipconfig >/dev/null 2>&1; then
-  for i in en0 en1 en2 en3 en4 en5 en6 en7 en8; do ip=$(ipconfig getifaddr "$i" 2>/dev/null || true); [[ -n "$ip" ]] && IPLER="$IPLER $ip"; done
-fi
-if [[ -z "$IPLER" ]] && command -v hostname >/dev/null 2>&1; then IPLER=$(hostname -I 2>/dev/null || true); fi
-for ip in $IPLER; do
-  [[ "$ip" =~ ^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.) ]] && SUNUCU_ARG+=(--sunucu "http://$ip:$PORT")
-done
+# ---------- Sunucu: ortam > .env > projenin alan adı ("yok" ise gömülmez) ----------
+if [[ -z "${LONCA_SUNUCU_URL:-}" && -f .env ]]; then LONCA_SUNUCU_URL=$(sed -n 's/^LONCA_SUNUCU_URL=//p' .env | tail -n 1); fi
+LONCA_SUNUCU_URL="${LONCA_SUNUCU_URL:-https://kozmos.itaskira.com}"
+bilgi "Sunucu: $LONCA_SUNUCU_URL"
 ANAHTAR_ARG=()
 [[ -n "${LONCA_API_ANAHTARI:-}" ]] && ANAHTAR_ARG+=(--anahtar "$LONCA_API_ANAHTARI")
 
 # ---------- Web katmanı + Capacitor ----------
 bilgi "Uygulama dosyaları ve çevrimdışı veri hazırlanıyor"
-node mobil/hazirla.mjs --port "$PORT" ${SUNUCU_ARG[@]+"${SUNUCU_ARG[@]}"} ${ANAHTAR_ARG[@]+"${ANAHTAR_ARG[@]}"}
+node mobil/hazirla.mjs --sunucu "$LONCA_SUNUCU_URL" ${ANAHTAR_ARG[@]+"${ANAHTAR_ARG[@]}"}
 bilgi "Capacitor eşitleniyor"
 npx cap sync android
 
@@ -86,7 +78,8 @@ if [[ "$TUR" == release ]]; then
   if [[ ! -f "$ANAHTAR" ]]; then
     bilgi "İmza anahtarı oluşturuluyor ($ANAHTAR) — sakla; güncellemeler aynı anahtarla imzalanmalı"
     mkdir -p mobil/anahtar
-    SIFRE=$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 24)
+    # 24 rastgele baytın hex biçimi; head ile sonsuz akışı kesmek pipefail altında SIGPIPE üretiyordu.
+    SIFRE=$(od -An -N24 -tx1 /dev/urandom | tr -d '[:space:]')
     keytool -genkeypair -v -keystore "$ANAHTAR" -alias lonca -keyalg RSA -keysize 2048 -validity 10000 \
       -storepass "$SIFRE" -keypass "$SIFRE" -dname "CN=Lonca, OU=Kozmos, O=Lonca, C=TR" >/dev/null 2>&1
     printf '%s' "$SIFRE" > mobil/anahtar/sifre.txt
@@ -108,7 +101,6 @@ HEDEF=dist/lonca.apk
 cp "$CIKTI" "$HEDEF"
 BOYUT=$(du -h "$HEDEF" | cut -f1)
 printf '\033[1;32m✓ APK hazır: %s (%s)\033[0m\n' "$HEDEF" "$BOYUT"
-[[ -n "$IPLER" ]] && echo "  Uygulama önce şu adresleri dener:$(for ip in $IPLER; do printf ' %s:%s' "$ip" "$PORT"; done). Sunucuyu 'npm run dev' ile başlat."
 
 if [[ "$KUR" == 1 ]]; then
   ADB="$ANDROID_HOME/platform-tools/adb"; command -v adb >/dev/null && ADB=adb
