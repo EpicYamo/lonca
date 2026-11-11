@@ -1,11 +1,21 @@
 import { modulCalistir } from "./calistirici.js";
 import { ekranYontemleri, TUR_ADI } from "./ekranlar.js";
 import { sahneOlustur } from "./sahne.js";
+import { tuvalMotoru } from "./tuval.js";
 import * as profil from "./profil.js";
 import { ciniArkaPlan } from "/ortak/cini.js";
 import { cizim } from "/ortak/cizimler.js";
 import { gecis, ciz, yildizSac, hareketAzalt } from "/ortak/animasyon.js";
 import { loncaLogo } from "/ortak/logo.js";
+import { modulSurumu } from "/ortak/arama.js";
+import * as raf from "./modullerim.js";
+import { modulRozeti } from "/ortak/dogrulama.js";
+import { eserSayfasiKur } from "./eser-sayfasi.js";
+import { kesifHaritasiKur } from "./kesif-haritasi.js";
+import { konumIzniDurumu, konumIzniIste, konumBul, ayarlariAc, uygulamadaMi } from "./konum-izni.js";
+import { googleIleBaslat, googleDonusuOku, uygulamaDonusunuDinle, googleKodTakas } from "/ortak/google-giris.js";
+import { paylasimiDinle } from "./paylasim.js";
+import { t, dilSecimi } from "/ortak/dil.js";
 
 const $ = (s) => document.querySelector(s);
 export const el = (etiket, ozellik = {}, ...cocuklar) => {
@@ -15,6 +25,13 @@ export const el = (etiket, ozellik = {}, ...cocuklar) => {
 };
 
 const ONIZLEME = new URLSearchParams(location.search).has("onizleme");
+// Web sitesinden açılan modül oynatıcısı (/app/?modul=<id>&gomulu=1): ana ekran gösterilmez, modül kapanınca siteye dönülür.
+const GOMULU = document.documentElement.classList.contains("gomulu");
+const siteyeDon = () => { if (history.length > 1 && document.referrer.startsWith(location.origin)) history.back(); else location.href = "/"; };
+const HESAP_JETON_ANAHTARI = "lonca.studio.hesap";
+const PROFIL_HESAP_ANAHTARI = "lonca.profil.hesap";
+let hesapKullanici = null;
+let hesapIslemi = false;
 
 const DEMO_KONUM = { lat: 40.1836, lng: 29.0625 };
 
@@ -60,17 +77,31 @@ let ayarAcan = null;
 function ayarlar(ac, dugme) {
   $("#ayarlar").hidden = !ac;
   document.querySelectorAll("[data-ayar]").forEach((d) => d.setAttribute("aria-expanded", String(ac)));
-  if (ac) { ayarAcan = dugme; document.querySelector(`input[name="yazi"]:checked`)?.focus(); } else ayarAcan?.focus();
+  if (ac) { ayarAcan = dugme; temaGostergeleriGuncelle(); document.querySelector(`input[name="yazi"]:checked`)?.focus(); } else ayarAcan?.focus();
 }
 document.querySelectorAll("[data-ayar]").forEach((d) => d.addEventListener("click", () => ayarlar(true, d)));
+
+// Koyu tema: üst bardaki ay/güneş düğmesi, Erişilebilirlik sayfasındaki anahtar ve profildeki anahtar
+// hepsi aynı duruma (document.documentElement.dataset.tema) bakar; biri değişince hepsi anında güncellenir.
+function temaGostergeleriGuncelle() {
+  const koyu = document.documentElement.dataset.tema === "koyu";
+  const kutu = $("#erisim-koyu-tema");
+  if (kutu) kutu.checked = koyu;
+  const satir = document.querySelector('#profil-icerik .pl-satir[role="switch"]');
+  if (satir) { satir.setAttribute("aria-checked", String(koyu)); satir.querySelector(".pl-anahtar")?.classList.toggle("acik", koyu); }
+}
+$("#erisim-koyu-tema")?.addEventListener("change", () => $("#tema-dugme").click());
+new MutationObserver(temaGostergeleriGuncelle).observe(document.documentElement, { attributes: true, attributeFilter: ["data-tema"] });
+temaGostergeleriGuncelle();
 $("#ayar-kapat").addEventListener("click", () => ayarlar(false));
 $("#ayarlar").addEventListener("click", (e) => { if (e.target === e.currentTarget) ayarlar(false); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#ayarlar").hidden) ayarlar(false); });
 
-let turkceSes = null;
+let turkceSes = null, ingilizceSes = null;
 function sesBul() {
   const sesler = speechSynthesis.getVoices();
   turkceSes = sesler.find((v) => v.lang?.toLowerCase().startsWith("tr")) ?? null;
+  ingilizceSes = sesler.find((v) => v.lang?.toLowerCase().startsWith("en")) ?? null;
   $("#ses-notu").textContent = sesler.length && !turkceSes ? "Bu cihazda Türkçe ses bulunamadı, sesli okuma çalışmayacak." : "";
 }
 if ("speechSynthesis" in window) { sesBul(); speechSynthesis.addEventListener("voiceschanged", sesBul); }
@@ -79,8 +110,11 @@ function seslendir(metin, zorla = false) {
   if ((!tercih.ses && !zorla) || !turkceSes || !("speechSynthesis" in window)) return;
   if (zorla && !tercih.ses && !tercih.dokunOku) return;
   speechSynthesis.cancel();
-  const s = new SpeechSynthesisUtterance(metin);
-  s.voice = turkceSes; s.lang = turkceSes.lang; s.rate = tercih.sesHizi;
+  // Arayüz İngilizceyken arayüz metinleri İngilizce sesle okunur; eser içerikleri Türkçe kaldığı için Türkçe sesle.
+  const cevrilmis = t(metin);
+  const ses = cevrilmis !== metin && ingilizceSes ? ingilizceSes : turkceSes;
+  const s = new SpeechSynthesisUtterance(ses === turkceSes ? metin : cevrilmis);
+  s.voice = ses; s.lang = ses.lang; s.rate = tercih.sesHizi;
   speechSynthesis.speak(s);
 }
 
@@ -89,15 +123,14 @@ async function api(yol) {
   if (!y.ok) throw new Error((await y.json().catch(() => ({}))).hata ?? `İstek başarısız (${y.status})`);
   return y;
 }
-function konumAl() {
-  return new Promise((coz) => {
-    if (!navigator.geolocation) return coz({ ...DEMO_KONUM, ornek: true });
-    navigator.geolocation.getCurrentPosition(
-      (p) => coz({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => coz({ ...DEMO_KONUM, ornek: true }),
-      { timeout: 4000, maximumAge: 60000 },
-    );
-  });
+// Cihaz konumu (uygulamada sistemin konum servisinden); alınamazsa örnek konum.
+async function konumAl() {
+  try {
+    const k = await konumBul({ zamanAsimi: 8000 });
+    return { lat: k.lat, lng: k.lng };
+  } catch {
+    return { ...DEMO_KONUM, ornek: true };
+  }
 }
 
 function sahneyeKoy(...dugumler) {
@@ -177,11 +210,11 @@ function bildir(metin, { tur = "bilgi", sure = 2600 } = {}) {
 }
 
 function yontemlerOlustur(modul) {
-  return (gonder) => {
+  return (gonder, ham) => {
     let uygulamaModu = false;
     const hedefKoy = (...d) => (uygulamaModu ? katman.koy(...d) : sahneyeKoy(...d));
     const ekranlar = ekranYontemleri({
-      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => katkiAc(e),
+      el, sahneyeKoy: hedefKoy, seslendir, ilerlemeAyarla, onizleme: ONIZLEME, duzeltmeAc: (e) => duzeltmeIste(e),
       rozetKaydet: ({ ad }) => {
         const t = profil.basarimKazan(modul.id, `rozet-${ad}`, ad);
         if (t) profil.puanEkle(25);
@@ -200,12 +233,17 @@ function yontemlerOlustur(modul) {
       }
     }]));
     katman.temizle = () => ekranlar._temizle();
-    const sahneApi = sahneOlustur({ el, kap: $("#sahne"), sekmeCubugu: $("#sekme-cubugu"), gonder, bileşen: ekranlar._bilesen });
+    const tuval = tuvalMotoru({ ham: ham ?? (() => false), gonder, el });
+    const sahneApi = sahneOlustur({ el, kap: $("#sahne"), sekmeCubugu: $("#sekme-cubugu"), gonder, bileşen: ekranlar._bilesen, tuval });
     calisan.sahneApi = sahneApi;
 
     return {
       "eserler.yakindaki": async (s = {}) => {
-        const k = await konumAl(); 
+        // Konum, modül açılırken değil yalnızca yakındaki eserler istendiği an sorulur (ilk seferde neden gerektiği anlatılır).
+        // Kullanıcı bu modüle konum izni vermediyse cihaz konumu hiç sorulmaz; örnek konum kullanılır.
+        if (!ONIZLEME && raf.istenenIzinler(modul).includes("konum")) await izinSor(modul, ["konum"]);
+        const izinli = ONIZLEME || !raf.istenenIzinler(modul).includes("konum") || raf.izinDurumu(modul.id, "konum") !== false;
+        const k = izinli ? await konumAl() : { ...DEMO_KONUM, ornek: true };
         const q = new URLSearchParams({ lat: k.lat, lng: k.lng, limit: Math.min(Number(s.limit) || 10, 50) });
         if (s.tur) q.set("tur", s.tur);
         const liste = await (await api(`/api/eserler/yakin?${q}`)).json();
@@ -236,12 +274,13 @@ function yontemlerOlustur(modul) {
         uygulamaModu = true;
         document.body.classList.add("uygulama-modu");
         katman.kapat();
-        sahneApi.ciz(agac);
+        // "Ekranı sesli oku" açıksa yeni görünümün başlığı ve ilk paragrafı okunur (ekranda yazanın aynısı).
+        if (sahneApi.ciz(agac)?.yeni) seslendir([...$("#sahne").querySelectorAll(".s-ust-metin strong, .s-kapak-baslik, .s-kapak-alt, .s-afis-baslik, .s-baslik, .s-metin")].slice(0, 3).map((d) => d.textContent.trim()).filter(Boolean).join(". ").slice(0, 400));
         acilisBitir();
       },
       "sahne.bildir": async (m) => bildir(m),
       "sahne.efekt": async (ad) => sahneApi.efekt(ad),
-      "ekran.duzeltme": async (eser) => (eser?.id ? katkiAc(eser) : { gonderildi: false }),
+      "ekran.duzeltme": async (eser) => (eser?.id ? duzeltmeIste(eser) : { gonderildi: false }),
       "profil.bilgi": async () => profil.profilBilgi(),
       "profil.puanEkle": async (n, neden) => {
         const r = profil.puanEkle(n);
@@ -258,6 +297,9 @@ function yontemlerOlustur(modul) {
       "basarim.liste": async () => profil.basarimListe(modul.id),
       "depo.oku": async (k) => profil.depoOku(modul.id, k),
       "depo.yaz": async (k, v) => profil.depoYaz(modul.id, k, v),
+      "oyun.bekle": (sn) => tuval.bekle(sn),
+      // Yanıtsız oyun akışı (çizim, kare onayı, ses, titreşim): calistirici.js "akis" mesajlarını buraya verir.
+      _akis: (v) => tuval.akis(v),
     };
   };
 }
@@ -274,6 +316,17 @@ function avatarCiz(kap, p) {
 }
 
 $("#marka-logo").innerHTML = loncaLogo({ boyut: 30 });
+$("#hesap-logo").innerHTML = loncaLogo({ boyut: 56 });
+
+// Studio yalnızca web'dedir: uygulamada sistem tarayıcısında (Android'de Custom Tab) açılır.
+const studioAdresi = () => `${window.loncaMobil?.sunucu || location.origin}/studio/`;
+function studioAc() {
+  const url = studioAdresi();
+  const Tarayici = window.Capacitor?.Plugins?.Browser;
+  if (Tarayici) Tarayici.open({ url, presentationStyle: "fullscreen" }).catch(() => window.open(url, "_blank", "noopener"));
+  else window.open(url, "_blank", "noopener");
+  if (matchMedia("(max-width: 759px)").matches) bildir("Studio tarayıcıda açılıyor. En iyi deneyim için bir bilgisayardan aç.", { sure: 4200 });
+}
 
 let vitrin = null;
 const vitrinGetir = () => (vitrin ??= fetch("/api/vitrin").then((y) => y.json()).catch(() => null));
@@ -292,6 +345,7 @@ async function vitrinCiz() {
   const v = await vitrinGetir();
   if (!v) return;
   const s = v.sayilar;
+  if (Array.isArray(v.iller)) $("#il-listesi").replaceChildren(...v.iller.map((il) => el("option", { value: il })));
   $("#vitrin-sayilar").replaceChildren(...[[s.eser, "vakıf eseri"], [s.fotografli, "fotoğraflı"], [s.ilce, "ilçe"], [s.konumlu, "haritada"]]
     .map(([n, ad]) => el("li", {}, el("strong", { textContent: String(n) }), el("span", { textContent: ad }))));
   const kolajEserleri = [v.gununEseri, ...v.secki].filter(Boolean).slice(0, 5);
@@ -314,7 +368,6 @@ async function vitrinCiz() {
         el("span", { className: "gunun-ozet", textContent: g.ozet }),
         el("span", { className: "gunun-devam", textContent: `Devamını oku · ${g.fotoSayisi} fotoğraf →` })));
     $("#gunun-karti").onclick = () => eserPenceresi(g.id);
-    $("#gunun-karti").setAttribute("aria-label", `Günün eseri: ${g.ad}. Devamını oku`);
   }
   $("#secki").replaceChildren(...v.secki.map((e) => {
     const foto = el("span", { className: "secki-foto" });
@@ -327,37 +380,71 @@ async function vitrinCiz() {
   }));
 }
 
-let kolajZamanlayici = null;
+// Kapak slaytı: fotoğraflar 6 sn'de bir değişir. Kapağa dokununca o an görünen eser açılır; yana kaydırınca
+// önceki/sonraki fotoğrafa geçilir.
+let kolajZamanlayici = null, kolajListe = [], kolajSira = 0, kolajGoster = () => {};
 function kolajDongusu(liste) {
   clearInterval(kolajZamanlayici);
   const kareler = [...$("#kolaj").children];
-  let i = 0;
-  const goster = () => {
-    kareler.forEach((k, j) => k.classList.toggle("onde", j === i));
-    $("#kolaj-atif").textContent = liste[i] ? `Fotoğraf: ${liste[i].ad}` : "";
+  kolajListe = liste;
+  kolajSira = 0;
+  kolajGoster = () => {
+    kareler.forEach((k, j) => k.classList.toggle("onde", j === kolajSira));
+    const e = liste[kolajSira];
+    $("#kolaj-atif").textContent = e ? `Fotoğraf: ${e.ad}` : "";
+    const v = $("#vitrin");
+    v.classList.toggle("tiklanir", !!e?.id);
+    if (e?.id) v.setAttribute("aria-description", `Dokun: ${e.ad} sayfasını aç`); else v.removeAttribute("aria-description");
   };
-  goster();
-  if (kareler.length < 2 || hareketAzalt()) return;
-  kolajZamanlayici = setInterval(() => { if (!$("#ana-ekran").hidden && !document.hidden) { i = (i + 1) % kareler.length; goster(); } }, 6000);
+  kolajGoster();
+  kolajZamanlayiciKur();
+}
+function kolajZamanlayiciKur() {
+  clearInterval(kolajZamanlayici);
+  if (kolajListe.length < 2 || hareketAzalt()) return;
+  kolajZamanlayici = setInterval(() => { if (!$("#ana-ekran").hidden && !document.hidden) { kolajSira = (kolajSira + 1) % kolajListe.length; kolajGoster(); } }, 6000);
+}
+{
+  const vitrinEl = $("#vitrin");
+  let bas = null, kaydirdi = false;
+  vitrinEl.addEventListener("touchstart", (o) => { bas = o.touches[0]; kaydirdi = false; }, { passive: true });
+  vitrinEl.addEventListener("touchend", (o) => {
+    if (!bas || kolajListe.length < 2) return;
+    const dx = o.changedTouches[0].clientX - bas.clientX, dy = o.changedTouches[0].clientY - bas.clientY;
+    bas = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    kaydirdi = true;
+    kolajSira = (kolajSira + (dx < 0 ? 1 : -1) + kolajListe.length) % kolajListe.length;
+    kolajGoster();
+    kolajZamanlayiciKur();
+  }, { passive: true });
+  vitrinEl.addEventListener("click", (o) => {
+    if (kaydirdi) { kaydirdi = false; return; }
+    if (o.target.closest("button, a, input, select, textarea")) return;
+    const e = kolajListe[kolajSira];
+    if (e?.id) eserPenceresi(e.id);
+  });
 }
 
-async function eserPenceresi(id) {
-  const d = $("#eser-penceresi");
-  let e;
-  try { e = await (await api(`/api/eserler/${encodeURIComponent(id)}`)).json(); } catch { return; }
-  $("#ep-fotolar").replaceChildren(...(e.fotograflar ?? []).map((f, i) => el("img", { src: f, alt: `${e.ad}, fotoğraf ${i + 1}`, loading: i ? "lazy" : "eager" })));
-  $("#ep-fotolar").hidden = !e.fotograflar?.length;
-  $("#ep-ust").textContent = [TUR_ADI[e.tur] ?? "Eser", yuzyilYazi(e.yuzyil), [e.ilce, e.il].filter(Boolean).join(", ")].filter(Boolean).join(" · ");
-  $("#ep-ad").textContent = e.ad;
-  $("#ep-tarihce").replaceChildren(...String(e.tarihce?.tr ?? "").split(/\n+/).filter(Boolean).map((p) => el("p", { textContent: p })));
-  $("#ep-kaynak").textContent = `Kaynak: ${e.kaynak}`;
-  $("#ep-hata").onclick = () => { d.close(); katkiAc(e); };
-  d.showModal();
-  d.scrollTop = 0;
-  seslendir(`${e.ad}. ${$("#ep-ust").textContent}`);
+const eserSayfasi = eserSayfasiKur({
+  el, api, seslendir, bildir, katkiAc: (e) => duzeltmeIste(e),
+  // Uygulamada iki düğme yan yana sığsın diye kısa etiket; web sitesinde uzun hâli kalır.
+  hataYazisi: ONIZLEME ? "Bu eserde eksik var, düzenle" : document.documentElement.classList.contains("kabuk") ? "Hata bildir" : "Bir hata mı gördün? Bildir",
+  dalisModulu: () => modulListesi.find((m) => /dalis/.test(m.id)) ?? null,
+  modulAc: (m) => moduluAc(m),
+});
+const eserPenceresi = (id) => eserSayfasi.ac(id);
+
+// Keşfet haritası: uygulamada Keşfet sekmesi açılınca, web'de bölüm ekrana girince kurulur.
+const kesifHaritasi = kesifHaritasiKur({
+  el, api, TUR_ADI, bildir, eserAc: (id) => eserPenceresi(id), modulAc: (m) => moduluAc(m),
+  moduller: () => modulListesi, dalisModulu: () => modulListesi.find((m) => /dalis/.test(m.id)) ?? null,
+});
+addEventListener("lonca:sekme", (e) => { if (e.detail === "kesif") kesifHaritasi.goster(); });
+if (!document.documentElement.classList.contains("kabuk") && "IntersectionObserver" in window) {
+  const g = new IntersectionObserver((k) => { if (k.some((x) => x.isIntersecting)) { g.disconnect(); kesifHaritasi.goster(); } }, { rootMargin: "200px" });
+  g.observe($("#harita-bolum"));
 }
-for (const id of ["#ep-kapat", "#ep-x"]) $(id).addEventListener("click", () => $("#eser-penceresi").close());
-$("#eser-penceresi").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
 
 function devamKartiCiz() {
   const son = depo.oku("lonca.son-modul", null);
@@ -387,7 +474,7 @@ function profilCipiGuncelle() {
 
 $("#vitrin").style.setProperty("--serit-desen", ciniArkaPlan("lonca", "firuze"));
 $("#katki-desen").style.backgroundImage = ciniArkaPlan("katki", "mercan");
-let modulListesi = [], seciliKategori = "hepsi";
+let modulListesi = [], seciliKategori = "hepsi", modulKapaklari = {};
 
 function uygulamaIkonu(m, boyut = "") {
   const desen = el("span", { className: `karo-desen uygulama-ikonu ${boyut}`, ariaHidden: "true" });
@@ -415,13 +502,12 @@ function oneCikanlariCiz(kapaklar) {
     const b = el("button", { className: `oc-kart renk-${m.renk ?? "kobalt"}` },
       arka,
       el("span", { className: "oc-govde" },
-        el("span", { className: "oc-etiket", textContent: i === 0 ? `Yeni · ${KATEGORI_ADI[kategoriBul(m)]}` : KATEGORI_ADI[kategoriBul(m)] }),
-        el("span", { className: "oc-ad", textContent: m.ad }),
+        el("span", { className: "oc-etiket", textContent: raf.yeniMi(m.id) ? `Yeni · ${KATEGORI_ADI[kategoriBul(m)]}` : KATEGORI_ADI[kategoriBul(m)] }),
+        el("span", { className: "oc-ad" }, m.ad, modulRozeti(m)),
         el("span", { className: "oc-aciklama", textContent: m.aciklama }),
         el("span", { className: "oc-alt" }, uygulamaIkonu(m, "kucuk"),
-          el("span", { className: "oc-alt-metin" }, el("strong", { textContent: m.ad }), el("span", { textContent: kapak?.eser ? `Kapak: ${kapak.eser}` : "Lonca uygulaması" })),
-          el("span", { className: "ac-pill", textContent: "AÇ" }))));
-    b.setAttribute("aria-label", `${m.ad}: ${m.aciklama}. Aç`);
+          el("span", { className: "oc-alt-metin", ariaHidden: "true" }, el("strong", { textContent: m.ad }), el("span", { textContent: kapak?.eser ? `Kapak: ${kapak.eser}` : "Lonca uygulaması" })),
+          el("span", { className: "ac-pill", ariaHidden: "true", textContent: "AÇ" }))));
     b.addEventListener("click", () => moduluAc(m, b));
     const li = el("li", {}, b);
     li.style.setProperty("--i", String(i));
@@ -430,7 +516,18 @@ function oneCikanlariCiz(kapaklar) {
   $("#one-cikan-oklar").hidden = liste.length < 2;
 }
 
-function uygulamalariCiz() {
+const yeniGelenler = new Set();
+// Sıralama: Önerilen (sunucunun sırası), En yeni (yayın tarihi), A–Z. Seçim cihazda hatırlanır.
+let siralama = ["onerilen", "yeni", "ad"].includes(depo.oku("lonca.siralama")) ? depo.oku("lonca.siralama") : "onerilen";
+$("#siralama").value = siralama;
+$("#siralama").addEventListener("change", (e) => { siralama = e.target.value; depo.yaz("lonca.siralama", siralama); uygulamalariCiz({ animasyonsuz: true }); });
+function siralanmis(liste) {
+  if (siralama === "yeni") return [...liste].sort((a, b) => String(b.yayin ?? "").localeCompare(String(a.yayin ?? "")));
+  if (siralama === "ad") return [...liste].sort((a, b) => a.ad.localeCompare(b.ad, "tr"));
+  return liste;
+}
+function uygulamalariCiz({ animasyonsuz = false } = {}) {
+  $("#moduller").classList.remove("sessiz");
   const sayac = {};
   for (const m of modulListesi) sayac[kategoriBul(m)] = (sayac[kategoriBul(m)] ?? 0) + 1;
   const ciple = [["hepsi", "Hepsi", modulListesi.length], ...Object.keys(KATEGORI_ADI).filter((k) => sayac[k]).map((k) => [k, KATEGORI_ADI[k], sayac[k]])];
@@ -438,28 +535,113 @@ function uygulamalariCiz() {
   $("#kategori-cipleri").replaceChildren(...ciple.map(([k, ad, n]) => {
     const b = el("button", { type: "button", className: `kategori-cip${k === seciliKategori ? " secili" : ""}` }, ad, el("small", { textContent: String(n) }));
     b.setAttribute("aria-pressed", String(k === seciliKategori));
-    b.addEventListener("click", () => { seciliKategori = k; uygulamalariCiz(); });
+    b.addEventListener("click", () => { seciliKategori = k; uygulamalariCiz({ animasyonsuz: true }); });
     return b;
   }));
   $("#kategori-cipleri").hidden = modulListesi.length < 2;
-  const gorunen = modulListesi.filter((m) => seciliKategori === "hepsi" || kategoriBul(m) === seciliKategori);
+  const gorunen = siralanmis(modulListesi.filter((m) => seciliKategori === "hepsi" || kategoriBul(m) === seciliKategori));
   $("#uygulama-sayisi").textContent = modulListesi.length ? `${modulListesi.length} uygulama` : "";
   $("#moduller").replaceChildren(...gorunen.map((m, i) => {
+    const yeni = raf.yeniMi(m.id);
+    const izinler = raf.istenenIzinler(m).map((iz) => raf.IZIN_BILGISI[iz].ad);
+    const kapak = el("span", { className: "us-kapak", ariaHidden: "true" });
+    const kapakFoto = modulKapaklari[m.id]?.foto;
+    kapak.style.backgroundImage = kapakFoto ? `url("${kapakFoto}")` : ciniArkaPlan(m.id, m.renk);
     const b = el("button", { className: "karo uygulama-satiri" },
+      kapak,
       uygulamaIkonu(m),
       el("span", { className: "us-metin" },
-        el("span", { className: "us-ad", textContent: m.ad }),
-        el("span", { className: "us-kategori", textContent: KATEGORI_ADI[kategoriBul(m)] }),
+        el("span", { className: "us-ad" }, m.ad, modulRozeti(m), yeni ? el("span", { className: "yeni-rozet", textContent: "Yeni" }) : null),
+        el("span", { className: "us-kategori" }, KATEGORI_ADI[kategoriBul(m)],
+          izinler.length ? el("span", { className: "us-izin", textContent: ` · ${izinler.join(", ")} ister` }) : null),
         el("span", { className: "us-aciklama", textContent: m.aciklama }),
         basarimCubugu(m)),
       el("span", { className: "ac-pill", ariaHidden: "true", textContent: "AÇ" }));
-    b.setAttribute("aria-label", `${m.ad}, ${KATEGORI_ADI[kategoriBul(m)]}. ${m.aciklama}`);
     b.addEventListener("click", () => moduluAc(m, b));
-    const li = el("li", {}, b);
+    const rafta = raf.raftaMi(m.id);
+    const ekle = el("button", { type: "button", className: `raf-dugme${rafta ? " rafta" : ""}`,
+      ariaLabel: rafta ? `${m.ad}: Modüllerim'den çıkar` : `${m.ad}: Modüllerim'e ekle`, title: rafta ? "Modüllerim'de" : "Modüllerim'e ekle" });
+    // Yer imi: boşken "ekle", doluyken "Modüllerim'de" (dokununca çıkarılır).
+    ekle.innerHTML = rafta
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4-6.5 4v-16a1 1 0 0 1 1-1z" fill="currentColor"/><path d="M9 10l2.2 2.2L15.2 8" fill="none" stroke="var(--yuzey)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4-6.5 4v-16a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 7.5v6M9 10.5h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    ekle.setAttribute("aria-pressed", String(rafta));
+    ekle.addEventListener("click", () => {
+      if (raf.raftaMi(m.id)) { raf.raftanKaldir(m.id); bildir(`${m.ad} Modüllerim'den çıkarıldı.`, { sure: 1800 }); }
+      else { raf.rafaEkle(m.id); bildir(`${m.ad} Modüllerim'e eklendi.`, { sure: 1800 }); }
+      uygulamalariCiz({ animasyonsuz: true });
+      rafCiz();
+      document.querySelector(`#moduller [data-id="${m.id}"] .raf-dugme`)?.focus();
+    });
+    const li = el("li", { className: `uygulama-li renk-${m.renk ?? "kobalt"}${yeni ? " yeni" : ""}${yeniGelenler.has(m.id) ? " geldi" : ""}` }, b, ekle);
+    li.dataset.id = m.id;
     li.style.setProperty("--i", String(i));
     return li;
   }));
-  $("#moduller").querySelectorAll(".ikon-madalyon svg").forEach((svg, i) => ciz(svg, { gecikme: 200 + i * 80, sure: 650, aralik: 40 }));
+  if (!animasyonsuz) $("#moduller").querySelectorAll(".ikon-madalyon svg").forEach((svg, i) => ciz(svg, { gecikme: 200 + i * 80, sure: 650, aralik: 40 }));
+  else $("#moduller").classList.add("sessiz");
+}
+
+// ---------- Modüllerim rafı ----------
+let rafDuzenleme = false;
+function rafCiz() {
+  const liste = raf.rafModulleri(modulListesi);
+  const ul = $("#modullerim");
+  $("#modullerim-bos").hidden = liste.length > 0;
+  $("#modullerim-duzenle").hidden = !liste.length;
+  if (!liste.length) rafDuzenleme = false;
+  $("#modullerim-duzenle").textContent = rafDuzenleme ? "Bitti" : "Düzenle";
+  $("#modullerim-duzenle").setAttribute("aria-pressed", String(rafDuzenleme));
+  ul.classList.toggle("duzenleniyor", rafDuzenleme);
+  ul.replaceChildren(...liste.map((m) => {
+    const sabit = raf.sabitMi(m.id);
+    const ac = el("button", { type: "button", className: "raf-karo" }, uygulamaIkonu(m),
+      el("span", { className: "raf-ad", textContent: m.ad }),
+      sabit ? el("span", { className: "raf-igne", ariaHidden: "true", title: "Sabitlendi" }) : null,
+      raf.yeniMi(m.id) ? el("span", { className: "raf-yeni", ariaHidden: "true" }) : null);
+    ac.setAttribute("aria-label", `${m.ad}${sabit ? ", sabitlendi" : ""}. Aç`);
+    ac.addEventListener("click", () => (rafDuzenleme ? null : moduluAc(m, ac)));
+    ac.disabled = rafDuzenleme;
+    const li = el("li", { className: sabit ? "sabit" : "" }, ac);
+    li.dataset.id = m.id;
+    if (rafDuzenleme) {
+      const igne = el("button", { type: "button", className: `raf-eylem igne${sabit ? " secili" : ""}`, ariaLabel: sabit ? `${m.ad}: sabitlemeyi kaldır` : `${m.ad}: başa sabitle` });
+      igne.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 4 4H6l4-4-1-6zM12 13v8" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+      igne.setAttribute("aria-pressed", String(sabit));
+      igne.addEventListener("click", () => { raf.sabitle(m.id); rafCiz(); $(`#modullerim [data-id="${m.id}"] .igne`)?.focus(); });
+      const kaldir = el("button", { type: "button", className: "raf-eylem kaldir", ariaLabel: `${m.ad}: Modüllerim'den çıkar` });
+      kaldir.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+      kaldir.addEventListener("click", () => { raf.raftanKaldir(m.id); rafCiz(); uygulamalariCiz({ animasyonsuz: true }); ($("#modullerim .raf-eylem") ?? $("#modullerim-duzenle"))?.focus(); });
+      li.append(igne, kaldir);
+    }
+    return li;
+  }));
+}
+$("#modullerim-duzenle").addEventListener("click", () => { rafDuzenleme = !rafDuzenleme; rafCiz(); $("#modullerim-duzenle").focus(); });
+
+// ---------- İzin sorma ----------
+const KONUM_IKONU = '<svg viewBox="0 0 24 24"><path d="M12 21s-6.5-6.2-6.5-11a6.5 6.5 0 0 1 13 0C18.5 14.8 12 21 12 21z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="10" r="2.4" fill="currentColor"/></svg>';
+function izinSor(m, yalnizca = null) {
+  const sorulacak = raf.sorulmamisIzinler(m).filter((iz) => !yalnizca || yalnizca.includes(iz));
+  if (ONIZLEME || !sorulacak.length) return Promise.resolve();
+  const d = $("#izin-penceresi");
+  $("#izin-ikon").innerHTML = KONUM_IKONU;
+  $("#izin-baslik").textContent = `${m.ad} izin istiyor`;
+  $("#izin-alt").textContent = "Cihazın sana izni sormadan önce, ne için istendiğini bilmeni istiyoruz.";
+  $("#izin-listesi").replaceChildren(...sorulacak.map((iz) => {
+    const b = raf.IZIN_BILGISI[iz];
+    return el("li", {}, el("strong", { textContent: b.ad }), el("span", { textContent: b.neden }), el("small", { textContent: b.reddedilince }));
+  }));
+  d.returnValue = "";
+  d.showModal();
+  d.querySelector('button[value="evet"]').focus();
+  return new Promise((coz) => d.addEventListener("close", async () => {
+    // Pencere bir seçim yapılmadan kapanırsa (Esc, Android geri) karar kaydedilmez; bu açılışta izinsiz çalışır.
+    if (d.returnValue === "evet" || d.returnValue === "hayir") for (const iz of sorulacak) raf.izinKaydet(m.id, iz, d.returnValue === "evet");
+    // "İzin ver" denince hemen cihazın kendi izin penceresi açılır.
+    if (d.returnValue === "evet" && sorulacak.includes("konum")) await cihazKonumIzni({ sessiz: true });
+    coz();
+  }, { once: true }));
 }
 $("#one-cikan-oklar").addEventListener("click", (e) => {
   const yon = Number(e.target.closest("[data-yon]")?.dataset.yon);
@@ -476,8 +658,12 @@ async function anaEkran({ gecisli = false } = {}) {
   try {
     const [liste, v] = await Promise.all([api("/api/moduller").then((y) => y.json()), vitrinGetir()]);
     modulListesi = liste;
+    sonSurum = modulSurumu(liste);
+    raf.yenileriBul(liste);
+    modulKapaklari = v?.kapaklar ?? {};
     oneCikanlariCiz(v?.kapaklar);
     uygulamalariCiz();
+    rafCiz();
     devamKartiCiz();
     if (!modulListesi.length) {
       ul.replaceChildren(el("li", { className: "bos", textContent: "Henüz yayında uygulama yok. Lonca Studio'da onaylanan uygulamalar burada görünür." }));
@@ -487,8 +673,47 @@ async function anaEkran({ gecisli = false } = {}) {
     ul.replaceChildren(el("li", { className: "bos", textContent: `Uygulamalar yüklenemedi: ${h.message}. Bağlantını kontrol edip sayfayı yenile.` }));
   }
   vitrinCiz();
-  if (!profil.profilOku() && !ONIZLEME) tanismaAc();
+  // Web sitesinde giriş hiçbir zaman zorunlu değil: karşılama yalnızca Android uygulamasında; web'de üst çubukta "Giriş yap" var.
+  const webSitesi = document.documentElement.classList.contains("web-sekmeli") && !document.documentElement.classList.contains("kabuk");
+  if (!webSitesi && !GOMULU && !profil.profilOku() && !hesapJetonuOku() && !ONIZLEME && !karsilamaGosterildi) karsilamaAc();
 }
+
+// ---------- Karşılama: giriş yap / hesap oluştur / hesap açmadan devam et ----------
+// İlk açılışta (cihazda profil ve oturum yoksa) gelir. Uygulamada tam ekran, web'de arkası bulanık pencere.
+// Hesap açmadan devam eden, takma ad sorusuyla (tanışma) sürer ve uygulamada serbestçe gezinir.
+let karsilamaGosterildi = false;
+function karsilamaAc() {
+  karsilamaGosterildi = true;
+  $("#ks-logo").innerHTML = loncaLogo({ boyut: 52 });
+  vitrinGetir().then((v) => {
+    const foto = v?.gununEseri?.foto ?? v?.secki?.[0]?.foto;
+    if (foto) $("#ks-gorsel").style.backgroundImage = `url("${foto}")`;
+  });
+  $("#karsilama").hidden = false;
+  document.documentElement.classList.add("karsilamada");
+  $("#ks-giris").focus({ preventScroll: true });
+}
+function karsilamaKapat() {
+  const k = $("#karsilama");
+  document.documentElement.classList.remove("karsilamada");
+  if (hareketAzalt() || k.hidden) { k.hidden = true; return; }
+  k.classList.add("gidiyor");
+  setTimeout(() => { k.hidden = true; k.classList.remove("gidiyor"); }, 260);
+}
+async function karsilamaHesap(kip) {
+  $("#karsilama").hidden = true;
+  const tamam = await hesapPenceresiAc(kip);
+  if (tamam) { karsilamaKapat(); return; }
+  // Vazgeçilirse karşılamaya dönülür.
+  $("#karsilama").hidden = false;
+  $(kip === "kayit" ? "#ks-kayit" : "#ks-giris").focus({ preventScroll: true });
+}
+$("#ks-giris").addEventListener("click", () => karsilamaHesap("giris"));
+$("#ks-kayit").addEventListener("click", () => karsilamaHesap("kayit"));
+$("#ks-devam").addEventListener("click", () => { karsilamaKapat(); tanismaAc(); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("#karsilama").hidden) { e.preventDefault(); $("#ks-devam").click(); }
+});
 
 let acilisZamani = 0, acilisZamanlayici = null;
 function acilisGoster(m) {
@@ -513,6 +738,8 @@ function acilisBitir() {
 
 let calisan = null; // { modul, iptal, sahneApi }
 async function moduluAc(m, karo) {
+  // Paylaşım bağlantısıyla açılan modül rafa eklenmez (özel modül uygulama listesinde yoktur).
+  if (!ONIZLEME && !m.kodYolu) { raf.rafaEkle(m.id); raf.goruldu(m.id); }
   depo.yaz("lonca.son-modul", { id: m.id, zaman: Date.now() });
   calisan?.iptal.abort();
   const iptal = new AbortController();
@@ -537,7 +764,7 @@ async function moduluAc(m, karo) {
   if (desen && !g) desen.style.viewTransitionName = "";
 
   try {
-    const [yanit] = await Promise.all([api(`/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
+    const [yanit] = await Promise.all([api(m.kodYolu ?? `/api/moduller/${encodeURIComponent(m.id)}/kod`), g?.finished.catch(() => {})]);
     $("#acilis").style.viewTransitionName = "";
     await modulCalistir(await yanit.text(), yontemlerOlustur(m), { iptal: iptal.signal });
     if (bu !== calisan) return;
@@ -554,12 +781,13 @@ function modulBitti(m, hata) {
   katman.kapat();
   const kap = sahneyeKoy(el("div", { className: `panel ${hata ? "hata" : "bitis"}` },
     el("p", { className: "panel-metin", textContent: hata ? `Modül bir hatayla durdu: ${hata.message}` : `${m.ad} bitti.` })));
-  const don = el("button", { className: "dugme", textContent: "Modüllere dön" });
-  don.addEventListener("click", () => anaEkran({ gecisli: true }), { once: true });
+  const don = el("button", { className: "dugme", textContent: GOMULU ? "Siteye dön" : "Modüllere dön" });
+  don.addEventListener("click", () => (GOMULU ? siteyeDon() : anaEkran({ gecisli: true })), { once: true });
   kap.append(don);
 }
 
 $("#geri").addEventListener("click", () => {
+  if (GOMULU) { calisan?.iptal.abort(); siteyeDon(); return; }
   katman.temizle?.();
   katman.kullaniciKapatti = null;
   document.title = "Lonca";
@@ -572,41 +800,535 @@ $("#geri").addEventListener("click", () => {
   anaEkran({ gecisli: true });
 });
 
+const hesapJetonuOku = () => { try { return localStorage.getItem(HESAP_JETON_ANAHTARI) ?? ""; } catch { return ""; } };
+const hesapBasliklari = () => hesapJetonuOku() ? { authorization: `Bearer ${hesapJetonuOku()}` } : {};
+async function hesapIstek(yol, { method = "GET", govde } = {}) {
+  const yanit = await fetch(yol, {
+    method,
+    headers: { ...hesapBasliklari(), ...(govde !== undefined ? { "content-type": "application/json" } : {}) },
+    body: govde !== undefined ? JSON.stringify(govde) : undefined,
+  });
+  const veri = await yanit.json().catch(() => ({}));
+  if (!yanit.ok) throw Object.assign(new Error(veri.hata ?? `İstek başarısız (${yanit.status})`), { status: yanit.status });
+  return veri;
+}
+function cihazBasarimlari() {
+  const liste = {};
+  const onek = "lonca.basarim.";
+  for (let i = 0; i < localStorage.length; i++) {
+    const anahtar = localStorage.key(i);
+    if (!anahtar?.startsWith(onek)) continue;
+    try { liste[anahtar.slice(onek.length)] = JSON.parse(localStorage.getItem(anahtar)); } catch {}
+  }
+  return liste;
+}
+function hesabiCihazaUygula(h) {
+  const bagliHesap = localStorage.getItem(PROFIL_HESAP_ANAHTARI);
+  const baskaHesap = !!bagliHesap && bagliHesap !== h.id;
+  if (baskaHesap) {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const anahtar = localStorage.key(i);
+      if (anahtar?.startsWith("lonca.basarim.")) localStorage.removeItem(anahtar);
+    }
+  }
+  if (!bagliHesap || baskaHesap) {
+    if (h.profil) localStorage.setItem("lonca.profil", JSON.stringify(h.profil));
+    for (const [modulId, kayit] of Object.entries(h.basarimlar ?? {})) {
+      localStorage.setItem(`lonca.basarim.${modulId}`, JSON.stringify(kayit));
+    }
+  } else if (h.profil) {
+    const cihaz = profil.profilOku() ?? { puan: 0 };
+    localStorage.setItem("lonca.profil", JSON.stringify({ ...cihaz, ad: h.profil.ad, renk: h.profil.renk }));
+  }
+  localStorage.setItem(PROFIL_HESAP_ANAHTARI, h.id);
+}
+async function hesapOturumuYukle(gelenHesap, { cihazProfiliniTasi = true } = {}) {
+  let h = gelenHesap;
+  const bagliHesap = localStorage.getItem(PROFIL_HESAP_ANAHTARI);
+  if (cihazProfiliniTasi && (!bagliHesap || bagliHesap === h.id)) {
+    const cihaz = profil.profilOku() ?? { ad: "Gezgin", renk: "kobalt", puan: 0 };
+    try {
+      h = await hesapIstek("/api/hesap/tasi", { method: "POST", govde: { profil: cihaz, basarimlar: cihazBasarimlari() } });
+    } catch (e) {
+      // Oturum açılmıştır; profil taşıma başarısızsa hesabı yine kullanılabilir tut.
+      if (e.status === 401) throw e;
+    }
+  }
+  hesapKullanici = h;
+  hesabiCihazaUygula(h);
+  profilCipiGuncelle();
+  if (!$("#profil-ekrani").hidden) profilEkrani();
+  return h;
+}
+async function hesapDurumunuYukle() {
+  if (!hesapJetonuOku()) return;
+  try {
+    const h = await hesapIstek("/api/hesap/ben");
+    await hesapOturumuYukle(h);
+  } catch (e) {
+    if (e.status === 401) localStorage.removeItem(HESAP_JETON_ANAHTARI);
+  }
+}
+
+const ROL_ADI = { usta: "Öğretmen / usta", editor: "Editör" };
+const SVG = {
+  kalem: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  tik: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  kalkan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.6-3 8-7 9.5-4-1.5-7-4.9-7-9.5V6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2.2 2.2L15.5 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ay: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  erisim: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.5" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v4.5m0 0l-3.5 6m3.5-6l3.5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  palet: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-.9.7-1.5 1.7-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="7.5" cy="11" r="1.3" fill="currentColor"/><circle cx="10.5" cy="7.3" r="1.3" fill="currentColor"/><circle cx="15" cy="7.8" r="1.3" fill="currentColor"/></svg>',
+  dil: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.5 5.3 3.5 8.5s-1.1 6.1-3.5 8.5c-2.4-2.4-3.5-5.3-3.5-8.5s1.1-6.1 3.5-8.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  arti: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  studio: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20h8M12 16v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  cikis: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+const svgSpan = (ad, sinif = "pl-ikon") => { const s = el("span", { className: sinif, ariaHidden: "true" }); s.innerHTML = SVG[ad]; return s; };
+
+function studioSatiri() {
+  const b = el("button", { type: "button", className: "pl-satir" }, svgSpan("studio"),
+    el("span", { className: "pl-ad" }, "Lonca Studio", el("small", { textContent: "Web'de açılır · en iyi deneyim bilgisayarda" })),
+    el("span", { className: "pl-dis", ariaHidden: "true", textContent: "↗" }));
+  b.addEventListener("click", studioAc);
+  return b;
+}
+
+function oturumuKapat() {
+  localStorage.removeItem(HESAP_JETON_ANAHTARI);
+  hesapKullanici = null;
+  if (!$("#profil-ekrani").hidden) profilEkrani();
+  bildir("Lonca hesabından çıkış yapıldı.");
+}
+
+function hesapBolumu() {
+  const bolum = el("section", { className: "hesap-kart" });
+  if (hesapKullanici) {
+    const cikis = el("button", { className: "pl-satir tehlike", type: "button" }, svgSpan("cikis"), el("span", { className: "pl-ad", textContent: "Oturumu kapat" }));
+    cikis.addEventListener("click", oturumuKapat);
+    bolum.classList.add("acik");
+    bolum.setAttribute("aria-label", "Lonca hesabı");
+    bolum.append(
+      el("div", { className: "hesap-durum" }, svgSpan("kalkan", "hesap-rozet"),
+        el("span", { className: "hesap-durum-metin" },
+          el("strong", { textContent: "Hesabına bağlı" }),
+          el("span", { textContent: `@${hesapKullanici.kimlik} · ${ROL_ADI[hesapKullanici.rol] ?? "Öğrenci / gezgin"}` }))),
+      el("p", { className: "hesap-aciklama", textContent: "Profilin ve başarımların hesabında saklanıyor; başka bir cihazda giriş yapınca seni bekliyor olacak." }),
+      el("div", { className: "pl-grup" }, studioSatiri(), cikis),
+    );
+  } else {
+    const giris = el("button", { className: "dugme", type: "button", textContent: "Giriş yap" });
+    const kayit = el("button", { className: "dugme ikincil", type: "button", textContent: "Hesap oluştur" });
+    giris.addEventListener("click", () => hesapPenceresiAc("giris"));
+    kayit.addEventListener("click", () => hesapPenceresiAc("kayit"));
+    const fayda = (metin) => el("li", {}, svgSpan("tik", "hesap-tik"), el("span", { textContent: metin }));
+    bolum.classList.add("davet");
+    bolum.setAttribute("aria-labelledby", "hesap-davet-baslik");
+    bolum.append(
+      svgSpan("kalkan", "hesap-rozet"),
+      el("h2", { id: "hesap-davet-baslik", textContent: "Hesabınla devam et" }),
+      el("ul", { className: "hesap-faydalar" },
+        fayda("Puanın ve başarımların telefon değişse de kaybolmaz"),
+        fayda("Profilin her cihazda aynı"),
+        fayda("Aynı hesapla web'deki Lonca Studio'da modül hazırlayabilirsin")),
+      el("div", { className: "hesap-eylemler" }, giris, kayit),
+      el("p", { className: "hesap-studio-not" }, "Modül mi hazırlayacaksın? ",
+        Object.assign(el("button", { type: "button", className: "metin-dugme", textContent: "Lonca Studio'yu aç" }), { onclick: studioAc }),
+        " · en iyi deneyim için bilgisayardan."),
+    );
+  }
+  return bolum;
+}
+
+let hesapPencereCoz = null;
+let hesapKipi = "giris";
+let hesapOdakOnce = null;
+// Kipler: giris · kayit · unuttum (e-postaya sıfırlama bağlantısı) · yenile (bağlantıyla gelen yeni şifre).
+let googleAcik = false, sifirlamaAcik = false, sifirlamaJetonu = null, bekleyenEposta = null;
+const HESAP_METINLERI = {
+  giris: { baslik: "Giriş yap", gonder: "Giriş yap", aciklama: "Tekrar hoş geldin. Profilin ve başarımların hesabınla eşitlenir." },
+  kayit: { baslik: "Hesap oluştur", gonder: "Hesap oluştur", aciklama: "Birkaç saniyede hesabını aç; bu cihazdaki puan ve başarımların hesabına taşınır." },
+  unuttum: { baslik: "Şifremi unuttum", gonder: "Sıfırlama bağlantısı gönder", aciklama: "Hesabına kayıtlı e-postayı yaz; şifreni yenilemen için bir bağlantı gönderelim." },
+  yenile: { baslik: "Yeni şifre belirle", gonder: "Şifreyi kaydet", aciklama: "Hesabın için yeni bir şifre belirle; kaydedince giriş yapmış olursun." },
+};
+function hesapPencereGuncelle() {
+  const k = hesapKipi, kayit = k === "kayit", giris = k === "giris", unuttum = k === "unuttum", yenile = k === "yenile";
+  for (const dugme of $("#hesap-formu").querySelectorAll("[data-hesap-kip]")) {
+    const secili = dugme.dataset.hesapKip === k;
+    dugme.classList.toggle("secili", secili);
+    dugme.setAttribute("aria-checked", String(secili));
+  }
+  $("#hesap-kip").hidden = unuttum || yenile;
+  $("#hesap-google-kap").hidden = !googleAcik || unuttum || yenile;
+  $("#hesap-kayit-notu").hidden = !kayit;
+  // Kayıtta kullanıcı adı + e-posta + şifre tekrarı; girişte kullanıcı adı ya da e-posta.
+  const kimlik = $("#hesap-kimlik");
+  $("#hesap-kimlik-alan").hidden = unuttum || yenile;
+  kimlik.required = giris || kayit;
+  $("#hesap-kimlik-etiket").textContent = kayit ? "Kullanıcı adı" : "Kullanıcı adı ya da e-posta";
+  $("#hesap-kimlik-ipucu").hidden = !kayit;
+  kimlik.maxLength = kayit ? 32 : 254;
+  if (kayit) kimlik.pattern = "[a-zA-Z0-9_.\\-]{3,32}"; else kimlik.removeAttribute("pattern");
+  $("#hesap-eposta-alan").hidden = !(kayit || unuttum);
+  $("#hesap-eposta").required = kayit || unuttum;
+  $("#hesap-sifre-alan").hidden = unuttum;
+  $("#hesap-sifre").required = !unuttum;
+  $("#hesap-sifre-etiket").textContent = yenile ? "Yeni şifre" : "Şifre";
+  $("#hesap-sifre2-alan").hidden = !(kayit || yenile);
+  $("#hesap-sifre2").required = kayit || yenile;
+  $("#hesap-sifre2-etiket").textContent = yenile ? "Yeni şifre (tekrar)" : "Şifre (tekrar)";
+  $("#hesap-unuttum").hidden = !giris || !sifirlamaAcik;
+  $("#hesap-girise-don").hidden = !unuttum;
+  $("#hesap-baslik").textContent = HESAP_METINLERI[k].baslik;
+  $("#hesap-gonder").textContent = HESAP_METINLERI[k].gonder;
+  $("#hesap-aciklama").textContent = HESAP_METINLERI[k].aciklama;
+  $("#hesap-sifre").autocomplete = giris ? "current-password" : "new-password";
+  $("#hesap-hata").hidden = true;
+  $("#hesap-hata").textContent = "";
+  $("#hesap-bilgi").hidden = true;
+  $("#hesap-yeniden").hidden = true;
+  $("#hesap-sifre").type = "password";
+  $("#hesap-goster").setAttribute("aria-pressed", "false");
+  $("#hesap-goster").setAttribute("aria-label", "Şifreyi göster");
+}
+function hesapKipiSec(kip) {
+  hesapKipi = kip;
+  hesapPencereGuncelle();
+  (kip === "unuttum" ? $("#hesap-eposta") : kip === "yenile" ? $("#hesap-sifre") : $("#hesap-kimlik")).focus();
+}
+function hesapPenceresiKapat(tamam = false) {
+  $("#hesap-penceresi").hidden = true;
+  const coz = hesapPencereCoz;
+  hesapPencereCoz = null;
+  coz?.(tamam);
+  const odak = hesapOdakOnce?.isConnected ? hesapOdakOnce : $("#profil-geri");
+  hesapOdakOnce = null;
+  odak?.focus({ preventScroll: true });
+}
+function hesapPenceresiAc(kip = "giris") {
+  if (hesapPencereCoz) return Promise.resolve(false);
+  hesapOdakOnce = document.activeElement;
+  hesapKipi = kip;
+  $("#hesap-formu").reset();
+  hesapPencereGuncelle();
+  $("#hesap-penceresi").hidden = false;
+  (kip === "yenile" ? $("#hesap-sifre") : $("#hesap-kimlik")).focus();
+  return new Promise((coz) => { hesapPencereCoz = coz; });
+}
+$("#hesap-formu").addEventListener("click", (e) => {
+  const dugme = e.target.closest("[data-hesap-kip]");
+  if (dugme) { hesapKipi = dugme.dataset.hesapKip; hesapPencereGuncelle(); }
+});
+$("#hesap-vazgec").addEventListener("click", () => hesapPenceresiKapat(false));
+$("#hesap-unuttum").addEventListener("click", () => {
+  // Kullanıcı adı alanına e-posta yazılmışsa sıfırlama alanına taşınır.
+  const yazilan = $("#hesap-kimlik").value.trim();
+  hesapKipiSec("unuttum");
+  if (yazilan.includes("@")) $("#hesap-eposta").value = yazilan;
+});
+$("#hesap-girise-don").addEventListener("click", () => hesapKipiSec("giris"));
+$("#hesap-goster").addEventListener("click", () => {
+  const g = $("#hesap-sifre").type === "password";
+  $("#hesap-sifre").type = g ? "text" : "password";
+  $("#hesap-goster").setAttribute("aria-pressed", String(g));
+  $("#hesap-goster").setAttribute("aria-label", g ? "Şifreyi gizle" : "Şifreyi göster");
+});
+$("#hesap-penceresi").addEventListener("click", (e) => { if (e.target === e.currentTarget) hesapPenceresiKapat(false); });
+document.addEventListener("keydown", (e) => {
+  if ($("#hesap-penceresi").hidden) return;
+  if (e.key === "Escape") { e.preventDefault(); hesapPenceresiKapat(false); return; }
+  if (e.key !== "Tab") return;
+  const odaklanabilir = [...$("#hesap-penceresi").querySelectorAll('button:not([disabled]), input:not([disabled])')].filter((x) => !x.hidden && x.offsetParent !== null);
+  const ilk = odaklanabilir[0], son = odaklanabilir.at(-1);
+  if (e.shiftKey && document.activeElement === ilk) { e.preventDefault(); son?.focus(); }
+  else if (!e.shiftKey && document.activeElement === son) { e.preventDefault(); ilk?.focus(); }
+});
+$("#hesap-formu").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (hesapIslemi) return;
+  hesapIslemi = true;
+  const dugme = $("#hesap-gonder");
+  dugme.disabled = true;
+  $("#hesap-hata").hidden = true;
+  const kip = hesapKipi, kayit = kip === "kayit";
+  const istek = async (yol, govde) => {
+    const yanit = await fetch(yol, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde) });
+    const sonuc = await yanit.json().catch(() => ({}));
+    if (!yanit.ok) throw Object.assign(new Error(sonuc.hata ?? `İstek başarısız (${yanit.status})`), { veri: sonuc });
+    return sonuc;
+  };
+  const bilgiGoster = (metin, { yeniden = false } = {}) => {
+    $("#hesap-bilgi").textContent = metin;
+    $("#hesap-bilgi").hidden = false;
+    $("#hesap-yeniden").hidden = !yeniden;
+  };
+  try {
+    if (kip === "unuttum") {
+      const sonuc = await istek("/api/hesap/sifre-sifirla/iste", { eposta: $("#hesap-eposta").value.trim(), donus: location.pathname.startsWith("/app") ? "/app/" : "/" });
+      bilgiGoster(sonuc.mesaj);
+      return;
+    }
+    if ((kayit || kip === "yenile") && $("#hesap-sifre").value !== $("#hesap-sifre2").value) throw new Error("Şifreler eşleşmiyor; iki alana da aynı şifreyi yaz.");
+    let sonuc;
+    if (kip === "yenile") {
+      sonuc = await istek("/api/hesap/sifre-sifirla", { jeton: sifirlamaJetonu, yeniSifre: $("#hesap-sifre").value, yeniSifreTekrar: $("#hesap-sifre2").value });
+      sifirlamaJetonu = null;
+    } else {
+      const govde = { kimlik: $("#hesap-kimlik").value.trim(), sifre: $("#hesap-sifre").value };
+      if (kayit) Object.assign(govde, { eposta: $("#hesap-eposta").value.trim(), sifreTekrar: $("#hesap-sifre2").value });
+      if (kayit) govde.donus = location.pathname.startsWith("/app") ? "/app/" : "/";
+      sonuc = await istek(kayit ? "/api/hesap/kayit" : "/api/hesap/giris", govde);
+    }
+    // E-posta doğrulaması açıkken kayıt oturum açmaz: girişe dönülür, bağlantı beklenir.
+    if (sonuc.dogrulamaGerekli) {
+      bekleyenEposta = sonuc.eposta;
+      const kimlik = $("#hesap-kimlik").value;
+      hesapKipiSec("giris");
+      $("#hesap-kimlik").value = kimlik;
+      $("#hesap-sifre").value = "";
+      bilgiGoster(sonuc.mesaj, { yeniden: true });
+      return;
+    }
+    await jetonlaOturumAc(sonuc);
+    hesapPenceresiKapat(true);
+    bildir(kayit ? "Hesabın oluşturuldu. Profilin hesabına bağlandı." : kip === "yenile" ? "Şifren güncellendi; giriş yaptın." : `Hoş geldin, ${hesapKullanici.kimlik}.`);
+  } catch (h) {
+    $("#hesap-hata").textContent = h.message;
+    $("#hesap-hata").hidden = false;
+    if (h.veri?.dogrulamaGerekli) { bekleyenEposta = h.veri.eposta; $("#hesap-yeniden").hidden = false; }
+  } finally {
+    hesapIslemi = false;
+    dugme.disabled = false;
+  }
+});
+$("#hesap-yeniden").addEventListener("click", async () => {
+  if (!bekleyenEposta) return;
+  try {
+    const y = await fetch("/api/hesap/eposta-dogrula/yeniden", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ eposta: bekleyenEposta, donus: location.pathname.startsWith("/app") ? "/app/" : "/" }) });
+    const sonuc = await y.json().catch(() => ({}));
+    if (!y.ok) throw new Error(sonuc.hata ?? `İstek başarısız (${y.status})`);
+    $("#hesap-hata").hidden = true;
+    $("#hesap-bilgi").textContent = sonuc.mesaj;
+    $("#hesap-bilgi").hidden = false;
+  } catch (h) {
+    $("#hesap-hata").textContent = h.message;
+    $("#hesap-hata").hidden = false;
+  }
+});
+async function jetonlaOturumAc(sonuc) {
+  localStorage.setItem(HESAP_JETON_ANAHTARI, sonuc.jeton);
+  try { await hesapOturumuYukle(sonuc.hesap); }
+  catch {
+    hesapKullanici = sonuc.hesap;
+    profilCipiGuncelle();
+    if (!$("#profil-ekrani").hidden) profilEkrani();
+  }
+}
+
+// ---------- Google ile giriş (public/ortak/google-giris.js) ----------
+// Sunucuda ayar yoksa düğmeler gizli kalır. Web'de sayfa Google'a gidip döner; uygulamada akış Custom Tab'da açılır.
+async function googleSonucuIsle({ kod, hata }) {
+  if (hata) { bildir(hata, { sure: 5000 }); return; }
+  try {
+    const sonuc = await googleKodTakas(kod);
+    await jetonlaOturumAc(sonuc);
+    if (!$("#hesap-penceresi").hidden) hesapPenceresiKapat(true);
+    if (!$("#karsilama").hidden) karsilamaKapat();
+    bildir(`Hoş geldin, ${hesapKullanici.kimlik}.`);
+  } catch (h) { bildir(h.message, { sure: 5000 }); }
+}
+async function googleBaslat() {
+  try { await googleIleBaslat({ donus: location.pathname.startsWith("/app") ? "/app/" : "/" }); }
+  catch (h) { bildir(h.message, { sure: 5000 }); }
+}
+$("#ks-google").addEventListener("click", googleBaslat);
+$("#hesap-google").addEventListener("click", googleBaslat);
+// Google ve şifre sıfırlama düğmeleri sunucunun ayarına göre görünür (/api/ayarlar → hesap.google, hesap.sifreSifirlama).
+fetch("/api/ayarlar").then((y) => y.json()).then((a) => {
+  googleAcik = a?.hesap?.google === true;
+  sifirlamaAcik = a?.hesap?.sifreSifirlama === true;
+  $("#ks-google").hidden = !googleAcik;
+  if (!$("#hesap-penceresi").hidden) hesapPencereGuncelle();
+}).catch(() => {});
+uygulamaDonusunuDinle(googleSonucuIsle);
+// E-postadaki sıfırlama bağlantısı: /app/#sifre-sifirla=<jeton> → yeni şifre penceresi.
+const sifirlamaEslesme = /^#sifre-sifirla=([A-Za-z0-9_-]{10,200})$/.exec(location.hash);
+// E-postadaki doğrulama bağlantısı: /app/#eposta-dogrula=<jeton> → hesap doğrulanır, oturum açılır.
+const dogrulamaEslesme = /^#eposta-dogrula=([A-Za-z0-9_-]{10,200})$/.exec(location.hash);
+const googleDonusu = googleDonusuOku();
+if (dogrulamaEslesme) {
+  history.replaceState(null, "", location.pathname + location.search);
+  karsilamaGosterildi = true;
+  (async () => {
+    try {
+      const y = await fetch("/api/hesap/eposta-dogrula", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jeton: dogrulamaEslesme[1] }) });
+      const sonuc = await y.json().catch(() => ({}));
+      if (!y.ok) throw new Error(sonuc.hata ?? `İstek başarısız (${y.status})`);
+      await jetonlaOturumAc(sonuc);
+      bildir(`E-postan doğrulandı. Hoş geldin, ${hesapKullanici.kimlik}.`, { sure: 4200 });
+    } catch (h) { bildir(h.message, { sure: 5000 }); hesapDurumunuYukle(); }
+  })();
+} else if (sifirlamaEslesme) {
+  history.replaceState(null, "", location.pathname + location.search);
+  sifirlamaJetonu = sifirlamaEslesme[1];
+  karsilamaGosterildi = true;
+  hesapPenceresiAc("yenile");
+  hesapDurumunuYukle();
+} else if (googleDonusu) {
+  // Google'dan dönen sayfada karşılama yeniden açılmasın.
+  karsilamaGosterildi = true;
+  googleSonucuIsle(googleDonusu);
+} else hesapDurumunuYukle();
+
 function profilEkrani() {
   const p = profil.profilBilgi();
   const sonraki = profil.seviyeEsigi(p.seviye + 1), bu = profil.seviyeEsigi(p.seviye);
-  const avatar = el("span", { className: "avatar buyuk", ariaHidden: "true" });
-  avatarCiz(avatar, p);
-  const duzenle = el("button", { className: "dugme ikincil kucuk", textContent: "Adı ve rengi değiştir" });
-  duzenle.addEventListener("click", tanismaAc);
   const gruplar = profil.tumBasarimlar(modulListesi);
   const kazanilan = gruplar.reduce((t, g) => t + g.basarimlar.filter((b) => b.kazanildi).length, 0);
   const toplam = gruplar.reduce((t, g) => t + g.basarimlar.length, 0);
 
+  // Kahraman kart: çini şerit, avatar, ad, hesap ve seviye
+  const serit = el("span", { className: "pk-serit", ariaHidden: "true" });
+  serit.style.backgroundImage = ciniArkaPlan(`avatar-${p.ad}`, p.renk);
+  const avatar = el("span", { className: "avatar buyuk", ariaHidden: "true" });
+  avatarCiz(avatar, p);
+  const duzenle = el("button", { type: "button", className: "pk-duzenle", ariaLabel: "Adı ve rengi değiştir", title: "Adı ve rengi değiştir" });
+  duzenle.innerHTML = SVG.kalem;
+  duzenle.addEventListener("click", tanismaAc);
+  const alt = hesapKullanici ? `@${hesapKullanici.kimlik} · ${ROL_ADI[hesapKullanici.rol] ?? "Öğrenci / gezgin"}` : "Misafir · profil yalnızca bu cihazda";
+  const oran = Math.max(0, Math.min(1, (p.puan - bu) / (sonraki - bu)));
+  const istatistik = (n, ad) => el("div", { className: "pk-sayi" }, el("strong", { textContent: n }), el("span", { textContent: ad }));
+
+  const ayarSatiri = (ikon, ad, tik, ek = null) => {
+    const b = el("button", { type: "button", className: "pl-satir" }, svgSpan(ikon), el("span", { className: "pl-ad", textContent: ad }), ek ?? el("span", { className: "pl-ok", ariaHidden: "true" }));
+    b.addEventListener("click", () => tik(b));
+    return b;
+  };
+  const koyu = document.documentElement.dataset.tema === "koyu";
+  const temaAnahtari = el("span", { className: `pl-anahtar${koyu ? " acik" : ""}`, ariaHidden: "true" });
+  const temaSatiri = ayarSatiri("ay", "Koyu tema", () => {
+    $("#tema-dugme").click();
+    const simdi = document.documentElement.dataset.tema === "koyu";
+    temaAnahtari.classList.toggle("acik", simdi);
+    temaSatiri.setAttribute("aria-checked", String(simdi));
+  }, temaAnahtari);
+  temaSatiri.setAttribute("role", "switch");
+  temaSatiri.setAttribute("aria-checked", String(koyu));
+  // Dil: Türkçe / English (seçim hemen uygulanır, sayfa yenilenmez).
+  const dilSatiri = el("div", { className: "pl-satir pl-dil" }, svgSpan("dil"),
+    el("span", { className: "pl-ad", id: "pl-dil-ad", textContent: "Dil" }), dilSecimi({ etiketId: "pl-dil-ad" }));
+
   $("#profil-icerik").replaceChildren(
-    el("section", { className: "profil-kart" },
-      avatar,
+    el("section", { className: "profil-kart profil-kahraman", ariaLabel: "Profil özeti" },
+      serit,
+      el("div", { className: "pk-avatar" }, avatar, duzenle),
       el("h2", { className: "profil-ad", textContent: p.ad }),
-      el("p", { className: "profil-seviye", textContent: `Seviye ${p.seviye} · ${p.puan} puan` }),
+      el("p", { className: "pk-alt", textContent: alt }),
+      el("div", { className: "pk-seviye" },
+        el("span", { className: "profil-seviye", textContent: `Seviye ${p.seviye}` }),
+        el("span", { className: "pk-puan", textContent: `${p.puan} puan` })),
       el("div", { className: "s-ilerleme", role: "progressbar", ariaLabel: "Sonraki seviyeye ilerleme", ariaValueNow: String(p.puan - bu), ariaValueMin: "0", ariaValueMax: String(sonraki - bu) },
-        Object.assign(el("span"), { style: `width:${((p.puan - bu) / (sonraki - bu)) * 100}%` })),
-      el("p", { className: "profil-alt", textContent: `Sonraki seviyeye ${sonraki - p.puan} puan` }),
-      duzenle),
-    el("section", { className: "profil-istatistik" },
-      el("div", { className: "s-istatistik" }, el("strong", { textContent: String(kazanilan) }), el("span", { textContent: "başarım" })),
-      el("div", { className: "s-istatistik" }, el("strong", { textContent: String(toplam ? Math.round((kazanilan / toplam) * 100) : 0) + "%" }), el("span", { textContent: "tamamlandı" })),
-      el("div", { className: "s-istatistik" }, el("strong", { textContent: String(gruplar.length) }), el("span", { textContent: "modül" }))),
-    el("h2", { className: "bolum-baslik", textContent: "Başarımlar" }),
-    gruplar.length ? el("div", { className: "profil-basarimlar" }, ...gruplar.map(({ modul, basarimlar }) =>
-      el("section", { className: "profil-modul" },
-        el("h3", { textContent: modul.ad }),
-        el("div", { className: "s-izgara", style: "--sutun:3" }, ...basarimlar.map((b) => {
-          const r = el("div", { className: `s-rozet${b.kazanildi ? " kazanildi" : ""}` });
-          r.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><g><rect x="26" y="26" width="68" height="68" rx="6"/><rect x="26" y="26" width="68" height="68" rx="6" transform="rotate(45 60 60)"/></g><circle cx="60" cy="60" r="26"/><path d="M60 43l5 10.4 11.4 1.7-8.2 8 2 11.3L60 69l-10.2 5.4 2-11.3-8.2-8 11.4-1.7z"/></svg>';
-          r.append(el("strong", { textContent: b.ad }), el("span", { textContent: b.kazanildi ? (b.aciklama || "Kazanıldı") : "Henüz kazanılmadı" }));
-          return r;
-        }))))) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." }),
+        Object.assign(el("span"), { style: `width:${oran * 100}%` })),
+      el("p", { className: "profil-alt", textContent: `Seviye ${p.seviye + 1} için ${sonraki - p.puan} puan` }),
+      el("div", { className: "profil-istatistik" },
+        istatistik(String(kazanilan), "başarım"),
+        istatistik(`${toplam ? Math.round((kazanilan / toplam) * 100) : 0}%`, "tamamlandı"),
+        istatistik(String(gruplar.length), "modül"))),
+    hesapBolumu(),
+    el("section", { className: "profil-basarim-bolum", ariaLabel: "Başarımlar" },
+    el("h2", { className: "bolum-baslik", id: "profil-basarim-baslik", textContent: "Başarımlar" }),
+    gruplar.length ? el("div", { className: "pl-grup" }, ...gruplar.map(({ modul, basarimlar }) => {
+      const kazanilan = basarimlar.filter((b) => b.kazanildi).length;
+      const satir = el("button", { type: "button", className: "bl-satir" },
+        uygulamaIkonu(modul, "kucuk"),
+        el("span", { className: "pl-ad" },
+          el("strong", { textContent: modul.ad }),
+          el("small", { textContent: `${kazanilan}/${basarimlar.length} başarım` })),
+        el("span", { className: "pl-ok", ariaHidden: "true" }));
+      satir.addEventListener("click", () => basarimlariGoster(modul, basarimlar));
+      return satir;
+    })) : el("p", { className: "bos", textContent: "Modülleri oynadıkça başarımların burada birikecek." })),
+    el("section", { className: "profil-ayarlar" },
+      el("h2", { className: "bolum-baslik", id: "profil-ayar-baslik", textContent: "Ayarlar" }),
+      el("div", { className: "pl-grup" },
+        temaSatiri,
+        dilSatiri,
+        ayarSatiri("erisim", "Erişilebilirlik", (b) => ayarlar(true, b)),
+        ayarSatiri("palet", "Adı ve rengi değiştir", tanismaAc),
+        ayarSatiri("arti", "Eser öner", () => katkiAc()))),
+    izinBolumu(),
+    el("p", { className: "kaynak-notu profil-kunye", textContent: "Lonca · Veriler: Vakıf Katılım, Bursa, Konya ve Hatay vakıf eserleri kitapları. Fotoğraflar envanter kitaplarındandır." }),
   );
+}
+function basarimlariGoster(modul, basarimlar) {
+  katman.koy(
+    el("h2", { className: "bolum-baslik", textContent: modul.ad }),
+    el("div", { className: "s-izgara", style: "--sutun:3" }, ...basarimlar.map((b) => {
+      const r = el("div", { className: `s-rozet${b.kazanildi ? " kazanildi" : ""}` });
+      r.innerHTML = '<svg viewBox="0 0 120 120" aria-hidden="true"><g><rect x="26" y="26" width="68" height="68" rx="6"/><rect x="26" y="26" width="68" height="68" rx="6" transform="rotate(45 60 60)"/></g><circle cx="60" cy="60" r="26"/><path d="M60 43l5 10.4 11.4 1.7-8.2 8 2 11.3L60 69l-10.2 5.4 2-11.3-8.2-8 11.4-1.7z"/></svg>';
+      r.append(
+        el("strong", { textContent: b.ad }),
+        el("span", { textContent: b.aciklama || "Bu başarımın açıklaması yok." }),
+        el("small", { className: "s-rozet-durum", textContent: b.kazanildi ? "Kazanıldı" : "Henüz kazanılmadı" }));
+      return r;
+    })));
+}
+// Cihazın konum iznini ister. Sistem artık sormuyorsa (kalıcı ret) ya da konum servisi kapalıysa ayarları açar.
+const KONUM_DURUM_YAZISI = {
+  verildi: "İzin verildi",
+  sorulacak: "Henüz izin verilmedi",
+  reddedildi: "İzin kapalı. Açmak için ayarlara git",
+  kapali: "Cihazın konum servisi kapalı",
+  yok: "Bu cihazda konum kullanılamıyor",
+};
+async function cihazKonumIzni({ sessiz = false } = {}) {
+  const sonuc = await konumIzniIste();
+  if (sonuc === "reddedildi") {
+    if (await ayarlariAc()) bildir("Ayarlar'da İzinler → Konum'u açabilirsin.", { sure: 4200 });
+    else if (!sessiz) bildir("Konum izni kapalı. Tarayıcının site ayarlarından açabilirsin.", { sure: 4200 });
+  } else if (sonuc === "kapali") {
+    if (await ayarlariAc("konum")) bildir("Konumu açıp uygulamaya geri dön.", { sure: 4200 });
+  } else if (sonuc === "verildi" && !sessiz) bildir("Konum izni verildi.");
+  return sonuc;
+}
+function izinBolumu() {
+  // Cihaz izni satırı: sistemin konum izni. Düğme sistemin izin penceresini (gerekirse ayarları) açar.
+  const cihazAlt = el("small", { textContent: "Denetleniyor…" });
+  const cihazDugme = el("button", { type: "button", className: "dugme ikincil izin-dugme", textContent: "İzin ver", hidden: true });
+  const cihazGuncelle = async () => {
+    const d = await konumIzniDurumu();
+    cihazAlt.textContent = KONUM_DURUM_YAZISI[d] ?? "";
+    cihazDugme.hidden = d === "verildi" || d === "yok" || (d === "reddedildi" && !uygulamadaMi());
+    cihazDugme.textContent = d === "sorulacak" ? "İzin ver" : "Ayarları aç";
+  };
+  cihazDugme.addEventListener("click", async () => { await cihazKonumIzni(); cihazGuncelle(); });
+  // Ayarlardan dönünce durum yenilenir.
+  const yenile = () => {
+    if (!cihazAlt.isConnected) return document.removeEventListener("visibilitychange", yenile);
+    if (!document.hidden) cihazGuncelle();
+  };
+  document.addEventListener("visibilitychange", yenile);
+  cihazGuncelle();
+  const cihazSatiri = el("div", { className: "izin-cihaz" },
+    el("span", {}, "Konum (cihaz izni)", cihazAlt), cihazDugme);
+
+  const satirlar = modulListesi.flatMap((m) => raf.istenenIzinler(m).map((iz) => {
+    const durum = raf.izinDurumu(m.id, iz);
+    const kutu = el("input", { type: "checkbox", checked: durum === true });
+    const alt = el("small", { textContent: durum === undefined ? "Henüz sorulmadı" : durum ? "İzin verildi" : "İzin verilmedi" });
+    kutu.addEventListener("change", async () => {
+      raf.izinKaydet(m.id, iz, kutu.checked);
+      alt.textContent = kutu.checked ? "İzin verildi" : "İzin verilmedi";
+      // Modüle izin verilince cihazın izni de istenir; yoksa modül yine örnek konumla çalışırdı.
+      if (kutu.checked && iz === "konum") { await cihazKonumIzni(); cihazGuncelle(); }
+    });
+    return el("label", { className: "anahtar" }, kutu, el("span", {}, `${m.ad}: ${raf.IZIN_BILGISI[iz].ad}`, alt));
+  }));
+  const bolum = el("section", { className: "profil-izinler" });
+  bolum.setAttribute("aria-labelledby", "izin-bolum-baslik");
+  bolum.append(
+    el("h2", { className: "bolum-baslik", id: "izin-bolum-baslik", textContent: "Uygulama izinleri" }),
+    el("div", { className: "izin-satirlari" }, cihazSatiri, ...satirlar));
+  return bolum;
 }
 $("#profil-cip").addEventListener("click", () => { profilEkrani(); gecis(() => ekranGoster("profil"), "ileri"); });
 $("#profil-geri").addEventListener("click", () => anaEkran({ gecisli: true }));
@@ -626,8 +1348,15 @@ function tanismaAc() {
 }
 function tanismaKapat(kaydet) {
   const renk = document.querySelector('input[name="renk"]:checked')?.value ?? "kobalt";
-  profil.profilKaydet({ ad: kaydet ? $("#tanisma-ad").value : (profil.profilOku()?.ad ?? "Gezgin"), renk });
+  const guncel = profil.profilKaydet({ ad: kaydet ? $("#tanisma-ad").value : (profil.profilOku()?.ad ?? "Gezgin"), renk });
+  if (hesapKullanici) {
+    hesapIstek("/api/hesap/profil", { method: "PUT", govde: { ad: guncel.ad, renk: guncel.renk } })
+      .then((h) => { hesapKullanici = h; if (!$("#profil-ekrani").hidden) profilEkrani(); })
+      .catch(() => bildir("Profil cihazında kaydedildi; hesapla eşitlenemedi."));
+  }
   $("#tanisma").hidden = true;
+  // Odak gizlenen formda kalmasın; klavye ve ekran okuyucu ana içerikten devam eder.
+  if (document.activeElement?.closest("#tanisma") || document.activeElement === document.body) $("#uygulamalar-baslik").focus({ preventScroll: true });
   profilCipiGuncelle();
   if (!$("#profil-ekrani").hidden) profilEkrani();
 }
@@ -639,28 +1368,44 @@ $("#katki-formu").elements.tur.replaceChildren(...KATKI_TURLERI.map(([id, ad]) =
 let katkiCoz = null, katkiEser = null;
 let katkiFotolari = [];
 const KATKI_FOTO_SINIRI = 6;
+// Her fotoğraf { dosya, dataUrl } olarak tutulur: önizleme blob: adresi yerine okunmuş veriyle çizilir (Android WebView'de
+// blob önizlemesi bozuk görünebiliyordu) ve gönderirken dosya yeniden okunmaz.
 function katkiFotolariniCiz() {
   const liste = $("#katki-foto-listesi");
-  for (const img of liste.querySelectorAll("img")) URL.revokeObjectURL(img.src);
-  liste.replaceChildren(...katkiFotolari.map((dosya, i) => {
+  liste.replaceChildren(...katkiFotolari.map((foto, i) => {
     const kaldir = el("button", { type: "button", className: "katki-foto-kaldir", textContent: "×", ariaLabel: `${i + 1}. fotoğrafı çıkar` });
     kaldir.addEventListener("click", () => { katkiFotolari.splice(i, 1); katkiFotolariniCiz(); });
-    return el("li", {}, el("img", { src: URL.createObjectURL(dosya), alt: `${i + 1}. fotoğraf${i === 0 ? " (kapak)" : ""}` }), kaldir);
+    return el("li", {}, el("img", { src: foto.dataUrl, alt: `${i + 1}. fotoğraf${i === 0 ? " (kapak)" : ""}` }), kaldir);
   }));
   $("#katki-foto-ekle").hidden = katkiFotolari.length >= KATKI_FOTO_SINIRI;
 }
-$("#katki-formu").elements.foto.addEventListener("change", (e) => {
+const dosyaOku = (dosya) => new Promise((coz, red) => { const r = new FileReader(); r.onload = () => coz(r.result); r.onerror = () => red(r.error); r.readAsDataURL(dosya); });
+// Görüntü çözülemiyorsa (bozuk ya da telefona inmemiş bulut fotoğrafı) reddet.
+const gorselCozulurMu = (src) => new Promise((coz) => { const img = new Image(); img.onload = () => coz(img.naturalWidth > 0); img.onerror = () => coz(false); img.src = src; });
+$("#katki-formu").elements.foto.addEventListener("change", async (e) => {
   const durum = $("#katki-durum");
-  durum.textContent = "";
-  for (const dosya of [...(e.target.files ?? [])]) {
-    if (katkiFotolari.length >= KATKI_FOTO_SINIRI) { durum.textContent = `En fazla ${KATKI_FOTO_SINIRI} fotoğraf eklenebilir.`; durum.className = "katki-durum hata"; break; }
-    if (!/^image\/(jpeg|png|webp)$/.test(dosya.type)) continue;
-    if (dosya.size > 6 * 1024 * 1024) { durum.textContent = `${dosya.name}: en fazla 6 MB olabilir.`; durum.className = "katki-durum hata"; continue; }
-    katkiFotolari.push(dosya);
-  }
+  // Yalnızca önceki fotoğraf uyarısını temizle; formun doğrulama hatası yerinde kalsın.
+  if (durum.dataset.foto) { durum.textContent = ""; delete durum.dataset.foto; }
+  const fotoHata = (m) => { durum.textContent = m; durum.className = "katki-durum hata"; durum.dataset.foto = "1"; };
+  const dosyalar = [...(e.target.files ?? [])];
   e.target.value = "";
-  katkiFotolariniCiz();
+  for (const dosya of dosyalar) {
+    if (katkiFotolari.length >= KATKI_FOTO_SINIRI) { fotoHata(`En fazla ${KATKI_FOTO_SINIRI} fotoğraf eklenebilir.`); break; }
+    if (!/^image\/(jpeg|png|webp)$/.test(dosya.type)) { fotoHata(`${dosya.name}: yalnızca JPEG, PNG ya da WebP eklenebilir.`); continue; }
+    if (dosya.size > 6 * 1024 * 1024) { fotoHata(`${dosya.name}: en fazla 6 MB olabilir.`); continue; }
+    let dataUrl = null;
+    try { dataUrl = await dosyaOku(dosya); } catch {}
+    if (!dataUrl || !(await gorselCozulurMu(dataUrl))) { fotoHata(`${dosya.name}: fotoğraf okunamadı, başka bir fotoğraf dene.`); continue; }
+    katkiFotolari.push({ dosya, dataUrl });
+    katkiFotolariniCiz();
+  }
 });
+// Studio önizlemesinde vatandaş formu yerine eser, Studio'nun içerik formunda düzenlemeye açılır.
+function duzeltmeIste(eser) {
+  if (!ONIZLEME || !eser?.id) return katkiAc(eser);
+  parent.postMessage({ tur: "eser-duzenle", id: eser.id }, location.origin);
+  return Promise.resolve({ gonderildi: false });
+}
 function katkiAc(eser = null) {
   katkiEser = eser;
   const f = $("#katki-formu");
@@ -670,6 +1415,7 @@ function katkiAc(eser = null) {
   $("#katki-yeni").hidden = !!eser;
   $("#katki-not-alan").hidden = !eser;
   $("#katki-durum").textContent = "";
+  delete $("#katki-durum").dataset.foto;
   $("#katki-gonder").disabled = false;
   katkiFotolari = []; katkiFotolariniCiz();
   $("#katki").hidden = false;
@@ -687,7 +1433,7 @@ $("#eser-oner").addEventListener("click", () => katkiAc());
 $("#katki-formu").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.currentTarget.elements, durum = $("#katki-durum");
-  const hata = (m) => { durum.textContent = m; durum.className = "katki-durum hata"; };
+  const hata = (m) => { durum.textContent = m; durum.className = "katki-durum hata"; delete durum.dataset.foto; };
   try {
     $("#katki-gonder").disabled = true;
     let govde;
@@ -695,20 +1441,25 @@ $("#katki-formu").addEventListener("submit", async (e) => {
       if (f.not.value.trim().length < 5) { $("#katki-gonder").disabled = false; return hata("Lütfen birkaç kelimeyle anlat."); }
       govde = { tur: "not", eserId: katkiEser.id, not: f.not.value };
     } else {
-      if (f.ad.value.trim().length < 2 || f.tarihce.value.trim().length < 20 || f.kaynak.value.trim().length < 3) {
+      // Eksik alanları tek tek söyle; genel bir mesaj neyin yanlış olduğunu gizliyordu.
+      const eksikler = [];
+      if (f.ad.value.trim().length < 2) eksikler.push("Eserin adını yaz.");
+      if (f.il.value.trim().length < 2) eksikler.push("İli yaz.");
+      if (f.tarihce.value.trim().length < 20) eksikler.push("Tarihçe en az 20 karakter olmalı.");
+      if (f.kaynak.value.trim().length < 3) eksikler.push("Kaynağı yaz (en az 3 karakter).");
+      if (eksikler.length) {
         $("#katki-gonder").disabled = false;
-        return hata("Ad, en az bir cümlelik tarihçe ve kaynak gerekli.");
+        return hata(eksikler.join(" · "));
       }
       const fotograflar = [];
-      for (const [i, dosya] of katkiFotolari.entries()) {
+      for (const [i, { dosya, dataUrl }] of katkiFotolari.entries()) {
         durum.className = "katki-durum"; durum.textContent = `Fotoğraflar yükleniyor ${i + 1}/${katkiFotolari.length}…`;
-        const dataUrl = await new Promise((coz, red) => { const r = new FileReader(); r.onload = () => coz(r.result); r.onerror = red; r.readAsDataURL(dosya); });
         const y = await fetch("/api/medya", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ dosya: dataUrl }) });
         const s = await y.json();
         if (!y.ok) { $("#katki-gonder").disabled = false; return hata(`${dosya.name}: ${s.hata}`); }
         fotograflar.push(s.yol);
       }
-      govde = { tur: "yeni", veri: { ad: f.ad.value, tur: f.tur.value, ilce: f.ilce.value, il: "Bursa", tarihce: { tr: f.tarihce.value }, kaynak: f.kaynak.value, fotograflar } };
+      govde = { tur: "yeni", veri: { ad: f.ad.value, tur: f.tur.value, ilce: f.ilce.value, il: f.il.value.trim(), tarihce: { tr: f.tarihce.value }, kaynak: f.kaynak.value, fotograflar } };
     }
     const y = await fetch("/api/eser-oneriler", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(govde) });
     const s = await y.json();
@@ -720,6 +1471,102 @@ $("#katki-formu").addEventListener("submit", async (e) => {
   } catch (h) { $("#katki-gonder").disabled = false; hata(`Gönderilemedi: ${h.message}`); }
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#katki").hidden) katkiKapat(false); });
+
+// ---------- Yeni onaylanan modüller: hafif sürüm yoklaması ----------
+// Sunucu her onay/kaldırmada değişen kısa bir sürüm verir; değişince liste yeniden çekilir. Android köprüsü fetch'i
+// canlı sunucuya yönlendirdiği için telefonda da aynen çalışır.
+let sonSurum = null, yoklaniyor = false;
+async function modulleriYokla() {
+  if (ONIZLEME || document.hidden || yoklaniyor || sonSurum == null) return;
+  yoklaniyor = true;
+  try {
+    const { surum } = await (await api("/api/moduller/surum")).json();
+    if (surum === sonSurum) return;
+    const liste = await (await api("/api/moduller")).json();
+    sonSurum = modulSurumu(liste);
+    // Açık modül Studio'da kaldırıldıysa kapat; güncellendiyse haber ver (yeniden açınca yeni sürüm yüklenir).
+    if (calisan) {
+      const guncel = liste.find((m) => m.id === calisan.modul.id);
+      if (!guncel) {
+        const ad = calisan.modul.ad;
+        $("#geri").click();
+        bildir(`“${ad}” yayından kaldırıldı.`, { sure: 4200 });
+      } else if (guncel.guncelleme !== calisan.modul.guncelleme && calisan.bildirilen !== guncel.guncelleme) {
+        calisan.bildirilen = guncel.guncelleme;
+        bildir(`“${guncel.ad}” güncellendi; kapatıp açınca yeni sürüm gelir.`, { sure: 4200 });
+      }
+    }
+    const gelenler = raf.yenileriBul(liste);
+    modulListesi = liste;
+    for (const m of gelenler) yeniGelenler.add(m.id);
+    if (!$("#ana-ekran").hidden) {
+      vitrin = null;
+      oneCikanlariCiz((await vitrinGetir())?.kapaklar);
+      uygulamalariCiz({ animasyonsuz: true });
+      rafCiz();
+      $("#one-cikanlar").closest("section").hidden = !liste.length;
+    }
+    for (const m of gelenler.slice(0, 2)) bildir(`Yeni uygulama yayında: ${m.ad}`, { tur: "yeni", sure: 4200 });
+    if (gelenler.length > 2) bildir(`${gelenler.length - 2} yeni uygulama daha`, { tur: "yeni", sure: 4200 });
+    setTimeout(() => { for (const m of gelenler) yeniGelenler.delete(m.id); }, 4000);
+  } catch {} finally { yoklaniyor = false; }
+}
+if (!ONIZLEME) setInterval(modulleriYokla, 12000);
+
+// ---------- Genel arama ----------
+let aramaNo = 0, aramaZaman = null;
+const aramaGirdi = $("#arama"), aramaSonuc = $("#arama-sonuc");
+function aramaTemizle() {
+  aramaGirdi.value = ""; aramaNo++;
+  aramaSonuc.hidden = true; aramaSonuc.replaceChildren();
+  $("#arama-durum").textContent = ""; $("#arama-temizle").hidden = true;
+}
+function sonucSatiri({ foto, desen, baslik, alt, tik, etiket }) {
+  const kare = el("span", { className: "as-foto", ariaHidden: "true" });
+  if (foto) kare.style.backgroundImage = `url("${foto}")`;
+  else if (desen) kare.append(desen);
+  const b = el("button", { type: "button", className: "as-satir" }, kare,
+    el("span", { className: "as-metin" }, el("strong", { textContent: baslik }), el("span", { textContent: alt })),
+    etiket ? el("span", { className: "as-etiket", textContent: etiket }) : null);
+  b.addEventListener("click", tik);
+  return el("li", {}, b);
+}
+async function aramaYap() {
+  const q = aramaGirdi.value.trim();
+  $("#arama-temizle").hidden = !aramaGirdi.value;
+  const bu = ++aramaNo;
+  if (q.length < 2) { aramaSonuc.hidden = true; $("#arama-durum").textContent = ""; return; }
+  const kucuk = (x) => String(x ?? "").toLocaleLowerCase("tr");
+  const uygulamalar = modulListesi.filter((m) => kucuk(`${m.ad} ${m.aciklama}`).includes(kucuk(q))).slice(0, 4);
+  let eserler = [];
+  try { eserler = await (await api(`/api/ara?q=${encodeURIComponent(q)}&limit=20`)).json(); } catch {}
+  if (bu !== aramaNo) return;
+  const gruplar = [];
+  if (uygulamalar.length) gruplar.push(el("h3", { className: "as-baslik", textContent: "Uygulamalar" }),
+    el("ul", {}, ...uygulamalar.map((m) => sonucSatiri({ desen: uygulamaIkonu(m, "kucuk"), baslik: m.ad, alt: KATEGORI_ADI[kategoriBul(m)], etiket: "AÇ",
+      tik: () => { aramaTemizle(); moduluAc(m); } }))));
+  if (eserler.length) gruplar.push(el("h3", { className: "as-baslik", textContent: "Eserler" }),
+    el("ul", {}, ...eserler.map((e) => sonucSatiri({ foto: e.foto, desen: el("span", { className: "as-cini", style: `background-image:${ciniArkaPlan(e.id, "firuze")}` }),
+      baslik: e.ad, alt: [TUR_ADI[e.tur] ?? "Eser", [e.ilce, e.il].filter(Boolean).join(", "), yuzyilYazi(e.yuzyil)].filter(Boolean).join(" · "),
+      tik: () => eserPenceresi(e.id) }))));
+  if (!gruplar.length) gruplar.push(el("p", { className: "as-bos", textContent: `“${q}” için sonuç yok. Başka bir ad, ilçe ya da il dene.` }));
+  aramaSonuc.replaceChildren(...gruplar);
+  aramaSonuc.hidden = false;
+  $("#arama-durum").textContent = eserler.length || uygulamalar.length ? `${eserler.length} eser, ${uygulamalar.length} uygulama bulundu` : "Sonuç yok";
+}
+aramaGirdi.addEventListener("input", () => { clearTimeout(aramaZaman); aramaZaman = setTimeout(aramaYap, 180); });
+aramaGirdi.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && aramaGirdi.value) { e.stopPropagation(); aramaTemizle(); }
+  if (e.key === "ArrowDown" || e.key === "Enter") { const ilk = aramaSonuc.querySelector("button"); if (ilk) { e.preventDefault(); ilk.focus(); } }
+});
+aramaSonuc.addEventListener("keydown", (e) => {
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const d = [...aramaSonuc.querySelectorAll("button")], i = d.indexOf(document.activeElement);
+  e.preventDefault();
+  if (e.key === "ArrowUp" && i <= 0) return aramaGirdi.focus();
+  d[Math.max(0, Math.min(d.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))]?.focus();
+});
+$("#arama-temizle").addEventListener("click", () => { aramaTemizle(); aramaGirdi.focus(); });
 
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden && !$("#ana-ekran").hidden && !ONIZLEME) anaEkran();
@@ -752,6 +1599,26 @@ if (ONIZLEME) {
   parent.postMessage({ tur: "onizleme-hazir" }, location.origin);
 } else {
   anaEkran();
+  // Paylaşılan bağlantı: /app/?eser=<id> eser sayfasını açar.
+  const paylasilan = new URLSearchParams(location.search).get("eser");
+  if (paylasilan && /^[a-z0-9-]{1,80}$/.test(paylasilan)) eserPenceresi(paylasilan);
+  // Paylaşılan modül: /m/<anahtar> → /app/?modul=<anahtar>; Android'de uygulama bağlantısı.
+  paylasimiDinle({ ac: (m) => moduluAc(m), hata: (mesaj) => bildir(mesaj, { tur: "hata", sure: 4000 }) });
 }
 
 export { TUR_ADI };
+
+// Web sitesinin üst çubuğu ve profil menüsü (web.js) hesap işlemlerini buradan çağırır; mantık tek yerde kalır.
+// Android kabuğu (kabuk.js) sekme değiştirirken profil ile ana ekran arasında veriyi yeniden yüklemeden geçer.
+window.loncaUygulama = {
+  profilGoster() { profilEkrani(); ekranGoster("profil"); },
+  anaGoster() { ekranGoster("ana"); profilCipiGuncelle(); },
+  eserAc: (id) => eserPenceresi(id),
+};
+
+window.loncaHesap = {
+  get kullanici() { return hesapKullanici; },
+  ac: (kip) => hesapPenceresiAc(kip),
+  cikis: () => oturumuKapat(),
+  profil: () => profil.profilBilgi(),
+};

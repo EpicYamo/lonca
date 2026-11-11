@@ -1,0 +1,136 @@
+/* Web sitesinin modül oynatıcısı (/app/?modul=<id>&gomulu=1). Yalnızca web'de yüklenir (public/app/index.html,
+   html.gomulu); Android uygulaması bu dosyayı hiç görmez. Modüller telefona göre çizilir; burada geniş ekranda
+   tam genişliğe yayılır: dar sütun yok, listeler ve ızgaralar çok sütunlu, harita ekranın yüksekliğini doldurur,
+   kapak fotoğrafı esnetilmez (arkada bulanık kopyası, önde kendi oranında). */
+
+html.gomulu { --oy-kenar: clamp(16px, 4vw, 64px); }
+
+@media (min-width: 900px) {
+  html.gomulu .sahne,
+  html.gomulu body.uygulama-modu .sahne { max-width: none; width: 100%; margin: 0; padding-inline: var(--oy-kenar); }
+  html.gomulu body.uygulama-modu .sahne { padding-inline: 0; }
+  html.gomulu .s-kok { padding-inline: var(--oy-kenar); }
+  html.gomulu body.uygulama-modu .s-kok { padding-inline: var(--oy-kenar); }
+
+  /* Kapak: tam ekran; fotoğraf sağda kendi oranında, arkası bulanık kopyası, yazı solda. */
+  html.gomulu .s-kapak { min-height: 100dvh; margin-inline: calc(var(--oy-kenar) * -1); align-items: center; }
+  html.gomulu .s-kapak-icerik { position: relative; z-index: 1; }
+  html.gomulu .s-kapak[style*="--kapak-foto"] { background: #0b0f1a; isolation: isolate; }
+  html.gomulu .s-kapak[style*="--kapak-foto"]::before { content: ""; position: absolute; inset: -80px; z-index: -2; background: var(--kapak-foto) center / cover; filter: blur(48px) brightness(.42) saturate(1.15); }
+  html.gomulu .s-kapak[style*="--kapak-foto"]::after { display: block; inset: 9dvh var(--oy-kenar) 9dvh 50%; z-index: -1; background: var(--kapak-foto) center / contain no-repeat; filter: drop-shadow(0 30px 60px rgb(0 0 0 / .55)); }
+  html.gomulu .s-kapak-icerik { width: 46%; padding: 6rem var(--oy-kenar) 4rem; gap: .9rem; }
+  html.gomulu .s-kapak-baslik { font-size: clamp(3rem, 5.4vw, 5.8rem); line-height: .98; }
+  html.gomulu .s-kapak-alt { max-width: 46ch; font-size: 1.15rem; line-height: 1.6; }
+  html.gomulu .s-kapak-dugmeler { flex-direction: row; flex-wrap: wrap; max-width: 640px; }
+  html.gomulu .s-kapak-dugmeler > * { flex: 1 1 260px; }
+  html.gomulu .s-kapak-dugmeler > .s-satir { flex-basis: 100%; }
+  html.gomulu .s-kapak-dugmeler .s-satir > .s-dugme { flex: 1 1 0; white-space: nowrap; }
+
+  /* Afiş: tam genişlik bant */
+  html.gomulu .s-afis { min-height: 34dvh; margin-inline: calc(var(--oy-kenar) * -1); padding: 2.4rem var(--oy-kenar); width: calc(100% + 2 * var(--oy-kenar)); max-width: none; }
+  /* Kartın, ızgaranın ya da satırın içindeki afiş kenara taşmaz: kendi kutusunu doldurur. */
+  html.gomulu :is(.s-kart, .s-izgara, .s-satir, .s-kapak-dugmeler) .s-afis { min-height: 220px; margin: 0; width: auto; padding: 1.6rem 1.4rem; }
+  html.gomulu .s-afis-baslik { font-size: clamp(2.4rem, 4vw, 3.8rem); }
+  html.gomulu .s-afis-alt { max-width: 60ch; font-size: 1.1rem; }
+
+  /* Üst çubuk kenardan kenara */
+  html.gomulu .s-ust-cubuk { margin-inline: calc(var(--oy-kenar) * -1); padding-left: var(--oy-kenar); width: calc(100% + 2 * var(--oy-kenar)); max-width: none; }
+  html.gomulu .s-ust-metin strong { font-size: 1.5rem; }
+
+  /* Sütun içeriği: düğmeler kendi genişliğinde, metin okunur satır boyunda */
+  html.gomulu .s-sutun > .s-dugme { width: auto; min-width: 260px; align-self: flex-start; }
+  html.gomulu .s-metin { max-width: 80ch; font-size: 1.05rem; }
+  html.gomulu .s-baslik.s-b1 { font-size: 2.6rem; }
+  html.gomulu .s-baslik.s-b2 { font-size: 1.8rem; }
+
+  /* Listeler ve ızgaralar çok sütunlu */
+  html.gomulu .s-liste { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: .75rem; }
+  html.gomulu .s-izgara { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+  html.gomulu .s-kaydirma { margin-inline: calc(var(--oy-kenar) * -1); padding-inline: var(--oy-kenar); }
+  html.gomulu .s-kaydirma > * { width: 320px; }
+
+  /* Harita içeren ekran: harita solda ekran boyu, içerik sağda */
+  html.gomulu .s-sutun:has(> .s-harita) { display: grid; grid-template-columns: minmax(0, 2fr) minmax(340px, 1fr); column-gap: 2rem; align-items: start; }
+  html.gomulu .s-sutun:has(> .s-harita) > * { grid-column: 2; }
+  html.gomulu .s-sutun:has(> .s-harita) > .s-ust-cubuk { grid-column: 1 / -1; }
+  html.gomulu .s-sutun:has(> .s-harita) > .s-harita { grid-column: 1; grid-row: 2 / span 30; position: sticky; top: 76px; height: calc(100dvh - 100px); min-height: 480px; }
+  html.gomulu .s-harita { height: 70dvh; }
+
+  /* Eser fotoğrafları kendi oranında, yan yana; büyütülerek bulanıklaşmaz */
+  html.gomulu .s-fotograflar img { flex: 0 0 auto; width: auto; max-width: 100%; height: min(60dvh, 520px); aspect-ratio: auto; object-fit: contain; }
+  html.gomulu .s-eser-gorsel { aspect-ratio: 4 / 3; }
+
+  /* Kartlar ve eser kartları ızgarada */
+  html.gomulu .s-sutun:has(> .s-eser + .s-eser) { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+  html.gomulu .s-sutun:has(> .s-eser + .s-eser) > :not(.s-eser) { grid-column: 1 / -1; }
+
+  /* Katman (alt pencere) geniş ekranda ortada değil, sağda tam boy panel */
+  html.gomulu .katman-kutu { max-width: min(640px, 46vw); margin: 0 0 0 auto; height: 100dvh; max-height: 100dvh; border-radius: 26px 0 0 26px; }
+
+  /* Dalış: düz liste görünümü de çok sütunlu */
+  html.gomulu .s-dalis-duz .s-dalis-liste { max-width: none; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); padding: 0; }
+}
+
+/* Dalış sahnesi: geniş ama yatay olmayan pencerelerde de (tablet, dar tarayıcı) ekranı doldurur. */
+@media (min-width: 700px) {
+  html.gomulu .s-dalis-sahne:not(.genis) { width: 100%; }
+  html.gomulu .s-dalis-sahne:not(.genis) .s-dalis-tuval { width: min(100%, 66dvh); margin: 0 auto; }
+}
+
+/* Dalış (geniş ekran): ortada dar sütun yerine iki bölmeli sahne. Solda görüntü ekran boyunda ve kendi oranına
+   yakın (kareler 2:3; büyütülüp esnetilmez), sağda okuma alanı: üstte durak başlığı, ortada anlatım, yanda durak listesi. */
+@media (min-width: 1180px) and (min-aspect-ratio: 5/4) {
+  html.gomulu .s-dalis-sahne.genis {
+    --sutun: min(100dvh * 2 / 3, 52vw); --bosluk: clamp(2.5rem, 3.6vw, 4.5rem); --liste: 4rem;
+    --metin-sol: calc(var(--sutun) + var(--bosluk));
+    --metin-gen: min(40rem, calc(100vw - var(--metin-sol) - var(--liste) - var(--oy-kenar))); }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-tuval { margin: 0; box-shadow: 30px 0 90px rgb(0 0 0 / .6); }
+  html.gomulu .s-dalis-sahne.genis::after { background:
+    linear-gradient(90deg, transparent var(--sutun), rgb(6 9 18 / .55) calc(var(--sutun) + 1px), rgb(6 9 18 / .3)); }
+
+  /* Durak başlığı: sağ bölmenin üstünde, görüntünün türü küçük bir etiket olarak üstünde. */
+  html.gomulu .s-dalis-sahne.genis .s-dalis-ustler { left: var(--metin-sol); right: auto; width: var(--metin-gen); top: calc(5.6rem + env(safe-area-inset-top)); gap: .7rem; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-rozet { font-size: .74rem; padding: .3rem .75rem; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-durak { font-family: var(--yazi-baslik); font-weight: 400; font-size: clamp(1.25rem, 1.6vw, 1.6rem); line-height: 1.2; letter-spacing: 0; color: rgb(255 255 255 / .82); text-shadow: none; }
+
+  /* Anlatım: kutu yerine altın bir çizgiyle açılan sakin bir okuma bloğu; ok bu çizgiye bağlanır. */
+  html.gomulu .s-dalis-sahne.genis :is(.s-dalis-kart, .s-dalis-kart.ust) {
+    left: var(--metin-sol); width: var(--metin-gen); padding: 1.7rem 1.9rem 1.8rem 2rem;
+    border: 0; border-left: 2px solid #f0c46e; border-radius: 0 20px 20px 0;
+    background: linear-gradient(100deg, rgb(240 196 110 / .1), rgb(12 17 30 / .55) 45%, rgb(12 17 30 / .2));
+    box-shadow: 0 24px 60px rgb(0 0 0 / .28); }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-ust { display: flex; align-items: center; gap: .7rem; margin-bottom: .7rem; font-size: .78rem; letter-spacing: .18em; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-ust::before { content: ""; width: 1.6rem; height: 1px; background: currentColor; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-kart strong { font-size: clamp(2rem, 2.6vw, 2.9rem); line-height: 1.06; text-wrap: balance; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-kart p { max-width: 62ch; margin-top: .9rem; font-size: clamp(1.08rem, 1.15vw, 1.25rem); line-height: 1.7; color: #e6eaf2; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-kaynak { margin-top: 1.2rem; font-size: .74rem; padding: .3rem .7rem; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-kart.buyuk { background: none; box-shadow: none; border-left-color: transparent; padding-left: 0; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-kart.buyuk strong { font-size: clamp(3rem, 4.6vw, 5rem); line-height: 1; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-kart.buyuk p { font-size: clamp(1.15rem, 1.3vw, 1.35rem); }
+
+  html.gomulu .s-dalis-sahne.genis .s-dalis-ipucu { left: calc(var(--sutun) / 2); }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-cubuk { left: 0; right: auto; width: var(--sutun); height: 4px; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-noktalar { right: var(--oy-kenar); }
+}
+
+/* Yeterince yer varsa duraklar bir zaman çizelgesi olur: adı olan duraklar yazıyla, ara duraklar ince çentikle.
+   Tıklanınca o durağa gider. */
+@media (min-width: 1440px) and (min-aspect-ratio: 5/4) {
+  html.gomulu .s-dalis-sahne.genis { --liste: 14rem; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-noktalar { width: 12rem; max-height: calc(100dvh - 8rem); overflow-y: auto; scrollbar-width: none;
+    gap: 0; align-items: stretch; padding-left: .2rem; counter-reset: durak; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-noktalar::before { content: ""; position: absolute; left: calc(.2rem + 13px); top: .6rem; bottom: .6rem; width: 1px; background: rgb(255 255 255 / .14); }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta { counter-increment: durak; position: relative; width: 100%; max-height: none; height: auto; min-height: 0; flex: 0 0 auto;
+    padding: .28rem .5rem .28rem 0; display: grid; grid-template-columns: 27px 1fr; align-items: center; justify-items: start; border-radius: 8px; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta::before { justify-self: center; width: 7px; height: 7px; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta::after { content: counter(durak, decimal-leading-zero) "  " attr(data-baslik); white-space: pre; overflow: hidden; text-overflow: ellipsis; max-width: 100%;
+    font-size: .8rem; line-height: 1.3; color: rgb(255 255 255 / .55); font-variant-numeric: tabular-nums; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta[data-baslik=""] { padding-block: 0; height: 9px; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta[data-baslik=""]::before { width: 4px; height: 4px; background: rgb(255 255 255 / .3); }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta[data-baslik=""]::after { content: none; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta[aria-current="step"]::before { background: #f0c46e; transform: scale(1.6); box-shadow: 0 0 0 4px rgb(240 196 110 / .18); }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta[aria-current="step"]::after { color: #fff; font-weight: 700; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta:hover { background: rgb(255 255 255 / .06); }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta:hover::after { color: #fff; }
+  html.gomulu .s-dalis-sahne.genis .s-dalis-nokta:focus-visible { outline: 2px solid #f0c46e; outline-offset: 1px; }
+}

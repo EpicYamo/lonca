@@ -28,3 +28,5 @@ docker-compose.yml
 apk.sh
 capacitor.config.json
 CLAUDE.md
+docker/
+docker-compose.sunucu.yml

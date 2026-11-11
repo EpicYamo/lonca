@@ -1,53 +1,204 @@
-//
+// Modül kalfası. Sağlayıcı ve model seçimi server/kalfa-ayarlari.js'de:
+//   openai-uyumlu → UstaGPT (birincil; USTAGPT_*) ya da KALFA_API_URL'deki başka bir uç nokta
 //   anthropic     → Claude (ANTHROPIC_API_KEY)
 import Anthropic from "@anthropic-ai/sdk";
 import ts from "typescript";
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { kalfaSaglayicisi, secimOku } from "./kalfa-ayarlari.js";
+import { ESER_TURLERI } from "./dogrulama.js";
+import { DIS_KAYNAK_ADI, vikipediAra, vikipediOku, vikipediIlListesi, adresAnahtari, koddakiDisBaglantilar, kaynaktaDayanakVar, yuzyilKaynaktaVar } from "./dis-kaynak.js";
 
 ts.validateLocaleAndSetLanguage("tr", ts.sys);
 
 const MAKS_DENEME = 3;   
 const MAKS_ADIM = 8;     
+// Admin turunda il listesi + en çok 12 madde okuma + izin kartı tek tek gelirse 8 adım yetmez.
+const MAKS_ADIM_ADMIN = 18;
 const MAKS_SATIR = 2000;
+// Sağlayıcıya giden tek bir isteğin en uzun süresi (KALFA_ZAMAN_ASIMI_SN ile değişir). Takılan bir model
+// Studio'yu dakikalarca bekletmesin diye; 5xx'te yapılan yeniden denemelerin her biri ayrı sayılır.
+const ISTEK_ZAMAN_ASIMI_SN = 150;
 
-function saglayiciSec(ortam = process.env) {
-  if (ortam.KALFA_SAHTE === "1") return { tur: "sahte" };
-  // KALFA_* tanımlı değilse dalış kalfasıyla aynı UstaGPT (OpenAI uyumlu) uç noktası kullanılır;
-  // böylece yalnızca USTAGPT_* dolu bir .env'de modül kalfası sessizce sahte kipe düşmez.
-  const e = { ...ortam };
-  if (!e.KALFA_SAGLAYICI && !e.ANTHROPIC_API_KEY && !e.KALFA_API_URL && e.USTAGPT_BASE_URL && e.USTAGPT_API_KEY) {
-    Object.assign(e, { KALFA_SAGLAYICI: "openai-uyumlu", KALFA_API_URL: e.USTAGPT_BASE_URL, KALFA_API_ANAHTARI: e.USTAGPT_API_KEY, KALFA_MODEL: e.KALFA_MODEL || "gemini-3.8-flash" });
-  }
-  const secilen = e.KALFA_SAGLAYICI || (e.ANTHROPIC_API_KEY ? "anthropic" : e.KALFA_API_URL ? "openai-uyumlu" : "sahte");
-  if (secilen === "anthropic") {
-    if (!e.ANTHROPIC_API_KEY) throw new Error("KALFA_SAGLAYICI=anthropic için ANTHROPIC_API_KEY gerekli");
-    return { tur: "anthropic", model: e.KALFA_MODEL || "claude-sonnet-5-5" };
-  }
-  if (secilen === "openai-uyumlu") {
-    if (!e.KALFA_API_URL || !e.KALFA_MODEL) throw new Error("openai-uyumlu için KALFA_API_URL ve KALFA_MODEL gerekli");
-    return { tur: "openai-uyumlu", url: e.KALFA_API_URL.replace(/\/+$/, ""), anahtar: e.KALFA_API_ANAHTARI || "", model: e.KALFA_MODEL };
-  }
-  if (secilen === "sahte") return { tur: "sahte" };
-  throw new Error(`Bilinmeyen KALFA_SAGLAYICI: ${secilen}`);
+// Kod yazma kararını model ustanın niyetinden verir (yalnızca "yap" kelimesine bağlı değil). Sunucu yalnızca açıkça
+// bir SORU olan ve içinde hiçbir yapım isteği geçmeyen mesajda modul_yaz'ı reddeder: "Koza Han'ı kim yaptırdı?" gibi.
+// insaIstegiMi kaba bir sezgidir (sahte kalfa ve bu denetim için); kelime listesi bilerek geniştir.
+const INSA_KOKLERI = ["yap", "oluştur", "inşa", "kodla", "hazırla", "üret", "geliştir", "güncelle", "değiştir", "düzelt", "ekle",
+  "kaldır", "çıkar", "sil", "dönüştür", "çevir", "uygula", "başla", "devam", "evet", "tamam", "olur", "olsun", "hadi", "haydi", "yaz",
+  "kur", "koy", "getir", "göster", "build", "make", "create"];
+const SORU_EKLERI = new Set("mı mi mu mü mısın misin musun müsün mıdır midir mudur müdür mıyız miyiz muyuz müyüz mıydı miydi muydu müydü".split(" "));
+const SORU_SOZCUKLERI = new Set("ne neden niçin niye nasıl kim kimin kime hangi hangisi nerede nereye nereden kaç neler nedir".split(" "));
+export function soruMu(metin) {
+  const t = String(metin ?? "").trim();
+  if (t.endsWith("?")) return true;
+  return t.toLocaleLowerCase("tr").split(/[^\p{L}]+/u).some((k) => SORU_EKLERI.has(k) || SORU_SOZCUKLERI.has(k));
+}
+// Sunucunun modul_yaz'a izin verip vermediği: soru değilse model karar verir; soruysa içinde bir yapım isteği geçmeli.
+export const insaIzniVar = (metin) => !soruMu(metin) || insaIstegiMi(metin);
+export function insaIstegiMi(metin) {
+  const kelimeler = String(metin ?? "").toLocaleLowerCase("tr").split(/[^\p{L}]+/u).filter(Boolean);
+  return kelimeler.some((k) => {
+    if (k.startsWith("yapı") && !k.startsWith("yapıl") && !k.startsWith("yapıver")) return false; // yapı, yapıt (bina)
+    if (k.startsWith("yazı") || k.startsWith("inşaat")) return false; // yazı, yazıt, inşaat
+    if (/^(yap|yaz|kur)(tı|tır|dı|mış|an|ıldı|ılmış|ılan|ılır)/.test(k)) return false; // tarih anlatımı: yaptırdı, yapılmış, yazan
+    if (k.startsWith("kur") && !/^kur(alım|ar|sana|ulsun|un|)$/.test(k)) return false; // kurucu, kuruluş, kurşun
+    if (k.startsWith("göster") && !/^göster(elim|ir|sin|sene|)$/.test(k)) return false; // gösterilmiş
+    return INSA_KOKLERI.some((kok) => k.startsWith(kok));
+  });
 }
 
-export function kalfaHazirla({ kok, eserler, ortam = process.env }) {
-  const sdkTipleri = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
+// Genişletilmiş mod gerektiren istek: bilinen bir oyun adı ya da gerçek zamanlı/dokunmatik bir tür. Kart bu durumda model
+// çağrılmadan sunucuda çıkar (sınıflandırma modele bırakılmaz); model de genis_mod_iste ile ayrıca isteyebilir.
+const GENIS_KALIPLARI = [
+  /\bping[\s-]?pong\b/, /\bpong\b/, /masa tenisi/, /\bsnake\b/, /\byılan oyun/, /\byılan\b.*\boyun/, /half[\s-]?life/, /\bmario\b/, /\btetris\b/,
+  /flappy/, /uçan kuş/, /tuğla kır/, /breakout/, /arkanoid/, /pac[\s-]?man/, /minecraft/, /counter[\s-]?strike/, /\bdoom\b/, /space invaders/,
+  /angry birds/, /subway surfers/, /temple run/, /candy crush/, /fruit ninja/, /\bsonic\b/, /zelda/, /\bgta\b/, /fortnite/, /\bpubg\b/,
+  /nişancı/, /\bshooter\b/, /\bfps\b/, /platform oyun/, /yarış oyun/, /araba yarış/, /\bracing\b/, /sonsuz koşu/, /endless runner/, /\barcade\b/,
+  /gerçek zamanlı/, /real[\s-]?time/, /tut[\s-]sürükle/, /sürükle[\s-]bırak/, /drag and drop/, /\btuval\b/, /\bcanvas\b/, /animasyonlu oyun/,
+  /parmakla çiz/, /boyama (aracı|uygulaması|oyunu)/, /çizim (aracı|uygulaması)/, /\bpiyano\b/, /\bdarbuka\b/, /\bney\b.*(çal|alet)/, /müzik aleti/, /ritim oyunu/,
+  /fizik (oyunu|simülasyonu)/,
+];
+export const genisIstegiMi = (metin) => {
+  const t = String(metin ?? "").toLocaleLowerCase("tr");
+  return GENIS_KALIPLARI.some((k) => k.test(t));
+};
+
+const MAKS_ONERI = 3;
+// Modelin önerdiği soru düğmeleri: kısa, tekrarsız, en çok üç.
+function onerileriTemizle(liste) {
+  if (!Array.isArray(liste)) return [];
+  const gorulen = new Set();
+  const sonuc = [];
+  for (const o of liste) {
+    if (typeof o !== "string") continue;
+    let t = o.replace(/\s+/g, " ").trim();
+    if (!t) continue;
+    if (t.length > 80) t = `${t.slice(0, 79)}…`;
+    const anahtar = t.toLocaleLowerCase("tr");
+    if (gorulen.has(anahtar)) continue;
+    gorulen.add(anahtar);
+    sonuc.push(t);
+    if (sonuc.length >= MAKS_ONERI) break;
+  }
+  return sonuc;
+}
+
+// Ustanın dili: İngilizce yazdıysa ya da İngilizce istediyse "en". Kaba bir sezgidir; asıl kararı model verir,
+// bu yalnızca öneri üretimine ve yedek önerilere dil ipucu olarak gider.
+const INGILIZCE_SOZCUKLER = new Set("the a an and for of to in with about make build create please can you what when who where how is are was were it this that me my i want game guide quiz map kids children".split(" "));
+export function ingilizceMi(metin) {
+  const t = String(metin ?? "").toLocaleLowerCase("tr");
+  if (/\b(ingilizce|english|in english)\b/.test(t)) return !/\b(türkçe|turkish)\b/.test(t);
+  if (/[çğışöü]/.test(t)) return false;
+  const k = t.split(/[^a-z]+/).filter(Boolean);
+  return k.length >= 3 && k.filter((x) => INGILIZCE_SOZCUKLER.has(x)).length / k.length >= 0.25;
+}
+
+// Eser türlerinin öneri cümlelerindeki adları.
+const TUR_ADLARI = {
+  cami: ["camileri", "mosques"], han: ["hanları", "inns"], hamam: ["hamamları", "bathhouses"], medrese: ["medreseleri", "madrasas"],
+  cesme: ["çeşmeleri", "fountains"], turbe: ["türbeleri", "tombs"], kulliye: ["külliyeleri", "complexes"], mescit: ["mescitleri", "small mosques"],
+  tekke: ["tekkeleri", "dervish lodges"], imaret: ["imaretleri", "soup kitchens"],
+};
+const karistir = (dizi) => dizi.map((e) => [Math.random(), e]).sort((a, b) => a[0] - b[0]).map(([, e]) => e);
+
+// Bilgi bankasından öneri cümleleri: açılıştaki örnek fikirler ve yapay zekâ öneri veremediğinde yedek.
+// Yalnızca eser adı, il ve tür kullanılır (hiçbir tarihî bilgi cümleye girmez).
+export function veridenOneriler(eserler, { dil = "tr", kod = false } = {}) {
+  const en = dil === "en";
+  const fotolu = karistir(eserler.filter((e) => e.fotograflar?.length));
+  const e1 = fotolu[0], e2 = fotolu.find((e) => e.tur !== e1?.tur && TUR_ADLARI[e.tur]) ?? fotolu[1];
+  if (!e1) return [];
+  const ad = (e) => (en ? e.ad_en || e.ad : e.ad);
+  const turAdi = (e) => TUR_ADLARI[e.tur]?.[en ? 1 : 0] ?? (en ? "heritage sites" : "vakıf eserlerini");
+  if (kod) {
+    return en
+      ? ["Add achievements to this module", `Add ${ad(e1)} to this module`, "How does this module work?"]
+      : ["Bu modüle başarımlar ekle", `${ad(e1)} da bu modülde olsun`, "Bu modül nasıl çalışıyor?"];
+  }
+  return en
+    ? [`A treasure hunt for kids around ${ad(e1)}`, `A night-themed map guide to the ${turAdi(e2)} of ${e2.il}`, `Tell me about ${ad(fotolu[2] ?? e1)}`]
+    : [`${ad(e1)} çevresinde çocuklar için bir hazine avı`, `${e2.il} ${turAdi(e2)} gece temasıyla gezdiren haritalı bir rehber`, `${ad(fotolu[2] ?? e1)} hakkında bilgi verir misin?`];
+}
+
+// Yetki kipleri: usta yalnızca bilgi bankasıyla çalışır (olmayan eser için admin'e öneri gönderebilir); admin izin vererek
+// Vikipedi'den içerik çektirebilir, bilgi bankasına ekletebilir ya da içeriği yalnızca modüle özel tutabilir.
+// disFetch: Vikipedi istekleri (testler sahtesini verir); eserEkle: bilgi bankasına kayıt yazan geri çağırma (uygulama.js).
+export const IZIN_KARARLARI = { dis_kaynak: ["ver", "reddet"], kayit: ["bilgi-bankasi", "modul", "reddet"], genis_mod: ["ac", "standart"] };
+const MAKS_DIS_KAYNAK = 12;
+const MAKS_TOPLU_KAYIT = 10;
+// Karar turunda izinli maddelerin metni kalfaya yeniden verilir (yeniden okumasın diye): madde başına ve toplamda sınır.
+const MAKS_MADDE_METNI = 2500;
+const MAKS_MADDE_TOPLAMI = 25000;
+const MAKS_MODUL_HEDEF = 400;
+
+export function kalfaHazirla({ kok, eserler, iliskiler = [], ortam = process.env, disFetch = (...a) => fetch(...a), eserEkle = null }) {
+  // Sözleşmenin iki sürümü: tam (genişletilmiş mod açıkken; Studio'da elle yazılan kodun denetimi de bununla) ve standart
+  // (<genis> … </genis> blokları, yani "tuval" düğümü ve oyun.* çıkarılmış). Kalfa onay yokken standardı görür ve onunla denetlenir.
+  const sdkHam = readFileSync(path.join(kok, "sdk", "lonca-sdk.d.ts"), "utf8");
+  const sdkTipleri = sdkSurumu(sdkHam, { genis: true });
+  const sdkStandart = sdkSurumu(sdkHam, { genis: false });
   const ornek = (ad) => readFileSync(path.join(kok, "sdk", "ornekler", `${ad}.js`), "utf8");
-  const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi");
+  const ornekUygulama = ornek("hanlar-rehberi"), ornekOyun = ornek("yuzyil-avi"), ornekTuval = ornek("cini-yakala");
   const iller = [...new Set(eserler.map((e) => e.il))];
   const turler = [...new Set(eserler.map((e) => e.tur))];
-  const saglayici = saglayiciSec(ortam);
+  // Sağlayıcı ve model her istekte yeniden çözülür (Studio'daki model seçimi yeniden başlatmadan geçerli olsun).
+  const saglayiciAl = () => kalfaSaglayicisi(ortam, secimOku(ortam));
+  saglayiciAl(); // yanlış yapılandırma sunucu açılırken fark edilsin
+  const zamanAsimiMs = (Number(ortam.KALFA_ZAMAN_ASIMI_SN) > 0 ? Number(ortam.KALFA_ZAMAN_ASIMI_SN) : ISTEK_ZAMAN_ASIMI_SN) * 1000;
 
-  const sistem = `Sen Lonca platformunun "kalfa"sısın. Usta (kullanıcı) bir fikir anlatır; sen o fikri vakıf eserleri hakkında küçük bir Lonca modülüne dönüştürürsün. Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
+  // Kapsam satırları: usta istemi bunlarla kurulur; admin istemi aynı satırları admin sürümleriyle DEĞİŞTİRİR (istemDegistir).
+  const USTA_KAPSAM = `- KAPSAM: Yalnızca bilgi bankamızdaki (Lonca veritabanı) vakıf eserleri üzerine çalışırsın. İnternetten, ezberinden ya da başka bir kaynaktan bilgi GETİRME; bir eser, kişi, tarih ya da olay hakkında söylediğin her şey eser_ara / eser_bilgisi sonuçlarında aynen geçmeli.`;
+  const USTA_BILGI = `- Eserlerle ilgili soruları BİLGİ BANKASINDAN yanıtla: önce eser_ara ile eseri bul, sonra eser_bilgisi ile kaydını (tarihçe, yüzyıl, kaynak, kaynaklı tarihsel bağlar) oku. Bilgi bankasında yoksa "bilgi bankamızda bu bilgi yok" de, tahmin yürütme.`;
+  const USTA_YONLENDIRME = `- Usta bilgi bankasında OLMAYAN bir eser (eser_ara boş döner) ya da başka bir konunun BİLGİSİNİ (başka şehirlerin tarihi, ünlüler, güncel olaylar…) isterse onu yapma, modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından ona en yakın 2–3 eseri bul (aynı tür, aynı il ya da adı benzeyen), bunları öner ve "Nasıl devam edelim?" diye sor. Bu önerileri "oneriler" alanına da koy. Bir oyun, araç ya da mini uygulama TÜRÜ (ping pong, yılan, bulmaca, çizim/boyama aracı, müzik aracı, sayaç, zamanlayıcı, simülasyon…) istemek konu dışı DEĞİLDİR: onu yönlendirme, isteneni yap ve vakıf eserlerini mümkün olduğunca içine kat (aşağıda "Uygulama içinde uygulama").`;
+  const USTA_MODUL_KAPSAMI = `Modül yalnızca bilgi bankasındaki eserlerle çalışır: eserler.getir / eserler.iliskiler'e yalnızca eser_ara ile bulduğun gerçek kimlikleri ver; eserler.liste'de yalnızca kayıtlı il ve türleri kullan.`;
+  const USTA_ILLER = `Şu an kayıtlı iller: ${iller.join(", ")}.`;
 
+  // Genişletilmiş mod (tuval, oyun.*) satırları: usta onay kartında "Genişletilmiş modu aç" demedikçe istemde yoktur;
+  // standart istem bu satırları STANDART_* sürümleriyle değiştirir (istemDegistir).
+  const GENIS_TUVAL = `  · Tuval ("tuval" düğümü + oyun.*): saniyede ~60 kare çizim ve animasyon (oyun.dongu, dt ile), şekil/yazı/eser fotoğrafı çizimi, döndürme ve ölçekleme (oyun.ciz), parmakla dokunma, tut-sürükle, kaydırma ve çoklu dokunma (oyun.dokunmalar, oyun.dinle), web'de klavye (oyun.tus), ses efekti ve sentezlenmiş tonlar/nota (oyun.ses), titreşim (oyun.titres), bekleme (oyun.bekle). Tuvalin cocuklar'ı tuvalin ÜSTÜNDE katmandır (kart, duraklat, sonuç).`;
+  const GENIS_ORNEKLER = `  · Bunlarla yapılabilecek örnekler: gerçek zamanlı oyunlar (ping pong, yılan, tuğla kırma, sonsuz koşu, uçan kuş, yakalama, ritim), bulmacalar (yapboz, eşleştirme, kayan taş, mayın tarlası, labirent, sudoku), yaratıcı araçlar (parmakla çizim/boyama, simetrik çini/geometrik desen üretici, renk paleti), müzik araçları (piyano/ney/darbuka tuşları, metronom, ritim makinesi), zamanlayıcı ve sayaçlar (tesbih/zikir sayacı, kronometre, pomodoro), simülasyonlar ve görselleştirmeler (fizik, gölge/güneş saati, eserlerin yüzyıllara göre grafiği, zaman çizelgesi animasyonu), etkileşimli hikâye ve maceralar, haritalı geziler ve hazine avları, kişisel koleksiyon/günlük/not araçları (depo ile kalıcı).`;
+  const GENIS_TASARIM = `- Kuralları, fiziği, rakip yapay zekâsını, zorluk seviyelerini, skor/rekoru, kaydetmeyi, duraklatmayı ve yeniden başlatmayı sen tasarla ve eksiksiz yaz; ustanın söylemediği ayrıntıları makul biçimde tamamla. Oyun TAM EKRAN ve ekran boyutuna duyarlı (responsive) olsun: tuvale en/boy VERME ({ tip: "tuval", id }) ki ekranın tamamını doldursun; modül Android telefonda (dar, uzun) da web'de (geniş) de çalışır. Gerçek boyutu her karede const { en, boy } = oyun.boyut(id) ile oku ve bütün konum, hız ve büyüklükleri en/boy'a oranla kur (ör. const o = Math.min(en, boy) / 400; raket 90 * o genişlikte, boy - 80 * o yüksekliğinde); 360, 640 gibi sabit tuval sayıları yazma. Kontrolleri başparmakla rahat kullanılacak yere koy, skoru köşedeki kapat düğmesinin altına (y ≈ 70) yaz; web'de klavye ve fareyle de çalışsın.`;
+  const GENIS_YALITIM = `- Modül yalıtılmış bir ortamda çalışır: document, window, fetch, localStorage, setTimeout, setInterval, requestAnimationFrame, canvas, Audio gibi tarayıcı API'leri YOKTUR. Her şey SDK ile yapılır: animasyon ve oyun döngüsü için oyun.dongu, çizim için "tuval" düğümü + oyun.ciz, bekleme için oyun.bekle, ses için oyun.ses, kalıcı veri için depo, puan için profil.`;
+  const GENIS_EKRAN = `- Ekranı uygulama çizer; HTML yazma. Yalnızca sözleşmedeki ekran.* bileşenleri, sahne.ciz düğüm tipleri ve tuvale oyun.ciz ile çizilenler vardır.`;
+  const GENIS_OYUN_KURALI = `- Gerçek zamanlı oyunlar (tuval): ekran = [{ tip: "tuval", id, cocuklar: katman }] (en/boy yok: tam ekran). oyun.dongu((dt) => { const { en, boy } = oyun.boyut(id); girdiyi oku; durumu dt ile ilerlet; çarpışmaları denetle; oyun.ciz(id, k => { k.temizle(...); … }) }). Döngü içinde await ve sahne.ciz KULLANMA (sahne.ciz yalnızca katman değişince: gol, duraklat, oyun sonu; o an oyun.durdur() çağır, devamda oyun.dongu(adim) ile yeniden başlat). Tut-sürükle için her karede const p = oyun.dokunmalar(id)[0]; if (p) raket.x = p.x; (parmak bırakılınca dizi boşalır). Kısa dokunuş/zıplama için oyun.dinle("basla", …), kaydırma (swipe) için "basla"daki konumu "birak"takiyle karşılaştır. Web için ok tuşlarını da destekle: oyun.tus("ArrowLeft"). Vuruşta oyun.ses("vurus") + oyun.titres("hafif"), golde oyun.ses("gol"), oyun sonunda "kazandin"/"kaybettin". Izgara oyunlarında (yılan, mayın, eşleştirme) hücre için oyun.tamSayi(a, b), diziden rastgele öğe için oyun.sec(dizi) kullan (oyun.rastgele ondalıklıdır, dizi indeksi olmaz); ızgara adımını bir sayaçla yap: d.sayac += dt; if (d.sayac >= adimSuresi) { d.sayac = 0; bir hücre ilerle }. Fiziği karesel hıza bağlama, hep "* dt" kullan; topun tünellemesini önlemek için hızı sınırla. Eser fotoğrafını tuvale k.gorsel(eser, x, y, en, boy) ile çiz ya da katmanda "eser" düğümüyle göster.`;
+  const GENIS_ISTISNA = ` İstisna: oyun sırasında tuval ekranı tek başına (ust_cubuk'suz) tam ekran olabilir; skoru ve canı tuvale çiz, duraklat/menü için tuvalde bir dokunma alanı ya da katman düğmesi koy. Gezinmeyi bir ekran yığınıyla yap (ileri → push, ← → pop). Uygulama ileri/geri geçişleri kendisi canlandırır.`;
+  const GENIS_ORNEK = `Örnek 2 — tuval + oyun.* ile gerçek zamanlı, dokunmatik bir oyun (ping pong, yılan, tuğla kırma… böyle yazılır):
+\`\`\`js
+${ornekTuval}
+\`\`\``;
+  const SDK_ISTEM = sdkTipleri;
+  const sistem = `Sen Lonca platformunun "kalfa"sısın: kod yazabilen bir yapay zekâsın. Usta (kullanıcı) seninle vakıf eserleri ve Lonca modülleri hakkında konuşur; istediğinde fikrini bir Lonca modülüne dönüştürürsün. Modül, Lonca Android uygulamasının ve web sitesinin İÇİNDE çalışan tam ekran, dokunmatik bir mini uygulamadır: "uygulama içinde uygulama". Usta kod bilmeyebilir: ona sade Türkçe ile konuş.
+
+# Uygulama içinde uygulama
+- Ustanın istediğini BİREBİR ve gerçekten kullanılabilir/oynanabilir biçimde yap. Sınırın modül çerçevesidir (aşağıdaki yapabildiklerin), hazır kalıplar değil: rehber, harita gezisi ve bilgi yarışması yalnızca seçeneklerden üçüdür. "Ping pong" deniyorsa raketi parmakla sürüklenen, topu sekip giden, bilgisayara karşı oynanan gerçek bir ping pong yaz; "yılan" deniyorsa ızgarada büyüyen gerçek bir yılan; "boyama" deniyorsa parmakla çizilen gerçek bir boyama aracı. Bir isteği ASLA bilgi yarışmasına, soru-cevaba ya da kart listesine indirgeme; quiz yalnızca usta quiz/yarışma/soru istediğinde yazılır.
+- YAPABİLDİKLERİN (hepsi modülün içinde, SDK ile):
+  · Arayüzlü uygulamalar: sahne.ciz düğümleriyle ekranlar, sekmeler, listeler, kartlar, düğmeler, seçenekler, metin girişi (girdi), geri sayım (sure), ilerleme, rozet; ekran yığınıyla gezinme.
+${GENIS_TUVAL}
+${GENIS_ORNEKLER}
+  · Veri: bilgi bankasındaki eserler (eserler.*, fotoğraflar, konum, yüzyıl, tarihçe, tarihsel bağlar), dalışlar, harita, gerçek 3B; kullanıcı verisi için depo, puan için profil, başarımlar için basarim.
+- YAPAMADIKLARIN (modülün dışına çıkmak): ağ/internet ve dış siteler (fetch, dış API, başka bir sitenin içeriği), internet üzerinden çok oyunculu, kamera, mikrofon, cihaz konumunu doğrudan okumak (yakındaki eserler için eserler.yakindaki var), dosya yükleme/indirme, bildirim, başka uygulamaları açmak, HTML/CSS/DOM, tarayıcı API'leri. Böyle bir parça istenirse bunu bir cümleyle söyle ve en yakın GERÇEK karşılığını yap: çok oyunculu yerine bilgisayara karşı ya da aynı telefonda iki kişi (ekranın iki yarısı), kamera yerine eser fotoğrafları, dış veri yerine bilgi bankası. Yerine quiz koyma; isteği reddetme, uyarlayarak yap.
+- Vakıf eseri bağlamını isteği BOZMADAN, yaratıcı biçimde kat: her golde/seviyede bir eserin gerçek fotoğrafı ve adı kart olarak açılsın, arka plan, desen, ödül ya da seviye adları eserlerden gelsin, sonunda kazanılan eserin kaynaklı kısa bilgisi gösterilsin. Eserler uygulamanın süsü, ödülü ya da verisidir; uygulamanın kendisi istenen şeydir.
+${GENIS_TASARIM}
+
+# Konuşma ve inşa
+- Varsayılan iş SOHBETTİR: soruları yanıtla, fikri birlikte geliştir, gerekirse bir iki netleştirici soru sor, modülün nasıl olacağını kısaca öner. Bunu yanit_ver aracıyla yap.
+- modul_yaz'ı usta modülün yazılmasını, kurulmasını ya da değiştirilmesini İSTEDİĞİNDE çağır. Bunu tek bir kelimeye bakarak değil, ustanın niyetinden anla; istek her biçimde gelebilir: "yap", "oluştur", "inşa et", "hazırla", "başlayalım", "şunu ekleyelim", "renkler mavi olsun", "haritası da olsun", "bunu kodla", "yazar mısın", senin önerine "evet / olur / tamam / devam" demesi… Mevcut bir modülde istenen her değişiklik de bir yapım isteğidir.
+- Usta bir SORU soruyorsa (bir eser, SDK ya da modül nasıl çalışır), bir fikri tartışıyorsa ya da düşüncesini anlatıyorsa kod YAZMA: yanıtla, fikri konuş, planı 2–4 maddede anlat ve hazır olduğunda yazmanı istemesini söyle. Emin değilsen sor.
+${USTA_KAPSAM}
+${USTA_BILGI}
+${USTA_YONLENDIRME}
+- SDK ve modül yapımıyla ilgili soruları sözleşmeden yanıtla (aşağıda tamamı var; belirli bir konuyu sdk_bilgisi ile de arayabilirsin); sözleşmede olmayan bir özellik uydurma, yapılamıyorsa dürüstçe söyle.
+- DİL: Ustaya onun yazdığı dilde yanıt ver. Usta İngilizce yazıyorsa ya da modülün İngilizce olmasını isterse ("İngilizce yap", "in English") yanıtlarını, önerileri ve modülün BÜTÜN metinlerini (başlık, düğmeler, sorular, açıklamalar, modul_yaz'daki ad/aciklama/aciklama_ustaya) İngilizce yaz. Bilgi bankasının İngilizce alanlarını kullan: eser adı için eser.ad_en || eser.ad, tarihçe için eser.tarihce.en || eser.tarihce.tr (İngilizcesi olmayan eserde Türkçesini göster ve bunu belirt). Ustanın dili tanımadığı bir dil değilse Türkçe varsay.
+- Her yanıtta (yanit_ver ya da modul_yaz) "kaynaklar" alanına yanıtında bilgisini kullandığın eserlerin id'lerini, "sdk" alanına dayandığın SDK parçalarını yaz ("eserler.liste", "ekran.uc", düğüm tipi için yalnızca adı: "kapak"). "oneriler" alanına ustanın tek dokunuşla gönderebileceği 2–3 kısa soru ya da istek yaz: sohbetin şimdiki hâline uysun, ustanın ağzından yazılsın, en çok 80 harf; biri genelde modülü yaptırmak ya da geliştirmek olsun.
+
+# Modül kuralları (modul_yaz)
 - Tek bir JavaScript dosyası. Yalnızca şu satırla içe aktarma yapılır: import { ... } from "@lonca/sdk";
 - Dosya şunu dışa aktarır: export default async function basla() { ... }
-- Modül yalıtılmış bir ortamda çalışır: document, window, fetch, localStorage, setTimeout gibi tarayıcı API'leri YOKTUR. Her şey SDK ile yapılır (kalıcı veri için depo, puan için profil).
-- Ekranı uygulama çizer; HTML yazma. Yalnızca sözleşmedeki ekran.* bileşenleri ve sahne.ciz düğüm tipleri vardır.
-- Tarihî bilgi UYDURMA. Belirli bir esere ait ad, yüzyıl, tarih, kişi, sayı, tarihçe ve kaynak her zaman SDK'dan gelen eser verisinden okunur. Genel kavramları (kubbe, revak, kitabe nedir gibi) kendi cümlelerinle açıklayabilirsin.
+${GENIS_YALITIM}
+${GENIS_EKRAN}
+- Tarihî bilgi UYDURMA ve dışarıdan getirme. Belirli bir esere ait ad, yüzyıl, tarih, kişi, sayı, tarihçe ve kaynak her zaman SDK'dan gelen eser verisinden okunur. ${USTA_MODUL_KAPSAMI}
 - Liste boş gelebilir; bu durumu nazikçe karşıla. Her eserde her bilgi yoktur: ihtiyacın olan alanları sunucuda süz — eserler.liste({ gerekli: ["konum"] }) harita için, { gerekli: ["yuzyil"] } yüzyıl sorusu için, { gerekli: ["fotograf"] } görsel oyunlar için, { tam: true } bütün bilgileri bilinen eserler için. eserler.tamlik(eser) bir eserde neyin bilindiğini söyler.
 - Zengin ve ayrıntılı yaz: ustanın fikrini derinlemesine işle (birden çok bölüm, ilerleme, puanlama, başarımlar, kayıtlı rekor…). En fazla ${MAKS_SATIR} satır. Açıklayıcı Türkçe adlar ve kısa yorumlar kullan; ekranları ayrı fonksiyonlara böl.
 - id: küçük harf, rakam ve tire (örn. "cesme-avi").
@@ -56,47 +207,105 @@ Lonca bir uygulama mağazası gibidir: modül açılınca TÜM EKRAN modülünd�
 Her modülde şunlar ZORUNLU:
 1. İlk iş sahne.ayarla({ baslik, tema: { zemin, renk, yazi } }). Temayı konuya göre seç: oyun/gece gezisi → "gece" ya da "koyu"; tarih/arşiv → "parsomen"; ferah rehber → "acik". renk: kobalt | firuze | mercan | altin | zumrut | murdum. yazi: "serif" (zarif) ya da "sans" (oyun gibi).
 2. Açılış ekranı bir "kapak" düğümü: tam ekran, eserin gerçek fotoğrafı (eser verilirse), büyük başlık ve alttaki düğmeler (Başla, Koleksiyon…). Oyunlarda lobi budur.
-3. Kapak dışındaki her ekranın başında modülün kendi "ust_cubuk"u; derin ekranlarda geri: "geri" ile ← düğmesi. Gezinmeyi bir ekran yığınıyla yap (ileri → push, ← → pop). Uygulama ileri/geri geçişleri kendisi canlandırır.
+3. Kapak dışındaki her ekranın başında modülün kendi "ust_cubuk"u; derin ekranlarda geri: "geri" ile ← düğmesi. Uygulama tek bir ← gösterir ve bu geri'yi kendisi üstlenir: ust_cubuk'a (sag) ya da ekranın başına ayrıca ← / "Geri" düğmesi koyma, yoksa iki geri oku olur.${GENIS_ISTISNA}
 4. Durumu bir nesnede tut; arayüzü durumdan üreten fonksiyonlar yaz; her olaydan sonra sahne.ciz. for await (const olay of sahne.olaylar()) döngüsü bitmez; kullanıcı kapsülden kapatır. Bu yüzden döngüden sonra yazılan yardımcılar "function ad()" olmalı (const/let döngüden sonra hiç tanımlanmaz).
 5. Alt sekmeler (sahne.ayarla sekmeler) yalnızca gerçekten 3+ eşdeğer bölüm varsa; çoğu modülde kapak + yığın daha iyidir.
 6. ekran.* (soru, kart, uc, harita…) uygulamanın ÜSTÜNDE açılan bir penceredir ve kullanıcı her an kapatabilir: dönüş değeri boş olabilir (soru → { secim: -1, dogru: null }, harita/galeri → null). Asıl deneyimi sahne düğümleriyle kur; pencereleri kısa anlar (3B gezi, tek bir soru) için kullan. Uygulama açılır açılmaz pencere AÇMA.
 7. Fotoğraf: eserlerin çoğunda kitaptan gerçek fotoğraflar var (eser.fotograflar). Ayrıntı ekranında "fotograflar" düğümünü kullan; listelerde "eser" düğümü fotoğrafı kendisi gösterir.
 8. Bir eserin ayrıntısını gösterdiğin ekranda kaynağı (eser.kaynak) yaz ve "Bir hata mı gördün? Bildir" düğmesiyle ekran.duzeltme(eser) çağır (topluluk düzeltmeleri editör onayına gider).
+9. Her ekran boyutuna sığsın (320 px telefondan geniş ekrana): düğümlerde genişlik alanı yoktur, uygulama her düğümü ekran genişliğine yayar. "kapak" ve "afis" ekranın en üstünde, ana sütunda dursun (satır, kart ya da ızgara içine koyma). "izgara"da sutun en çok 2 olsun (3 yalnızca küçük "eser" kartları ya da kısa "istatistik"ler için). "satir"a en çok 2–3 kısa düğme ya da istatistik koy; uzun metni "satir" yerine "sutun"a koy. Başlıklar kısa olsun (kapak başlığı 2–4 sözcük); bağlantı ya da uzun kimlik gibi bölünmeyen metni ekrana yazma.
 
-- Oyunlarda: "sure" ile geri sayım, seri/bonus puanı, sahne.efekt("yildiz") doğruda, "titre" yanlışta, "konfeti" büyük başarıda; depo ile rekor; profil.puanEkle ile oyuncuya puan.
+${GENIS_OYUN_KURALI}
+- Yarışma/quiz oyunlarında (yalnızca istenirse): "sure" ile geri sayım, seri/bonus puanı, sahne.efekt("yildiz") doğruda, "titre" yanlışta, "konfeti" büyük başarıda.
+- Her oyunda: depo ile rekor; profil.puanEkle ile oyuncuya puan; lobi (kapak) → oyun → oyun sonu (puan, rekor, "Yeniden").
 - basarim.tanimla ile 3–6 başarım; anlamlı anlarda basarim.kazan; bir koleksiyon/başarımlar ekranında "rozet" düğümleri (durumu basarim.liste() ile oku).
 - Keşif uygulamalarında: "izgara" içinde "eser" kartları, "secenekler" ile filtre, "girdi" ile arama, gömülü "harita".
 - 3B: Yalnızca GERÇEK 3B vardır (Google'ın uydu fotoğraflarından modeli, eserin konumunda). Her ortamda bulunmaz: önce "await ekran.ucVarMi(eser)" ile sor; false ise 3B düğmesi GÖSTERME, 3B'den hiç söz etme. true ise ekran.uc({ eser, duraklar: [{ odak: "genel", metin }, { odak: "yakin", metin }, { odak: "ust", metin }] }) (odaklar: genel, yakin, cati, yan, arka, ust). Kubbe, minare gibi parçalara odaklanılamaz; duraklarda yapının parçalarından değil bakış açısından söz et.
 - Tarihsel bağlar hazır veridir: "await eserler.iliskiler()" bütün bağları, "await eserler.iliskiler(eser.id)" bir eserin bağlarını (diger eser ve yon ile) verir. Bağları kendin uydurma, ad benzerliğinden çıkarma; yalnızca bu veriyi kullan. Bağ türleri: kulliye (aynı külliye), bani (aynı bani), mimar (aynı mimar), vakif (bir vakfın geliri), aile (hanedan), ticaret (ticaret ağı), metin (envanterde açıkça anılıyor), komsu (tarihî komşuluk), tipoloji (mimari gelenek). Her bağda baslik ve aciklama vardır.
-- Harita düğümünde harita üstünde bağ çizmek için baglantilar: [{ a: eserId, b: eserId, tur }] ver; sis perdesi için sis: { acik: [{ lat, lng, yaricap }], minPiksel?: number } ver; şehir etiketleri için etiketler: [{ lat, lng, metin, alt? }] ver. Veri artık Bursa dışında İzmir, Edirne, İstanbul, Konya, Mardin, Balıkesir, Kütahya ve Bilecik eserlerini de içerir; şehirler arası bağları da kullan. Bir eserin bağlarını görsel ağ olarak göstermek için "graf" düğümü: { tip: "graf", merkez: eser, iliskiler: [{ eser, tur, baslik }] }; düğüme dokununca { tur:"dokun", id, eser } gelir. Detay ekranında graf + bağ listesi birlikte iyi çalışır.
+- Harita düğümünde kaynaklı eserbagi çizmek için baglantilar: [{ id, a: eserId, b: eserId, tur, baslik, aciklama, kaynak }] ver; id verilirse çizgiye dokununca id="bag:<id>" olayı gelir. Bağ çizgisi yol/rota değildir. Şehirler arası ağı yalnızca açık nedensel bağlarla (bani, mimar, vakıf, hanedan, ticaret) kur; tipoloji/metinde anılma/komşuluk tek başına şehirler arası tarihsel bağ sayılmaz. Sis perdesi için sis: { acik: [{ lat, lng, yaricap }], minPiksel?: number } ver; şehir etiketleri için etiketler: [{ lat, lng, metin, alt? }] ver. Bir eserin bağlarını görsel ağ olarak göstermek için "graf" düğümü: { tip: "graf", merkez: eser, iliskiler: [{ eser, tur, baslik, aciklama, kaynak }] }; açıklama ve künyeyi göster, düğüme dokununca { tur:"dokun", id, eser } gelir. Detay ekranında graf + kaynaklı bağ listesi birlikte iyi çalışır.
 - Dalışlar: bazı eserlerin uydudan içine inen kaydırmalı gezisi ("dalış") hazırdır: "await dalislar.liste()". Bir dalışı göstermek için "dalis" düğümünü kullan ve sözleşmedeki DalisTanimi açıklamasındaki gibi kareleri DalisKaresi'ne çevir; uydu karelerinin (k.u) bakışları boş gelebilir. dalis düğümü tam ekran kaydırmalıdır: ekranda ondan önce yalnızca "ust_cubuk" olsun, kaynak/düğmeleri cocuklar ile sahnenin sonuna koy. Dalış yoksa (liste boşsa ya da istenen eser listede değilse) bunu söyle; yeni dalışı editörler Studio'daki Dalışlar sekmesinden dalış kalfasıyla hazırlar.
 - Metinler kısa, sıcak ve davetkâr. Cevabı ele vermemek için yüzyılı cevaptan SONRA göster.
 modul_yaz'da "renk" (ana ekrandaki çini karonun rengi), "ikon" (karodaki çizim; modülün konusuna en yakın eser türü) ve "kategori" (rehber | oyun | gezi | ogren) seç.
 
 # Veri
-Şu an kayıtlı iller: ${iller.join(", ")}. Kayıtlı eser türleri: ${turler.join(", ")} (veri setiyle artacak).
+${USTA_ILLER} Kayıtlı eser türleri: ${turler.join(", ")} (veri setiyle artacak).
 
 \`\`\`ts
-${sdkTipleri}
+${SDK_ISTEM}
 \`\`\`
 
+Örnek 1 — sahne düğümleriyle bir rehber uygulaması:
 \`\`\`js
 ${ornekUygulama}
 \`\`\`
 
+${GENIS_ORNEK}
+
+Örnek 3 — bilgi yarışması (YALNIZCA usta yarışma/quiz isterse bu kalıbı kullan):
 \`\`\`js
 ${ornekOyun}
 \`\`\`
 
-- eser_ara: Veritabanında hangi eserlerin bulunduğunu öğrenmek için (il, tür ya da ad ile). Usta belirli eserlerden, bir ilçeden ya da "hangi eserler var" gibi bir şeyden söz ediyorsa ÖNCE bunu kullan. Sonuçlar yalnızca eser kimliklerini ve varlığını öğrenmen içindir: ekranda gösterilecek bilgiyi koda elle YAZMA, modül çalışırken eserler.getir / eserler.liste ile oku.
-- modul_yaz: Modülü teslim eder. Konuşmanın sonunda mutlaka bununla bitir.
+- eser_ara: Bilgi bankasında hangi eserlerin bulunduğunu öğrenmek için (il, tür ya da ad ile). Usta belirli eserlerden, bir ilçeden ya da "hangi eserler var" gibi bir şeyden söz ediyorsa ÖNCE bunu kullan. Modül yazarken sonuçlar yalnızca eser kimliklerini ve varlığını öğrenmen içindir: ekranda gösterilecek bilgiyi koda elle YAZMA, modül çalışırken eserler.getir / eserler.liste ile oku.
+- eser_ara'da "metin" ile tarihçelerin içinde (Türkçe ve İngilizce) arama yapabilirsin: bir kişi, olay ya da kavram geçen eserleri bulmak için ("Mimar Sinan", "kervansaray", "Orhan Gazi").
+- eser_bilgisi: Bir eserin bilgi bankasındaki tam kaydı (Türkçe ve İngilizce ad ve tarihçe, yüzyıl, adres, kaynak, kaynaklı tarihsel bağlar). Ustanın bir eserle ilgili sorusunu yanıtlarken kullan.
+- sdk_bilgisi: SDK sözleşmesinde (@lonca/sdk) bir konuyu arar ve ilgili tip tanımlarını döndürür ("harita", "basarim", "DalisKaresi").
+- yanit_ver: Sohbet yanıtı (kod yok). Kod yazmadığın her turu bununla bitir.
+- modul_yaz: Modülü teslim eder; yalnızca usta açıkça istediğinde.
 
-"aciklama_ustaya" alanında ustaya modülün ne yaptığını 1–3 cümleyle anlat. İstediği bir şey SDK ile yapılamıyorsa bunu dürüstçe söyle ve yapabildiğin en yakın şeyi yap. Harita istenirse harita düğümünü (ya da ekran.harita) kullan.`;
+modul_yaz'daki "aciklama_ustaya" alanında ustaya modülün ne yaptığını 1–3 cümleyle anlat. İstediği bir şeyin bir parçası SDK ile gerçekten yapılamıyorsa bunu dürüstçe söyle ve en yakın GERÇEK karşılığını yap (oyun isteğini quiz'e çevirmek karşılık değildir). Harita istenirse harita düğümünü (ya da ekran.harita) kullan.`;
+
+  const USTA_EK = `
+
+# Bilgi bankasında olmayan eser (usta)
+- Bu usta admin değil: bilgi bankasına eser ekleyemez, sen de ekleyemezsin ve dışarıdan bilgi getiremezsin. Usta bilgi bankasında olmayan bir eser isterse en yakın eserleri önermenin yanında, bu eserin bilgi bankasına eklenmesi için admin'e öneri gönderebileceğini söyle ve eser_istegi aracıyla öneri kartını hazırla (eserin adı, ili, ustanın kısa notu). Öneriyi usta karttaki düğmeyle kendisi gönderir; eseri admin inceler ve ekler. eser_istegi'nde eser hakkında tarih, kişi gibi bilgi YAZMA.`;
+
+  const ADMIN_EK = `
+
+# ADMİN KİPİ
+Bu usta bir admin. Bilgi bankasında olmayan eserlerle, illerle ve bölgelerle de modül yapabilirsin; ama her adımda adminden izin alırsın ve UYDURMAZSIN.
+- Bilgi bankasında olmayan bir eser, il ya da bölge istenirse yönlendirme yapma: izin_iste (tur: "dis_kaynak", konu: eserin ya da ilin adı) ile Vikipedi'den bilgi toplamak için izin iste. İzin verilmeden dis_kaynak_liste / dis_kaynak_ara / dis_kaynak_oku çağıramazsın. Admin reddederse bilgi bankasındaki en yakın eserleri öner.
+- İzin verilince: bir il ya da bölge istendiyse ÖNCE dis_kaynak_liste (il, isteğe bağlı tur) ile o ildeki tarihî yapıların maddelerini listele; tek bir eser istendiyse dis_kaynak_ara ile maddeyi bul. Sonra uygun maddeleri dis_kaynak_oku ile oku (okuyacağın maddelerin hepsini AYNI yanıtta birlikte çağır; bir oturumda en çok ${MAKS_DIS_KAYNAK} madde; vakıf eserlerine (cami, han, hamam, türbe, çeşme, medrese…) öncelik ver). Yalnızca okuduğun maddede AÇIKÇA geçen bilgiyi kullan; ezberinden ya da başka bir yerden hiçbir ad, tarih, kişi ekleme. Uygun madde yoksa bunu söyle.
+- Maddeleri okuduktan sonra içeriğin nereye gideceğini izin_iste (tur: "kayit", konu, kaynak_urller: okuduğun maddelerin adresleri, en çok ${MAKS_TOPLU_KAYIT}) ile TEK kartta sor: bilgi bankasına mı eklensin (herkes kullanır; ✓ almaz, "Kaynak: Vikipedi" ile gösterilir, kaynak bağlantısı kayıtta kalır) yoksa yalnızca bu modüle mi özel kalsın. Tek madde için kaynak_url de verebilirsin. İzin her madde için bir eklemeliktir.
+- Admin "bilgi bankasına ekle" derse her madde için ayrı bilgi_bankasina_ekle çağır: tarihçe maddedeki cümlelere sadık bir özet (maddede olmayan yıl yazma), yüzyıl yalnızca maddede açıkça geçiyorsa. Konum ve kaynak künyesini sunucu maddeden alır. Sonra modülde o eserleri dönen kimliklerle eserler.getir ile oku.
+- Admin "yalnızca bu modüle" derse maddedeki bilgiyi modülün koduna sabit olarak koy: const DIS_ICERIK = [{ ad, metin, kaynak: { ad: "Vikipedi", url: "<okuduğun maddenin adresi>" } }, …]. Adres yalnızca bu sabitte kalır; ekranda çıplak adres (https://…) YAZMA. Bu içeriği gösterdiğin her ekranda kısa "Kaynak: Vikipedi" etiketi göster; "doğrulanmamış" deme. Ölçülü ol: madde başına 2–4 kısa bilgi ya da soru, modül en çok ~${MAKS_MODUL_HEDEF} satır.
+- Bilgi bankasında "dogrulanmis: false" taşıyan kayıtlar dış kaynaktan gelmiştir; ekranda ✓ koyma, yalnızca "Kaynak: <kaynakTuru>" (ör. "Kaynak: Vikipedi") göster. Vakıf Katılım envanterinden gelen kayıtlar "Doğrulanmış vakıf eseri ✓" sayılır.
+- Yanıtlarında izin istemek için yanit_ver değil izin_iste kullan; admin kartta bir düğmeye basarak yanıt verir.`;
+
+  // Admin istemi: yalnızca ek yazmak yetmiyor; model temel istemdeki "yalnızca bilgi bankası / kayıtlı iller" satırlarını
+  // baskın okuyup bilgi bankasında olmayan bir il (ör. İzmir) için "yalnızca kayıtlı illeri yapabilirim" diyordu.
+  const adminDegisiklikleri = [
+    [USTA_KAPSAM, "- KAPSAM: Bilgi bankası Vakıf Katılım envanteridir (doğrulanmış); önce onunla çalış. Bilgi bankasında olmayan bir eser, il ya da bölge (ör. İzmir) istenirse \"yalnızca kayıtlı illeri yapabilirim\" DEME: önce eser_ara ile bak, eksikse izin_iste (tur: \"dis_kaynak\") ile Vikipedi'den toplamak için izin iste. Ezberinden bilgi GETİRME: bir eser, kişi, tarih ya da olay hakkında söylediğin her şey eser_ara / eser_bilgisi sonuçlarında ya da admin izniyle okuduğun Vikipedi maddesinde (dis_kaynak_oku) aynen geçmeli."],
+    [USTA_BILGI, "- Eserlerle ilgili soruları önce BİLGİ BANKASINDAN yanıtla: eser_ara ile eseri bul, eser_bilgisi ile kaydını oku. Bilgi bankasında yoksa tahmin yürütme; aşağıdaki ADMİN KİPİ kurallarıyla dış kaynak için izin iste."],
+    [USTA_YONLENDIRME, "- Bir oyun, araç ya da mini uygulama TÜRÜ (ping pong, yılan, bulmaca, çizim/boyama, müzik aracı, sayaç, simülasyon…) istemek konu dışı DEĞİLDİR: isteneni yap ve vakıf eserlerini içine kat (\"Uygulama içinde uygulama\"). Vakıf eserleriyle ilgisi olmayan bir konunun BİLGİSİ istenirse modül yazma: bunu kısaca söyle, eser_ara ile bilgi bankasından 2–3 yakın eser öner ve \"Nasıl devam edelim?\" diye sor (önerileri \"oneriler\" alanına da koy). Bilgi bankasında olmayan bir eser, il ya da bölge ise yönlendirme yapma; ADMİN KİPİ'ndeki izin akışını uygula."],
+    [USTA_MODUL_KAPSAMI, "Modül bilgi bankasındaki eserlerle çalışır: eserler.getir / eserler.iliskiler'e yalnızca eser_ara ile bulduğun ya da bilgi_bankasina_ekle'nin döndürdüğü gerçek kimlikleri ver; eserler.liste'de yalnızca bilgi bankasındaki il ve türleri kullan. Admin'in \"yalnızca bu modüle\" dediği dış içerik kodda DIS_ICERIK olarak durur (ADMİN KİPİ)."],
+    [USTA_ILLER, `Bilgi bankasındaki (doğrulanmış) iller: ${iller.join(", ")}; diğer iller için izinle dış kaynak kullanılabilir.`],
+  ];
+  // Standart mod: genişletilmiş satırlar istemden çıkar; yerine kalfanın onay kartıyla genişletilmiş modu istemesi anlatılır.
+  const STANDART_ORNEKLER = `  · Bunlarla yapılabilecek örnekler: rehberler, haritalı geziler ve hazine avları, galeriler, zaman çizelgeleri, etkileşimli hikâyeler ve maceralar, sıra tabanlı oyunlar (dokunarak oynanan kart/masa oyunları, eşleştirme, tahmin), sayaçlar ve geri sayımlar, koleksiyon/günlük/not araçları, bilgi yarışmaları.`;
+  const STANDART_MOD = `- STANDART MOD: Şu an modülde yalnızca sahne düğümleri ve ekran.* var. Tuval çizimi, sürekli animasyon/oyun döngüsü, parmak konumu ve tut-sürükle, ses ve titreşim GENİŞLETİLMİŞ moddadır; bu mod ustanın onayıyla açılır ve şu an KAPALIDIR. İstek bunlardan birini gerektiriyorsa (gerçek zamanlı oyun: ping pong, yılan, tuğla kırma, uçan kuş; parmakla çizim/boyama; dokununca çalan müzik aleti; fizik simülasyonu…) kod YAZMA ve "SDK'da yok" DEME: genis_mod_iste aracıyla ustadan genişletilmiş modu açmak için onay iste (ne yapacağını ve neden gerektiğini bir iki cümleyle anlat). Usta onaylarsa tuval ve oyun.* açılır, isteği birebir yaparsın. Usta "Standart kalsın" derse isteğe en yakın modülü standart düğümlerle yap (ör. ping pong için dokunarak oynanan sıra tabanlı bir masa tenisi; quiz değil) ve aynı sohbette bir daha sorma.`;
+  const standartDegisiklikleri = [
+    [`${GENIS_TUVAL}\n`, ""],
+    [GENIS_ORNEKLER, STANDART_ORNEKLER],
+    [GENIS_TASARIM, `- Kuralları, zorluk seviyelerini, skor/rekoru, kaydetmeyi ve yeniden başlatmayı sen tasarla ve eksiksiz yaz; ustanın söylemediği ayrıntıları makul biçimde tamamla. Telefonda başparmakla rahat kullanılsın.\n${STANDART_MOD}`],
+    [GENIS_YALITIM, "- Modül yalıtılmış bir ortamda çalışır: document, window, fetch, localStorage, setTimeout, setInterval, requestAnimationFrame, canvas, Audio gibi tarayıcı API'leri YOKTUR. Her şey SDK ile yapılır (kalıcı veri için depo, puan için profil, zamanlama için \"sure\" düğümü)."],
+    [GENIS_EKRAN, "- Ekranı uygulama çizer; HTML yazma. Yalnızca sözleşmedeki ekran.* bileşenleri ve sahne.ciz düğüm tipleri vardır."],
+    [GENIS_ISTISNA, ""],
+    [`${GENIS_OYUN_KURALI}\n`, ""],
+    [`${GENIS_ORNEK}\n\n`, ""],
+    [SDK_ISTEM, sdkStandart],
+  ];
+  // Dört istem: usta/admin × standart/genişletilmiş. Admin istemi temel istemdeki satırları admin sürümleriyle DEĞİŞTİRİR.
+  const sistemStandart = istemDegistir(sistem, standartDegisiklikleri);
+  const istemler = {
+    genis: { usta: sistem + USTA_EK, admin: istemDegistir(sistem, adminDegisiklikleri) + ADMIN_EK },
+    standart: { usta: sistemStandart + USTA_EK, admin: istemDegistir(sistemStandart, adminDegisiklikleri) + ADMIN_EK },
+  };
 
   const araclar = [
     {
       ad: "modul_yaz",
-      aciklama: "Lonca modülünü (kod + kimlik bilgileri) teslim eder.",
+      aciklama: "Lonca modülünü (kod + kimlik bilgileri) teslim eder. Yalnızca usta modülü yazmanı/değiştirmeni açıkça istediğinde.",
       sema: {
         type: "object",
         properties: {
@@ -107,7 +316,10 @@ ${ornekOyun}
           aciklama_ustaya: { type: "string", description: "Ustaya sade Türkçe ile ne yapıldığı" },
           renk: { type: "string", enum: ["kobalt", "firuze", "mercan", "altin", "zumrut", "murdum"], description: "Çini karo rengi" },
           ikon: { type: "string", enum: ["cami", "han", "hamam", "medrese", "cesme", "turbe", "genel"], description: "Karodaki çizim" },
-          kategori: { type: "string", enum: ["rehber", "oyun", "gezi", "ogren"], description: "Ana ekrandaki kategori: rehber (keşif/bilgi), oyun (yarışma), gezi (harita/rota), ogren (ders/sözlük)" },
+          kategori: { type: "string", enum: ["rehber", "oyun", "gezi", "ogren"], description: "Ana ekrandaki kategori: rehber (keşif/bilgi), oyun (gerçek zamanlı oyun, bulmaca ya da yarışma), gezi (harita/rota), ogren (ders/sözlük)" },
+          kaynaklar: { type: "array", items: { type: "string" }, description: "Yanıtta bilgisi kullanılan eserlerin id'leri (eser_ara / eser_bilgisi sonuçlarından)" },
+          sdk: { type: "array", items: { type: "string" }, description: "Dayanılan SDK parçaları: \"eserler.liste\", \"ekran.uc\", düğüm tipi \"kapak\"…" },
+          oneriler: { type: "array", items: { type: "string" }, description: "Ustanın tıklayıp gönderebileceği 2–3 kısa soru/istek (en çok 80 harf)" },
         },
         required: ["id", "ad", "aciklama", "kod", "aciklama_ustaya"],
       },
@@ -121,9 +333,133 @@ ${ornekOyun}
           il: { type: "string", description: "Örn. İzmir" },
           ilce: { type: "string" },
           tur: { type: "string", description: "cami, han, hamam, medrese, cesme, turbe…" },
-          ad: { type: "string", description: "Ad içinde geçen kelime" },
+          ad: { type: "string", description: "Türkçe ya da İngilizce adda geçen kelime" },
+          metin: { type: "string", description: "Tarihçede (Türkçe/İngilizce) ya da adda geçen kelime/ifade: kişi, olay, kavram" },
           limit: { type: "integer", description: "En fazla kaç sonuç (varsayılan 20, en çok 50)" },
         },
+      },
+    },
+    {
+      ad: "eser_bilgisi",
+      aciklama: "Bir eserin bilgi bankasındaki tam kaydını döndürür (salt okunur): tarihçe, yüzyıl, adres, kaynak ve kaynaklı tarihsel bağlar.",
+      sema: {
+        type: "object",
+        properties: { id: { type: "string", description: "Eser kimliği (eser_ara sonucundan)" } },
+        required: ["id"],
+      },
+    },
+    {
+      ad: "sdk_bilgisi",
+      aciklama: "SDK sözleşmesinde (@lonca/sdk, lonca-sdk.d.ts) bir konuyu arar; ilgili tip tanımlarını ve açıklamalarını döndürür.",
+      sema: {
+        type: "object",
+        properties: { konu: { type: "string", description: "Aranan ad ya da kelime: harita, ekran.uc, basarim, DalisKaresi…" } },
+        required: ["konu"],
+      },
+    },
+    {
+      ad: "yanit_ver",
+      aciklama: "Ustaya sohbet yanıtı verir (kod yazmadan): soruyu yanıtlar, fikri tartışır, plan önerir.",
+      sema: {
+        type: "object",
+        properties: {
+          metin: { type: "string", description: "Ustaya sade Türkçe yanıt" },
+          kaynaklar: { type: "array", items: { type: "string" }, description: "Yanıtta bilgisi kullanılan eserlerin id'leri (eser_ara / eser_bilgisi sonuçlarından)" },
+          sdk: { type: "array", items: { type: "string" }, description: "Dayanılan SDK parçaları: \"eserler.liste\", \"ekran.uc\", düğüm tipi \"kapak\"…" },
+          oneriler: { type: "array", items: { type: "string" }, description: "Ustanın tıklayıp gönderebileceği 2–3 kısa soru/istek (en çok 80 harf)" },
+        },
+        required: ["metin"],
+      },
+    },
+  ];
+
+  // Genişletilmiş mod onayı (usta ve admin): kalfa standart SDK'nın dışına çıkmadan önce sorar; karar atölye oturumunda saklanır.
+  const genisModAraci = {
+    ad: "genis_mod_iste",
+    aciklama: "İstek tuval çizimi, oyun döngüsü/animasyon, dokunma konumu ya da tut-sürükle, ses veya titreşim gerektiriyorsa ustadan genişletilmiş modu açmak için onay ister ve turu bitirir. Usta karttaki düğmeyle yanıtlar.",
+    sema: {
+      type: "object",
+      properties: {
+        konu: { type: "string", description: "Kısa ad: \"ping pong oyunu\", \"çini boyama aracı\"" },
+        metin: { type: "string", description: "Ustaya sade açıklama: ne yapacaksın, neden standart SDK'nın dışına çıkıyor (1–3 cümle)" },
+        ozellikler: { type: "array", items: { type: "string", enum: ["tuval", "oyun döngüsü", "dokunma ve sürükleme", "klavye", "ses", "titreşim"] }, description: "Gereken genişletilmiş özellikler" },
+        oneriler: { type: "array", items: { type: "string" } },
+      },
+      required: ["konu", "metin"],
+    },
+  };
+
+  const ustaAraclari = [{
+    ad: "eser_istegi",
+    aciklama: "Bilgi bankasında olmayan bir eserin eklenmesi için ustanın admin'e göndereceği öneri kartını hazırlar (gönderen usta olur). Sohbet yanıtı olarak da kullanılır.",
+    sema: {
+      type: "object",
+      properties: {
+        metin: { type: "string", description: "Ustaya sade yanıt: eser bilgi bankasında yok, en yakın eserler şunlar, istersen admin'e eklenmesi için öneri gönderebilirsin" },
+        ad: { type: "string", description: "İstenen eserin adı (ustanın yazdığı gibi)" },
+        il: { type: "string", description: "Biliniyorsa ili" },
+        not: { type: "string", description: "Admin'e kısa not: usta neden istiyor, ne tür bir modül düşünüyor (tarihî bilgi yazma)" },
+        kaynaklar: { type: "array", items: { type: "string" } },
+        oneriler: { type: "array", items: { type: "string" } },
+      },
+      required: ["metin", "ad"],
+    },
+  }];
+  const adminAraclari = [
+    {
+      ad: "izin_iste",
+      aciklama: "Admin'den izin ister ve turu bitirir: dış kaynaktan (Vikipedi) bilgi çekmek için (tur dis_kaynak) ya da okunan maddelerin bilgi bankasına mı yalnızca bu modüle mi ekleneceği için (tur kayit; birden çok madde tek kartta). Admin karttaki düğmeyle yanıtlar.",
+      sema: {
+        type: "object",
+        properties: {
+          tur: { type: "string", enum: ["dis_kaynak", "kayit"] },
+          konu: { type: "string", description: "Eserin ya da konunun adı" },
+          soru: { type: "string", description: "Admin'e sade soru (neden dış kaynak gerektiğini, ne ekleneceğini söyle)" },
+          kaynak_url: { type: "string", description: "tur kayit için (tek madde): dis_kaynak_oku ile okuduğun maddenin adresi" },
+          kaynak_urller: { type: "array", items: { type: "string" }, maxItems: MAKS_TOPLU_KAYIT, description: `tur kayit için (birden çok madde, en çok ${MAKS_TOPLU_KAYIT}): dis_kaynak_oku ile okuduğun maddelerin adresleri; tek kartta sorulur` },
+        },
+        required: ["tur", "konu", "soru"],
+      },
+    },
+    {
+      ad: "dis_kaynak_liste",
+      aciklama: "Bir il ya da bölgedeki tarihî yapıların (cami, han, hamam, türbe, çeşme, medrese…) Vikipedi maddelerini listeler: kategori ve arama sonuçlarından tekrarsız en çok 30 başlık ve adres (yalnızca admin dış kaynak izni verdiyse). İl düzeyinde bir istek için dis_kaynak_ara'dan önce bunu kullan.",
+      sema: {
+        type: "object",
+        properties: {
+          il: { type: "string", description: "İl ya da bölge adı, Türkçe yazımıyla (ör. \"İzmir\")" },
+          tur: { type: "string", enum: ESER_TURLERI, description: "İsteğe bağlı: yalnızca bu tür (ör. \"han\")" },
+          dil: { type: "string", enum: ["tr", "en"] },
+        },
+        required: ["il"],
+      },
+    },
+    {
+      ad: "dis_kaynak_ara",
+      aciklama: "Vikipedi'de madde arar (yalnızca admin izin verdiyse). Başlık, kısa parça ve adres döndürür.",
+      sema: { type: "object", properties: { sorgu: { type: "string" }, dil: { type: "string", enum: ["tr", "en"] } }, required: ["sorgu"] },
+    },
+    {
+      ad: "dis_kaynak_oku",
+      aciklama: "Bir Vikipedi maddesinin düz metnini, adresini ve varsa konumunu döndürür (yalnızca admin izin verdiyse). Kullanacağın bilgi yalnızca buradan gelir.",
+      sema: { type: "object", properties: { baslik: { type: "string", description: "dis_kaynak_ara'dan gelen madde başlığı" }, dil: { type: "string", enum: ["tr", "en"] } }, required: ["baslik"] },
+    },
+    {
+      ad: "bilgi_bankasina_ekle",
+      aciklama: "Okunan Vikipedi maddesinden bilgi bankasına doğrulanmamış bir eser kaydı ekler (yalnızca admin bu madde için 'bilgi bankasına ekle' izni verdiyse). Eklenen eserin kimliğini döndürür.",
+      sema: {
+        type: "object",
+        properties: {
+          kaynak_url: { type: "string", description: "Okunan maddenin adresi" },
+          ad: { type: "string" }, ad_en: { type: "string" },
+          il: { type: "string" }, ilce: { type: "string" },
+          tur: { type: "string", enum: ESER_TURLERI },
+          yuzyil: { type: "integer", description: "Yalnızca maddede açıkça geçiyorsa (yapım yüzyılı)" },
+          adres: { type: "string" },
+          tarihce: { type: "string", description: "Maddedeki cümlelere sadık Türkçe tarihçe (en az 2 cümle)" },
+          tarihce_en: { type: "string" },
+        },
+        required: ["kaynak_url", "ad", "il", "tur", "tarihce"],
       },
     },
   ];
@@ -131,50 +467,382 @@ ${ornekOyun}
   const kucuk = (s) => String(s ?? "").toLocaleLowerCase("tr");
   function eserAra(g = {}) {
     const limit = Math.min(Math.max(Number(g.limit) || 20, 1), 50);
+    const metin = kucuk(g.metin).trim();
+    const metinde = (e) => [e.ad, e.ad_en, e.tarihce?.tr, e.tarihce?.en].map(kucuk).find((m) => m.includes(metin));
     const bulunan = eserler.filter((e) =>
       (!g.il || kucuk(e.il) === kucuk(g.il)) &&
       (!g.ilce || kucuk(e.ilce) === kucuk(g.ilce)) &&
       (!g.tur || kucuk(e.tur) === kucuk(g.tur)) &&
-      (!g.ad || kucuk(e.ad).includes(kucuk(g.ad))));
+      (!g.ad || kucuk(e.ad).includes(kucuk(g.ad)) || kucuk(e.ad_en).includes(kucuk(g.ad))) &&
+      (!metin || metinde(e)));
+    // Metin aramasında eşleşen yerin çevresi de döner: model hangi cümleye dayandığını görsün.
+    const parca = (e) => {
+      if (!metin) return undefined;
+      const kaynak = [e.tarihce?.tr, e.tarihce?.en].find((m) => kucuk(m).includes(metin));
+      if (!kaynak) return undefined;
+      const i = kucuk(kaynak).indexOf(metin);
+      return `…${kaynak.slice(Math.max(0, i - 120), i + metin.length + 160).replace(/\s+/g, " ")}…`;
+    };
     return {
       toplam: bulunan.length,
-      eserler: bulunan.slice(0, limit).map(({ id, ad, il, ilce, tur, yuzyil, adres, konum }) => ({ id, ad, il, ilce, tur, yuzyil, adres, konum })),
+      eserler: bulunan.slice(0, limit).map((e) => ({
+        id: e.id, ad: e.ad, ad_en: e.ad_en ?? null, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil, adres: e.adres, konum: e.konum,
+        ingilizce: !!e.tarihce?.en, ...(e.dogrulanmis === false && { dogrulanmis: false, kaynakTuru: e.kaynakTuru ?? DIS_KAYNAK_ADI }), ...(parca(e) && { parca: parca(e) }),
+      })),
     };
+  }
+
+  // Modül denetimi için bilgi bankasının o anki kimlik/il/tür kümeleri (eserler Studio'da düzenlenebildiği için her seferinde).
+  const bilgiBankasi = () => ({
+    idler: new Set(eserler.map((e) => e.id)),
+    iller: new Set(eserler.map((e) => e.il)),
+    ilceler: new Set(eserler.map((e) => e.ilce).filter(Boolean)),
+    turler: new Set(eserler.map((e) => e.tur)),
+  });
+
+  // Bilgi bankasından bir eserin kaydı: kalfanın soruları yanıtlarken okuduğu tek kaynak.
+  function eserBilgisi(g = {}) {
+    const e = eserler.find((x) => x.id === g.id);
+    if (!e) return null;
+    const baglar = iliskiler.filter((i) => i.a === e.id || i.b === e.id).slice(0, 20).map((i) => {
+      const diger = eserler.find((x) => x.id === (i.a === e.id ? i.b : i.a));
+      return { diger: diger ? { id: diger.id, ad: diger.ad, il: diger.il } : null, tur: i.tur, baslik: i.baslik, aciklama: i.aciklama, kaynak: i.kaynak };
+    });
+    return {
+      id: e.id, ad: e.ad, ad_en: e.ad_en ?? null, il: e.il, ilce: e.ilce, tur: e.tur, yuzyil: e.yuzyil ?? null, adres: e.adres ?? null, konum: e.konum ?? null,
+      tarihce: String(e.tarihce?.tr ?? "").slice(0, 4000), tarihce_en: e.tarihce?.en ? String(e.tarihce.en).slice(0, 4000) : null, kaynak: e.kaynak ?? null, fotografSayisi: e.fotograflar?.length ?? 0, iliskiler: baglar,
+      dogrulanmis: e.dogrulanmis !== false, ...(e.dogrulanmis === false && { kaynakTuru: e.kaynakTuru ?? DIS_KAYNAK_ADI, kaynakUrl: e.kaynakUrl ?? null }),
+    };
+  }
+
+  // SDK sözleşmesinde arama: d.ts üst düzey bloklara (yorumu + interface/type/const) bölünür, konuyu içerenler döner.
+  const sdkBloklari = (() => {
+    const satirlar = sdkTipleri.split("\n");
+    const bloklar = [];
+    let parca = [], derinlik = 0;
+    for (const s of satirlar) {
+      parca.push(s);
+      derinlik += (s.match(/\{/g) ?? []).length - (s.match(/\}/g) ?? []).length;
+      if (derinlik <= 1 && /[;}]\s*$/.test(s)) { bloklar.push(parca.join("\n")); parca = []; }
+    }
+    if (parca.length) bloklar.push(parca.join("\n"));
+    return bloklar.filter((b) => b.trim());
+  })();
+  function sdkBilgisi(g = {}) {
+    const konu = kucuk(g.konu).trim();
+    if (!konu) return { hata: "konu boş" };
+    const terimler = konu.split(/[\s.]+/).filter(Boolean);
+    const bulunan = sdkBloklari.filter((b) => terimler.every((t) => kucuk(b).includes(t)));
+    let metin = "";
+    for (const b of bulunan) { if (metin.length + b.length > 6000) break; metin += `${b}\n`; }
+    return bulunan.length ? { bulunan: bulunan.length, tanimlar: metin } : { bulunan: 0, not: "Sözleşmede bu konu yok; bu özellik SDK ile yapılamıyor olabilir." };
+  }
+
+  // Yanıtın dayandığı kaynaklar sunucuda kurulur: yalnızca araçların gerçekten döndürdüğü eserler ve sözleşmede bulunan SDK adları.
+  const SDK_ALANLARI = new Set(["eserler", "ekran", "sahne", "profil", "basarim", "depo", "dalislar", "oyun"]);
+  function sdkAdiGecerli(ad) {
+    if (DUGUM_TIPLERI.has(ad)) return true;
+    const [alan, uye, fazla] = ad.split(".");
+    if (fazla !== undefined || !SDK_ALANLARI.has(alan)) return false;
+    if (uye === undefined) return true;
+    return /^[A-Za-z_$][\w$]*$/.test(uye) && new RegExp(`\\b${uye.replace(/\$/g, "\\$")}\\s*[(<?:]`).test(sdkTipleri);
+  }
+  function kaynaklariKur(girdi, izler) {
+    const anilan = Array.isArray(girdi?.kaynaklar) ? girdi.kaynaklar.filter((id) => typeof id === "string" && izler.gorulen.has(id)) : [];
+    const kimlikler = [...new Set(anilan.length ? anilan : izler.okunan)].slice(0, 8);
+    const eserKaynaklari = kimlikler.map((id) => eserler.find((e) => e.id === id)).filter(Boolean)
+      .map((e) => ({ id: e.id, ad: e.ad, il: e.il, kaynak: e.kaynak ?? null, ...(e.dogrulanmis === false && { dogrulanmis: false, kaynakTuru: e.kaynakTuru ?? DIS_KAYNAK_ADI, kaynakUrl: e.kaynakUrl ?? null }) }));
+    const sdk = [...new Set((Array.isArray(girdi?.sdk) ? girdi.sdk : []).filter((a) => typeof a === "string").map((a) => a.trim().replace(/\(\)$/, "")))]
+      .filter(sdkAdiGecerli).slice(0, 10);
+    const dis = (izler.disKullanilan ?? []).map((d) => ({ kaynak: d.kaynak, baslik: d.baslik, url: d.url }));
+    return { eserler: eserKaynaklari, sdk, ...(dis.length && { dis }) };
   }
 
   //   baslat(konusma) → durum
   //   iste(durum) → { cagrilar: [{id, ad, girdi}], sonuclariBildir([{id, icerik, hata}]) }
-  const adaptor = {
+  const adaptorler = {
     anthropic: anthropicAdaptoru,
     "openai-uyumlu": openaiUyumluAdaptor,
-  }[saglayici.tur]?.({ saglayici, sistem, araclar });
+  };
 
-  async function calistir(sohbet, mevcutKod) {
-    if (saglayici.tur === "sahte") return sahteYanit(sohbet, ornekOyun);
+  // secenek.model: yalnızca bu istek için başka bir model (model taraması kullanır); secenek.sinyal: iptal.
+  // secenek.insa: usta açıkça istemiş sayılır (model taraması doğrudan modül yazdırır).
+  // Dönüş: modül yazıldıysa { tur: "modul", kod, … }; sohbet yanıtıysa { tur: "sohbet", metin, … }. İkisinde de kaynaklar ve oneriler.
+  // Konuşmanın şimdiki hâline göre sonraki 2–3 öneriyi yapay zekâya ayrıca sordurur (ana yanıt öneri vermediyse).
+  // Hata ya da sahte modda bilgi bankasından kurulan önerilere düşer.
+  const ONERI_SISTEM = `Lonca Studio'da usta, kalfayla Lonca uygulamasının içinde çalışacak bir modül (her türlü mini uygulama: oyun, araç, çizim, müzik, simülasyon, rehber…; vakıf eserleri temalı) yapıyor. Konuşmaya bakıp ustanın bir sonraki adımda tek dokunuşla gönderebileceği 3 kısa öneri yaz: biri bir soru, biri modülü yaptırmak ya da geliştirmek, biri fikri genişletmek olsun. Ustanın istediği türe sadık kal: oyun istiyorsa oyunu, araç istiyorsa aracı geliştiren öneriler ver (zorluk, bilgisayar rakibi, yeni seviye, yeni özellik, eser fotoğraflı ödül, kaydetme, ses), onu bilgi yarışmasına ya da soru-cevaba çevirmeyi önerme. Ustanın ağzından, ustanın dilinde (Türkçe ya da İngilizce), en çok 80 harf. Yalnızca konuşmada ya da verilen eser listesinde geçen eserlerden söz et; tarih, kişi uydurma. oneri_ver aracıyla ver.`;
+  const oneriAraci = [{ ad: "oneri_ver", aciklama: "Önerileri teslim eder.", sema: { type: "object", properties: { oneriler: { type: "array", items: { type: "string" } } }, required: ["oneriler"] } }];
+  async function onerileriUret(sohbet, { yanit = "", dil = "tr", kod = false, model, sinyal } = {}) {
+    const yedek = () => veridenOneriler(eserler, { dil, kod });
+    let saglayici = saglayiciAl();
+    if (saglayici.tur === "sahte") return yedek();
+    if (model) saglayici = { ...saglayici, model };
+    try {
+      const ornekEserler = karistir(eserler.filter((e) => e.fotograflar?.length)).slice(0, 8).map((e) => (dil === "en" ? e.ad_en || e.ad : e.ad));
+      const ozet = [...sohbet.slice(-6), ...(yanit ? [{ rol: "kalfa", metin: yanit }] : [])]
+        .map((m) => `${m.rol === "usta" ? "USTA" : "KALFA"}: ${String(m.metin).slice(0, 1200)}`).join("\n\n");
+      const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem: ONERI_SISTEM, araclar: oneriAraci, sinyal, zamanAsimiMs: Math.min(zamanAsimiMs, 45_000) });
+      const durum = adaptor.baslat([{ rol: "usta", metin: `# KONUŞMA\n${ozet}\n\n# BİLGİ BANKASINDAN BAZI ESERLER\n${ornekEserler.join(", ")}\n\nDil: ${dil === "en" ? "İngilizce" : "ustanın dili"}${kod ? "\nStudio'da yazılmış bir modül var." : ""}` }]);
+      const { cagrilar, metin } = await adaptor.iste(durum);
+      const girdi = cagrilar[0]?.girdi ?? jsonCoz(metin);
+      const oneriler = onerileriTemizle(Array.isArray(girdi) ? girdi : girdi?.oneriler);
+      return oneriler.length ? oneriler : yedek();
+    } catch {
+      return yedek();
+    }
+  }
+
+  // secenek.dil: Studio arayüzünün dili ("tr" | "en"); ustanın yazdığı dil ve açık isteği her zaman önce gelir.
+  // secenek.admin: istek admin'den (dış kaynak araçları açılır); secenek.izinDurumu: atölye oturumundaki izinler ve
+  // okunmuş dış kaynaklar ({ izinler: [], disKaynaklar: [] }). Dönüşteki kalfaDurumu oturuma geri yazılır.
+  // secenek.genis: genişletilmiş modu onaysız aç (model taraması, testler). Normalde mod atölye oturumundaki karardan gelir.
+  async function calistir(sohbet, mevcutKod, { model, sinyal, insa = false, dil = "tr", admin = false, izinDurumu = null, genis: genisZorla = false } = {}) {
+    const sonMesaj = sohbet.at(-1)?.metin;
+    const insaIzni = insa || insaIzniVar(sonMesaj);
+    // Öneri dili: son mesaj İngilizceyse ya da konuşmada İngilizce istendiyse İngilizce.
+    const oneriDili = ingilizceMi(sonMesaj) || sohbet.some((m) => m.rol === "usta" && /\b(ingilizce|english)\b/i.test(m.metin)) ? "en" : dil;
+    let saglayici = saglayiciAl();
+    if (saglayici.tur === "sahte") {
+      const s = sahteYanit(sohbet, ornekOyun, { insaIzni: insa || insaIstegiMi(sonMesaj) });
+      const ingilizce = oneriDili === "en" && s.tur === "sohbet";
+      const oneriler = ingilizce ? [`Build it: ${String(sonMesaj).slice(0, 60)}`, ...veridenOneriler(eserler, { dil: "en" }).slice(0, 2)] : s.oneriler;
+      return { ...s, oneriler: oneriler?.length ? oneriler : veridenOneriler(eserler, { dil: oneriDili, kod: !!mevcutKod }), model: "sahte" };
+    }
+    if (model) saglayici = { ...saglayici, model };
+    const durumK = {
+      izinler: (izinDurumu?.izinler ?? []).map((i) => ({ ...i })),
+      disKaynaklar: (izinDurumu?.disKaynaklar ?? []).map((d) => ({ ...d })),
+    };
+    // Genişletilmiş mod: usta onay kartında "aç" dediyse ya da Studio'daki kod zaten tuval/oyun.* kullanıyorsa (o kod onayla
+    // ya da elle yazılmıştır; değiştirmek için de aynı sözleşme gerekir). Karar istemciden değil oturum kaydından okunur.
+    const genisKarari = [...durumK.izinler].reverse().find((i) => i.tur === "genis_mod" && i.durum !== "bekliyor");
+    const genis = genisZorla || genisKarari?.karar === "ac" || genisKullaniyor(mevcutKod);
+    const standartSecildi = !genis && genisKarari?.karar === "standart";
+    const kipAraclari = [...araclar, ...(admin ? adminAraclari : ustaAraclari), ...(genis ? [] : [genisModAraci])];
+    const adaptor = adaptorler[saglayici.tur]({ saglayici, sistem: istemler[genis ? "genis" : "standart"][admin ? "admin" : "usta"], araclar: kipAraclari, sinyal, zamanAsimiMs });
+    const tamamla = async (sonuc) => (sonuc.oneriler.length ? sonuc : {
+      ...sonuc, oneriler: await onerileriUret(sohbet, { yanit: sonuc.metin ?? sonuc.aciklama_ustaya, dil: oneriDili, kod: !!(mevcutKod || sonuc.kod), model, sinyal }),
+    });
 
     const konusma = sohbet.map((m) => ({ ...m }));
     if (mevcutKod) konusma.at(-1).metin += `\n\n(Studio'daki güncel modül kodu:)\n\`\`\`js\n${mevcutKod}\n\`\`\``;
+    if (oneriDili === "en" && (ingilizceMi(sonMesaj) || /\b(ingilizce|english)\b/i.test(sonMesaj) || sohbet.some((m) => m.rol === "usta" && /\b(ingilizce|english)\b/i.test(m.metin)))) {
+      konusma.at(-1).metin += "\n\n(Ustanın dili İngilizce: yanıtını, aciklama_ustaya'yı, önerileri ve modülün bütün metinlerini İngilizce yaz; eserlerin İngilizce alanlarını kullan.)";
+    } else if (dil === "en") konusma.at(-1).metin += "\n\n(Studio arayüzü İngilizce: usta Türkçe yazmadıkça İngilizce yanıtla.)";
+    if (insa) konusma.at(-1).metin += "\n\n(Usta modülü şimdi yazmanı istiyor: modul_yaz ile teslim et.)";
+    if (genis && genisKarari?.karar === "ac") konusma.at(-1).metin += "\n\n(Genişletilmiş mod AÇIK: usta onayladı. \"tuval\" düğümü ve oyun.* kullanabilirsin.)";
+    if (standartSecildi) konusma.at(-1).metin += "\n\n(Usta genişletilmiş modu açmadı: standart düğümlerle isteğe en yakın modülü yap; genis_mod_iste'yi bu sohbette yeniden çağırma.)";
+    if (admin && (durumK.izinler.some((i) => i.tur !== "genis_mod") || durumK.disKaynaklar.length)) konusma.at(-1).metin += `\n\n${izinOzeti(durumK)}`;
+    const maddeMetni = admin ? izinliMaddeMetinleri(durumK) : "";
+    if (maddeMetni) konusma.at(-1).metin += `\n\n${maddeMetni}`;
 
     const durum = adaptor.baslat(konusma);
     let sonHatalar = [], deneme = 0;
-    const aramalar = []; 
+    const aramalar = [];
+    const izler = { gorulen: new Set(), okunan: [], disKullanilan: [] };
+    const durumuEkle = (sonuc) => ({ ...sonuc, kalfaDurumu: durumK });
+    // Sunucunun kurduğu onay kartı (istekte oyun adı geçtiğinde ya da model onaysız tuvalli kod yazdığında).
+    function genisKarti(istek, { konu = null, ozellikler = ["tuval", "oyun döngüsü", "dokunma ve sürükleme", "ses"] } = {}) {
+      const ad = String(konu ?? istek ?? "").replace(/\s+/g, " ").trim().slice(0, 80) || "bu modül";
+      const metin = ingilizceMi(istek)
+        ? `This goes beyond the standard SDK: to build “${ad}” properly I need extended mode (canvas, a game loop, touch/drag, sound and vibration). Shall I turn it on? If you keep it standard, I'll build the closest module with the standard building blocks.`
+        : `Bu istek standart SDK'nın dışına çıkıyor: “${ad}” isteğini birebir yapmak için genişletilmiş mod (tuval, oyun döngüsü, dokunma/sürükleme, ses ve titreşim) gerekiyor. Açayım mı? “Standart kalsın” dersen standart düğümlerle isteğe en yakın modülü yaparım.`;
+      const izin = { id: randomUUID().slice(0, 8), tur: "genis_mod", konu: ad, soru: metin, ozellikler, durum: "bekliyor", tarih: new Date().toISOString(), sunucu: true };
+      durumK.izinler.push(izin);
+      return durumuEkle({ tur: "sohbet", metin, aramalar, kaynaklar: { eserler: [], sdk: [] }, oneriler: [], model: saglayici.model, izin: { id: izin.id, tur: "genis_mod", konu: ad, ozellikler } });
+    }
+    const sohbetYaniti = (girdi, metin, ek = {}) => durumuEkle({
+      tur: "sohbet", metin, aramalar, kaynaklar: kaynaklariKur(girdi, izler), oneriler: onerileriTemizle(girdi?.oneriler), model: saglayici.model, ...ek,
+    });
+    const disIzniVar = () => durumK.izinler.some((i) => i.tur === "dis_kaynak" && i.durum === "verildi");
+    const okunanKaynak = (url) => durumK.disKaynaklar.find((d) => adresAnahtari(d.url) === adresAnahtari(url));
+    const ayniAdres = (a, b) => adresAnahtari(a) === adresAnahtari(b);
+    // Kullanılmamış kayıt izni: her madde için bir ekleme (toplu izinde kullanilanlar listesi tutulur).
+    const kayitIzni = (url, karar) => durumK.izinler.find((i) => i.tur === "kayit" && i.durum === "verildi" && i.karar === karar
+      && izinUrlleri(i).some((u) => ayniAdres(u, url)) && !(i.kullanilanlar ?? []).some((u) => ayniAdres(u, url)));
+    // Koddaki dış kaynak bağlantıları: usta için hiç yok; admin için yalnızca okunmuş ve izin verilmiş maddeler.
+    // Yalnızca modüle özel izni verilen maddenin bağlantısı (koddaki sabitte, denetim için) ve "Kaynak: Vikipedi" etiketi kodda bulunmalı.
+    function disKaynakDenetimi(kod) {
+      const hatalar = [];
+      const baglantilar = koddakiDisBaglantilar(kod);
+      if (!admin) {
+        if (baglantilar.length) hatalar.push("Dış kaynak (Vikipedi) içeriği yalnızca admin modüllerinde kullanılabilir; modül yalnızca bilgi bankasındaki eserlerle çalışmalı");
+        return hatalar;
+      }
+      for (const u of baglantilar) {
+        const d = okunanKaynak(u);
+        const izinli = d && durumK.izinler.some((i) => i.tur === "kayit" && ["verildi", "kullanildi"].includes(i.durum) && i.karar !== "reddet" && izinUrlleri(i).some((x) => ayniAdres(x, d.url)));
+        if (!izinli) hatalar.push(`${u}: bu madde okunmadı ya da admin kullanımına izin vermedi`);
+      }
+      const moduleOzel = durumK.izinler.filter((x) => x.tur === "kayit" && x.durum === "verildi" && x.karar === "modul");
+      for (const i of moduleOzel) {
+        for (const url of izinUrlleri(i)) {
+          if (!baglantilar.some((u) => ayniAdres(u, url))) hatalar.push(`Modüle özel dış içerik (${maddeAdi(i, url)}) kullanılıyor: kaynağın bağlantısını (${url}) koddaki DIS_ICERIK sabitine yaz (ekranda gösterme)`);
+        }
+      }
+      if (moduleOzel.length && !/Kaynak:\s*Vikipedi/i.test(kod)) hatalar.push("Dış kaynaklı içeriği gösterdiğin ekranlarda \"Kaynak: Vikipedi\" etiketini göster");
+      return hatalar;
+    }
+    const disKullan = (d) => { if (d && !izler.disKullanilan.some((x) => x.url === d.url)) izler.disKullanilan.push(d); };
 
-    for (let adim = 1; adim <= MAKS_ADIM && deneme < MAKS_DENEME; adim++) {
-      const { cagrilar, sonuclariBildir } = await adaptor.iste(durum);
+    // Onay kartı: istekte oyun adı ya da gerçek zamanlı bir tür geçiyorsa model çağrılmadan sunucu sorar (soru turunda değil,
+    // yalnızca yapım isteğinde; bekleyen bir kart varsa yenisi açılmaz).
+    const bekleyenKart = durumK.izinler.some((i) => i.tur === "genis_mod" && i.durum === "bekliyor");
+    if (!genis && !standartSecildi && !bekleyenKart && insaIzni && genisIstegiMi(sonMesaj)) return genisKarti(sonMesaj);
+
+    for (let adim = 1; adim <= (admin ? MAKS_ADIM_ADMIN : MAKS_ADIM) && deneme < MAKS_DENEME; adim++) {
+      const { cagrilar, metin, sonuclariBildir } = await adaptor.iste(durum);
       if (!cagrilar.length) {
-        sonuclariBildir([{ id: null, icerik: "Yanıtını bir araç çağrısıyla ver (eser_ara ya da modul_yaz).", hata: true }]);
+        // Araç çağırmadan düz metinle yanıtlayan modeller: bu bir sohbet yanıtıdır.
+        if (metin?.trim()) return tamamla(sohbetYaniti({}, metin.trim()));
+        sonuclariBildir([{ id: null, icerik: "Yanıtını bir araç çağrısıyla ver (yanit_ver, eser_ara, eser_bilgisi, sdk_bilgisi ya da modul_yaz).", hata: true }]);
         continue;
       }
       const sonuclar = [];
-      let teslim = null;
+      let teslim = null, yanit = null;
       for (const c of cagrilar) {
         if (c.ad === "eser_ara") {
           const sonuc = eserAra(c.girdi);
           aramalar.push({ sorgu: c.girdi, bulunan: sonuc.toplam });
+          for (const e of sonuc.eserler) izler.gorulen.add(e.id);
           sonuclar.push({ id: c.id, icerik: JSON.stringify(sonuc) });
+        } else if (c.ad === "eser_bilgisi") {
+          const kayit = eserBilgisi(c.girdi);
+          if (kayit) {
+            izler.gorulen.add(kayit.id);
+            if (!izler.okunan.includes(kayit.id)) izler.okunan.push(kayit.id);
+            aramalar.push({ okunan: kayit.id, ad: kayit.ad });
+          }
+          sonuclar.push(kayit
+            ? { id: c.id, icerik: JSON.stringify(kayit) }
+            : { id: c.id, hata: true, icerik: `Bilgi bankasında "${c.girdi?.id ?? ""}" kimlikli eser yok; önce eser_ara ile ara.` });
+        } else if (c.ad === "sdk_bilgisi") {
+          const sonuc = sdkBilgisi(c.girdi);
+          aramalar.push({ sdk: String(c.girdi?.konu ?? "").slice(0, 60), bulunan: sonuc.bulunan ?? 0 });
+          sonuclar.push({ id: c.id, icerik: JSON.stringify(sonuc) });
+        } else if (c.ad === "genis_mod_iste" && !genis) {
+          const konu = String(c.girdi?.konu ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+          const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim().slice(0, 1500) : "";
+          if (konu.length < 2 || !m) { sonuclar.push({ id: c.id, hata: true, icerik: "\"konu\" ve \"metin\" gerekli" }); continue; }
+          // Usta bu sohbette standart kalmayı seçtiyse yeniden sormak yok (usta açıkça genişletilmiş mod istemedikçe).
+          // Karar cümlesi ("Standart kalsın: …") kendisi "genişletilmiş" sözcüğünü içerir; o tur yeniden sormak sayılmaz.
+          if (standartSecildi && (/^Standart kalsın/.test(String(sonMesaj)) || !/geni[şs]letilmi[şs]/i.test(String(sonMesaj)))) {
+            sonuclar.push({ id: c.id, hata: true, icerik: "Usta standart kalmayı seçti. Yeniden sorma: standart düğümlerle isteğe en yakın modülü yap." });
+            continue;
+          }
+          const ozellikler = (Array.isArray(c.girdi?.ozellikler) ? c.girdi.ozellikler : []).filter((x) => typeof x === "string").map((x) => x.slice(0, 40)).slice(0, 6);
+          const izin = { id: randomUUID().slice(0, 8), tur: "genis_mod", konu, soru: m, ozellikler, durum: "bekliyor", tarih: new Date().toISOString() };
+          durumK.izinler.push(izin);
+          yanit = sohbetYaniti(c.girdi, m, { izin: { id: izin.id, tur: "genis_mod", konu, ozellikler } });
+          sonuclar.push({ id: c.id, icerik: "Onay kartı ustaya gösterildi." });
+        } else if (c.ad === "eser_istegi" && !admin) {
+          const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim() : "";
+          const ad = String(c.girdi?.ad ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+          if (!m || ad.length < 2) { sonuclar.push({ id: c.id, hata: true, icerik: "\"metin\" ve \"ad\" gerekli" }); continue; }
+          const istek = { ad, il: String(c.girdi?.il ?? "").trim().slice(0, 40) || null, not: String(c.girdi?.not ?? "").trim().slice(0, 600) || null };
+          yanit = sohbetYaniti(c.girdi, m, { eserIstegi: istek });
+          sonuclar.push({ id: c.id, icerik: "Öneri kartı ustaya gösterildi." });
+        } else if (c.ad === "izin_iste" && admin) {
+          const tur = c.girdi?.tur, konu = String(c.girdi?.konu ?? "").trim().slice(0, 120), soru = String(c.girdi?.soru ?? "").trim().slice(0, 1500);
+          const hatalar = [];
+          if (!IZIN_KARARLARI[tur]) hatalar.push("tur: dis_kaynak | kayit");
+          if (konu.length < 2 || !soru) hatalar.push("konu ve soru gerekli");
+          // Kayıt izni: tek madde (kaynak_url) ya da birden çok madde (kaynak_urller); her biri okunmuş olmalı.
+          const istenen = tur === "kayit"
+            ? (Array.isArray(c.girdi?.kaynak_urller) && c.girdi.kaynak_urller.length ? c.girdi.kaynak_urller : [c.girdi?.kaynak_url]).filter((u) => typeof u === "string" && u.trim())
+            : [];
+          const maddeler = [];
+          for (const u of istenen) {
+            const k = okunanKaynak(u);
+            if (!k) hatalar.push(`${u}: önce dis_kaynak_oku ile oku`);
+            else if (!maddeler.some((m) => ayniAdres(m.url, k.url))) maddeler.push(k);
+          }
+          if (tur === "kayit" && !istenen.length) hatalar.push("kaynak_url ya da kaynak_urller: önce dis_kaynak_oku ile okuduğun maddelerin adreslerini ver");
+          if (maddeler.length > MAKS_TOPLU_KAYIT) hatalar.push(`bir kartta en çok ${MAKS_TOPLU_KAYIT} madde`);
+          if (hatalar.length) { sonuclar.push({ id: c.id, hata: true, icerik: hatalar.join("; ") }); continue; }
+          const tek = maddeler.length === 1 ? maddeler[0] : null;
+          const izin = { id: randomUUID().slice(0, 8), tur, konu, soru, durum: "bekliyor", tarih: new Date().toISOString(),
+            ...(maddeler.length && { urller: maddeler.map((m) => m.url), maddeler: maddeler.map((m) => ({ url: m.url, baslik: m.baslik, kaynak: m.kaynak })), kullanilanlar: [] }),
+            ...(tek && { kaynak_url: tek.url, kaynak: tek.kaynak, baslik: tek.baslik }) };
+          durumK.izinler.push(izin);
+          for (const m of maddeler) disKullan(m);
+          yanit = sohbetYaniti(c.girdi, soru, { izin: { id: izin.id, tur, konu, kaynak_url: izin.kaynak_url, baslik: izin.baslik, kaynak: izin.kaynak, ...(izin.maddeler && { maddeler: izin.maddeler }) } });
+          sonuclar.push({ id: c.id, icerik: "İzin kartı admin'e gösterildi." });
+        } else if (["dis_kaynak_liste", "dis_kaynak_ara", "dis_kaynak_oku"].includes(c.ad) && admin) {
+          if (!disIzniVar()) { sonuclar.push({ id: c.id, hata: true, icerik: "Admin dış kaynak için izin vermedi. Önce izin_iste (tur: dis_kaynak) ile izin iste." }); continue; }
+          try {
+            if (c.ad === "dis_kaynak_liste") {
+              const r = await vikipediIlListesi(c.girdi, disFetch);
+              aramalar.push({ dis: `${String(c.girdi?.il ?? "").slice(0, 40)} (il listesi)`, bulunan: r.bulunan ?? 0, kaynak: DIS_KAYNAK_ADI });
+              sonuclar.push({ id: c.id, icerik: JSON.stringify(r) });
+            } else if (c.ad === "dis_kaynak_ara") {
+              const r = await vikipediAra(c.girdi, disFetch);
+              aramalar.push({ dis: String(c.girdi?.sorgu ?? "").slice(0, 60), bulunan: r.bulunan ?? 0, kaynak: DIS_KAYNAK_ADI });
+              sonuclar.push({ id: c.id, icerik: JSON.stringify(r) });
+            } else {
+              // Bu oturumda okunmuş madde yeniden çekilmez (zaman ve Vikipedi hız sınırı).
+              const baslik = String(c.girdi?.baslik ?? "").trim().toLocaleLowerCase("tr");
+              const r = durumK.disKaynaklar.find((d) => d.baslik.toLocaleLowerCase("tr") === baslik && d.dil === (c.girdi?.dil === "en" ? "en" : "tr"))
+                ?? await vikipediOku(c.girdi, disFetch);
+              if (!r) { sonuclar.push({ id: c.id, hata: true, icerik: "Bu başlıkta bir Vikipedi maddesi yok; dis_kaynak_ara ile doğru başlığı bul." }); continue; }
+              if (!okunanKaynak(r.url)) {
+                durumK.disKaynaklar.push(r);
+                while (durumK.disKaynaklar.length > MAKS_DIS_KAYNAK) durumK.disKaynaklar.shift();
+              }
+              aramalar.push({ disOkunan: r.baslik, url: r.url, kaynak: DIS_KAYNAK_ADI });
+              sonuclar.push({ id: c.id, icerik: JSON.stringify(r) });
+            }
+          } catch (h) {
+            sonuclar.push({ id: c.id, hata: true, icerik: h.message });
+          }
+        } else if (c.ad === "bilgi_bankasina_ekle" && admin) {
+          const g = c.girdi ?? {};
+          const kaynak = okunanKaynak(g.kaynak_url);
+          const izin = kaynak && kayitIzni(kaynak.url, "bilgi-bankasi");
+          if (!kaynak) { sonuclar.push({ id: c.id, hata: true, icerik: "kaynak_url okunan bir madde değil; önce dis_kaynak_oku" }); continue; }
+          if (!izin) { sonuclar.push({ id: c.id, hata: true, icerik: "Admin bu madde için bilgi bankasına ekleme izni vermedi. izin_iste (tur: kayit) ile sor." }); continue; }
+          if (!eserEkle) { sonuclar.push({ id: c.id, hata: true, icerik: "Bilgi bankasına ekleme bu sunucuda kapalı" }); continue; }
+          const dayanak = [
+            ...kaynaktaDayanakVar(g.tarihce, kaynak.metin),
+            ...kaynaktaDayanakVar(g.ad, `${kaynak.baslik} ${kaynak.metin}`, { esik: 0.5 }).map((h) => `ad: ${h}`),
+          ];
+          if (g.yuzyil != null && !yuzyilKaynaktaVar(g.yuzyil, kaynak.metin)) dayanak.push(`${g.yuzyil}. yüzyıl maddede açıkça geçmiyor; yuzyil alanını boş bırak`);
+          if (dayanak.length) { sonuclar.push({ id: c.id, hata: true, icerik: `Kayıt okunan maddeye dayanmıyor, düzelt:\n- ${dayanak.join("\n- ")}` }); continue; }
+          const r = await eserEkle({
+            ad: g.ad, ad_en: g.ad_en, il: g.il, ilce: g.ilce, tur: g.tur, yuzyil: g.yuzyil ?? null, adres: g.adres,
+            tarihce: { tr: g.tarihce, en: g.tarihce_en }, konum: kaynak.konum, fotograflar: [],
+            kaynak: `Vikipedi, "${kaynak.baslik}" maddesi (CC BY-SA 4.0)`, dogrulanmis: false, kaynakTuru: DIS_KAYNAK_ADI, kaynakUrl: kaynak.url,
+          }, { izin: izin.id });
+          if (r.hatalar?.length) { sonuclar.push({ id: c.id, hata: true, icerik: `Eser doğrulamadan geçmedi: ${r.hatalar.join("; ")}` }); continue; }
+          // İzin her madde için bir kez kullanılır; bütün maddeler kullanılınca izin kapanır.
+          izin.kullanilanlar = [...(izin.kullanilanlar ?? []), kaynak.url];
+          izin.eserIdler = { ...(izin.eserIdler ?? {}), [kaynak.url]: r.eser.id };
+          if (izinUrlleri(izin).every((u) => izin.kullanilanlar.some((x) => ayniAdres(x, u)))) izin.durum = "kullanildi";
+          if (izinUrlleri(izin).length === 1) izin.eserId = r.eser.id;
+          izler.gorulen.add(r.eser.id);
+          if (!izler.okunan.includes(r.eser.id)) izler.okunan.push(r.eser.id);
+          disKullan(kaynak);
+          aramalar.push({ eklenen: r.eser.id, ad: r.eser.ad, kaynak: DIS_KAYNAK_ADI });
+          sonuclar.push({ id: c.id, icerik: JSON.stringify({ eklendi: true, id: r.eser.id, not: "Kayıt ✓ almadan (Kaynak: Vikipedi) eklendi; modülde eserler.getir ile oku." }) });
+        } else if (c.ad === "yanit_ver") {
+          const m = typeof c.girdi?.metin === "string" ? c.girdi.metin.trim() : "";
+          if (m) { yanit = sohbetYaniti(c.girdi, m); sonuclar.push({ id: c.id, icerik: "Yanıt iletildi." }); }
+          else sonuclar.push({ id: c.id, hata: true, icerik: "\"metin\" alanı boş" });
         } else if (c.ad === "modul_yaz") {
+          if (!insaIzni) {
+            sonuclar.push({ id: c.id, hata: true, icerik: "Usta bir soru sordu, modülü yazmanı istemedi. Kod yazma: yanit_ver ile sorusunu yanıtla; istersen planını kısaca anlat ve hazır olduğunda yazmanı istemesini söyle." });
+            continue;
+          }
+          // Onaysız oturumda tuval/oyun.* kullanan kod: reddetmek yerine ustaya onay kartı göster (usta standart dediyse reddet).
+          if (!genis && !standartSecildi && genisKullaniyor(c.girdi?.kod)) {
+            yanit = genisKarti(sonMesaj, { konu: typeof c.girdi?.ad === "string" && c.girdi.ad.trim() ? c.girdi.ad : null });
+            sonuclar.push({ id: c.id, icerik: "Genişletilmiş mod kapalı; ustaya onay kartı gösterildi." });
+            continue;
+          }
           deneme++;
-          sonHatalar = modulDenetle(c.girdi, sdkTipleri);
+          eksikAdlariTamamla(c.girdi);
+          sonHatalar = modulDenetle(c.girdi, genis ? sdkTipleri : sdkStandart, bilgiBankasi(), { genis });
+          if (typeof c.girdi?.kod === "string") sonHatalar.push(...disKaynakDenetimi(c.girdi.kod));
           if (!sonHatalar.length) teslim = c.girdi;
           sonuclar.push(sonHatalar.length
             ? { id: c.id, hata: true, icerik: `Modül doğrulamadan geçmedi, lütfen düzelt:\n- ${sonHatalar.join("\n- ")}` }
@@ -183,20 +851,101 @@ ${ornekOyun}
           sonuclar.push({ id: c.id, hata: true, icerik: `Bilinmeyen araç: ${c.ad}` });
         }
       }
-      if (teslim) return { ...teslim, deneme, aramalar };
+      // model: bu istekte kodu yazan model (Studio ve modül kaydı bunu gösterir)
+      if (teslim) {
+        const { kaynaklar, sdk, oneriler, ...modul } = teslim;
+        for (const u of koddakiDisBaglantilar(modul.kod)) disKullan(okunanKaynak(u));
+        for (const i of durumK.izinler) if (i.tur === "kayit" && i.durum === "verildi" && i.karar === "modul") for (const u of izinUrlleri(i)) disKullan(okunanKaynak(u));
+        const disKaynaklar = izler.disKullanilan.map((d) => ({ kaynak: d.kaynak, baslik: d.baslik, url: d.url }));
+        return tamamla(durumuEkle({ ...modul, tur: "modul", deneme, ...(genis && { genisMod: true }), aramalar, kaynaklar: kaynaklariKur({ kaynaklar, sdk }, izler), oneriler: onerileriTemizle(oneriler), model: saglayici.model, disKaynaklar }));
+      }
+      if (yanit) return tamamla(yanit);
       sonuclariBildir(sonuclar);
     }
-    const hata = new Error("Kalfa geçerli bir modül üretemedi");
+    const hata = new Error(deneme ? "Kalfa geçerli bir modül üretemedi" : "Kalfa bir yanıt üretemedi");
     hata.ayrintilar = sonHatalar;
+    // Okunan maddeler ve izinler kaybolmasın: atölye oturumu hata durumunda da bu durumu yazar (yeniden okuma yok).
+    hata.kalfaDurumu = durumK;
     throw hata;
   }
 
-  const etiket = saglayici.tur === "sahte" ? "sahte" : `${saglayici.model}`;
-  return { calistir, dogrula: (kod) => dogrula(kod, sdkTipleri), sahte: saglayici.tur === "sahte", model: etiket, saglayici: saglayici.tur };
+  return {
+    calistir,
+    onerileriUret,
+    baslangicOnerileri: (dil) => veridenOneriler(eserler, { dil }),
+    dogrula: (kod) => dogrula(kod, sdkTipleri, bilgiBankasi()),
+    get sahte() { return saglayiciAl().tur === "sahte"; },
+    get model() { const s = saglayiciAl(); return s.tur === "sahte" ? "sahte" : s.model; },
+    get saglayici() { return saglayiciAl().tur; },
+    get ustagpt() { const s = saglayiciAl(); return s.tur === "openai-uyumlu" && !!s.ustagpt; },
+  };
+}
+
+// İstemdeki bir satırı başka bir satırla değiştirir; eşleşmeyen değişiklik sessizce geçmesin diye hata atar
+// (usta istemi değişip admin sürümü eski metni aramaya devam ederse sunucu açılırken fark edilir).
+export function istemDegistir(metin, degisiklikler) {
+  let sonuc = metin;
+  for (const [eski, yeni] of degisiklikler) {
+    if (!eski || !sonuc.includes(eski)) throw new Error(`Admin istemi kurulamadı: değiştirilecek satır bulunamadı (${String(eski).slice(0, 60)}…)`);
+    sonuc = sonuc.replace(eski, () => yeni);
+  }
+  return sonuc;
+}
+
+// İzindeki bir maddenin adı (toplu izinde maddeler listesinden).
+const maddeAdi = (i, url) => i.maddeler?.find((m) => m.url === url)?.baslik ?? i.baslik ?? i.konu;
+
+// Kayıt izninin kapsadığı madde adresleri (tek kaynak_url'li eski izinler de).
+export const izinUrlleri = (i) => (Array.isArray(i?.urller) ? i.urller : i?.kaynak_url ? [i.kaynak_url] : []);
+
+// Karar verilmiş ama henüz kullanılmamış kayıt izinlerinin maddeleri: metinleri son mesaja eklenir. Kalfa önceki turda
+// okuduğu metni görmez (yalnızca özet kalır); "modüle özel" içerik için 10 maddeyi yeniden okuması turu çok uzatıyordu.
+export function izinliMaddeMetinleri({ izinler = [], disKaynaklar = [] }) {
+  const urller = [];
+  let modulIcin = false;
+  for (const i of izinler) {
+    if (i.tur !== "kayit" || i.durum !== "verildi" || !["modul", "bilgi-bankasi"].includes(i.karar)) continue;
+    if (i.karar === "modul") modulIcin = true;
+    for (const u of izinUrlleri(i)) {
+      if (!(i.kullanilanlar ?? []).some((x) => adresAnahtari(x) === adresAnahtari(u)) && !urller.some((x) => adresAnahtari(x) === adresAnahtari(u))) urller.push(u);
+    }
+  }
+  const parcalar = [];
+  let toplam = 0;
+  for (const u of urller) {
+    const d = disKaynaklar.find((x) => adresAnahtari(x.url) === adresAnahtari(u));
+    if (!d?.metin) continue;
+    const kalan = MAKS_MADDE_TOPLAMI - toplam;
+    if (kalan < 200) break;
+    const metin = d.metin.length > Math.min(MAKS_MADDE_METNI, kalan) ? `${d.metin.slice(0, Math.min(MAKS_MADDE_METNI, kalan))}…` : d.metin;
+    toplam += metin.length;
+    parcalar.push(`### ${d.baslik} (${d.url})\n${metin}`);
+  }
+  if (!parcalar.length) return "";
+  const olcu = modulIcin ? `\nModüle özel içerikte ölçülü ol: madde başına 2–4 kısa bilgi ya da soru, modül en çok ~${MAKS_MODUL_HEDEF} satır.` : "";
+  return `(Admin'in izin verdiği maddeler zaten okundu; yeniden dis_kaynak_oku çağırma. Yalnızca aşağıdaki metinlerde geçen bilgiyi kullan.${olcu}\n\n${parcalar.join("\n\n")})`;
+}
+
+// Admin'in verdiği izinlerin ve okunan maddelerin kalfaya giden özeti (model durumu her turda buradan bilir).
+function izinOzeti({ izinler, disKaynaklar }) {
+  const KARAR = { ver: "izin verildi", reddet: "reddedildi", "bilgi-bankasi": "bilgi bankasına eklensin", modul: "yalnızca bu modüle özel" };
+  const satirlar = izinler.filter((i) => i.tur !== "genis_mod").slice(-8).map((i) => {
+    const urller = izinUrlleri(i);
+    const durum = i.durum === "bekliyor" ? "yanıt bekliyor" : i.durum === "kullanildi" ? "kullanıldı" : KARAR[i.karar] ?? i.durum;
+    const ust = `- ${i.tur === "dis_kaynak" ? "Dış kaynak" : "Kayıt"} izni (${i.konu}${urller.length === 1 ? `, ${urller[0]}` : ""}): ${durum}${urller.length === 1 && i.eserId ? ` (bilgi bankasında: ${i.eserId})` : ""}`;
+    if (urller.length < 2) return ust;
+    // Toplu izin: her maddenin durumu ayrı (kullanılan maddeye ikinci ekleme yapılamaz).
+    return [ust, ...urller.map((u) => {
+      const id = i.eserIdler?.[u];
+      return `  · ${u}: ${id ? `eklendi (bilgi bankasında: ${id})` : i.durum === "verildi" && i.karar === "bilgi-bankasi" ? "eklenmeyi bekliyor" : durum}`;
+    })].join("\n");
+  });
+  const okunan = disKaynaklar.map((d) => `- ${d.kaynak}: "${d.baslik}" ${d.url}`);
+  return `(İzin durumu — sunucu kaydı:\n${satirlar.join("\n") || "- yok"}\nOkunmuş dış kaynaklar:\n${okunan.join("\n") || "- yok"})`;
 }
 
 // ---------- Claude (Anthropic) ----------
-function anthropicAdaptoru({ saglayici, sistem, araclar }) {
+function anthropicAdaptoru({ saglayici, sistem, araclar, sinyal, zamanAsimiMs }) {
   const istemci = new Anthropic();
   const tools = araclar.map((a) => ({ name: a.ad, description: a.aciklama, input_schema: a.sema }));
   return {
@@ -209,7 +958,7 @@ function anthropicAdaptoru({ saglayici, sistem, araclar }) {
         tools,
         tool_choice: { type: "any" }, 
         messages: durum.mesajlar,
-      }).finalMessage();
+      }, { timeout: zamanAsimiMs, ...(sinyal && { signal: sinyal }) }).finalMessage();
       const bloklar = yanit.content.filter((b) => b.type === "tool_use");
       return {
         cagrilar: bloklar.map((b) => ({ id: b.id, ad: b.name, girdi: b.input })),
@@ -227,7 +976,7 @@ function anthropicAdaptoru({ saglayici, sistem, araclar }) {
   };
 }
 
-function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
+function openaiUyumluAdaptor({ saglayici, sistem, araclar, sinyal, zamanAsimiMs }) {
   const tools = araclar.map((a) => ({ type: "function", function: { name: a.ad, description: a.aciklama, parameters: a.sema } }));
   // OpenCode Go (ve Zen) istekleri konuşma başına sabit bir oturum kimliği ister.
   // Anahtar "oc_sk_" ile başlıyorsa sağlayıcı OpenCode kabul edilir.
@@ -249,32 +998,55 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
     }),
     async iste(durum) {
       const govde = { model: saglayici.model, messages: durum.mesajlar, tools, tool_choice: "auto", max_tokens: 32000 };
-      const gonder = () => fetch(`${saglayici.url}/chat/completions`, {
-        method: "POST",
-        headers: { ...basliklar, ...(opencode && { "x-opencode-session": durum.oturum }) },
-        body: JSON.stringify(govde),
-      });
+      // Her istek zaman aşımına (ve varsa dışarıdan gelen iptale) bağlıdır; yanıt gövdesi de bu süre içinde okunur.
+      // Zaman aşımı elle kurulur: Node 20'de AbortSignal.any + AbortSignal.timeout birleşimi kimi zaman hiç tetiklenmiyor
+      // (CI'da Node 20.19'da istek askıda kalıyordu); düz bir zamanlayıcı her sürümde güvenilir.
+      const gonder = async () => {
+        const denetci = new AbortController();
+        const zamanlayici = setTimeout(() => denetci.abort(new DOMException("Zaman aşımı", "TimeoutError")), zamanAsimiMs);
+        const iptalEt = () => denetci.abort(sinyal.reason);
+        if (sinyal?.aborted) iptalEt();
+        else sinyal?.addEventListener("abort", iptalEt, { once: true });
+        const isaret = denetci.signal;
+        try {
+          const y = await fetch(`${saglayici.url}/chat/completions`, {
+            method: "POST",
+            headers: { ...basliklar, ...(opencode && { "x-opencode-session": durum.oturum }) },
+            body: JSON.stringify(govde),
+            signal: isaret,
+          });
+          return { y, metin: await y.text() };
+        } catch (h) {
+          if (sinyal?.aborted) throw sinyal.reason instanceof Error ? sinyal.reason : new Error("Kalfa isteği iptal edildi");
+          if (h.name === "TimeoutError") throw Object.assign(new Error(`Yapay zekâ sağlayıcısı ${Math.round(zamanAsimiMs / 1000)} sn içinde yanıt vermedi (zaman aşımı)`), { zamanAsimi: true });
+          throw new Error(`Yapay zekâ sağlayıcısına ulaşılamadı: ${h.cause?.code ?? h.message}`);
+        } finally {
+          clearTimeout(zamanlayici);
+          sinyal?.removeEventListener("abort", iptalEt);
+        }
+      };
+      const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 
-      let y = await gonder();
-      let hataGovdesi = y.ok ? "" : await y.text();
+      let { y, metin } = await gonder();
+      let hataGovdesi = y.ok ? "" : metin;
       // Geçici sağlayıcı hataları (5xx) için kısa beklemeyle iki kez daha dene.
       for (let deneme = 1; deneme <= 2 && !y.ok && y.status >= 500; deneme++) {
-        await new Promise((r) => setTimeout(r, 3000 * deneme));
-        y = await gonder();
-        hataGovdesi = y.ok ? "" : await y.text();
+        await bekle(3000 * deneme);
+        ({ y, metin } = await gonder());
+        hataGovdesi = y.ok ? "" : metin;
       }
       // Bazı modeller (ör. düşünen DeepSeek) tool_choice: "required" kabul etmez.
       // "auto" de reddedilirse istekten alanı tamamen çıkarıp bir kez daha dene.
       if (!y.ok && y.status === 400 && govde.tool_choice && /tool_choice/i.test(hataGovdesi)) {
         delete govde.tool_choice;
-        y = await gonder();
-        hataGovdesi = y.ok ? "" : await y.text();
+        ({ y, metin } = await gonder());
+        hataGovdesi = y.ok ? "" : metin;
       }
       if (!y.ok) {
-        if (y.status === 429) throw new Error("Yapay zekâ sağlayıcısının istek kotası doldu (429). Biraz bekle ya da başka bir model dene.");
-        throw new Error(`Yapay zekâ sağlayıcısı hata verdi (${y.status}): ${hataMesaji(hataGovdesi)}`);
+        if (y.status === 429) throw Object.assign(new Error("Yapay zekâ sağlayıcısının istek kotası doldu (429). Biraz bekle ya da başka bir model dene."), { durumKodu: 429 });
+        throw Object.assign(new Error(`Yapay zekâ sağlayıcısı hata verdi (${y.status}): ${hataMesaji(hataGovdesi)}`), { durumKodu: y.status });
       }
-      const mesaj = (await y.json()).choices?.[0]?.message;
+      const mesaj = jsonCoz(metin)?.choices?.[0]?.message;
       if (!mesaj) throw new Error("Yapay zekâ sağlayıcısından boş yanıt geldi");
 
       let cagrilar = (mesaj.tool_calls ?? []).map((c) => ({ id: c.id, ad: c.function?.name, girdi: jsonCoz(c.function?.arguments) ?? {} }));
@@ -284,6 +1056,7 @@ function openaiUyumluAdaptor({ saglayici, sistem, araclar }) {
       }
       return {
         cagrilar,
+        metin: typeof mesaj.content === "string" ? mesaj.content : "",
         sonuclariBildir(sonuclar) {
           durum.mesajlar.push({ role: "assistant", content: mesaj.content ?? "", ...(mesaj.tool_calls?.length && { tool_calls: mesaj.tool_calls }) });
           const metinler = [];
@@ -316,24 +1089,93 @@ function jsonCoz(metin) {
 
 const kimlikGecerli = (id) => typeof id === "string" && /^[a-z0-9-]{1,64}$/.test(id);
 
-function modulDenetle(modul, sdkTipleri) {
+// Modeller kodu eksiksiz yazıp modul_yaz'ın "ad" / "aciklama" alanını sık unutuyor; bu yüzden üç deneme boşa gidiyordu.
+// Ad koddaki sahne.ayarla({ baslik }) değerinden, açıklama ustaya yazılan açıklamanın ilk cümlesinden tamamlanır.
+export function eksikAdlariTamamla(girdi) {
+  if (!girdi || typeof girdi !== "object" || typeof girdi.kod !== "string") return girdi;
+  const bos = (x) => typeof x !== "string" || !x.trim();
+  if (bos(girdi.ad)) {
+    const baslik = /sahne\.ayarla\(\s*\{[^}]*?\bbaslik:\s*["'`]([^"'`$]{2,60})["'`]/.exec(girdi.kod)?.[1];
+    if (baslik) girdi.ad = baslik.trim();
+  }
+  if (bos(girdi.aciklama) && !bos(girdi.aciklama_ustaya)) girdi.aciklama = girdi.aciklama_ustaya.trim().split(/(?<=[.!?])\s/)[0].slice(0, 160);
+  return girdi;
+}
+
+function modulDenetle(modul, sdkTipleri, veri, { genis = true } = {}) {
   const hatalar = [];
   for (const alan of ["id", "ad", "aciklama", "kod", "aciklama_ustaya"]) {
     if (typeof modul?.[alan] !== "string" || !modul[alan].trim()) hatalar.push(`"${alan}" alanı eksik`);
   }
   if (hatalar.length) return hatalar;
   if (!kimlikGecerli(modul.id)) hatalar.push("id yalnızca küçük harf, rakam ve tire içermeli");
-  return hatalar.concat(dogrula(modul.kod, sdkTipleri));
+  return hatalar.concat(dogrula(modul.kod, sdkTipleri, veri, { genis }));
 }
 
 const ORTAM_TIPLERI = "declare const console: { log(...x: unknown[]): void };";
 
-const DUGUM_TIPLERI = new Set("kapak ust_cubuk sutun satir izgara kaydirma kart afis baslik metin dugme ikon_dugme eser gorsel fotograflar cipler istatistik ilerleme sure liste secenekler girdi harita graf dalis rozet ayrac bosluk".split(" "));
+const DUGUM_TIPLERI = new Set("kapak ust_cubuk sutun satir izgara kaydirma kart afis baslik metin dugme ikon_dugme eser gorsel fotograflar cipler istatistik ilerleme sure liste secenekler girdi harita graf dalis tuval rozet ayrac bosluk".split(" "));
+const STANDART_DUGUMLER = new Set([...DUGUM_TIPLERI].filter((t) => t !== "tuval"));
 const ZEMINLER = new Set(["acik", "parsomen", "koyu", "gece"]);
 const IKONLAR = new Set("pusula harita yildiz kupa kitap soru ev kullanici zaman kamera kup oyun liste ok geri bilgi kalp konum arama tekrar".split(" "));
 const ODAKLAR = new Set("genel yakin cati yan arka ust".split(" "));
 
-function dogrula(kod, sdkTipleri) {
+// Modül yalnızca bilgi bankasındaki eserlerle çalışır: koda elle yazılmış eser kimlikleri ve liste süzgeçleri veritabanında olmalı.
+function bilgiBankasiDenetimi(kod, veri) {
+  if (!veri) return [];
+  const hatalar = [];
+  for (const [, ne, id] of kod.matchAll(/\beserler\.(getir|iliskiler)\(\s*["'`]([^"'`]*)["'`]/g)) {
+    if (!veri.idler.has(id)) hatalar.push(`eserler.${ne}("${id}"): bilgi bankasında bu kimlikte bir eser yok. Yalnızca veritabanındaki eserleri kullan; gerçek kimliği eser_ara ile bul`);
+  }
+  for (const [, govde] of kod.matchAll(/\beserler\.liste\(\s*\{([^}]*)\}/g)) {
+    for (const [alan, kume, ad] of [["il", veri.iller, "il"], ["ilce", veri.ilceler, "ilçe"], ["tur", veri.turler, "tür"]]) {
+      const m = new RegExp(`\\b${alan}:\\s*["'\`]([^"'\`]*)["'\`]`).exec(govde);
+      if (m && !kume.has(m[1])) hatalar.push(`eserler.liste: bilgi bankasında "${m[1]}" diye bir ${ad} yok (kayıtlı: ${[...kume].slice(0, 12).join(", ")})`);
+    }
+  }
+  return hatalar;
+}
+
+// Tuval oyunlarındaki sık yanlışlar: çizilen tuval ekranda yok, döngü işlevi async (her kare beklenmez, sıra bozulur).
+function oyunDenetimi(kod) {
+  const hatalar = [];
+  if (/\boyun\.dongu\(\s*async\b/.test(kod)) hatalar.push("oyun.dongu'ya async işlev verme: her kare beklemeden çalışmalı; await gereken işi (depo.yaz, sahne.ciz) döngünün dışında yap");
+  // SDK adını yerel değişkenle gölgelemek (let ekran = "kapak") sonra ekran.kart(...) çağrısını bozar.
+  const iceri = new Set((/import\s*\{([^}]*)\}\s*from\s*["'`]@lonca\/sdk["'`]/.exec(kod)?.[1] ?? "").split(",").map((x) => x.trim()).filter(Boolean));
+  for (const [, ad] of kod.matchAll(/\b(?:let|const|var)\s+([A-Za-z_$][\w$]*)\s*=/g)) {
+    if (iceri.has(ad)) hatalar.push(`"${ad}" @lonca/sdk'dan içe aktarılan adla aynı: yerel değişkene başka ad ver (ör. ekran durumu için "gorunum")`);
+  }
+  if (/\[\s*oyun\.rastgele\(/.test(kod)) hatalar.push("oyun.rastgele ondalıklı sayı döndürür, dizi indeksi olmaz: diziden öğe için oyun.sec(dizi), tam sayı için oyun.tamSayi(a, b) kullan");
+  const cizilen = [...kod.matchAll(/\boyun\.ciz\(\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]);
+  if (cizilen.length && !/\btip:\s*["'`]tuval["'`]/.test(kod)) hatalar.push("oyun.ciz bir \"tuval\" düğümüne çizer: ekrana { tip: \"tuval\", id } koy");
+  // Sabit boyutlu tuval (ör. en: 360, boy: 640) ekranda küçük kalır, kenarlarda boşluk bırakır: tam ekran tuval + oyun.boyut.
+  if (/\btip:\s*["'`]tuval["'`][^}]*\b(en|boy)\s*:/.test(kod) && !/\boyun\.boyut\(/.test(kod)) {
+    hatalar.push("tuval tam ekran olmalı: \"tuval\" düğümüne en/boy verme ({ tip: \"tuval\", id }); gerçek boyutu her karede const { en, boy } = oyun.boyut(id) ile oku ve konum/büyüklükleri buna oranla kur (sabit 360 × 640 yazma)");
+  }
+  const tuvalIdleri = new Set([...kod.matchAll(/\bid:\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]));
+  for (const id of new Set(cizilen)) {
+    if (!tuvalIdleri.has(id)) hatalar.push(`oyun.ciz("${id}"): bu kimlikte bir tuval düğümü yok; { tip: "tuval", id: "${id}" } ile aynı kimliği kullan`);
+  }
+  return hatalar;
+}
+
+// Sözleşmenin <genis> … </genis> blokları: genis false ise çıkarılır, true ise yalnızca işaret satırları silinir.
+export function sdkSurumu(metin, { genis }) {
+  const sonuc = [];
+  let icinde = false;
+  for (const satir of metin.split("\n")) {
+    if (/^\s*\/\/ <genis>\s*$/.test(satir)) { icinde = true; continue; }
+    if (/^\s*\/\/ <\/genis>\s*$/.test(satir)) { icinde = false; continue; }
+    if (genis || !icinde) sonuc.push(satir);
+  }
+  return sonuc.join("\n");
+}
+
+// Kod genişletilmiş modu (tuval düğümü ya da SDK'dan içe aktarılan oyun) kullanıyor mu? Modülün kendi "oyun" değişkeni sayılmaz.
+export const genisKullaniyor = (kod) => typeof kod === "string" && (/\btip:\s*["'`]tuval["'`]/.test(kod)
+  || /import\s*\{[^}]*\boyun\b[^}]*\}\s*from\s*["'`]@lonca\/sdk["'`]/.test(kod));
+
+function dogrula(kod, sdkTipleri, veri, { genis = true } = {}) {
   if (typeof kod !== "string" || !kod.trim()) return ["kod boş"];
   const hatalar = [];
   if (kod.split("\n").length > MAKS_SATIR) hatalar.push(`kod en fazla ${MAKS_SATIR} satır olmalı`);
@@ -346,7 +1188,8 @@ function dogrula(kod, sdkTipleri) {
   const bilinmeyen = (desen, kume, ne) => {
     for (const [, ad] of kod.matchAll(desen)) if (!kume.has(ad)) hatalar.push(`bilinmeyen ${ne}: "${ad}" (geçerli: ${[...kume].join(", ")})`);
   };
-  bilinmeyen(/\btip:\s*["'`]([^"'`]+)["'`]/g, DUGUM_TIPLERI, "düğüm tipi");
+  if (!genis && genisKullaniyor(kod)) hatalar.push("Genişletilmiş mod kapalı: \"tuval\" düğümü ve oyun.* kullanılamaz. Bu gerekiyorsa kod yazma, genis_mod_iste ile ustadan onay iste; usta standart dediyse standart düğümlerle yap");
+  bilinmeyen(/\btip:\s*["'`]([^"'`]+)["'`]/g, genis ? DUGUM_TIPLERI : STANDART_DUGUMLER, "düğüm tipi");
   bilinmeyen(/\bikon:\s*["'`]([^"'`]+)["'`]/g, IKONLAR, "ikon");
   bilinmeyen(/\bodak:\s*["'`]([^"'`]+)["'`]/g, ODAKLAR, "3B odak");
   bilinmeyen(/\bzemin:\s*["'`]([^"'`]+)["'`]/g, ZEMINLER, "tema zemini");
@@ -358,9 +1201,17 @@ function dogrula(kod, sdkTipleri) {
       hatalar.push(`"${ad}" olay döngüsünden sonra const/let ile tanımlanmış; döngü bitmediği için hiç tanımlanmaz. Döngüden önce tanımla ya da "function ${ad}()" yaz`);
     }
   }
+  hatalar.push(...bilgiBankasiDenetimi(kod, veri));
+  hatalar.push(...oyunDenetimi(kod));
+  if (!/sahne\.ciz\s*\(/.test(kod)) hatalar.push("ekran hiç çizilmiyor: arayüz ağacını üreten fonksiyonun sonucunu sahne.ciz(...) ile çiz (yalnızca nesne döndürmek yetmez)");
   if (!/sahne\.ayarla\s*\(/.test(kod)) hatalar.push("modül bir uygulama olmalı: önce sahne.ayarla({ baslik, tema }) çağır, sonra sahne.ciz ile kendi ekranını çiz");
   return hatalar.concat(tipDenetimi(kod, sdkTipleri));
 }
+
+// "let oyun = null;" yazıp değeri iç içe bir fonksiyonda (oyunuKur()) atamak geçerli JavaScript'tir; ama TypeScript
+// o atamayı görmediği için değişkeni hep null sanır ve "oyun && oyun.cevap" ifadesinde oyun'u never'a daraltır.
+// Kalfanın ürettiği geçerli modüller bu yüzden reddediliyordu; never üzerindeki "özellik yok" (TS2339) yok sayılır.
+const neverYanilgisi = (d) => d.code === 2339 && /'never'/.test(ts.flattenDiagnosticMessageText(d.messageText, " "));
 
 function tipDenetimi(kod, sdkTipleri) {
   const dosyalar = { "/modul.js": kod, "/lonca-sdk.d.ts": sdkTipleri, "/ortam.d.ts": ORTAM_TIPLERI };
@@ -378,7 +1229,7 @@ function tipDenetimi(kod, sdkTipleri) {
 
   const program = ts.createProgram(Object.keys(dosyalar), ayarlar, host);
   return ts.getPreEmitDiagnostics(program)
-    .filter((d) => d.file?.fileName === "/modul.js")
+    .filter((d) => d.file?.fileName === "/modul.js" && !neverYanilgisi(d))
     .slice(0, 8)
     .map((d) => {
       const { line } = d.file.getLineAndCharacterOfPosition(d.start ?? 0);
@@ -386,8 +1237,21 @@ function tipDenetimi(kod, sdkTipleri) {
     });
 }
 
-function sahteYanit(sohbet, ornekOyun) {
-  const istek = (sohbet.at(-1)?.metin ?? "").toLocaleLowerCase("tr");
+function sahteYanit(sohbet, ornekOyun, { insaIzni = true } = {}) {
+  const ham = String(sohbet.at(-1)?.metin ?? "").replace(/\s+/g, " ").trim();
+  // Usta modülü açıkça istemediyse sahte kalfa da yalnızca sohbet eder.
+  if (!insaIzni) {
+    const fikir = ham.length > 60 ? `${ham.slice(0, 59)}…` : ham;
+    return {
+      tur: "sohbet",
+      metin: "(Sahte kalfa: yapay zekâ bağlı değil.) Fikrini konuşabiliriz: hangi eserler, kimin için, oyun mu rehber mi olsun? Hazır olduğunda yazmamı iste (“yap”, “hazırla”, “başlayalım”…), modülü yazayım.",
+      aramalar: [],
+      kaynaklar: { eserler: [], sdk: [] },
+      oneriler: onerileriTemizle([`${fikir} yap`, "Hangi eserler var?", "Oyun mu rehber mi olsun?"]),
+    };
+  }
+  const istek = ham.toLocaleLowerCase("tr");
+  const sahteEk = { tur: "modul", kaynaklar: { eserler: [], sdk: ["sahne.ayarla", "sahne.ciz", "eserler.liste"] }, oneriler: ["Renkleri değiştir", "Bir başarım ekle", "Bu modül nasıl çalışıyor?"] };
   if (istek.includes("harita")) {
     const il = ["bursa", "izmir", "manisa"].find((x) => istek.includes(x));
     const ilAdi = { bursa: "Bursa", izmir: "İzmir", manisa: "Manisa" }[il] ?? null;
@@ -433,6 +1297,7 @@ export default async function basla() {
       ikon: "genel",
       deneme: 1,
       aramalar: [],
+      ...sahteEk,
     };
   }
   const tur = ["han", "cami", "hamam", "medrese", "çeşme", "türbe"].find((t) => istek.includes(t));
@@ -453,5 +1318,6 @@ export default async function basla() {
     ikon: turKod ?? "genel",
     deneme: 1,
     aramalar: [],
+    ...sahteEk,
   };
 }

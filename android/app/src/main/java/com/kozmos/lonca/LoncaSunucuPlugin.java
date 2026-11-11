@@ -1,5 +1,8 @@
 package com.kozmos.lonca;
 
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.Settings;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -26,5 +29,20 @@ public class LoncaSunucuPlugin extends Plugin {
         JSObject r = new JSObject();
         r.put("adres", adres);
         call.resolve(r);
+    }
+
+    /** Lonca'nın sistem ayarları sayfasını (İzinler) ya da tur=konum ise cihazın konum servisi ayarını açar. */
+    @PluginMethod
+    public void ayarlariAc(PluginCall call) {
+        Intent i = "konum".equals(call.getString("tur", "uygulama"))
+            ? new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+            : new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", getContext().getPackageName(), null));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Ayarlar açılamadı", e);
+        }
     }
 }

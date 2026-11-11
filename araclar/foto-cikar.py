@@ -3,6 +3,10 @@
 
 Kullanım:
   python3 araclar/foto-cikar.py ham.json kitaplar/bursa-envanteri-cilt-*.pdf > data/bursa-fotograflar.json
+  FOTO_SINIRI=2 python3 araclar/foto-cikar.py konya-kayit.json kitaplar/konya-envanteri-*.pdf > konya-foto.json
+
+- Bursa kayıtlarında kitap_yeri.cilt, Konya/Hatay kayıtlarında (veri-olustur-envanter.py) kitap_yeri.pdf
+  fotoğrafın hangi PDF'e ait olduğunu söyler.
 
 - pdftohtml -xml her fotoğrafı sayfadaki yeriyle birlikte verir. Her PDF sayfası iki kitap sayfalık bir açılım:
   fotoğrafın ortası sol yarıdaysa taraf 0, sağdaysa 1.
@@ -19,7 +23,7 @@ import sys
 import tempfile
 from PIL import Image
 
-FOTO_SINIRI = 4
+FOTO_SINIRI = int(os.environ.get("FOTO_SINIRI", 4))
 EN_KUCUK = (480, 320)          
 HEDEF_GENISLIK = 1280
 CIKIS = "public/medya/eserler"
@@ -48,9 +52,10 @@ def main(ham_yolu, pdfler):
     os.makedirs(CIKIS, exist_ok=True)
     harita = {}
     for pdf in pdfler:
-        cilt = int(re.search(r"cilt-(\d+)", pdf).group(1))
+        cilt_esle = re.search(r"cilt-(\d+)", pdf)
+        cilt = int(cilt_esle.group(1)) if cilt_esle else os.path.basename(pdf)
         baslangic = sorted(((e["kitap_yeri"]["pdf_sayfa"], e["kitap_yeri"]["taraf"]), e["id"])
-                           for e in ham if e.get("kitap_yeri", {}).get("cilt") == cilt)
+                           for e in ham if cilt in (e.get("kitap_yeri", {}).get("cilt"), e.get("kitap_yeri", {}).get("pdf")))
         if not baslangic:
             continue
         adaylar = {}

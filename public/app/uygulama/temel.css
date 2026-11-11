@@ -1,0 +1,208 @@
+/* Android uygulaması (html.kabuk) · temel: belirteçler, yazı, sabit üst çubuk ve alt gezinme, sayfa geçişi,
+   kaydırdıkça belirme, bildirim, erişilebilirlik. Görsel dil web sitesiyle aynı aileden (sıcak kâğıt zemin, Young Serif
+   başlıklar, Figtree, koyu yeşil vurgu); his yerel uygulama: çubuklar hiç kaymaz, sayfa yana kaymaz, içerik yumuşakça
+   solup yükselerek gelir. Yalnızca transform/opacity canlanır; hareketi azalt tercihi tüm animasyonu kapatır. */
+
+/* ---------- Belirteçler (yüksek kontrast kendi siyah/sarı paletini korur) ---------- */
+:root.kabuk:not(.kontrast) {
+  --zemin: #f6f4ef;
+  --zemin-2: #ece8de;
+  --yuzey: #ffffff;
+  --yuzey-2: #f1ede4;
+  --metin: #16150f;
+  --soluk: #5c584e;
+  --soluk-dolgu: #55514a;
+  --cizgi: rgba(22, 21, 15, .11);
+  --cizgi-guclu: rgba(22, 21, 15, .22);
+  --ana: #16150f;
+  --ana-metin: #ffffff;
+  --vurgu: #167a54;
+  --vurgu-zemin: rgba(22, 122, 84, .11);
+  --dolgu: rgba(92, 88, 78, .1);
+  --dolgu-guclu: rgba(92, 88, 78, .18);
+  --malzeme: rgba(246, 244, 239, .88);
+  --golge-kart: 0 1px 2px rgba(22, 21, 15, .05), 0 8px 24px -12px rgba(22, 21, 15, .16);
+  --golge-yuksek: 0 18px 50px -12px rgba(22, 21, 15, .3);
+  --perde: rgba(22, 21, 15, .4);
+}
+:root.kabuk:not(.kontrast)[data-tema="koyu"] {
+  --zemin: #0f0f0d;
+  --zemin-2: #181815;
+  --yuzey: #1d1d1a;
+  --yuzey-2: #272722;
+  --metin: #f2efe7;
+  --soluk: #aaa596;
+  --soluk-dolgu: #aaa596;
+  --cizgi: rgba(242, 239, 231, .1);
+  --cizgi-guclu: rgba(242, 239, 231, .2);
+  --ana: #f2efe7;
+  --ana-metin: #0f0f0d;
+  --vurgu: #3fd497;
+  --vurgu-zemin: rgba(63, 212, 151, .14);
+  --dolgu: rgba(242, 239, 231, .08);
+  --dolgu-guclu: rgba(242, 239, 231, .14);
+  --malzeme: rgba(15, 15, 13, .88);
+  --golge-kart: none;
+  --golge-yuksek: 0 18px 50px -12px rgba(0, 0, 0, .7);
+  --perde: rgba(0, 0, 0, .6);
+}
+:root.kabuk {
+  --yazi-sistem: "Figtree", system-ui, -apple-system, Roboto, sans-serif;
+  --serif: "Young Serif", Georgia, serif;
+  --altin: #e6c477;
+  --ust-boy: 56px;
+  --alt-boy: 68px;
+  /* kabuk.js çubukların gerçek yüksekliğini yazar (Android'de sistem yazı boyutu büyükse çubuklar da büyür). */
+  --ust: var(--ust-h, calc(var(--ust-boy) + env(safe-area-inset-top)));
+  --alt: var(--alt-h, calc(var(--alt-boy) + env(safe-area-inset-bottom)));
+  --kenar: 16px;
+  --egri-cik: cubic-bezier(.3, 0, .8, .15);
+  --egri-gir: cubic-bezier(.05, .7, .1, 1);
+}
+/* Başlıklar web sitesindeki gibi Young Serif; okunaklı yazı tercihi her zaman üstün. */
+:root.kabuk:not(.okunakli) :is(.bolum-baslik, .vitrin-baslik, .profil-ad, .oc-ad, .us-ad, .ae-ad, .ks-govde h2, .tn-metin h2, .hesap-kart h2,
+  #marka-ad, .gunun-karti strong, .ep-govde > h2, .izin-kutu h2, .ayarlar-kutu > h2, #davet-karti h2, .mc-baslik, .kh-baslik h3) {
+  font-family: var(--serif); font-weight: 400; letter-spacing: -.01em;
+}
+
+/* ---------- Yerel uygulama hissi: hiçbir şey yana taşmaz, sayfa esnemez, arayüz metni seçilmez ---------- */
+:root.kabuk, .kabuk body { overflow-x: clip; max-width: 100%; }
+.kabuk body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--zemin); }
+.kabuk :is(button, .ust-bar, .alt-gezinme, .bolum-ust, .kategori-cipleri, .pl-grup, .kh-araclar, .profil-istatistik, .oc-kart, .secki-karti, .gunun-karti, .devam-karti) {
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+.kabuk img { -webkit-user-drag: none; -webkit-touch-callout: none; }
+.kabuk :is(.meydan, .meydan-duzen, .meydan-ana, .meydan-yan, .profil-icerik, .ana-ekran, .profil-ekrani, section, li) { min-width: 0; }
+.kabuk :is(.ana-ekran, .profil-ekrani) img, .kabuk :is(.ana-ekran, .profil-ekrani) :is(input, select, textarea) { max-width: 100%; }
+
+/* ---------- Açılış ekranı ---------- */
+.kabuk .acilis-ekrani {
+  position: fixed; inset: 0; z-index: 3000; display: grid; place-content: center; justify-items: center; gap: .2rem;
+  background: var(--zemin); color: var(--metin); font-family: var(--yazi-sistem); text-align: center;
+}
+.kabuk .acilis-ekrani.bitti { display: none; }
+.ae-logo { display: grid; place-items: center; width: 84px; height: 84px; margin-bottom: .9rem; }
+.ae-logo svg { width: 84px; height: 84px; }
+.ae-ad { margin: 0; font-size: 2.3rem; animation: ae-gel .5s var(--egri) .12s both; }
+.ae-alt { margin: 0; color: var(--soluk); font-size: .95rem; animation: ae-gel .5s var(--egri) .22s both; }
+.acilis-ekrani.gidiyor { opacity: 0; transition: opacity .38s ease-out; pointer-events: none; }
+.acilis-ekrani.gidiyor .ae-logo { transform: scale(1.08); transition: transform .38s var(--egri); }
+@keyframes ae-gel { from { opacity: 0; transform: translateY(8px); } }
+
+/* ---------- Sabit üst çubuk: her sayfada (Profil dahil) aynı çubuk; başlık ve sağdaki eylemler değişir ---------- */
+.kabuk .ust-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; flex-wrap: nowrap; align-items: center; gap: .25rem;
+  min-height: calc(var(--ust-boy) + env(safe-area-inset-top)); margin: 0;
+  padding: env(safe-area-inset-top) max(.25rem, env(safe-area-inset-right)) 0 max(var(--kenar), env(safe-area-inset-left));
+  background: var(--malzeme); border-bottom: .5px solid transparent; color: var(--metin);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  transition: border-color .2s ease-out;
+  view-transition-name: ust-cubuk;
+}
+.kabuk.kaydirildi .ust-bar { border-bottom-color: var(--cizgi); }
+.kabuk:is(.kabuk-modulde, .arama-sayfasi) #ust-bar { display: none; }
+.kabuk .marka { display: flex; align-items: center; gap: .55rem; flex: 1; min-width: 0; margin: 0; font-size: 1.45rem; line-height: 1.15; color: var(--metin); }
+.kabuk #marka-ad { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-block: .1em; }
+.kabuk #marka-ad.baslik-gir { animation: baslik-gir .3s var(--egri-gir) both; }
+@keyframes baslik-gir { from { opacity: 0; transform: translateY(5px); } }
+.kabuk .marka-logo, .kabuk .marka-logo svg { width: 28px; height: 28px; flex: none; }
+:root.kabuk[data-sekme]:not([data-sekme="ana"]) .marka-logo { display: none; }
+.kabuk .ust-bar :is(.profil-cip, .dil-dugme, .tema-dugme) { display: none; }
+.kabuk .vitrin-dugmeler { display: flex; flex-wrap: nowrap; gap: 0; flex: none; }
+.kabuk :is(.ayar-dugme, .kabuk-ikon) {
+  position: relative; display: grid; place-items: center; width: 48px; height: 48px; min-width: 48px; padding: 0; border: 0; border-radius: 50%;
+  background: none; color: var(--metin); cursor: pointer; overflow: hidden; isolation: isolate;
+}
+.kabuk .ayar-dugme::before { display: none; }
+.kabuk :is(.ayar-dugme, .kabuk-ikon) svg { width: 22px; height: 22px; }
+.kabuk :is(.ayar-dugme, .kabuk-ikon):focus-visible { outline: 2px solid var(--vurgu); outline-offset: -4px; }
+/* Arama Keşfet ve Modüller'de (Ana sayfada kutu var); davet kodu yalnızca Modüller'de. */
+.kabuk #kabuk-davet, :root.kabuk:is([data-sekme="ana"], [data-sekme="profil"], [data-sekme="moduller"]) #kabuk-ara { display: none; }
+:root.kabuk[data-sekme="moduller"] #kabuk-davet { display: grid; }
+
+/* İçerik iki sabit çubuğun arasında kayar. */
+.kabuk:not(.kabuk-modulde) body { padding-top: var(--ust); padding-bottom: calc(var(--alt) + 12px); }
+.kabuk :is(.ana-ekran, .profil-ekrani) { min-height: calc(100dvh - var(--ust) - var(--alt) - 12px); background: var(--zemin); }
+:root.kabuk { scroll-padding-top: calc(var(--ust) + 12px); scroll-padding-bottom: calc(var(--alt) + 12px); }
+.kabuk .profil-ekrani .ust-serit { display: none; }
+
+/* ---------- Sabit alt gezinme ---------- */
+.kabuk .alt-gezinme {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: flex; justify-content: space-around; align-items: stretch;
+  min-height: calc(var(--alt-boy) + env(safe-area-inset-bottom));
+  padding: 0 max(.25rem, env(safe-area-inset-right)) env(safe-area-inset-bottom) max(.25rem, env(safe-area-inset-left));
+  background: var(--malzeme); border-top: .5px solid var(--cizgi); font-family: var(--yazi-sistem);
+  -webkit-backdrop-filter: saturate(1.6) blur(18px); backdrop-filter: saturate(1.6) blur(18px);
+  view-transition-name: alt-gezinme;
+}
+.kabuk .alt-gezinme[hidden], .kabuk.arama-sayfasi .alt-gezinme, .klavye-acik .alt-gezinme { display: none !important; }
+.alt-gezinme button {
+  position: relative; flex: 1 1 0; max-width: 168px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  min-height: 60px; padding: 8px 0 10px; border: 0; background: none; color: var(--soluk); font: inherit; cursor: pointer;
+}
+.ag-ikon { position: relative; display: grid; place-items: center; width: 60px; height: 32px; border-radius: 16px; isolation: isolate; transition: transform .2s var(--egri); }
+.ag-ikon::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--vurgu-zemin);
+  transform: scaleX(.3); opacity: 0; transition: transform .32s var(--egri-gir), opacity .2s ease-out;
+}
+.ag-ikon svg { width: 24px; height: 24px; }
+.ag-ad { font-size: .74rem; font-weight: 600; line-height: 1.2; letter-spacing: .01em; }
+.alt-gezinme button[aria-current="page"] { color: var(--metin); }
+.alt-gezinme button[aria-current="page"] .ag-ikon { color: var(--vurgu); }
+.alt-gezinme button[aria-current="page"] .ag-ikon::before { transform: none; opacity: 1; }
+.alt-gezinme button[aria-current="page"] .ag-ad { font-weight: 800; }
+.alt-gezinme button:active .ag-ikon { transform: scale(.9); }
+.alt-gezinme button:focus-visible { outline: none; }
+.alt-gezinme button:focus-visible .ag-ikon { outline: 2px solid var(--vurgu); outline-offset: 2px; }
+.kabuk .ag-ikon.dalgali { overflow: hidden; }
+@media (min-width: 760px) { .kabuk .alt-gezinme { justify-content: center; gap: 2rem; } }
+
+/* ---------- Sayfa geçişi: çubuklar yerinde; içerik yana değil, yerinde solup yükselerek gelir ---------- */
+.kabuk .sayfa-gir { animation: sayfa-gir .3s var(--egri-gir) both; }
+@keyframes sayfa-gir { from { opacity: 0; transform: translateY(10px); } }
+/* Sayfadaki bloklar sırayla yerine oturur. */
+.kabuk .sayfa-gir :is(.meydan-ana, .meydan-yan, .profil-icerik) > :not([hidden]) { animation: blok-gir .42s var(--egri-gir) both; }
+.kabuk .sayfa-gir :is(.meydan-ana, .meydan-yan, .profil-icerik) > :nth-child(2) { animation-delay: 40ms; }
+.kabuk .sayfa-gir :is(.meydan-ana, .meydan-yan, .profil-icerik) > :nth-child(3) { animation-delay: 80ms; }
+.kabuk .sayfa-gir :is(.meydan-ana, .meydan-yan, .profil-icerik) > :nth-child(n+4) { animation-delay: 120ms; }
+@keyframes blok-gir { from { opacity: 0; transform: translateY(16px); } }
+/* Kaydırdıkça beliren kartlar (kaydırmaya bağlı animasyon; desteklemeyen WebView'de kartlar doğrudan görünür). */
+@supports (animation-timeline: view()) {
+  .kabuk :is(.uygulama-listesi > li, .profil-basarimlar > .profil-modul, .meydan-yan > section) {
+    animation: kaydirinca-bel linear both; animation-timeline: view(); animation-range: entry 0% entry 60%;
+  }
+}
+@keyframes kaydirinca-bel { from { opacity: 0; transform: translateY(28px) scale(.97); } }
+/* Modül kapanınca (app.js görünüm geçişi) üst ve alt çubuk kısa sürede yerine gelir. */
+:root.kabuk::view-transition-group(ust-cubuk), :root.kabuk::view-transition-group(alt-gezinme) { animation-duration: .2s; }
+
+/* ---------- Bildirim: alttan, gezinme çubuğunun üstünde (snackbar) ---------- */
+.kabuk .bildirimler { top: auto; bottom: calc(var(--alt) + 12px); left: var(--kenar); right: var(--kenar); }
+.kabuk.kabuk-modulde .bildirimler { bottom: calc(1.2rem + env(safe-area-inset-bottom)); }
+.kabuk .bildirim { max-width: none; border-radius: 16px; background: var(--ana); color: var(--ana-metin); animation-name: kabuk-bildirim; -webkit-backdrop-filter: none; backdrop-filter: none; }
+@keyframes kabuk-bildirim { from { opacity: 0; transform: translateY(16px) scale(.98); } }
+
+/* ---------- Dokunma dalgası ---------- */
+.kabuk .dalgali { overflow: hidden; isolation: isolate; }
+.kabuk :is(.oc-kart, .tn-ileri, .dugme:not(.ikincil), .uygulama-satiri, .gunun-karti) .dalga { background: #fff; opacity: .2; }
+
+/* ---------- Yüklenirken iskelet: boş liste çıplak görünmesin ---------- */
+.kabuk :is(#moduller, #one-cikanlar, #secki):empty { min-height: 180px; border-radius: 20px; background: linear-gradient(100deg, var(--dolgu) 30%, var(--yuzey-2) 50%, var(--dolgu) 70%) 0 0 / 300% 100%; animation: iskelet 1.3s linear infinite; }
+.kabuk #moduller:empty { min-height: 520px; }
+.kabuk #one-cikanlar:empty { min-height: 300px; margin-inline: var(--kenar); }
+.kabuk #secki:empty { min-height: 200px; margin-inline: var(--kenar); }
+@keyframes iskelet { to { background-position: -150% 0; } }
+
+/* ---------- Erişilebilirlik tercihleri her zaman üstün ---------- */
+:root.kontrast.kabuk :is(.alt-gezinme, .ust-bar) { background: #000; border-color: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root.kontrast .alt-gezinme button[aria-current="page"] .ag-ikon::before { background: #ffd400; }
+:root.kontrast .alt-gezinme button[aria-current="page"] { color: #fff; }
+:root.kontrast .alt-gezinme button[aria-current="page"] .ag-ikon { color: #000; }
+:root.buyuk-hedef .alt-gezinme button { min-height: 72px; }
+:root.hareket-az.kabuk :is(.ae-ad, .ae-alt, .sayfa-gir, .sayfa-gir *, #marka-ad, .bildirim, .uygulama-listesi > li, .profil-basarimlar > *, .meydan-yan > *) { animation: none !important; }
+:root.hareket-az.kabuk :is(.acilis-ekrani.gidiyor, .ag-ikon, .ag-ikon::before) { transition: none; }
+:root.hareket-az .kabuk :is(#moduller, #one-cikanlar, #secki):empty, :root.hareket-az.kabuk :is(#moduller, #one-cikanlar, #secki):empty { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .kabuk :is(.ae-ad, .ae-alt, .sayfa-gir, .sayfa-gir *, #marka-ad, .bildirim, .uygulama-listesi > li, .profil-basarimlar > *, .meydan-yan > *, #moduller, #one-cikanlar, #secki) { animation: none !important; }
+  .kabuk :is(.ag-ikon, .ag-ikon::before) { transition: none; }
+}

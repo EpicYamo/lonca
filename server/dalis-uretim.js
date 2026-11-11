@@ -1,23 +1,21 @@
 // Dalış karesi üretimi: gerçek fotoğraf hazırlama, yapay zekâ ile kare üretme/düzenleme, uydu karesi dikme.
 // Hem komut satırı aracı (araclar/dalis-uret.mjs) hem dalış kalfası (server/dalis-kalfasi.js) bunu kullanır.
 //
-// OpenAI uyumlu bir uç nokta gerekir (.env):
-//   DALIS_API_URL (yoksa USTAGPT_BASE_URL), DALIS_API_ANAHTARI (yoksa USTAGPT_API_KEY)
-//   DALIS_MODELLER="sohbet:gemini-3.1-flash-image,nano-banana-2"  görsel üretim (sırayla denenir;
-//     "sohbet:" önekliler /chat/completions ile, ötekiler /images/edits ile çağrılır)
+// OpenAI uyumlu bir uç nokta gerekir; uç nokta ve modeller server/kalfa-ayarlari.js'de çözülür:
+//   UstaGPT (USTAGPT_BASE_URL + USTAGPT_API_KEY) birincildir; DALIS_API_URL / DALIS_API_ANAHTARI başka bir uç nokta verir.
+//   Görsel modeller (sırayla denenir): Studio'daki seçim > DALIS_MODELLER > varsayılan.
+//     "sohbet:" önekliler /chat/completions ile, ötekiler /images/edits (ya da /images/generations) ile çağrılır.
+//   Metin modelleri: Studio'daki seçim > DALIS_METIN_MODELLERI > varsayılan.
 // Dış araçlar: ffmpeg, python3 + Pillow.
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { dalisSaglayicisi } from "./kalfa-ayarlari.js";
 
 export function dalisAyarlari(ortam = process.env) {
-  return {
-    api: (ortam.DALIS_API_URL || ortam.USTAGPT_BASE_URL || "").replace(/\/$/, ""),
-    anahtar: ortam.DALIS_API_ANAHTARI || ortam.USTAGPT_API_KEY || "",
-    modeller: (ortam.DALIS_MODELLER || "sohbet:gemini-3.1-flash-image,nano-banana-2").split(",").map((s) => s.trim()).filter(Boolean),
-    metinModelleri: (ortam.DALIS_METIN_MODELLERI || "gemini-3.5-flash,gpt-6.1-sol").split(",").map((s) => s.trim()).filter(Boolean),
-  };
+  const { api, anahtar, modeller, metinModelleri } = dalisSaglayicisi(ortam);
+  return { api, anahtar, modeller, metinModelleri };
 }
 
 export const dunyaPx = (lat, lng, z) => {
@@ -164,7 +162,7 @@ export function dalisUretici({ kok, eser, onek = "", boyut = [1024, 1536], uyumE
   async function gercekKare(kare) {
     let kaynak = yerel(kare.kaynak), model = null;
     if (kare.netlestir) try {
-      const r = await yapayZeka(`${kare.ad}/net`, "Restore this exact photograph at high resolution: identical composition, framing, content and colours; recover fine architectural detail, remove JPEG artifacts and noise. Do not add, remove or move anything. Return only the image.", [kaynak], "sohbet:gemini-3.1-flash-image");
+      const r = await yapayZeka(`${kare.ad}/net`, "Restore this exact photograph at high resolution: identical composition, framing, content and colours; recover fine architectural detail, remove JPEG artifacts and noise. Do not add, remove or move anything. Return only the image.", [kaynak]);
       const [w, h] = execFileSync("ffprobe", ["-v", "error", "-show_entries", "stream=width,height", "-of", "csv=p=0", kaynak]).toString().trim().split(",").map(Number);
       const net = join(GECICI, `${kare.ad}-net.png`), nh = Math.round((EN * h) / w);
       execFileSync("ffmpeg", ["-v", "error", "-y", "-i", r.ham, "-vf", `scale=${EN}:${nh}:force_original_aspect_ratio=increase:flags=lanczos,crop=${EN}:${nh}`, net]);
@@ -177,7 +175,7 @@ export function dalisUretici({ kok, eser, onek = "", boyut = [1024, 1536], uyumE
     const yer = { ust: 0, orta: 0.5, alt: 1 }[kare.yer ?? "orta"] ?? 0.5;
     const [y, h] = execFileSync("python3", ["-c", PY_YER, kaynak, tuval, String(EN), String(BOY), String(yer)], { cwd: GECICI }).toString().trim().split(" ").map(Number);
     const istem = `${ONEK}This tall portrait canvas has a real photograph in one horizontal band (from y=${Math.round((y / BOY) * 100)}% to y=${Math.round(((y + h) / BOY) * 100)}% of the height); the flat grey areas are empty. Outpaint: fill ONLY the flat grey areas so the whole frame is one seamless, realistic photo: continue the sky, hills, buildings, ground, paving and foliage with correct perspective, lighting and colour. Keep the photograph band exactly as it is and match its colours, haze and sky gradient seamlessly at the borders; never repeat or duplicate the main building. ${kare.genisletIstem ?? ""}`;
-    const r = await yapayZeka(kare.ad, istem, [tuval], "sohbet:gemini-3.1-flash-image");
+    const r = await yapayZeka(kare.ad, istem, [tuval]);
     const ara = join(GECICI, `${kare.ad}-birlesik.jpg`);
     const [sonuc, fark] = execFileSync("python3", ["-c", PY_YAPISTIR, r.ham, kaynak, ara, String(EN), String(BOY), String(y), String(h), String(uyumEsigi)], { cwd: GECICI }).toString().trim().split(" ");
     gunluk(`    ${kare.ad}: gerçek band ${sonuc === "yapistirildi" ? "geri yapıştırıldı" : "hizalanmadı, YZ görüntüsü kullanıldı"} (fark ${fark})`);
@@ -231,7 +229,7 @@ export function dalisUretici({ kok, eser, onek = "", boyut = [1024, 1536], uyumE
 /** OpenAI uyumlu sohbet: metin (ve isteğe bağlı görseller) gönderir, yanıt metnini döndürür. Modeller sırayla denenir. */
 export async function dalisSohbet({ sistem, metin, gorseller = [], ortam = process.env, maks = 4000, zamanAsimi = 120_000, modeller = null }) {
   const ayar = dalisAyarlari(ortam);
-  if (!ayar.api || !ayar.anahtar) throw new Error("Dalış kalfası için DALIS_API_URL ve DALIS_API_ANAHTARI (.env) gerekli");
+  if (!ayar.api || !ayar.anahtar) throw new Error("Dalış kalfası için .env'de USTAGPT_BASE_URL ve USTAGPT_API_KEY (ya da DALIS_API_URL ve DALIS_API_ANAHTARI) gerekli");
   const icerik = [{ type: "text", text: metin }, ...gorseller.map((yol) => ({
     type: "image_url", image_url: { url: `data:image/jpeg;base64,${readFileSync(yol).toString("base64")}` },
   }))];
