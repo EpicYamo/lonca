@@ -1,23 +1,31 @@
 # Lonca
 
-An AI-assisted mini-app platform for foundation heritage sites.
+AI-assisted mini-apps for foundation heritage. Explore published modules or
+describe an idea for the AI journeyman to build.
+
 **KÖK&KOD Hackathon — Team Kozmos.**
 
 > **You are the master. The AI is your journeyman.**
 
-## Live presentation
+## Screenshots
 
 <p align="center">
-  <a href="https://kozmos.itaskira.com/sunum/"><strong>▶ Open the interactive presentation</strong></a>
+  <strong>Lonca app</strong>
 </p>
 
 <p align="center">
-  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-ana.webp" width="180" alt="Lonca app home screen"></a>
-  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-atlas-oyun.webp" width="180" alt="Lonca heritage atlas game"></a>
-  <a href="https://kozmos.itaskira.com/sunum/"><img src="public/sunum/gorsel/ekran-dalis-uydu.webp" width="180" alt="Lonca AI-assisted heritage dive"></a>
+  <img src="public/sunum/gorsel/ekran-ana.webp" width="180" alt="Lonca app home screen">
+  <img src="public/sunum/gorsel/ekran-atlas-oyun.webp" width="180" alt="Lonca heritage atlas game">
+  <img src="public/sunum/gorsel/ekran-dalis-uydu.webp" width="180" alt="Lonca AI-assisted heritage dive">
 </p>
 
-<p align="center"><sub>Click any screenshot to open the live, interactive presentation.</sub></p>
+<p align="center"><strong>Lonca Studio</strong></p>
+
+<p align="center">
+  <img src="public/readme/studio.jpg" alt="Lonca Studio with the AI journeyman, module editor and live preview">
+</p>
+
+<p align="center"><sub>Studio screenshot uses the offline demo journeyman; no AI provider is required to try the project locally.</sub></p>
 
 **Lonca** (`/app/`) is the citizen-facing app. It lists published modules like an
 app store; opening one hands the whole screen to that module, which behaves like
@@ -35,7 +43,7 @@ SDK, so a generated app cannot invent history.
 ## Contents
 
 - [Setup](#setup)
-- [Live presentation](#live-presentation)
+- [Screenshots](#screenshots)
 - [Commands](#commands)
 - [Architecture](#architecture)
 - [A module is an independent mini app](#a-module-is-an-independent-mini-app)
@@ -47,9 +55,6 @@ SDK, so a generated app cannot invent history.
 - [Real 3D](#real-3d)
 - [Folders](#folders)
 - [Licenses](#licenses)
-
-The presentation can also be deployed as a standalone static site on Netlify; see
-[docs/sunum-deploy.md](docs/sunum-deploy.md).
 
 ## Setup
 
@@ -199,7 +204,6 @@ adb shell monkey -p com.kozmos.lonca -c android.intent.category.LAUNCHER 1  # la
 | `npm run test:erisim` | Browser-based accessibility checks (axe and keyboard flows) |
 | `npm run konum` | Finds work coordinates through Google Places / OpenStreetMap (`-- --dene` only prints) |
 | `npm run vendor` | Re-bundles the real 3D library for the browser |
-| `npm run build:sunum` | Builds a presentation-only static site in `dist/sunum-netlify/` |
 | `npm run lint` · `npm run format:check` · `npm run denetle` | ESLint, Prettier and data/module consistency checks (all run in CI) |
 
 Branch flow (`dev` → `main` → `build`), CI jobs and APK releases are described in [docs/ci-cd.md](docs/ci-cd.md).
