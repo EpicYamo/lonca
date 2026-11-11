@@ -35,11 +35,12 @@ AI mini-apps for foundation heritage, powered by a custom-built AI journeyman.
 ## What makes Lonca different?
 
 Lonca's core is its custom-built AI agent: the **journeyman**. In Studio, a maker
-describes an idea; the agent searches verified foundation records, builds a
-mini-app against the Lonca SDK, audits the code, and opens it in a live preview.
-The finished module is submitted for approval before editors publish it in the
-mobile app. Modules read verified records through the SDK, grounding each
-experience in the heritage catalogue instead of invented history.
+describes an idea; the agent searches verified foundation records and builds a
+mini-app using the Lonca SDK. Before the code reaches the live preview, the
+server validates it against platform rules and SDK types. The finished module
+is submitted for approval before editors publish it in the mobile app. Modules
+read verified records through the SDK, grounding each experience in the
+heritage catalogue instead of invented history.
 
 ## Contents
 
